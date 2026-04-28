@@ -2,7 +2,7 @@
 
 <a href="https://github.com/tam159/next-role" target="_blank">
   <picture>
-    <img alt="OpenViking" src="docs/images/next-role-logo.png" width="auto" height="auto">
+    <img alt="OpenViking" src="docs/images/next-role-logo-small.png" width="auto" height="auto">
   </picture>
 </a>
 
