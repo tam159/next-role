@@ -14,7 +14,7 @@
 
 # NextRole 🚀
 
-Welcome to **NextRole**, an open-source, GenAI-powered career assistant designed to take the friction out of landing your next big opportunity. 
+Welcome to **NextRole**, an open-source, GenAI-powered career assistant designed to take the friction out of landing your next big opportunity.
 
 Whether you are applying to a brand-new company or aiming for a promotion within your current organization, preparing for an interview takes hours of tedious tailoring and deep research. NextRole automates the heavy lifting so you can focus on putting your best foot forward.
 
@@ -27,4 +27,3 @@ Simply upload your current CV and your target Job Description (JD). NextRole wil
 - **🗓️ Time-Based Prep Plans:** Whether you have 1 month, 2 weeks, or just 3 hours, NextRole builds a personalized study schedule based on your remaining time.
 - **🎯 Interview Strategy:** Suggests high-impact introductions, specific projects to showcase, and a curated list of questions to both answer and ask.
 - **⚡ 11th-Hour Cheat Sheet:** Generates a highly condensed, quick-glance cheat sheet designed for that final high-pressure review right before the interview begins.
-
