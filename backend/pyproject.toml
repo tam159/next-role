@@ -37,7 +37,7 @@ dependencies = [
 
 [tool.ruff]
 target-version = "py313"
-line-length = 88
+line-length = 100
 
 [tool.ruff.format]
 docstring-code-format = true
