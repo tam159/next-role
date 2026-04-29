@@ -1,0 +1,120 @@
+[dependency-groups]
+dev = [
+  "ruff>=0.15.12",
+  "pytest>=9.0.3",
+  "pytest-asyncio>=1.3.0",
+  "pytest-cov>=7.1.0",
+  "pre-commit>=4.6.0",
+  "toml-sort>=0.24.4",
+  "ty>=0.0.32"
+]
+
+[project]
+name = "NextRole"
+version = "0.0.1"
+description = "GenAI-Accelerated Career Advancement"
+authors = [
+  {name = "Tam Nguyen", email = "npt.dc@outlook.com"}
+]
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+  "langchain>=1.2.15",
+  "langchain-aws>=1.4.5",
+  "langchain-openai>=1.2.1",
+  "langchain-anthropic>=1.4.1",
+  "langchain-google-genai>=4.2.2",
+  "langchain-tavily>=0.2.18",
+  "langgraph>=1.1.10",
+  "deepagents>=0.5.3",
+  "pydantic-settings>=2.14.0",
+  "python-dotenv>=1.2.2",
+  "tavily-python>=0.7.24",
+  "types-python-dateutil>=2.9.0.20260408",
+  "types-pyyaml>=6.0.12.20260408",
+  "types-requests>=2.33.0.20260408"
+]
+
+[tool.ruff]
+target-version = "py313"
+line-length = 88
+
+[tool.ruff.format]
+docstring-code-format = true
+
+[tool.ruff.lint]
+# Allow unused variables when underscore-prefixed.
+dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
+# Enable pycodestyle (`E`) and Pyflakes (`F`) codes by default.
+# select = ["AIR", "ARG", "B", "D", "E", "F", "I", "ICN", "N", "PD", "PT", "PTH", "RET", "TD", "TID", "W"]
+# select = ["A", "B", "C", "D", "E", "F", "G", "I", "N", "Q", "S", "T", "W", "ANN", "ARG", "BLE", "COM", "DJ", "EM", "ERA", "EXE", "ICN", "INP", "ISC", "NPY", "PD", "PGH", "PIE", "PL", "PT", "PTH", "PYI", "RET", "RSE", "RUF", "SIM", "SLF", "TCH", "TID", "UP", "YTT"]
+select = ["ALL"]
+ignore = [
+  "ANN", # Type hints related, let mypy/pyright handle these.
+  "ARG001", # Unused function argument - OK for Celery tasks with bind=True
+  "B008", # Function call in argument defaults - OK for FastAPI Depends()
+  "BLE001", # Blind exception catching - OK for health checks and error handlers
+  "C901", # Function is too complex - OK for data preparation functions
+  "COM812", # "Trailing comma missing". If black is happy, I'm happy.
+  "D104", # "Missing docstring in public package"
+  "D107", # "Missing docstring in __init__"
+  "D212", # "Multi-line docstring summary should start at the first line"
+  "D203", # "1 blank line required before class docstring"
+  "D401", # Imperative mood for docstrings - OK as is
+  "DTZ001", # "The use of datetime.datetime() without tzinfo argument is not allowed". It's OK for Airflow DAG start_date
+  "DTZ003", # datetime.utcnow() - We use it for naive UTC timestamps
+  "E501", # "Line too long". If black is happy, I'm happy.
+  "EM101", # "Exception must not use a string literal, assign to variable first". It's OK
+  "EM102", # "Exception must not use an f-string literal, assign to variable first". It's OK
+  "ERA001", # Commented-out code - Keep for S3 future implementation
+  "FAST001", # FastAPI response_model - Can be explicit for clarity
+  "FAST002", # FastAPI Annotated - Not required for Depends
+  "FBT003", # "Boolean positional value in function call". I need to defind Spark StructField not NULL columns
+  "FIX002", # "Line contains TODO, consider resolving the issue". It's OK
+  "G004", # "Logging statement uses f-string". Will try to logger.info("Hello, %s!", name)
+  "INP001", # "File {filename} is part of an implicit namespace package. Add an __init__.py". dags folder doesn't need __init__.py
+  "PLC0415", # Import not at top-level - OK for conditional imports in functions
+  "PLR0913", # "Too many arguments to function call ({c_args} > {max_args})". It's OK for some functions
+  "PLR2004", # Magic values in comparisons - OK for simple constants
+  "PLW2901", # Loop variable overwritten - OK for error handling in loops
+  "RET504", # "Unnecessary variable assignment before return statement". It's OK to make result clearer
+  "S307", # eval() usage - OK for parsing Redis string data
+  "SIM102", # Use single if - Nested if for clarity is OK
+  "TRY301", # Abstract raise to inner function - Unnecessary for simple cases
+  "TRY401" # Redundant exception in logging.exception - Explicit is clearer
+]
+# Allow autofix for all enabled rules (when `--fix`) is provided.
+fixable = ["ALL"]
+unfixable = []
+# Exclude a variety of commonly ignored directories.
+exclude = [
+  ".bzr",
+  ".direnv",
+  ".eggs",
+  ".git",
+  ".git-rewrite",
+  ".hg",
+  ".mypy_cache",
+  ".nox",
+  ".pants.d",
+  ".pytype",
+  ".ruff_cache",
+  ".svn",
+  ".tox",
+  ".venv",
+  "__pypackages__",
+  "_build",
+  "buck-out",
+  "build",
+  "dist",
+  "node_modules",
+  "notebooks",
+  "venv"
+]
+
+[tool.ruff.lint.mccabe]
+max-complexity = 10
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["F401"]
+"**/notebooks/**/*.ipynb" = ["D100"]
