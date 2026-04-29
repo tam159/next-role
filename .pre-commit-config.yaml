@@ -31,7 +31,7 @@ repos:
     hooks:
       - id: backend-typecheck
         name: Backend Type Check
-        entry: uv run ty check --ignore unresolved-import
+        entry: uv run ty check
         language: system
         files: ^backend/
         types_or: [python, pyi, jupyter, pyproject]
