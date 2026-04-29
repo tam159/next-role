@@ -9,7 +9,7 @@ importers:
   .:
     dependencies:
       '@langchain/core':
-        specifier: ^1.1.41
+        specifier: ^1.1.42
         version: 1.1.42
       '@langchain/langgraph':
         specifier: ^1.2.9
@@ -18,7 +18,7 @@ importers:
         specifier: 1.8.9
         version: 1.8.9(@langchain/core@1.1.42)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
       '@radix-ui/colors':
-        specifier: ^1.0.0
+        specifier: ^1.0.1
         version: 1.0.1
       '@radix-ui/react-dialog':
         specifier: ^1.1.15
@@ -27,7 +27,7 @@ importers:
         specifier: ^2.1.8
         version: 2.1.8(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
       '@radix-ui/react-scroll-area':
-        specifier: ^1.2.9
+        specifier: ^1.2.10
         version: 1.2.10(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
       '@radix-ui/react-select':
         specifier: ^2.2.6
@@ -39,13 +39,13 @@ importers:
         specifier: ^1.2.6
         version: 1.2.6(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
       '@radix-ui/react-tabs':
-        specifier: ^1.1.12
+        specifier: ^1.1.13
         version: 1.1.13(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
       '@radix-ui/react-tooltip':
-        specifier: ^1.2.7
+        specifier: ^1.2.8
         version: 1.2.8(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
       '@types/diff':
-        specifier: ^5.0.3
+        specifier: ^5.2.3
         version: 5.2.3
       '@types/react-syntax-highlighter':
         specifier: ^15.5.13
@@ -63,10 +63,10 @@ importers:
         specifier: ^4.1.0
         version: 4.1.0
       diff:
-        specifier: ^8.0.3
+        specifier: ^8.0.4
         version: 8.0.4
       js-yaml:
-        specifier: ^4.1.0
+        specifier: ^4.1.1
         version: 4.1.1
       lodash:
         specifier: ^4.18.1
@@ -75,10 +75,10 @@ importers:
         specifier: ^0.539.0
         version: 0.539.0(react@19.1.0)
       next:
-        specifier: ^16.2.3
+        specifier: ^16.2.4
         version: 16.2.4(@babel/core@7.29.0)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)(sass@1.99.0)
       nuqs:
-        specifier: ^2.8.8
+        specifier: ^2.8.9
         version: 2.8.9(next@16.2.4(@babel/core@7.29.0)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)(sass@1.99.0))(react@19.1.0)
       react:
         specifier: 19.1.0
@@ -87,16 +87,16 @@ importers:
         specifier: 19.1.0
         version: 19.1.0(react@19.1.0)
       react-markdown:
-        specifier: ^9.0.1
+        specifier: ^9.1.0
         version: 9.1.0(@types/react@19.2.14)(react@19.1.0)
       react-resizable-panels:
         specifier: ^3.0.6
         version: 3.0.6(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
       react-syntax-highlighter:
-        specifier: ^15.6.1
+        specifier: ^15.6.6
         version: 15.6.6(react@19.1.0)
       remark-gfm:
-        specifier: ^4.0.0
+        specifier: ^4.0.1
         version: 4.0.1
       sass:
         specifier: ^1.99.0
@@ -108,10 +108,10 @@ importers:
         specifier: ^2.4.1
         version: 2.4.1(react@19.1.0)
       tailwind-merge:
-        specifier: ^2.6
+        specifier: ^2.6.1
         version: 2.6.1
       use-stick-to-bottom:
-        specifier: ^1.1.1
+        specifier: ^1.1.3
         version: 1.1.3(react@19.1.0)
       uuid:
         specifier: ^9.0.1
@@ -130,43 +130,43 @@ importers:
         specifier: ^0.1.1
         version: 0.1.1(tailwindcss@3.4.19)
       '@tailwindcss/forms':
-        specifier: ^0.5.7
+        specifier: ^0.5.11
         version: 0.5.11(tailwindcss@3.4.19)
       '@tailwindcss/typography':
-        specifier: ^0.5.9
+        specifier: ^0.5.19
         version: 0.5.19(tailwindcss@3.4.19)
       '@types/js-yaml':
         specifier: ^4.0.9
         version: 4.0.9
       '@types/node':
-        specifier: ^20
+        specifier: ^20.19.39
         version: 20.19.39
       '@types/react':
-        specifier: ^19
+        specifier: ^19.2.14
         version: 19.2.14
       '@types/react-dom':
-        specifier: ^19
+        specifier: ^19.2.3
         version: 19.2.3(@types/react@19.2.14)
       autoprefixer:
-        specifier: ^10.4.24
+        specifier: ^10.5.0
         version: 10.5.0(postcss@8.5.12)
       eslint:
-        specifier: ^9
+        specifier: ^9.39.4
         version: 9.39.4(jiti@1.21.7)
       eslint-config-next:
-        specifier: '16'
+        specifier: ^16.2.4
         version: 16.2.4(@typescript-eslint/parser@8.59.1(eslint@9.39.4(jiti@1.21.7))(typescript@5.9.3))(eslint@9.39.4(jiti@1.21.7))(typescript@5.9.3)
       eslint-plugin-react-hooks:
         specifier: ^5.2.0
         version: 5.2.0(eslint@9.39.4(jiti@1.21.7))
       eslint-plugin-react-refresh:
-        specifier: ^0.4
+        specifier: ^0.4.26
         version: 0.4.26(eslint@9.39.4(jiti@1.21.7))
       globals:
         specifier: ^17.5.0
         version: 17.5.0
       postcss:
-        specifier: ^8.5.6
+        specifier: ^8.5.12
         version: 8.5.12
       prettier:
         specifier: ^3.8.3
@@ -175,7 +175,7 @@ importers:
         specifier: ^0.8.0
         version: 0.8.0(prettier@3.8.3)
       tailwindcss:
-        specifier: ^3.4.4
+        specifier: ^3.4.19
         version: 3.4.19
       tailwindcss-animate:
         specifier: ^1.0.7
@@ -184,7 +184,7 @@ importers:
         specifier: ^5.9.3
         version: 5.9.3
       typescript-eslint:
-        specifier: ^8.54.0
+        specifier: ^8.59.1
         version: 8.59.1(eslint@9.39.4(jiti@1.21.7))(typescript@5.9.3)
 
 packages:
@@ -1484,8 +1484,8 @@ packages:
   base64-js@1.5.1:
     resolution: {integrity: sha512-AKpaYlHn8t4SVbOHCy+b5+KKgvR4vrsD8vbvrbiQJps7fKDTkjkDry6ji0rUJjC0kzbNePLwzxq8iypo41qeWA==}
 
-  baseline-browser-mapping@2.10.23:
-    resolution: {integrity: sha512-xwVXGqevyKPsiuQdLj+dZMVjidjJV508TBqexND5HrF89cGdCYCJFB3qhcxRHSeMctdCfbR1jrxBajhDy7o29g==}
+  baseline-browser-mapping@2.10.24:
+    resolution: {integrity: sha512-I2NkZOOrj2XuguvWCK6OVh9GavsNjZjK908Rq3mIBK25+GD8vPX5w2WdxVqnQ7xx3SrZJiCiZFu+/Oz50oSYSA==}
     engines: {node: '>=6.0.0'}
     hasBin: true
 
@@ -2304,8 +2304,8 @@ packages:
   keyv@4.5.4:
     resolution: {integrity: sha512-oxVHkHR/EJf2CNXnWxRLW6mg7JyCCUcG0DtEGmL2ctUo1PNTin1PUil+r/+4r5MpVgC/fn1kjsx7mjSujKqIpw==}
 
-  langsmith@0.5.25:
-    resolution: {integrity: sha512-AG7NOymrDmwaWq+wus5hJHZjPFKXwsEdfqGBU3eZiF5242mme+5wuJocdBJKGyU1kgBO7TuLHiqtdyIwl4V4yQ==}
+  langsmith@0.5.26:
+    resolution: {integrity: sha512-HmmFgeQR2n9x1Kq8NiVaNL/j72ta71qN11hYjbyePJ/QuYEnOMhQjbNv9KeyKB3bOetpIzNalQbhHm+RyKoPRQ==}
     peerDependencies:
       '@opentelemetry/api': '*'
       '@opentelemetry/exporter-trace-otlp-proto': '*'
@@ -3702,7 +3702,7 @@ snapshots:
       camelcase: 6.3.0
       decamelize: 1.2.0
       js-tiktoken: 1.0.21
-      langsmith: 0.5.25
+      langsmith: 0.5.26
       mustache: 4.2.0
       p-queue: 6.6.2
       zod: 4.3.6
@@ -4584,7 +4584,7 @@ snapshots:
 
   base64-js@1.5.1: {}
 
-  baseline-browser-mapping@2.10.23: {}
+  baseline-browser-mapping@2.10.24: {}
 
   binary-extensions@2.3.0: {}
 
@@ -4603,7 +4603,7 @@ snapshots:
 
   browserslist@4.28.2:
     dependencies:
-      baseline-browser-mapping: 2.10.23
+      baseline-browser-mapping: 2.10.24
       caniuse-lite: 1.0.30001791
       electron-to-chromium: 1.5.344
       node-releases: 2.0.38
@@ -5530,7 +5530,7 @@ snapshots:
     dependencies:
       json-buffer: 3.0.1
 
-  langsmith@0.5.25:
+  langsmith@0.5.26:
     dependencies:
       p-queue: 6.6.2
 
@@ -5963,7 +5963,7 @@ snapshots:
     dependencies:
       '@next/env': 16.2.4
       '@swc/helpers': 0.5.15
-      baseline-browser-mapping: 2.10.23
+      baseline-browser-mapping: 2.10.24
       caniuse-lite: 1.0.30001791
       postcss: 8.4.31
       react: 19.1.0
