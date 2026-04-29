@@ -1,0 +1,87 @@
+volumes:
+  pg-data:
+    driver: local
+
+services:
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    working_dir: /deps/next-role/frontend
+    ports:
+      - "${FRONTEND_LOCAL_PORT}:3000"
+    environment:
+      PORT: 3000
+      NEXT_PUBLIC_LANGGRAPH_DEPLOYMENT_URL: ${NEXT_PUBLIC_LANGGRAPH_DEPLOYMENT_URL}
+      NEXT_PUBLIC_LANGGRAPH_ASSISTANT_ID: ${NEXT_PUBLIC_LANGGRAPH_ASSISTANT_ID}
+      NEXT_PUBLIC_LANGSMITH_API_KEY: ${NEXT_PUBLIC_LANGSMITH_API_KEY}
+    volumes:
+      - .:/deps/next-role
+      - /deps/next-role/frontend/node_modules
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "node -e \"fetch('http://localhost:3000/').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))\"",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  redis:
+    image: redis:8
+    ports:
+      - "${REDIS_LOCAL_PORT}:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 1s
+      retries: 5
+
+  postgres:
+    image: pgvector/pgvector:pg18
+    ports:
+      - "${POSTGRES_LOCAL_PORT}:5432"
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - pg-data:/var/lib/postgresql/18/docker
+      - ./backend/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      start_period: 10s
+      timeout: 1s
+      retries: 5
+      interval: 60s
+      start_interval: 1s
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "${LANGGRAPH_LOCAL_PORT}:8000"
+    volumes:
+      - .:/deps/next-role
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    environment:
+      REDIS_URI: redis://redis:6379
+      POSTGRES_URI: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      LANGSMITH_LANGGRAPH_DESKTOP: "true"
+      LANGSERVE_GRAPHS: >-
+        {
+          "career_agent": "/deps/next-role/backend/app/career_agent/agents.py:career_agent"
+        }
+    env_file: .env
+    healthcheck:
+      test: ["CMD", "python", "/api/healthcheck.py"]
+      interval: 60s
+      start_interval: 1s
+      start_period: 10s
