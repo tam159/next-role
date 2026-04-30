@@ -1,0 +1,15 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "f=$(jq -r '.tool_input.file_path // .tool_response.filePath // empty'); [ -z \"$f\" ] && exit 0; case \"$f\" in \"$CLAUDE_PROJECT_DIR/backend/\"*.py) (cd \"$CLAUDE_PROJECT_DIR/backend\" && uv run ruff format --quiet \"$f\");; \"$CLAUDE_PROJECT_DIR/frontend/\"*.ts|\"$CLAUDE_PROJECT_DIR/frontend/\"*.tsx|\"$CLAUDE_PROJECT_DIR/frontend/\"*.js|\"$CLAUDE_PROJECT_DIR/frontend/\"*.jsx|\"$CLAUDE_PROJECT_DIR/frontend/\"*.json|\"$CLAUDE_PROJECT_DIR/frontend/\"*.md) (cd \"$CLAUDE_PROJECT_DIR/frontend\" && pnpm exec prettier --write --log-level=error \"$f\");; esac"
+          }
+        ]
+      }
+    ]
+  }
+}
