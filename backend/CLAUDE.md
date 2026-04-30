@@ -18,8 +18,13 @@ Python 3.13 backend. Built on LangChain / LangGraph / DeepAgents for the career-
 - Underscore-prefixed names are allowed unused (`dummy-variable-rgx`).
 - Per-file: `__init__.py` allows `F401` (re-exports); notebooks allow `D100`.
 
+## Local database
+
+- **Postgres 18 + pgvector** via `docker compose up postgres`. Connection: `POSTGRES_URI` in `.env`; local port is `${POSTGRES_LOCAL_PORT}` (default `5449`). Driver is `psycopg` (psycopg3).
+- **Schema is owned by `langchain/langgraph-api:3.13`** (the backend's base image). It runs its own migrations on container startup — don't write or expect Alembic/SQLModel migrations of your own. `backend/init.sql` only enables the `vector` extension at first volume creation.
+- **To understand the schema, query the live DB** via the `next-role-postgres` MCP (`@bytebase/dbhub`). Default schema is `public`. Prefer it over reading source: list tables → describe the ones relevant to the task. Don't shell into `psql`.
+
 ## Gotchas
 
 - LLM provider keys (OpenAI / Anthropic / Google / AWS / Tavily) come from `.env` via `pydantic-settings` and `python-dotenv`. Don't hardcode.
 - `langchain` is on the v1 line (`>=1.2`); APIs differ from older v0.x snippets you may see online.
-- `init.sql` exists at the backend root — schema bootstrap for the local DB.
