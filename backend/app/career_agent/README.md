@@ -1,6 +1,6 @@
 # Career Agent
 
-**This example demonstrates how to define an agent through three filesystem primitives:**
+**Define an agent through three filesystem primitives:**
 
 - **Memory** (`AGENTS.md`) – persistent context like brand voice and style guidelines
 - **Skills** (`skills/*/SKILL.md`) – workflows for specific tasks, loaded on demand
@@ -42,7 +42,7 @@ subagents=[
     {
         "name": "researcher",
         "description": "Research topics before writing...",
-        "model": "anthropic:claude-haiku-4-5-20251001",
+        "model": "anthropic:claude-sonnet-4-6",
         "system_prompt": "You are a research assistant...",
         "tools": [web_search],
     }
@@ -51,28 +51,57 @@ subagents=[
 
 **Flow:**
 
-1. Agent receives task → loads relevant skill (custom-resume or interview-prep)
-2. Delegates research to `researcher` subagent → saves to `research/`
-3. Generates custom resume → saves to `custom-resume/`
-4. Generates interview preparation → saves to `interview-prep/`
-5. Generates interview cheat sheet → saves to `interview-cheat-sheet/`
+1. User uploads CV and optional JD → saves to `upload/raw`
+2. Agent processes the uploaded documents → saves to `/upload/processed`
+3. Agent uderstands task → loads relevant skill
+4. Agent plans tasks → uses `write_todos` tool
+5. Delegates research to the subagent → saves to `/research/`
+6. Generates custom resume → saves to `custom_resume/`
+7. Generates interview preparation → saves to `/interview_prep/`
+8. Generates interview cheat sheet → saves to `interview_cheat_sheet/`
 
-## Output
+## File Upload (v1)
+
+Users upload raw CV / JD files (PDF, DOC, DOCX, TXT, MD; up to 10 MB each) from
+the frontend in two places:
+
+- **Chat composer** — paperclip icon in the message input.
+- **Workspace > Files** — Upload button in the section header.
+
+Both surfaces POST `multipart/form-data` to the Next.js route
+`/api/files/upload`, which validates the path against the
+`AGENT_FILE_SOURCES.career_agent.disk` allowlist
+(`frontend/src/app/config/agentFiles.ts`) and writes bytes directly to
+`backend/app/career_agent/upload/raw/<filename>` via the shared `.:/deps/next-role`
+volume mount in `docker-compose.yml`. The agent's `FilesystemBackend(root_dir=CAREER_AGENT_DIR)`
+picks files up on the next tool call — no Python-side endpoint is involved.
+
+Re-uploading the same filename overwrites. Scoping is global per the layout above
+(no per-thread subdirectories).
+
+## File Structure
 
 ```
-research/
-└── ai-engineer-role.md             # Research notes
+upload/raw/
+└── Senior AI Engineer - Tam NGUYEN.pdf     # Uploaded resume
+└── AWS AI Solution Engineer.pdf            # Uploaded JD
 
-custom-resume/
-└── tam/
-    ├── ai-engineer.md              # custom resume in md
-    └── ai-engineer.pdf             # custom resume in pdf
+/upload/processed/
+└── tam-nguyen-senior-ai-engineer.md        # Processed resume
+└── aws-ai-solution-engineer.md             # Processed JD
 
-interview-prep/
-└── tam/
-    ├── interview-preparation.md    # interview prep
+/research/
+└── aws-ai-solution-engineer.md             # Research note
 
-interview-cheat-sheet/
-└── tam/
-    ├── interview-cheat-sheet.md    # interview cheat sheet
+custom_resume/
+└── tam-nguyen-senior-ai-engineer/
+    └── aws-ai-solution-engineer.pdf        # tailored resume for specific job
+
+/interview_prep/
+└── tam-nguyen-senior-ai-engineer/
+    ├── aws-ai-solution-engineer.md         # interview preperation
+
+interview_cheat_sheet/
+└── tam-nguyen-senior-ai-engineer/
+    ├── aws-ai-solution-engineer.pdf        # interview cheat sheet
 ```

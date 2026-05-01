@@ -75,8 +75,20 @@ career_agent = create_deep_agent(
     backend=CompositeBackend(
         default=FilesystemBackend(root_dir=CAREER_AGENT_DIR),
         routes={
-            "/memories/": StoreBackend(
-                namespace=lambda _: ("career_agent", "memories"),
+            "/memory/": StoreBackend(
+                namespace=lambda _: ("career_agent", "memory"),
+            ),
+            "/upload/processed": StoreBackend(
+                namespace=lambda _: ("career_agent", "upload", "processed"),
+            ),
+            "/research/": StoreBackend(
+                namespace=lambda _: ("career_agent", "research"),
+            ),
+            "/interview_prep/": StoreBackend(
+                namespace=lambda _: ("career_agent", "interview_prep"),
+            ),
+            "/large_tool_results/": StoreBackend(
+                namespace=lambda _: ("career_agent", "large_tool_results"),
             ),
             "/workspace/": StoreBackend(
                 namespace=lambda _: ("career_agent", "workspace"),
