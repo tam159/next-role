@@ -8,6 +8,11 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
     working_dir: /deps/next-role/frontend
+    # Self-heal node_modules against the host's pnpm-lock.yaml on every boot,
+    # then start the dev server. Lets `pnpm add` on the host take effect via a
+    # plain `docker compose restart frontend` — no rebuild, no volume nuking.
+    # When the lockfile is already in sync this is a fast no-op.
+    command: sh -c "pnpm install --frozen-lockfile && pnpm dev --hostname 0.0.0.0"
     ports:
       - "${FRONTEND_LOCAL_PORT}:3000"
     environment:
@@ -15,6 +20,16 @@ services:
       NEXT_PUBLIC_LANGGRAPH_DEPLOYMENT_URL: ${NEXT_PUBLIC_LANGGRAPH_DEPLOYMENT_URL}
       NEXT_PUBLIC_LANGGRAPH_ASSISTANT_ID: ${NEXT_PUBLIC_LANGGRAPH_ASSISTANT_ID}
       NEXT_PUBLIC_LANGSMITH_API_KEY: ${NEXT_PUBLIC_LANGSMITH_API_KEY}
+      # Pin pnpm's content-addressed store inside the container layer so it
+      # doesn't spill into the bind-mounted project as `.pnpm-store/`. (pnpm
+      # falls back to a project-local store when its default location is on a
+      # different filesystem than node_modules — which is exactly the case
+      # inside this container.)
+      PNPM_HOME: /root/.pnpm
+      npm_config_store_dir: /root/.pnpm/store
+      # Lets pnpm purge a stale `node_modules` (e.g. when the store path
+      # changes) without prompting for confirmation — there's no TTY here.
+      CI: "true"
     volumes:
       - .:/deps/next-role
       - /deps/next-role/frontend/node_modules

@@ -25,7 +25,7 @@ export function Workspace() {
   }, [messages, subagents]);
 
   const [planOpen, setPlanOpen] = useState(false);
-  const [filesOpen, setFilesOpen] = useState(false);
+  const [filesOpen, setFilesOpen] = useState(true);
   const [sourcesOpen, setSourcesOpen] = useState(false);
 
   const prevTodos = useRef(todos.length);
@@ -49,7 +49,8 @@ export function Workspace() {
   }, [sources.length]);
 
   const editDisabled = isLoading === true || interrupt !== undefined;
-  const isEmpty = todos.length === 0 && filesCount === 0 && sources.length === 0;
+  const showPlan = todos.length > 0;
+  const showSources = sources.length > 0;
 
   return (
     <div className="flex h-full flex-col border-l border-border bg-background">
@@ -59,29 +60,22 @@ export function Workspace() {
       </div>
       <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-contain">
         <div className="flex flex-col gap-3 p-4">
-          {isEmpty ? (
-            <div className="bg-surface/70 rounded-2xl border border-dashed border-border px-6 py-12 text-center">
-              <p className="text-base font-semibold text-foreground">Workspace is empty</p>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Plans, files, and sources will appear as the agent works.
-              </p>
-            </div>
-          ) : (
-            <>
-              <PlanSection todos={todos} open={planOpen} onToggle={() => setPlanOpen((v) => !v)} />
-              <FilesSection
-                files={files}
-                setFiles={setFiles}
-                editDisabled={editDisabled}
-                open={filesOpen}
-                onToggle={() => setFilesOpen((v) => !v)}
-              />
-              <SourcesSection
-                sources={sources}
-                open={sourcesOpen}
-                onToggle={() => setSourcesOpen((v) => !v)}
-              />
-            </>
+          {showPlan && (
+            <PlanSection todos={todos} open={planOpen} onToggle={() => setPlanOpen((v) => !v)} />
+          )}
+          <FilesSection
+            files={files}
+            setFiles={setFiles}
+            editDisabled={editDisabled}
+            open={filesOpen}
+            onToggle={() => setFilesOpen((v) => !v)}
+          />
+          {showSources && (
+            <SourcesSection
+              sources={sources}
+              open={sourcesOpen}
+              onToggle={() => setSourcesOpen((v) => !v)}
+            />
           )}
         </div>
       </div>

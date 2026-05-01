@@ -147,11 +147,9 @@ export function useChat({
   // Stable signature so the effect doesn't refire on every stream tick.
   const stateFilesSig = useMemo(() => JSON.stringify(stateFilesRaw), [stateFilesRaw]);
 
-  useEffect(() => {
-    let cancelled = false;
+  const refreshFiles = useCallback(async () => {
     const stateFiles = JSON.parse(stateFilesSig) as Record<string, unknown>;
 
-    // Update session stamps for state files: bump on first-seen / change.
     const stamps = stateStampsRef.current;
     const seen = new Set<string>();
     const now = Date.now();
@@ -169,37 +167,30 @@ export function useChat({
       if (!seen.has(path)) stamps.delete(path);
     }
 
-    fetchAgentFiles({
-      client,
-      graphId,
-      assistantId,
-      stateFiles,
-    })
-      .then((files) => {
-        if (cancelled) return;
-        // Overlay session stamps on state-source files, then re-sort DESC.
-        const stamped = files.map((f) => {
-          if (f.source !== "state") return f;
-          const stamp = stamps.get(f.path)?.at;
-          return stamp != null ? { ...f, modifiedAt: stamp } : f;
-        });
-        stamped.sort((a, b) => {
-          const am = a.modifiedAt ?? -Infinity;
-          const bm = b.modifiedAt ?? -Infinity;
-          if (am !== bm) return bm - am;
-          return a.path.localeCompare(b.path);
-        });
-        setExtendedFiles(stamped);
-      })
-      .catch((e) => {
-        if (!cancelled) console.warn("fetchAgentFiles failed", e);
+    try {
+      const files = await fetchAgentFiles({ client, graphId, assistantId, stateFiles });
+      const stamped = files.map((f) => {
+        if (f.source !== "state") return f;
+        const stamp = stamps.get(f.path)?.at;
+        return stamp != null ? { ...f, modifiedAt: stamp } : f;
       });
-    return () => {
-      cancelled = true;
-    };
+      stamped.sort((a, b) => {
+        const am = a.modifiedAt ?? -Infinity;
+        const bm = b.modifiedAt ?? -Infinity;
+        if (am !== bm) return bm - am;
+        return a.path.localeCompare(b.path);
+      });
+      setExtendedFiles(stamped);
+    } catch (e) {
+      console.warn("fetchAgentFiles failed", e);
+    }
+  }, [client, graphId, assistantId, stateFilesSig]);
+
+  useEffect(() => {
+    refreshFiles().catch(() => {});
     // Refetch on stream completion (isLoading transitions to false) so
     // store/disk writes from the latest run show up.
-  }, [client, graphId, assistantId, stateFilesSig, stream.isLoading]);
+  }, [refreshFiles, stream.isLoading]);
 
   const filesMap = useMemo(() => {
     // extendedFiles is already DESC-sorted by modifiedAt; preserving insertion
@@ -354,6 +345,7 @@ export function useChat({
     email: stream.values.email,
     ui: stream.values.ui,
     setFiles,
+    refreshFiles,
     messages: stream.messages,
     isLoading: stream.isLoading,
     isThreadLoading: stream.isThreadLoading,

@@ -18,6 +18,8 @@ const IMAGE_EXTS = new Set(["png", "jpg", "jpeg", "gif", "webp", "bmp", "ico"]);
 const BINARY_EXTS = new Set([
   ...IMAGE_EXTS,
   "pdf",
+  "doc",
+  "docx",
   "zip",
   "gz",
   "tar",
@@ -35,6 +37,13 @@ function imageMime(ext: string): string {
   if (ext === "jpg") return "image/jpeg";
   if (ext === "ico") return "image/x-icon";
   return `image/${ext}`;
+}
+
+function base64ToArrayBuffer(b64: string): ArrayBuffer {
+  const bin = atob(b64);
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i += 1) bytes[i] = bin.charCodeAt(i);
+  return bytes.buffer;
 }
 
 const LANGUAGE_MAP: Record<string, string> = {
@@ -112,6 +121,38 @@ export const FileViewDialog = React.memo<{
 
   const isImage = useMemo(() => IMAGE_EXTS.has(fileExtension), [fileExtension]);
   const isBinary = useMemo(() => BINARY_EXTS.has(fileExtension), [fileExtension]);
+  const isPdf = fileExtension === "pdf";
+  const isDocx = fileExtension === "docx";
+
+  const [docxHtml, setDocxHtml] = useState<string | null>(null);
+  const [docxError, setDocxError] = useState<string | null>(null);
+  const [docxLoading, setDocxLoading] = useState(false);
+
+  useEffect(() => {
+    if (!isDocx || !fileContent) {
+      setDocxHtml(null);
+      setDocxError(null);
+      return;
+    }
+    let cancelled = false;
+    setDocxLoading(true);
+    setDocxError(null);
+    (async () => {
+      try {
+        const mammoth = await import("mammoth");
+        const arrayBuffer = base64ToArrayBuffer(fileContent);
+        const result = await mammoth.convertToHtml({ arrayBuffer });
+        if (!cancelled) setDocxHtml(result.value);
+      } catch (err) {
+        if (!cancelled) setDocxError(err instanceof Error ? err.message : "Failed to render docx");
+      } finally {
+        if (!cancelled) setDocxLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [isDocx, fileContent]);
 
   const language = useMemo(() => {
     return LANGUAGE_MAP[fileExtension] || "text";
@@ -230,6 +271,32 @@ export const FileViewDialog = React.memo<{
                         className="max-h-[60vh] max-w-full rounded-md object-contain"
                       />
                     </div>
+                  ) : isPdf ? (
+                    <iframe
+                      title={fileName}
+                      src={`data:application/pdf;base64,${fileContent}`}
+                      className="h-[68vh] w-full rounded-md border-0 bg-white"
+                    />
+                  ) : isDocx ? (
+                    docxLoading ? (
+                      <div className="flex items-center justify-center gap-2 p-12">
+                        <Loader2 size={16} className="animate-spin" />
+                        <p className="text-sm text-muted-foreground">Rendering document…</p>
+                      </div>
+                    ) : docxError ? (
+                      <div className="flex flex-col items-center justify-center gap-2 p-12">
+                        <p className="text-sm text-muted-foreground">
+                          Could not render docx: {docxError}. Use Download to save it.
+                        </p>
+                      </div>
+                    ) : docxHtml ? (
+                      <div
+                        className="docx-preview prose prose-sm dark:prose-invert max-w-none rounded-md bg-white p-6 text-black"
+                        // mammoth produces well-formed HTML from a user-provided
+                        // .docx the user just uploaded. Risk surface = their own document.
+                        dangerouslySetInnerHTML={{ __html: docxHtml }}
+                      />
+                    ) : null
                   ) : isBinary ? (
                     <div className="flex flex-col items-center justify-center gap-2 p-12">
                       <p className="text-sm text-muted-foreground">

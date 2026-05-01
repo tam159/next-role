@@ -11,6 +11,7 @@ Next.js 16 (App Router, Turbopack) + React 19 + TypeScript + Tailwind. Talks to 
 - **Format**: `pnpm format` (Prettier).
 - **Type check**: `pnpm type-check` (`tsc --noEmit`).
 - **All-in-one**: `pnpm quality` runs lint + format + type-check.
+- **Adding a dependency**: `pnpm --dir frontend add <pkg>` on the host, then `docker compose restart frontend`. The container's startup runs `pnpm install --frozen-lockfile` (see `docker-compose.yml`), so the lockfile change syncs into the container's `node_modules` volume on next boot — no image rebuild, no volume nuking.
 
 ## Style
 

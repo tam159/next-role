@@ -22,6 +22,8 @@ const IMAGE_EXTS = new Set(["png", "jpg", "jpeg", "gif", "webp", "bmp", "ico"]);
 const BINARY_EXTS = new Set([
   ...IMAGE_EXTS,
   "pdf",
+  "doc",
+  "docx",
   "zip",
   "gz",
   "tar",

@@ -20,4 +20,21 @@ export const AGENT_FILE_SOURCES: Record<string, AgentFileSources> = {
       includeDirs: ["blogs", "tweets", "linkedin", "research", "public"],
     },
   },
+  career_agent: {
+    store: {
+      namespacePrefix: ["career_agent"],
+      pathPrefixes: [
+        "/memory/",
+        "/upload/processed/",
+        "/research/",
+        "/interview_prep/",
+        "/large_tool_results/",
+        "/workspace/",
+      ],
+    },
+    disk: {
+      root: "backend/app/career_agent",
+      includeDirs: ["upload/raw"],
+    },
+  },
 };

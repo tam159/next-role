@@ -19,6 +19,7 @@ async function walk(absDir: string, out: Entry[]): Promise<void> {
     throw err;
   }
   for (const entry of dirents) {
+    if (entry.name.startsWith(".")) continue;
     const abs = path.join(absDir, entry.name);
     if (entry.isDirectory()) {
       await walk(abs, out);

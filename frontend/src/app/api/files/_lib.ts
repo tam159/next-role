@@ -12,6 +12,8 @@ const BINARY_EXTS = new Set([
   "bmp",
   "ico",
   "pdf",
+  "doc",
+  "docx",
   "zip",
   "gz",
   "tar",
