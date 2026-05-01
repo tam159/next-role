@@ -12,6 +12,21 @@ Monorepo with two top-level apps. Each has its own `CLAUDE.md` with stack-specif
 - `frontend/` — Next.js 16, React 19, TypeScript, Tailwind, `pnpm`. See `@frontend/CLAUDE.md`.
 - `docker-compose.yml` runs the full local stack.
 
+## Local development
+
+The local stack runs in Docker via `docker compose up -d`. To find host ports for any running service:
+
+```bash
+docker ps
+```
+
+Read the `0.0.0.0:<host>->...` mappings — host ports come from `.env` (`FRONTEND_LOCAL_PORT`, `LANGGRAPH_LOCAL_PORT`, `POSTGRES_LOCAL_PORT`, `REDIS_LOCAL_PORT`) and vary per machine, so don't assume defaults. Once you know the port, hit endpoints directly:
+
+- `http://localhost:<LANGGRAPH_LOCAL_PORT>/docs` — backend API docs (LangGraph)
+- `http://localhost:<FRONTEND_LOCAL_PORT>/` — frontend UI
+
+Use the `agent-browser` skill for visual verification, or `curl` for API checks.
+
 ## After editing files
 
 Pre-commit is already installed (`pre-commit install` was run). Edit freely across many files in one task, then **once at the end** validate everything you touched in a single command:
