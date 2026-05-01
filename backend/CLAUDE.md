@@ -33,6 +33,13 @@ Suppress one line at a time. Don't blanket-disable a rule in `pyproject.toml` to
 - **Schema is owned by `langchain/langgraph-api:3.13`** (the backend's base image). It runs its own migrations on container startup — don't write or expect Alembic/SQLModel migrations of your own. `backend/init.sql` only enables the `vector` extension at first volume creation.
 - **To understand the schema, query the live DB** via the `next-role-postgres` MCP (`@bytebase/dbhub`). Default schema is `public`. Prefer it over reading source: list tables → describe the ones relevant to the task. Don't shell into `psql`.
 
+## Library docs
+
+For tasks involving the **LangChain ecosystem** (LangChain, LangGraph, LangSmith) or the **LlamaIndex ecosystem** (LlamaIndex, LlamaCloud, LlamaParse, LlamaExtract, LlamaSplit, LlamaClassify), use the dedicated MCP servers in addition to Context7:
+
+- `mcp__docs-langchain__*` — LangChain / LangGraph / LangSmith
+- `mcp__llama-index-docs__*` — LlamaIndex family
+
 ## Gotchas
 
 - LLM provider keys (OpenAI / Anthropic / Google / AWS / Tavily) come from `.env` via `pydantic-settings` and `python-dotenv`. Don't hardcode.
