@@ -18,6 +18,15 @@ Python 3.13 backend. Built on LangChain / LangGraph / DeepAgents for the career-
 - Underscore-prefixed names are allowed unused (`dummy-variable-rgx`).
 - Per-file: `__init__.py` allows `F401` (re-exports); notebooks allow `D100`.
 
+### Last-resort suppressions
+
+`ruff` (with `select = ["ALL"]`) and `ty` are strict — sometimes a rule is wrong for the situation. Try a real fix first. If it still won't pass after a couple of honest attempts, suppress narrowly on the offending line:
+
+- **Ruff**: `# noqa: <CODE>` with the specific code from the error (e.g., `# noqa: SLF001` for private-member access). Never bare `# noqa`.
+- **Ty (type check)**: `# type: ignore # noqa: PGH003` — the `# noqa: PGH003` keeps ruff from complaining about the blanket type-ignore.
+
+Suppress one line at a time. Don't blanket-disable a rule in `pyproject.toml` to make a single error go away.
+
 ## Local database
 
 - **Postgres 18 + pgvector** via `docker compose up postgres`. Connection: `POSTGRES_URI` in `.env`; local port is `${POSTGRES_LOCAL_PORT}` (default `5449`). Driver is `psycopg` (psycopg3).
