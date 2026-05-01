@@ -1,4 +1,10 @@
 .venv
+
+# User-uploaded and agent-generated content trees — never commit.
+# CVs, JDs, generated resumes, etc. are personal data; the upload/ and
+# output dirs materialize on first use, so no `.gitkeep` is needed.
 upload/
-custom-resume/
-interview-cheat-sheet/
+research/
+custom_resume/
+interview_prep/
+interview_cheat_sheet/

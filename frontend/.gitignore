@@ -1,6 +1,13 @@
 # Next.js / Node
 node_modules/
 .next/
+/out/
 next-env.d.ts
-.env.local
+env*.local
 *.tsbuildinfo
+
+# Test coverage
+coverage/
+
+# Vercel
+.vercel
