@@ -4,7 +4,7 @@
 
 ## Why
 
-The career agent's flow (`backend/app/career_agent/README.md`) starts with the user uploading a CV and optional JD into `upload/raw/`. Without this entry point, nothing else (process → research → custom resume → interview prep) can run. This is the first user-facing feature on the agent.
+The career agent's flow (`backend/app/career_agent/README.md`) starts with the user uploading a CV and optional JD into `upload/`. Without this entry point, nothing else (process → research → custom resume → interview prep) can run. This is the first user-facing feature on the agent.
 
 ## What the user sees
 
@@ -26,7 +26,7 @@ Both open the same `Delete file?` confirmation (filename in mono, destructive-st
 
 **The frontend writes directly to the agent's on-disk path; no Python HTTP endpoint exists.**
 
-`docker-compose.yml` already mounts the entire repo into the frontend container (`.:/deps/next-role`), so a Next.js API route running in the FE container can `fs.writeFile` to `backend/app/career_agent/upload/raw/<filename>`. The agent's `FilesystemBackend(root_dir=CAREER_AGENT_DIR)` (in `agents.py`) reads the same path on its next tool call. No LangGraph custom routes, no FastAPI sibling, no PDF parser shipped in v1.
+`docker-compose.yml` already mounts the entire repo into the frontend container (`.:/deps/next-role`), so a Next.js API route running in the FE container can `fs.writeFile` to `backend/app/career_agent/upload/<filename>`. The agent's `FilesystemBackend(root_dir=CAREER_AGENT_DIR)` (in `agents.py`) reads the same path on its next tool call. No LangGraph custom routes, no FastAPI sibling, no PDF parser shipped in v1.
 
 The path allowlist that gates writes lives in `frontend/src/app/config/agentFiles.ts` under `AGENT_FILE_SOURCES.career_agent.disk` — the existing `resolveSafe()` in `frontend/src/app/api/files/_lib.ts` enforces it.
 
@@ -48,7 +48,7 @@ The path allowlist that gates writes lives in `frontend/src/app/config/agentFile
 
 ## Decisions worth remembering
 
-- **Global file scoping**, not per-thread — uploads land at `upload/raw/<filename>` flat. Matches the README, simpler for a solo user. Revisit if multi-thread workflows emerge.
+- **Global file scoping**, not per-thread — uploads land at `upload/<filename>` flat. Matches the README, simpler for a solo user. Revisit if multi-thread workflows emerge.
 - **No backend HTTP endpoint** — would need a custom langgraph-api route or a sibling FastAPI app; not justified when the bind-mount path already works.
 - **Snake_case directory convention** — output dirs use `custom_resume/`, `interview_prep/`, etc., matching the routes already declared in `agents.py`. Existing skills dirs (`skills/custom-resume/`, `skills/interview-prep/`) are inputs, left as-is.
 - **PII never goes to git** — `backend/.gitignore` blocks `upload/`, `research/`, `custom_resume/`, `interview_prep/`, `interview_cheat_sheet/`. Verify empirically with `git add -A --dry-run` after any rule change.
@@ -56,7 +56,7 @@ The path allowlist that gates writes lives in `frontend/src/app/config/agentFile
 
 ## Deferred (intentional non-goals for v1)
 
-- **Document processing** — extracting text from PDF/DOCX into `/upload/processed/` is step 2 of the agent flow, a separate feature. v1 only stores raw bytes.
+- **Document processing** — extracting text from PDF/DOCX into `/processed/` is step 2 of the agent flow, a separate feature. v1 only stores raw bytes.
 - **`.doc` (legacy Word) preview** — no good in-browser parser; falls back to download.
 - **Per-thread upload scoping** — see decisions above.
 - **Drag-and-drop** — only file picker for v1.
@@ -65,6 +65,6 @@ The path allowlist that gates writes lives in `frontend/src/app/config/agentFile
 
 1. `docker compose up -d` and grab the frontend host port from `docker ps`.
 2. Open the UI, upload a PDF and a DOCX via either surface, watch toast + file appearing in Files.
-3. From the host: `ls backend/app/career_agent/upload/raw/` shows the bytes.
-4. In chat, ask the agent `List the files in /upload/raw/` — its `ls` tool should return them.
+3. From the host: `ls backend/app/career_agent/upload/` shows the bytes.
+4. In chat, ask the agent `List the files in /upload/` — its `ls` tool should return them.
 5. `git add -A --dry-run backend/app/career_agent/` should stage nothing under `upload/`.

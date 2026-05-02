@@ -36,6 +36,11 @@ dependencies = [
   "types-requests>=2.33.0.20260408"
 ]
 
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = [".."]
+asyncio_mode = "auto"
+
 [tool.ruff]
 target-version = "py313"
 line-length = 100
@@ -118,4 +123,19 @@ max-complexity = 10
 
 [tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["F401"]
+"tests/**/*.py" = [
+  "S101",
+  "D100",
+  "D103",
+  "D401",
+  "ANN001",
+  "ANN002",
+  "ANN003",
+  "ANN201",
+  "ANN202",
+  "ANN204",
+  "ARG001",
+  "ARG002",
+  "PLR2004"
+]
 "**/notebooks/**/*.ipynb" = ["D100"]

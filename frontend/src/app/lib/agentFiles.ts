@@ -16,8 +16,6 @@ export type AgentFile = {
   modifiedAt?: number;
 };
 
-const STORE_PREFIX = "/store";
-
 const IMAGE_EXTS = new Set(["png", "jpg", "jpeg", "gif", "webp", "bmp", "ico"]);
 const BINARY_EXTS = new Set([
   ...IMAGE_EXTS,
@@ -83,36 +81,76 @@ function stateFilesToAgentFiles(stateFiles: Record<string, unknown>): AgentFile[
   return out;
 }
 
+/**
+ * Map a store-relative path (e.g. "/processed/foo.md") to the backend
+ * `(namespace, key)` pair the langgraph store actually uses.
+ *
+ * The agent's `CompositeBackend` routes each `pathPrefixes` entry to its own
+ * `StoreBackend` namespace by appending the prefix's path segments to the
+ * agent's namespace prefix. We mirror that derivation here so list/read/write
+ * from the frontend hit the same rows the agent wrote.
+ *
+ * Returns `null` when no configured prefix matches.
+ */
+export function resolveStoreLocation(
+  cfg: NonNullable<AgentFileSources["store"]>,
+  storeRel: string
+): { namespace: string[]; key: string } | null {
+  // Longest match first so e.g. "/interview_prep/" wins over a hypothetical "/interview/".
+  const sorted = [...cfg.pathPrefixes].sort((a, b) => b.length - a.length);
+  for (const prefix of sorted) {
+    const trimmed = prefix.replace(/\/+$/, "");
+    const matches = storeRel === trimmed || storeRel.startsWith(`${trimmed}/`);
+    if (!matches) continue;
+    const segments = trimmed.split("/").filter(Boolean);
+    const namespace = [...cfg.namespacePrefix, ...segments];
+    const remainder = storeRel.slice(trimmed.length);
+    const key = remainder.startsWith("/") ? remainder : `/${remainder}`;
+    return { namespace, key };
+  }
+  return null;
+}
+
 async function fetchStoreFiles(
   client: Client,
-  cfg: NonNullable<AgentFileSources["store"]>,
-  assistantId: string
+  cfg: NonNullable<AgentFileSources["store"]>
 ): Promise<AgentFile[]> {
-  const namespace = [...cfg.namespacePrefix, assistantId];
-  const res = await client.store.searchItems(namespace, { limit: 200 });
   const out: AgentFile[] = [];
-  for (const item of res.items ?? []) {
-    const value = item.value as Record<string, unknown>;
-    const rawContent = value?.content;
-    let content = "";
-    if (typeof rawContent === "string") content = rawContent;
-    else if (Array.isArray(rawContent)) content = rawContent.join("\n");
-    else if (rawContent != null) content = String(rawContent);
-    const encoding = value?.encoding === "base64" ? "base64" : "utf-8";
-    const key = item.key.startsWith("/") ? item.key : `/${item.key}`;
-    const updated =
-      (item as { updatedAt?: string; updated_at?: string }).updatedAt ??
-      (item as { updated_at?: string }).updated_at;
-    const modifiedAt = updated ? Date.parse(updated) : undefined;
-    out.push({
-      path: `${STORE_PREFIX}${key}`,
-      content,
-      encoding: encoding as "utf-8" | "base64",
-      source: "store",
-      sourceKey: key,
-      modifiedAt: Number.isFinite(modifiedAt) ? modifiedAt : undefined,
-    });
-  }
+  await Promise.all(
+    cfg.pathPrefixes.map(async (prefix) => {
+      const trimmed = prefix.replace(/\/+$/, "");
+      const segments = trimmed.split("/").filter(Boolean);
+      const namespace = [...cfg.namespacePrefix, ...segments];
+      try {
+        const res = await client.store.searchItems(namespace, { limit: 200 });
+        for (const item of res.items ?? []) {
+          const value = item.value as Record<string, unknown>;
+          const rawContent = value?.content;
+          let content = "";
+          if (typeof rawContent === "string") content = rawContent;
+          else if (Array.isArray(rawContent)) content = rawContent.join("\n");
+          else if (rawContent != null) content = String(rawContent);
+          const encoding = value?.encoding === "base64" ? "base64" : "utf-8";
+          const itemKey = item.key.startsWith("/") ? item.key : `/${item.key}`;
+          const storeRel = `${trimmed}${itemKey}`;
+          const updated =
+            (item as { updatedAt?: string; updated_at?: string }).updatedAt ??
+            (item as { updated_at?: string }).updated_at;
+          const modifiedAt = updated ? Date.parse(updated) : undefined;
+          out.push({
+            path: storeRel,
+            content,
+            encoding: encoding as "utf-8" | "base64",
+            source: "store",
+            sourceKey: storeRel,
+            modifiedAt: Number.isFinite(modifiedAt) ? modifiedAt : undefined,
+          });
+        }
+      } catch (e) {
+        console.warn(`store fetch failed for namespace ${namespace.join("/")}`, e);
+      }
+    })
+  );
   return out;
 }
 
@@ -161,17 +199,16 @@ async function fetchDiskFiles(cfg: NonNullable<AgentFileSources["disk"]>): Promi
 export async function fetchAgentFiles(args: {
   client: Client;
   graphId: string | null | undefined;
-  assistantId: string | null | undefined;
   stateFiles: Record<string, unknown>;
 }): Promise<AgentFile[]> {
-  const { client, graphId, assistantId, stateFiles } = args;
+  const { client, graphId, stateFiles } = args;
   const cfg = getAgentFileSources(graphId);
   const stateList = stateFilesToAgentFiles(stateFiles);
 
   const tasks: Promise<AgentFile[]>[] = [];
-  if (cfg?.store && assistantId) {
+  if (cfg?.store) {
     tasks.push(
-      fetchStoreFiles(client, cfg.store, assistantId).catch((e) => {
+      fetchStoreFiles(client, cfg.store).catch((e) => {
         console.warn("store fetch failed", e);
         return [];
       })
@@ -206,20 +243,24 @@ export async function writeAgentFile(args: {
   client: Client;
   threadId: string | null;
   graphId: string | null | undefined;
-  assistantId: string | null | undefined;
   file: AgentFile;
   // For state-source writes we need the full files map.
   stateFiles?: Record<string, string>;
 }): Promise<void> {
-  const { client, threadId, graphId, assistantId, file, stateFiles } = args;
+  const { client, threadId, graphId, file, stateFiles } = args;
   const cfg = getAgentFileSources(graphId);
 
   if (file.source === "store") {
-    if (!cfg?.store || !assistantId) {
+    if (!cfg?.store) {
       throw new Error("Store backend not configured for this agent");
     }
-    const namespace = [...cfg.store.namespacePrefix, assistantId];
-    await client.store.putItem(namespace, file.sourceKey, {
+    const loc = resolveStoreLocation(cfg.store, file.sourceKey);
+    if (!loc) {
+      throw new Error(
+        `No matching store pathPrefix for ${file.sourceKey} (configured: ${cfg.store.pathPrefixes.join(", ")})`
+      );
+    }
+    await client.store.putItem(loc.namespace, loc.key, {
       content: file.content,
       encoding: file.encoding,
     });

@@ -1,14 +1,17 @@
 """Define the career agent."""
 
-from pathlib import Path
-
 import deepagents.middleware.filesystem as _fs_mw
 import deepagents.middleware.memory as _mem_mw
 import deepagents.middleware.skills as _skills_mw
 import deepagents.middleware.subagents as _sub_mw
 import langchain.agents.middleware.todo as _todo_mw
 from backend.app.career_agent import prompts as _prompts
-from backend.app.career_agent.tools import web_search
+from backend.app.career_agent.middleware import UtcDatetimeMiddleware
+from backend.app.career_agent.tools import (
+    CAREER_AGENT_DIR,
+    make_list_files,
+    make_parse_document,
+)
 from backend.app.career_agent.utils import load_subagents
 from deepagents import HarnessProfile, create_deep_agent, register_harness_profile
 from deepagents.backends import CompositeBackend, FilesystemBackend, StoreBackend
@@ -46,8 +49,6 @@ def _apply_prompt_overrides() -> None:
 _apply_prompt_overrides()
 
 
-CAREER_AGENT_DIR = Path(__file__).parent
-
 _MODEL = "bedrock_converse:global.anthropic.claude-sonnet-4-6"
 
 _MY_PROFILE = HarnessProfile(base_system_prompt=_prompts.BASE)
@@ -65,34 +66,40 @@ for _provider in (
     register_harness_profile(_provider, _MY_PROFILE)
 
 
+_backend = CompositeBackend(
+    default=FilesystemBackend(root_dir=CAREER_AGENT_DIR, virtual_mode=True),
+    routes={
+        "/memory/": StoreBackend(
+            namespace=lambda _: ("career_agent", "memory"),
+        ),
+        "/processed": StoreBackend(
+            namespace=lambda _: ("career_agent", "processed"),
+        ),
+        "/research/": StoreBackend(
+            namespace=lambda _: ("career_agent", "research"),
+        ),
+        "/interview_prep/": StoreBackend(
+            namespace=lambda _: ("career_agent", "interview_prep"),
+        ),
+        "/large_tool_results/": StoreBackend(
+            namespace=lambda _: ("career_agent", "large_tool_results"),
+        ),
+        "/workspace/": StoreBackend(
+            namespace=lambda _: ("career_agent", "workspace"),
+        ),
+    },
+)
+
 career_agent = create_deep_agent(
     system_prompt=_prompts.SYSTEM_PROMPT,
     model=_MODEL,
     memory=["AGENTS.md"],
     skills=["skills/"],
-    tools=[web_search],
+    tools=[
+        make_list_files(_backend),
+        make_parse_document(_backend),
+    ],
     subagents=load_subagents(CAREER_AGENT_DIR / "subagents.yaml"),
-    backend=CompositeBackend(
-        default=FilesystemBackend(root_dir=CAREER_AGENT_DIR),
-        routes={
-            "/memory/": StoreBackend(
-                namespace=lambda _: ("career_agent", "memory"),
-            ),
-            "/upload/processed": StoreBackend(
-                namespace=lambda _: ("career_agent", "upload", "processed"),
-            ),
-            "/research/": StoreBackend(
-                namespace=lambda _: ("career_agent", "research"),
-            ),
-            "/interview_prep/": StoreBackend(
-                namespace=lambda _: ("career_agent", "interview_prep"),
-            ),
-            "/large_tool_results/": StoreBackend(
-                namespace=lambda _: ("career_agent", "large_tool_results"),
-            ),
-            "/workspace/": StoreBackend(
-                namespace=lambda _: ("career_agent", "workspace"),
-            ),
-        },
-    ),
+    backend=_backend,
+    middleware=[UtcDatetimeMiddleware()],
 )

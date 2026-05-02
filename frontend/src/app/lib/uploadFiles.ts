@@ -23,7 +23,7 @@ export async function uploadAgentFiles(args: {
   return data as UploadResponse;
 }
 
-export const CAREER_AGENT_UPLOAD_DIR = "backend/app/career_agent/upload/raw";
+export const CAREER_AGENT_UPLOAD_DIR = "backend/app/career_agent/upload";
 
 export async function deleteAgentFile(repoRelPath: string): Promise<void> {
   const res = await fetch(`/api/files/delete?path=${encodeURIComponent(repoRelPath)}`, {

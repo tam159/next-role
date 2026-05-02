@@ -11,6 +11,7 @@ import { useQueryState } from "nuqs";
 import {
   fetchAgentFiles,
   getAgentFileSources,
+  resolveStoreLocation,
   writeAgentFile,
   type AgentFile,
 } from "@/app/lib/agentFiles";
@@ -129,7 +130,6 @@ export function useChat({
   );
 
   const graphId = activeAssistant?.graph_id ?? null;
-  const assistantId = activeAssistant?.assistant_id ?? null;
   const hasExternalSources = useMemo(() => Boolean(getAgentFileSources(graphId)), [graphId]);
 
   // Files surfaced to the UI: state files + (per-agent) store + disk files.
@@ -169,7 +169,7 @@ export function useChat({
     }
 
     try {
-      const files = await fetchAgentFiles({ client, graphId, assistantId, stateFiles });
+      const files = await fetchAgentFiles({ client, graphId, stateFiles });
       const stamped = files.map((f) => {
         if (f.source !== "state") return f;
         const stamp = stamps.get(f.path)?.at;
@@ -185,7 +185,7 @@ export function useChat({
     } catch (e) {
       console.warn("fetchAgentFiles failed", e);
     }
-  }, [client, graphId, assistantId, stateFilesSig]);
+  }, [client, graphId, stateFilesSig]);
 
   useEffect(() => {
     refreshFiles().catch(() => {});
@@ -229,7 +229,6 @@ export function useChat({
               client,
               threadId,
               graphId,
-              assistantId,
               file: { ...existing, content },
             })
           );
@@ -237,13 +236,13 @@ export function useChat({
           // New file: route by virtual path prefix.
           const cfg = getAgentFileSources(graphId);
           let synthesized: AgentFile | null = null;
-          if (path.startsWith("/store/") && cfg?.store) {
+          if (cfg?.store && resolveStoreLocation(cfg.store, path)) {
             synthesized = {
               path,
               content,
               encoding: "utf-8",
               source: "store",
-              sourceKey: path.slice("/store".length) || "/",
+              sourceKey: path,
             };
           } else if (cfg?.disk) {
             const top = path.split("/")[1];
@@ -263,7 +262,6 @@ export function useChat({
                 client,
                 threadId,
                 graphId,
-                assistantId,
                 file: synthesized,
               })
             );
@@ -290,12 +288,11 @@ export function useChat({
       const refreshed = await fetchAgentFiles({
         client,
         graphId,
-        assistantId,
         stateFiles,
       });
       setExtendedFiles(refreshed);
     },
-    [client, threadId, graphId, assistantId, hasExternalSources, stream.values.files]
+    [client, threadId, graphId, hasExternalSources, stream.values.files]
   );
 
   const removeFile = useCallback(

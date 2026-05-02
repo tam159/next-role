@@ -10,22 +10,12 @@ export type AgentFileSources = {
 };
 
 export const AGENT_FILE_SOURCES: Record<string, AgentFileSources> = {
-  content_builder: {
-    store: {
-      namespacePrefix: ["content_builder", "filesystem"],
-      pathPrefixes: ["/memories/", "/workspace/"],
-    },
-    disk: {
-      root: "app/content_builder",
-      includeDirs: ["blogs", "tweets", "linkedin", "research", "public"],
-    },
-  },
   career_agent: {
     store: {
       namespacePrefix: ["career_agent"],
       pathPrefixes: [
         "/memory/",
-        "/upload/processed/",
+        "/processed/",
         "/research/",
         "/interview_prep/",
         "/large_tool_results/",
@@ -34,7 +24,7 @@ export const AGENT_FILE_SOURCES: Record<string, AgentFileSources> = {
     },
     disk: {
       root: "backend/app/career_agent",
-      includeDirs: ["upload/raw"],
+      includeDirs: ["upload"],
     },
   },
 };

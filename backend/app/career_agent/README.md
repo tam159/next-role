@@ -51,8 +51,8 @@ subagents=[
 
 **Flow:**
 
-1. User uploads CV and optional JD → saves to `upload/raw`
-2. Agent processes the uploaded documents → saves to `/upload/processed`
+1. User uploads CV and optional JD → saves to `upload/`
+2. Agent processes the uploaded documents → saves to `/processed/`
 3. Agent uderstands task → loads relevant skill
 4. Agent plans tasks → uses `write_todos` tool
 5. Delegates research to the subagent → saves to `/research/`
@@ -72,7 +72,7 @@ Both surfaces POST `multipart/form-data` to the Next.js route
 `/api/files/upload`, which validates the path against the
 `AGENT_FILE_SOURCES.career_agent.disk` allowlist
 (`frontend/src/app/config/agentFiles.ts`) and writes bytes directly to
-`backend/app/career_agent/upload/raw/<filename>` via the shared `.:/deps/next-role`
+`backend/app/career_agent/upload/<filename>` via the shared `.:/deps/next-role`
 volume mount in `docker-compose.yml`. The agent's `FilesystemBackend(root_dir=CAREER_AGENT_DIR)`
 picks files up on the next tool call — no Python-side endpoint is involved.
 
@@ -82,11 +82,11 @@ Re-uploading the same filename overwrites. Scoping is global per the layout abov
 ## File Structure
 
 ```
-upload/raw/
+upload/
 └── Senior AI Engineer - Tam NGUYEN.pdf     # Uploaded resume
 └── AWS AI Solution Engineer.pdf            # Uploaded JD
 
-/upload/processed/
+/processed/
 └── tam-nguyen-senior-ai-engineer.md        # Processed resume
 └── aws-ai-solution-engineer.md             # Processed JD
 
