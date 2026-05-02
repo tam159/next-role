@@ -946,6 +946,23 @@ wheels = [
 ]
 
 [[package]]
+name = "llama-cloud"
+version = "2.4.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "anyio" },
+    { name = "distro" },
+    { name = "httpx" },
+    { name = "pydantic" },
+    { name = "sniffio" },
+    { name = "typing-extensions" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/0a/95/bc1acb5a29bb9ab38f90cd175f023ac67783bd24fcb44729bc9c1093dcaa/llama_cloud-2.4.1.tar.gz", hash = "sha256:bfb09ccbaa4dab7df1829d23aeda39d638a2d36fa6f70fe79d5e82d970d887dc", size = 3531290, upload-time = "2026-04-17T18:38:29.414Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/27/63/5de1c2fdc8b75e025d01e4d892f90b24404dc19d4d6a4dbb516441d3edf3/llama_cloud-2.4.1-py3-none-any.whl", hash = "sha256:cef6c28412e5118bebd26b5965f1f0968cba742b6f1f4677e3447696709e0763", size = 417172, upload-time = "2026-04-17T18:38:27.883Z" },
+]
+
+[[package]]
 name = "multidict"
 version = "6.7.1"
 source = { registry = "https://pypi.org/simple" }
@@ -1039,6 +1056,7 @@ dependencies = [
     { name = "langchain-openai" },
     { name = "langchain-tavily" },
     { name = "langgraph" },
+    { name = "llama-cloud" },
     { name = "pydantic-settings" },
     { name = "python-dotenv" },
     { name = "tavily-python" },
@@ -1068,6 +1086,7 @@ requires-dist = [
     { name = "langchain-openai", specifier = ">=1.2.1" },
     { name = "langchain-tavily", specifier = ">=0.2.18" },
     { name = "langgraph", specifier = ">=1.1.10" },
+    { name = "llama-cloud", specifier = ">=2.4.1" },
     { name = "pydantic-settings", specifier = ">=2.14.0" },
     { name = "python-dotenv", specifier = ">=1.2.2" },
     { name = "tavily-python", specifier = ">=0.7.24" },
