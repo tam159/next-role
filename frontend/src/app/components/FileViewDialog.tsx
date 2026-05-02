@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useMemo, useCallback, useState, useEffect } from "react";
-import { FileText, Copy, Download, Edit, Save, X, Loader2 } from "lucide-react";
+import { FileText, Copy, Download, Edit, Save, X, Loader2, Trash2 } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
@@ -85,9 +85,10 @@ const LANGUAGE_MAP: Record<string, string> = {
 export const FileViewDialog = React.memo<{
   file: FileItem | null;
   onSaveFile: (fileName: string, content: string) => Promise<void>;
+  onDelete?: (fileName: string) => void;
   onClose: () => void;
   editDisabled: boolean;
-}>(({ file, onSaveFile, onClose, editDisabled }) => {
+}>(({ file, onSaveFile, onDelete, onClose, editDisabled }) => {
   const [isEditingMode, setIsEditingMode] = useState(file === null);
   const [fileName, setFileName] = useState(String(file?.path || ""));
   const [fileContent, setFileContent] = useState(String(file?.content || ""));
@@ -247,6 +248,18 @@ export const FileViewDialog = React.memo<{
                   <Download size={16} className="mr-1" />
                   Download
                 </Button>
+                {onDelete && file && (
+                  <Button
+                    onClick={() => onDelete(file.path)}
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 px-2 text-destructive hover:bg-destructive/15 hover:text-destructive"
+                    disabled={editDisabled}
+                  >
+                    <Trash2 size={16} className="mr-1" />
+                    Delete
+                  </Button>
+                )}
               </>
             )}
           </div>

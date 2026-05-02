@@ -8,7 +8,8 @@ import { FilesSection } from "@/app/components/workspace/FilesSection";
 import { SourcesSection } from "@/app/components/workspace/SourcesSection";
 
 export function Workspace() {
-  const { todos, files, setFiles, messages, isLoading, interrupt, subagents } = useChatContext();
+  const { todos, files, setFiles, removeFile, messages, isLoading, interrupt, subagents } =
+    useChatContext();
 
   // With `filterSubagentMessages: true`, search tool calls executed by
   // subagents (e.g. researcher's web_search) no longer flow into the main
@@ -66,6 +67,7 @@ export function Workspace() {
           <FilesSection
             files={files}
             setFiles={setFiles}
+            removeFile={removeFile}
             editDisabled={editDisabled}
             open={filesOpen}
             onToggle={() => setFilesOpen((v) => !v)}

@@ -12,6 +12,7 @@ import { useChatContext } from "@/providers/ChatProvider";
 interface FilesSectionProps {
   files: Record<string, string>;
   setFiles: (files: Record<string, string>) => Promise<void>;
+  removeFile: (virtualPath: string) => Promise<void>;
   editDisabled: boolean;
   open: boolean;
   onToggle: () => void;
@@ -19,7 +20,14 @@ interface FilesSectionProps {
 
 const UPLOAD_ACCEPT = ".pdf,.doc,.docx,.txt,.md";
 
-export function FilesSection({ files, setFiles, editDisabled, open, onToggle }: FilesSectionProps) {
+export function FilesSection({
+  files,
+  setFiles,
+  removeFile,
+  editDisabled,
+  open,
+  onToggle,
+}: FilesSectionProps) {
   const count = Object.keys(files).length;
   const inputRef = useRef<HTMLInputElement | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -86,7 +94,12 @@ export function FilesSection({ files, setFiles, editDisabled, open, onToggle }: 
           No files yet. Upload your CV or job description to get started.
         </p>
       ) : (
-        <FilesPopover files={files} setFiles={setFiles} editDisabled={editDisabled} />
+        <FilesPopover
+          files={files}
+          setFiles={setFiles}
+          removeFile={removeFile}
+          editDisabled={editDisabled}
+        />
       )}
     </WorkspaceCard>
   );

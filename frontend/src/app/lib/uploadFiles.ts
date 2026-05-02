@@ -24,3 +24,14 @@ export async function uploadAgentFiles(args: {
 }
 
 export const CAREER_AGENT_UPLOAD_DIR = "backend/app/career_agent/upload/raw";
+
+export async function deleteAgentFile(repoRelPath: string): Promise<void> {
+  const res = await fetch(`/api/files/delete?path=${encodeURIComponent(repoRelPath)}`, {
+    method: "DELETE",
+  });
+  if (!res.ok) {
+    const data = (await res.json().catch(() => null)) as { error?: string } | null;
+    const reason = data?.error ?? `Delete failed (${res.status})`;
+    throw new Error(reason);
+  }
+}

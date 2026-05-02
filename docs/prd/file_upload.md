@@ -15,6 +15,13 @@ Two upload surfaces, same backend:
 
 Accepted: `.pdf`, `.doc`, `.docx`, `.txt`, `.md`. Max 10 MB each. Re-uploading the same filename overwrites. Files appear in the Files grid; clicking opens a preview dialog (PDF via `<iframe>`, DOCX via `mammoth`, text/markdown rendered, `.doc` falls through to "Use Download").
 
+**Deletion** (also v1) has two surfaces with shared confirmation:
+
+1. **Hover-revealed trash icon** on each file card — primary path, single click → confirm.
+2. **Delete button in the preview dialog header** — for when the user is already inspecting and decides to remove.
+
+Both open the same `Delete file?` confirmation (filename in mono, destructive-styled Delete button). No undo-toast pattern; the confirm step is the only friction. The dialog is reused (`@radix-ui/react-dialog` via `components/ui/dialog.tsx`) — no new primitive added.
+
 ## How — the key architectural choice
 
 **The frontend writes directly to the agent's on-disk path; no Python HTTP endpoint exists.**
@@ -28,11 +35,14 @@ The path allowlist that gates writes lives in `frontend/src/app/config/agentFile
 | Concern | Path |
 |---|---|
 | Upload API route (multipart POST) | `frontend/src/app/api/files/upload/route.ts` |
-| Shared client helper | `frontend/src/app/lib/uploadFiles.ts` |
+| Delete API route (DELETE) | `frontend/src/app/api/files/delete/route.ts` |
+| Shared client helpers (`uploadAgentFiles`, `deleteAgentFile`) | `frontend/src/app/lib/uploadFiles.ts` |
 | Disk allowlist for `career_agent` | `frontend/src/app/config/agentFiles.ts` |
 | Composer paperclip | `frontend/src/app/components/ChatInterface.tsx` |
 | Workspace upload button | `frontend/src/app/components/workspace/FilesSection.tsx` |
-| Preview rendering (PDF/DOCX/MD/text) | `frontend/src/app/components/FileViewDialog.tsx` |
+| File grid + trash icon + confirm dialog | `frontend/src/app/components/TasksFilesSidebar.tsx` (`FilesPopover`) |
+| Preview rendering (PDF/DOCX/MD/text) + Delete button | `frontend/src/app/components/FileViewDialog.tsx` |
+| `removeFile` callback (resolves virtual → disk path) | `frontend/src/app/hooks/useChat.ts` |
 | Agent's filesystem-backed root | `backend/app/career_agent/agents.py` (CompositeBackend default) |
 | Privacy-gated gitignore | `backend/.gitignore` (free-floating `upload/`, etc.) |
 

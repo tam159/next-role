@@ -14,6 +14,7 @@ import {
   writeAgentFile,
   type AgentFile,
 } from "@/app/lib/agentFiles";
+import { deleteAgentFile } from "@/app/lib/uploadFiles";
 
 function stateFileSignature(value: unknown): string {
   if (typeof value === "string") return `s:${value.length}:${value.slice(0, 64)}`;
@@ -297,6 +298,19 @@ export function useChat({
     [client, threadId, graphId, assistantId, hasExternalSources, stream.values.files]
   );
 
+  const removeFile = useCallback(
+    async (virtualPath: string) => {
+      const file = extendedFilesRef.current.find((f) => f.path === virtualPath);
+      if (!file) throw new Error(`File not found: ${virtualPath}`);
+      if (file.source !== "disk") {
+        throw new Error("Only disk-backed files can be deleted from the UI");
+      }
+      await deleteAgentFile(file.sourceKey);
+      await refreshFiles();
+    },
+    [refreshFiles]
+  );
+
   const continueStream = useCallback(
     (hasTaskToolCall?: boolean) => {
       stream.submit(undefined, {
@@ -346,6 +360,7 @@ export function useChat({
     ui: stream.values.ui,
     setFiles,
     refreshFiles,
+    removeFile,
     messages: stream.messages,
     isLoading: stream.isLoading,
     isThreadLoading: stream.isThreadLoading,

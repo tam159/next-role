@@ -1,8 +1,17 @@
 "use client";
 
 import React, { useMemo, useCallback, useState, useEffect, useRef } from "react";
-import { FileText, CheckCircle, Circle, Clock, ChevronDown } from "lucide-react";
+import { FileText, CheckCircle, Circle, Clock, ChevronDown, Trash2, Loader2 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { toast } from "sonner";
 import type { TodoItem, FileItem } from "@/app/types/types";
 import { useChatContext } from "@/providers/ChatProvider";
 import { cn } from "@/lib/utils";
@@ -11,13 +20,17 @@ import { FileViewDialog } from "@/app/components/FileViewDialog";
 export function FilesPopover({
   files,
   setFiles,
+  removeFile,
   editDisabled,
 }: {
   files: Record<string, string>;
   setFiles: (files: Record<string, string>) => Promise<void>;
+  removeFile: (virtualPath: string) => Promise<void>;
   editDisabled: boolean;
 }) {
   const [selectedFile, setSelectedFile] = useState<FileItem | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const handleSaveFile = useCallback(
     async (fileName: string, content: string) => {
@@ -26,6 +39,25 @@ export function FilesPopover({
     },
     [files, setFiles]
   );
+
+  const handleConfirmDelete = useCallback(async () => {
+    if (!pendingDelete) return;
+    const target = pendingDelete;
+    setDeleting(true);
+    try {
+      await removeFile(target);
+      const name = target.split("/").pop() || target;
+      toast.success(`Deleted ${name}`);
+      setPendingDelete(null);
+      if (selectedFile?.path === target) setSelectedFile(null);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Delete failed");
+    } finally {
+      setDeleting(false);
+    }
+  }, [pendingDelete, removeFile, selectedFile]);
+
+  const requestDelete = useCallback((path: string) => setPendingDelete(path), []);
 
   return (
     <>
@@ -51,26 +83,43 @@ export function FilesPopover({
             }
 
             return (
-              <button
+              <div
                 key={filePath}
-                type="button"
-                onClick={() => setSelectedFile({ path: filePath, content: fileContent })}
-                className="hover:border-primary/25 cursor-pointer space-y-2 truncate rounded-xl border border-border px-3 py-4 shadow-sm transition-colors"
-                style={{
-                  backgroundColor: "var(--color-file-button)",
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = "var(--color-file-button-hover)";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = "var(--color-file-button)";
-                }}
+                className="group relative"
+                style={{ backgroundColor: "var(--color-file-button)" }}
               >
-                <FileText size={24} className="mx-auto text-primary" />
-                <span className="mx-auto block w-full truncate break-words text-center text-sm leading-relaxed text-foreground">
-                  {filePath}
-                </span>
-              </button>
+                <button
+                  type="button"
+                  onClick={() => setSelectedFile({ path: filePath, content: fileContent })}
+                  className="hover:border-primary/25 w-full cursor-pointer space-y-2 truncate rounded-xl border border-border bg-transparent px-3 py-4 shadow-sm transition-colors"
+                  onMouseEnter={(e) => {
+                    e.currentTarget.parentElement!.style.backgroundColor =
+                      "var(--color-file-button-hover)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.parentElement!.style.backgroundColor =
+                      "var(--color-file-button)";
+                  }}
+                >
+                  <FileText size={24} className="mx-auto text-primary" />
+                  <span className="mx-auto block w-full truncate break-words text-center text-sm leading-relaxed text-foreground">
+                    {filePath}
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  aria-label={`Delete ${filePath}`}
+                  title="Delete"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    requestDelete(filePath);
+                  }}
+                  disabled={editDisabled}
+                  className="absolute right-1.5 top-1.5 inline-flex size-7 items-center justify-center rounded-md text-muted-foreground opacity-0 transition-opacity hover:bg-destructive/15 hover:text-destructive focus-visible:opacity-100 disabled:pointer-events-none group-hover:opacity-100"
+                >
+                  <Trash2 size={14} />
+                </button>
+              </div>
             );
           })}
         </div>
@@ -80,10 +129,45 @@ export function FilesPopover({
         <FileViewDialog
           file={selectedFile}
           onSaveFile={handleSaveFile}
+          onDelete={requestDelete}
           onClose={() => setSelectedFile(null)}
           editDisabled={editDisabled}
         />
       )}
+
+      <Dialog
+        open={pendingDelete !== null}
+        onOpenChange={(open) => {
+          if (!open && !deleting) setPendingDelete(null);
+        }}
+      >
+        <DialogContent className="max-w-md">
+          <DialogTitle>Delete file?</DialogTitle>
+          <DialogDescription>
+            <span className="font-mono text-foreground">{pendingDelete?.split("/").pop()}</span>{" "}
+            will be permanently removed. This cannot be undone.
+          </DialogDescription>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setPendingDelete(null)}
+              disabled={deleting}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              onClick={handleConfirmDelete}
+              disabled={deleting}
+            >
+              {deleting && <Loader2 size={14} className="mr-1.5 animate-spin" />}
+              Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 }
@@ -93,7 +177,7 @@ export const TasksFilesSidebar = React.memo<{
   files: Record<string, string>;
   setFiles: (files: Record<string, string>) => Promise<void>;
 }>(({ todos, files, setFiles }) => {
-  const { isLoading, interrupt } = useChatContext();
+  const { isLoading, interrupt, removeFile } = useChatContext();
   const [tasksOpen, setTasksOpen] = useState(false);
   const [filesOpen, setFilesOpen] = useState(false);
 
@@ -210,6 +294,7 @@ export const TasksFilesSidebar = React.memo<{
             <FilesPopover
               files={files}
               setFiles={setFiles}
+              removeFile={removeFile}
               editDisabled={isLoading === true || interrupt !== undefined}
             />
           )}
