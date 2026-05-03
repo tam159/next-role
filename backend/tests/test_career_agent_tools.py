@@ -223,6 +223,59 @@ def test_parse_document_noop_when_content_identical(tmp_path, monkeypatch, backe
     assert (tmp_path / "processed" / "x.md").read_text() == same
 
 
+def test_parse_document_strips_image_filename_refs(tmp_path, monkeypatch, backend):
+    """LlamaParse emits `![alt](page_X_image_Y.jpg)`; we strip the `(filename)` part."""
+    from backend.app.career_agent import tools
+
+    upload = tmp_path / "upload"
+    upload.mkdir(parents=True)
+    (upload / "r.pdf").write_bytes(b"x")
+    monkeypatch.setattr(tools, "UPLOAD_DIR", upload)
+
+    raw = (
+        "# Resume\n\n"
+        "* ![check mark](page_3_image_23_v2.jpg) Use Agile methodology.\n"
+        "* ![](page_4_image_1.png) Empty alt text.\n"
+        "Plain link [click here](https://example.com) should NOT be stripped.\n"
+    )
+    expected = (
+        "# Resume\n\n"
+        "* [check mark] Use Agile methodology.\n"
+        "* [] Empty alt text.\n"
+        "Plain link [click here](https://example.com) should NOT be stripped.\n"
+    )
+
+    with patch("llama_cloud.LlamaCloud", return_value=_fake_llamacloud_returning(raw)):
+        tools.make_parse_document(backend).invoke({"filename": "r.pdf", "save_as": "x"})
+
+    assert (tmp_path / "processed" / "x.md").read_text() == expected
+
+
+def test_parse_document_passes_images_to_save_empty(tmp_path, monkeypatch, backend):
+    """Verify we tell LlamaParse not to save any images (no extraction cost)."""
+    from backend.app.career_agent import tools
+
+    upload = tmp_path / "upload"
+    upload.mkdir(parents=True)
+    (upload / "x.pdf").write_bytes(b"x")
+    monkeypatch.setattr(tools, "UPLOAD_DIR", upload)
+
+    captured: dict = {}
+
+    def _capture_parse(**kwargs):
+        captured["parse"] = kwargs
+        return SimpleNamespace(markdown_full="ok")
+
+    fake = SimpleNamespace(
+        files=SimpleNamespace(create=lambda **_kw: SimpleNamespace(id="f1")),
+        parsing=SimpleNamespace(parse=_capture_parse),
+    )
+    with patch("llama_cloud.LlamaCloud", return_value=fake):
+        tools.make_parse_document(backend).invoke({"filename": "x.pdf", "save_as": "x"})
+
+    assert captured["parse"]["output_options"]["images_to_save"] == []
+
+
 def test_parse_document_handles_empty_markdown(tmp_path, monkeypatch, backend):
     from backend.app.career_agent import tools
 

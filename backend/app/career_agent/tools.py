@@ -1,5 +1,6 @@
 """Tools for the career agent."""
 
+import re
 from pathlib import Path
 from typing import Any, Literal
 
@@ -9,6 +10,17 @@ from langchain_core.tools import BaseTool, tool
 
 CAREER_AGENT_DIR: Path = Path(__file__).parent
 UPLOAD_DIR: Path = CAREER_AGENT_DIR / "upload"
+
+# LlamaParse emits `![alt](page_X_image_Y.jpg)` markdown for embedded images
+# even when we don't extract them, which renders as broken-image 404s in the
+# UI. The v2 ParsingCreateParams API has no flag to suppress these inline
+# references — we strip them client-side, keeping the alt text.
+_IMAGE_REF_RE = re.compile(r"!(\[[^\]]*\])\([^)]*\)")
+
+
+def _strip_image_filenames(markdown: str) -> str:
+    """Replace `![alt](filename)` with `[alt]` so broken refs don't 404 in the UI."""
+    return _IMAGE_REF_RE.sub(r"\1", markdown)
 
 
 @tool
@@ -141,12 +153,18 @@ def make_parse_document(backend: CompositeBackend) -> BaseTool:
                 file_id=file_obj.id,
                 tier="agentic",
                 version="latest",
+                disable_cache=False,
                 expand=["markdown_full"],
+                output_options={
+                    "markdown": {"annotate_links": True},
+                    "images_to_save": [],
+                },
                 processing_options={"cost_optimizer": {"enable": True}},
             )
             markdown = getattr(result, "markdown_full", None) or ""
             if not markdown:
                 return f"Error: LlamaParse returned no markdown for {filename}"
+            markdown = _strip_image_filenames(markdown)
             write_result = _upsert(backend, dest, markdown)
             if write_result.error:
                 return f"Error writing {dest}: {write_result.error}"

@@ -53,6 +53,7 @@ In Workspace > Files, processed markdown shows up at `/processed/<slug>.md` — 
 - **`virtual_mode=True` on the FilesystemBackend.** Required for `CompositeBackend` route semantics — otherwise `/upload/foo.pdf` resolves as a real filesystem absolute path (root `/`) rather than relative to `root_dir`. Default flips in deepagents 0.6.0; we set it explicitly now.
 - **`content_builder` config dropped.** Was a stale template entry in `agentFiles.ts`, referenced nowhere else in the repo. Verified by grep before deletion.
 - **Re-parse over migration.** When we renamed `/upload/processed/` → `/processed/`, old store rows under namespace `("career_agent", "upload", "processed")` orphaned. Re-parse on next upload (idempotent via `_upsert`) was cheaper than writing a one-shot migration script for a handful of rows.
+- **Image references stripped client-side.** LlamaParse emits `![alt](page_X_image_Y.jpg)` in `markdown_full` for embedded images even when extraction is disabled — the Workspace UI then 404s loading those filenames. The v2 `ParsingCreateParams` API has no flag that suppresses these refs (verified against the [Configure Parse](https://developers.llamaindex.ai/llamaparse/parse/guides/configuring-parse/) doc and the generated schema). `images_to_save: []` only stops extraction; `inline_images: true` swaps filenames for huge base64 blobs; the legacy `disable_image_extraction` lives on the v1-shape `LlamaParseParametersParam` and isn't exposed on `parsing.parse()`. So we set `images_to_save: []` (saves credits + smaller payload) **and** post-process with `_strip_image_filenames` (`tools.py`) — regex `r"!(\[[^\]]*\])\([^)]*\)"` → `\1`, turning `![check mark](page_3_image_23_v2.jpg)` into `[check mark]`. Plain markdown links are untouched (no leading `!`).
 
 ## Deferred (intentional non-goals for v1)
 
@@ -76,4 +77,5 @@ In Workspace > Files, processed markdown shows up at `/processed/<slug>.md` — 
 5. Query the langgraph store via the `next-role-postgres` MCP — confirm a row exists under namespace `("career_agent", "processed")` with the expected key.
 6. **Edited-hint case.** Edit the textarea after upload to a name that doesn't exist on disk, send. Agent should call `list_files`, notice the mismatch, and ask one short clarifying question before parsing.
 7. **Overwrite case.** Re-upload the same file (or invoke `parse_document` with the same `save_as`). The processed file updates in place; `created_at` stays, `modified_at` advances.
-8. **Tests.** `cd backend && uv run pytest tests/ -q` — must stay 15/15 green; LlamaParse stays mocked.
+8. **No broken image refs.** Open the parsed markdown in Workspace > Files and check the browser Network tab — there should be **no 404s** for `page_X_image_Y.jpg`. The markdown should contain `[alt]` rather than `![alt](filename)`.
+9. **Tests.** `cd backend && uv run pytest tests/ -q` — must stay green; LlamaParse stays mocked.
