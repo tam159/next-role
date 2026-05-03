@@ -1,16 +1,14 @@
 "use client";
 
-import React, { useState, useRef, useCallback, useMemo, useEffect, FormEvent } from "react";
+import React, { useRef, useCallback, useMemo, useEffect, FormEvent } from "react";
 import { Button } from "@/components/ui/button";
-import { Square, ArrowUp, Loader2, Paperclip } from "lucide-react";
-import { toast } from "sonner";
+import { Square, ArrowUp } from "lucide-react";
 import { ChatMessage } from "@/app/components/ChatMessage";
 import type { ToolCall, ActionRequest, ReviewConfig } from "@/app/types/types";
 import { Assistant, Message } from "@langchain/langgraph-sdk";
 import { extractStringFromMessageContent } from "@/app/utils/utils";
 import { useChatContext } from "@/providers/ChatProvider";
 import { useStickToBottom } from "use-stick-to-bottom";
-import { CAREER_AGENT_UPLOAD_DIR, uploadAgentFiles } from "@/app/lib/uploadFiles";
 
 interface ChatInterfaceProps {
   assistant: Assistant | null;
@@ -19,7 +17,6 @@ interface ChatInterfaceProps {
 export const ChatInterface = React.memo<ChatInterfaceProps>(({ assistant }) => {
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
 
-  const [input, setInput] = useState("");
   const { scrollRef, contentRef } = useStickToBottom();
 
   const {
@@ -32,49 +29,24 @@ export const ChatInterface = React.memo<ChatInterfaceProps>(({ assistant }) => {
     sendMessage,
     stopStream,
     resumeInterrupt,
-    refreshFiles,
+    input,
+    setInput,
+    focusComposerNonce,
   } = useChatContext();
 
   const submitDisabled = isLoading || !assistant;
 
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const [uploading, setUploading] = useState(false);
-
-  const handleFilesPicked = useCallback(
-    async (e: React.ChangeEvent<HTMLInputElement>) => {
-      const list = e.target.files;
-      if (!list || list.length === 0) return;
-      const picked = Array.from(list);
-      e.target.value = "";
-
-      setUploading(true);
-      try {
-        const res = await uploadAgentFiles({
-          files: picked,
-          targetDir: CAREER_AGENT_UPLOAD_DIR,
-        });
-        if (res.uploaded.length > 0) {
-          const names = res.uploaded.map((u) => u.path.split("/").pop()).join(", ");
-          toast.success(
-            `Uploaded ${res.uploaded.length} file${res.uploaded.length > 1 ? "s" : ""}`
-          );
-          setInput((prev) => {
-            const note = `Uploaded: ${names}`;
-            return prev.trim() ? `${prev}\n\n${note}` : note;
-          });
-        }
-        for (const err of res.errors) {
-          toast.error(`${err.name}: ${err.reason}`);
-        }
-        await refreshFiles?.();
-      } catch (err) {
-        toast.error(err instanceof Error ? err.message : "Upload failed");
-      } finally {
-        setUploading(false);
-      }
-    },
-    [refreshFiles]
-  );
+  // Focus the textarea (with cursor at end) whenever a sibling surface — e.g.
+  // Workspace > Files Upload — appended an "Uploaded: ..." note. Skip the
+  // initial mount nonce==0.
+  useEffect(() => {
+    if (focusComposerNonce === 0) return;
+    const t = textareaRef.current;
+    if (!t) return;
+    t.focus();
+    const end = t.value.length;
+    t.setSelectionRange(end, end);
+  }, [focusComposerNonce]);
 
   const resizeTextarea = useCallback(() => {
     const textarea = textareaRef.current;
@@ -277,35 +249,9 @@ export const ChatInterface = React.memo<ChatInterfaceProps>(({ assistant }) => {
               rows={2}
             />
             <div className="flex items-center justify-between gap-2 border-t border-border/70 px-3 py-3">
-              <div className="flex items-center gap-2">
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  multiple
-                  accept=".pdf,.doc,.docx,.txt,.md"
-                  className="hidden"
-                  onChange={handleFilesPicked}
-                />
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="rounded-full"
-                  disabled={uploading || isLoading}
-                  onClick={() => fileInputRef.current?.click()}
-                  aria-label="Attach files"
-                  title="Attach CV / job description"
-                >
-                  {uploading ? (
-                    <Loader2 size={16} className="animate-spin" />
-                  ) : (
-                    <Paperclip size={16} />
-                  )}
-                </Button>
-                <p className="text-xs text-muted-foreground">
-                  Enter to send, Shift+Enter for a new line
-                </p>
-              </div>
+              <p className="pl-2 text-xs text-muted-foreground">
+                Enter to send, Shift+Enter for a new line
+              </p>
               <div className="flex justify-end gap-2">
                 <Button
                   type={isLoading ? "button" : "submit"}

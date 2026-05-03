@@ -8,12 +8,11 @@ The career agent's flow (`backend/app/career_agent/README.md`) starts with the u
 
 ## What the user sees
 
-Two upload surfaces, same backend:
-
-1. **Paperclip in the chat composer** (`ChatInterface.tsx`) — picks files, uploads, then auto-injects `Uploaded: <names>` into the textarea so the user can hit Send and the agent has explicit context.
-2. **Upload button in Workspace > Files** (`FilesSection.tsx`) — for batch management. The Files section is always visible (even empty) so the affordance is discoverable.
+**One upload surface: the Upload button in Workspace > Files** (`FilesSection.tsx`). The Files section is always visible (even empty) so the affordance is discoverable. After a successful upload, an `Uploaded: <names>\n` note is appended into the chat composer with the cursor parked on a fresh line — so the user can immediately type their instruction and Send.
 
 Accepted: `.pdf`, `.doc`, `.docx`, `.txt`, `.md`. Max 10 MB each. Re-uploading the same filename overwrites. Files appear in the Files grid; clicking opens a preview dialog (PDF via `<iframe>`, DOCX via `mammoth`, text/markdown rendered, `.doc` falls through to "Use Download").
+
+**No paperclip in the chat composer.** A paperclip there carries strong industry baggage ("attach to this message") that doesn't match our model (persistent files in the agent's filesystem). We deliberately route all uploads through the Workspace so the mental model stays clean: *files live in the workspace, messages live in the chat*. The infrastructure (`uploadAgentFiles`, `appendUploadNote`, the upload route) is unchanged — re-introducing a chat-side surface later is a small JSX add.
 
 **Deletion** (also v1) has two surfaces with shared confirmation:
 
@@ -38,8 +37,8 @@ The path allowlist that gates writes lives in `frontend/src/app/config/agentFile
 | Delete API route (DELETE) | `frontend/src/app/api/files/delete/route.ts` |
 | Shared client helpers (`uploadAgentFiles`, `deleteAgentFile`) | `frontend/src/app/lib/uploadFiles.ts` |
 | Disk allowlist for `career_agent` | `frontend/src/app/config/agentFiles.ts` |
-| Composer paperclip | `frontend/src/app/components/ChatInterface.tsx` |
-| Workspace upload button | `frontend/src/app/components/workspace/FilesSection.tsx` |
+| Workspace upload button + handler | `frontend/src/app/components/workspace/FilesSection.tsx` |
+| Composer focus signal (`focusComposerNonce`) consumer | `frontend/src/app/components/ChatInterface.tsx` |
 | File grid + trash icon + confirm dialog | `frontend/src/app/components/TasksFilesSidebar.tsx` (`FilesPopover`) |
 | Preview rendering (PDF/DOCX/MD/text) + Delete button | `frontend/src/app/components/FileViewDialog.tsx` |
 | `removeFile` callback (resolves virtual → disk path) | `frontend/src/app/hooks/useChat.ts` |
@@ -53,6 +52,7 @@ The path allowlist that gates writes lives in `frontend/src/app/config/agentFile
 - **Snake_case directory convention** — output dirs use `custom_resume/`, `interview_prep/`, etc., matching the routes already declared in `agents.py`. Existing skills dirs (`skills/custom-resume/`, `skills/interview-prep/`) are inputs, left as-is.
 - **PII never goes to git** — `backend/.gitignore` blocks `upload/`, `research/`, `custom_resume/`, `interview_prep/`, `interview_cheat_sheet/`. Verify empirically with `git add -A --dry-run` after any rule change.
 - **Mammoth for DOCX preview** — runs in browser via dynamic import. Types stub at `frontend/src/types/mammoth.d.ts` since the package ships none.
+- **No chat paperclip** — see "What the user sees" above. Industry pattern (paperclip = ephemeral attachment for one turn) doesn't match our model (persistent agent filesystem). Workspace is the canonical entry point.
 
 ## Deferred (intentional non-goals for v1)
 

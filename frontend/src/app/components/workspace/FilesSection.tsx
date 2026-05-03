@@ -31,7 +31,7 @@ export function FilesSection({
   const count = Object.keys(files).length;
   const inputRef = useRef<HTMLInputElement | null>(null);
   const [uploading, setUploading] = useState(false);
-  const { refreshFiles } = useChatContext();
+  const { refreshFiles, appendUploadNote } = useChatContext();
 
   const handleSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const list = e.target.files;
@@ -44,6 +44,9 @@ export function FilesSection({
       const res = await uploadAgentFiles({ files: picked, targetDir: CAREER_AGENT_UPLOAD_DIR });
       if (res.uploaded.length > 0) {
         toast.success(`Uploaded ${res.uploaded.length} file${res.uploaded.length > 1 ? "s" : ""}`);
+        appendUploadNote(
+          res.uploaded.map((u) => u.path.split("/").pop()).filter((n): n is string => !!n)
+        );
       }
       for (const err of res.errors) {
         toast.error(`${err.name}: ${err.reason}`);

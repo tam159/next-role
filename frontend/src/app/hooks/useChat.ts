@@ -308,6 +308,18 @@ export function useChat({
     [refreshFiles]
   );
 
+  // Composer input state, lifted out of ChatInterface so any surface (paperclip,
+  // Workspace > Files Upload, future drag-drop) can append a note in one place.
+  const [input, setInput] = useState("");
+  const [focusComposerNonce, setFocusComposerNonce] = useState(0);
+
+  const appendUploadNote = useCallback((filenames: string[]) => {
+    if (filenames.length === 0) return;
+    const note = `Uploaded: ${filenames.join(", ")}\n`;
+    setInput((prev) => (prev.trim() ? `${prev.replace(/\n+$/, "")}\n\n${note}` : note));
+    setFocusComposerNonce((n) => n + 1);
+  }, []);
+
   const continueStream = useCallback(
     (hasTaskToolCall?: boolean) => {
       stream.submit(undefined, {
@@ -358,6 +370,10 @@ export function useChat({
     setFiles,
     refreshFiles,
     removeFile,
+    input,
+    setInput,
+    appendUploadNote,
+    focusComposerNonce,
     messages: stream.messages,
     isLoading: stream.isLoading,
     isThreadLoading: stream.isThreadLoading,
