@@ -27,6 +27,21 @@ Read the `0.0.0.0:<host>->...` mappings — host ports come from `.env` (`FRONTE
 
 Use the `agent-browser` skill for visual verification, or `curl` for API checks.
 
+### Hot reload vs. restart vs. rebuild
+
+Both containers hot-reload on source edits — frontend via `pnpm dev` (Turbopack), backend via `LANGSMITH_LANGGRAPH_DESKTOP: "true"` in `docker-compose.yml`. **Don't restart for plain code changes**; save the file and the running container picks it up.
+
+Restart (`docker compose restart <service>`) when:
+
+- Adding a frontend dependency (`pnpm --dir frontend add ...` — boot self-heals `node_modules` from the new lockfile).
+- Changing `.env` values (env vars are read at container start).
+- Editing `docker-compose.yml` (use `docker compose up -d` to apply the diff).
+
+Rebuild (`docker compose up -d --build <service>`) when:
+
+- Adding a backend Python dependency (`uv add ...`) — deps are installed at image build time, not boot.
+- Editing any `Dockerfile`.
+
 ## After editing files
 
 Pre-commit is already installed (`pre-commit install` was run). Edit freely across many files in one task, then **once at the end** validate everything you touched in a single command:

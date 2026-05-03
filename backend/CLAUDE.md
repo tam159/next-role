@@ -9,7 +9,7 @@ Python 3.13 backend. Built on LangChain / LangGraph / DeepAgents for the career-
 - **Lint**: `uv run ruff check --fix` (or let pre-commit do it).
 - **Format**: `uv run ruff format`.
 - **Type check**: `uv run ty check` — this is `astral-sh/ty`, not `mypy` or `pyright`. Pre-commit gates on it.
-- **Tests**: `uv run pytest`. Async tests are enabled via `pytest-asyncio`.
+- **Tests**: see [Testing](#testing) below.
 
 ## Style
 
@@ -26,6 +26,17 @@ Python 3.13 backend. Built on LangChain / LangGraph / DeepAgents for the career-
 - **Ty (type check)**: `# type: ignore # noqa: PGH003` — the `# noqa: PGH003` keeps ruff from complaining about the blanket type-ignore.
 
 Suppress one line at a time. Don't blanket-disable a rule in `pyproject.toml` to make a single error go away.
+
+## Testing
+
+- **Layout**: tests live in `backend/tests/` as a flat list of `test_<area>_<thing>.py` files (e.g., `test_career_agent_tools.py`, `test_career_agent_middleware.py`). Don't mirror `app/` as nested directories — keep filenames descriptive.
+- **Run** (from `backend/` — `testpaths = ["tests"]` is relative):
+  - Full suite: `cd backend && uv run pytest`
+  - Single file: `cd backend && uv run pytest tests/test_career_agent_tools.py`
+  - Single test: append `::test_function_name` to the file path
+- **When you create or modify code, add or update the matching test**, then run at least that test file to confirm green before reporting the work as done. Run the full suite for cross-cutting changes (shared utilities, config, schema).
+- **Async**: `asyncio_mode = "auto"` is set in `pyproject.toml`, so write `async def test_...` directly — no `@pytest.mark.asyncio` decorator needed.
+- **Don't write asserts against raw LLM output** — it's non-deterministic. Mock the model client, record cassettes (`pytest-recording`), or split evals out of unit tests. Reserve `pytest` for deterministic logic: parsing, routing, validation, retry, schema checks.
 
 ## Local database
 
