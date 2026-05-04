@@ -26,25 +26,66 @@ def _strip_image_filenames(markdown: str) -> str:
 @tool
 def web_search(
     query: str,
-    max_results: int = 5,
-    topic: Literal["general", "news"] = "general",
+    search_depth: Literal["basic", "advanced", "fast", "ultra-fast"] = "advanced",
+    topic: Literal["general", "news", "finance"] = "general",
+    max_results: int = 10,
 ) -> dict:
     """Search the web for current information.
 
     Args:
         query: The search query (be specific and detailed)
-        max_results: Number of results to return (default: 5)
+        search_depth: The depth of the search. advanced search is tailored to retrieve the most
+            relevant sources and content snippets for your query, while basic search provides
+            generic content snippets from each source
         topic: "general" for most queries, "news" for current events
+        max_results: Number of results to return
 
     Returns:
-        Search results with titles, URLs, and content excerpts.
+        Search results with URLs, titles, and content excerpts.
 
     """
     try:
         from tavily import TavilyClient
 
         client = TavilyClient()
-        return client.search(query, max_results=max_results, topic=topic)
+        return client.search(
+            query=query,
+            search_depth=search_depth,
+            topic=topic,
+            max_results=max_results,
+        )
+    except Exception as e:
+        return {"error": f"Search failed: {e}"}
+
+
+@tool
+def web_extract(
+    urls: list[str] | str,
+    extract_depth: Literal["basic", "advanced"] = "advanced",
+    content_format: Literal["markdown", "text"] = "markdown",
+) -> dict:
+    """Search the web for current information.
+
+    Args:
+    urls: The URLs to extract content from
+    extract_depth: The depth of the extraction process. advanced extraction
+        retrieves more data, including tables and embedded content, with higher
+        success but may increase latency.
+    content_format: The format of the extracted content
+
+    Returns:
+        Search results with URL, title, and raw_content.
+
+    """
+    try:
+        from tavily import TavilyClient
+
+        client = TavilyClient()
+        return client.extract(
+            urls=urls,
+            extract_depth=extract_depth,
+            format=content_format,
+        )
     except Exception as e:
         return {"error": f"Search failed: {e}"}
 
