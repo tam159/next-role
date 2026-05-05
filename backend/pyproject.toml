@@ -40,6 +40,11 @@ dependencies = [
 testpaths = ["tests"]
 pythonpath = [".."]
 asyncio_mode = "auto"
+addopts = "--import-mode=importlib -m 'not integration and not eval'"
+markers = [
+  "integration: hits real I/O — Postgres, Redis, HTTP, filesystem fixtures",
+  "eval: LLM evaluation — slow and costly, opt-in only"
+]
 
 [tool.ruff]
 target-version = "py313"
@@ -136,6 +141,7 @@ max-complexity = 10
   "ANN204",
   "ARG001",
   "ARG002",
+  "INP001",
   "PLR2004"
 ]
 "**/notebooks/**/*.ipynb" = ["D100"]

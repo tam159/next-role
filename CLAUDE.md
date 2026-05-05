@@ -27,6 +27,8 @@ Read the `0.0.0.0:<host>->...` mappings — host ports come from `.env` (`FRONTE
 
 Use the `agent-browser` skill for visual verification, or `curl` for API checks.
 
+If a service connection fails or `docker ps` shows the stack isn't up, **remind the user to run `docker compose up -d`** instead of running it yourself. They may have stopped it intentionally, and silently restarting shared infrastructure can mask real bugs.
+
 ### Hot reload vs. restart vs. rebuild
 
 Both containers hot-reload on source edits — frontend via `pnpm dev` (Turbopack), backend via `LANGSMITH_LANGGRAPH_DESKTOP: "true"` in `docker-compose.yml`. **Don't restart for plain code changes**; save the file and the running container picks it up.

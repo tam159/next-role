@@ -29,14 +29,32 @@ Suppress one line at a time. Don't blanket-disable a rule in `pyproject.toml` to
 
 ## Testing
 
-- **Layout**: tests live in `backend/tests/` as a flat list of `test_<area>_<thing>.py` files (e.g., `test_career_agent_tools.py`, `test_career_agent_middleware.py`). Don't mirror `app/` as nested directories — keep filenames descriptive.
+> **Current phase: unit tests + integration tests against the local DB.** LLM evals are deferred (slow + costly). When you create or modify code, write or update **unit tests** by default, and add **integration tests** when the code's value lives in real DB/Redis/HTTP behavior (e.g., pgvector queries, transaction semantics, connection pooling). Do **not** create `@pytest.mark.eval` tests — that marker exists for future use only.
+
+- **Layout**: `backend/tests/` mirrors `backend/app/`. A source file `app/<pkg>/<module>.py` has its tests at `tests/<pkg>/test_<module>.py` (e.g., `app/career_agent/tools.py` → `tests/career_agent/test_tools.py`). **No `__init__.py` needed** — pytest runs in `--import-mode=importlib`, so test subdirectories are plain folders.
+- **One source module → can have multiple test files** when concerns are unrelated: split as `test_<module>_<concern>.py` (e.g., `test_tools_parsing.py`, `test_tools_search.py`). Don't pile everything into one giant test file.
 - **Run** (from `backend/` — `testpaths = ["tests"]` is relative):
-  - Full suite: `cd backend && uv run pytest`
-  - Single file: `cd backend && uv run pytest tests/test_career_agent_tools.py`
+  - Default (fast unit tests only): `cd backend && uv run pytest`
+  - Single file: `cd backend && uv run pytest tests/career_agent/test_tools.py`
   - Single test: append `::test_function_name` to the file path
-- **When you create or modify code, add or update the matching test**, then run at least that test file to confirm green before reporting the work as done. Run the full suite for cross-cutting changes (shared utilities, config, schema).
+  - Integration tests: `cd backend && uv run pytest -m integration` (assumes the local stack is up)
+  - Unit + integration together: `cd backend && uv run pytest -m 'not eval'`
+- **Unit tests** (the default, untagged):
+  - Add or update the matching test at the mirrored path when you create or modify code.
+  - Must be fast and deterministic. Mock external dependencies (`unittest.mock.patch`).
+  - **Don't assert on raw LLM output** — it's non-deterministic. Mock the model client and assert on the surrounding logic: what gets passed in, how the response is parsed, error handling. Real LLM evaluation belongs in an eval suite (deferred).
+  - Run at least the matching test file to confirm green before reporting work as done. Run the full default suite for cross-cutting changes.
+- **Integration tests** (tagged `@pytest.mark.integration`):
+  - Use for code whose behavior depends on the live DB/Redis/HTTP — pgvector queries, real transactions, multi-statement flows. Mocking these would lie.
+  - Connect to the local stack via `POSTGRES_URI` / `REDIS_URI` from `.env`. Stack-up handling is in the root [Local development](../CLAUDE.md#local-development) section.
+  - Tests must clean up after themselves (use a transaction that rolls back, or delete inserted rows in a fixture teardown). Don't pollute the dev DB.
+  - Skipped from the default run by `addopts = "... -m 'not integration and not eval'"` in `pyproject.toml`. Run them manually with `-m integration` when relevant; CI will run them later.
 - **Async**: `asyncio_mode = "auto"` is set in `pyproject.toml`, so write `async def test_...` directly — no `@pytest.mark.asyncio` decorator needed.
-- **Don't write asserts against raw LLM output** — it's non-deterministic. Mock the model client, record cassettes (`pytest-recording`), or split evals out of unit tests. Reserve `pytest` for deterministic logic: parsing, routing, validation, retry, schema checks.
+- **Scoped fixtures**: a `conftest.py` in a subpackage (e.g., `tests/career_agent/conftest.py`) is only loaded for tests under it. Keep package-specific fixtures there instead of bloating `tests/conftest.py`. Don't create empty `conftest.py` upfront — wait until a fixture is shared.
+
+### Deferred: LLM evals
+
+`@pytest.mark.eval` is declared in `pyproject.toml` and excluded from the default run. It's for future LLM evaluation tests (slow, costly, non-deterministic). Until eval work begins, the marker should not appear in code.
 
 ## Local database
 
