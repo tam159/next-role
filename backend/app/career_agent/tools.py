@@ -3,6 +3,7 @@
 import re
 from pathlib import Path
 from typing import Any, Literal
+from urllib.parse import urlparse
 
 from deepagents.backends import CompositeBackend
 from deepagents.backends.protocol import WriteResult
@@ -28,7 +29,7 @@ def web_search(
     query: str,
     search_depth: Literal["basic", "advanced", "fast", "ultra-fast"] = "advanced",
     topic: Literal["general", "news", "finance"] = "general",
-    max_results: int = 10,
+    max_results: int = 5,
 ) -> dict:
     """Search the web for current information.
 
@@ -41,7 +42,7 @@ def web_search(
         max_results: Number of results to return
 
     Returns:
-        Search results with URLs, titles, and content excerpts.
+        Search results with url, title, content and score
 
     """
     try:
@@ -74,7 +75,7 @@ def web_extract(
     content_format: The format of the extracted content
 
     Returns:
-        Search results with URL, title, and raw_content.
+        Search results with url, title, raw_content and images
 
     """
     try:
@@ -87,7 +88,7 @@ def web_extract(
             format=content_format,
         )
     except Exception as e:
-        return {"error": f"Search failed: {e}"}
+        return {"error": f"Extract failed: {e}"}
 
 
 def make_list_files(backend: CompositeBackend) -> BaseTool:
@@ -214,3 +215,73 @@ def make_parse_document(backend: CompositeBackend) -> BaseTool:
         return f"Saved {dest} ({len(markdown)} chars)"
 
     return parse_document
+
+
+def _tavily_extract_one(url: str) -> tuple[str, str]:
+    """Extract a single URL via Tavily and return `(title, raw_markdown)`.
+
+    Raises on transport errors or empty results so callers can surface a
+    consistent `Error: ...` message.
+    """
+    from tavily import TavilyClient
+
+    client = TavilyClient()
+    response = client.extract(urls=url, extract_depth="advanced", format="markdown")
+    results = response.get("results") or []
+    if not results:
+        msg = f"Tavily returned no results for {url}"
+        raise ValueError(msg)
+    first = results[0]
+    return first.get("title") or "", first.get("raw_content") or ""
+
+
+def make_extract_jd(backend: CompositeBackend) -> BaseTool:
+    """Build the `extract_jd` tool, closed over the agent's backend."""
+
+    @tool
+    def extract_jd(url: str, save_as: str) -> str:
+        """Extract a JD from a URL via Tavily and persist as markdown.
+
+        The extracted markdown is written directly to `/processed/<save_as>.md`
+        — you do NOT need to call `write_file` afterwards. Use this when the
+        user gives a JD as a URL instead of a file upload (for uploads, use
+        `parse_document`).
+
+        Args:
+            url: Full http(s) URL to the JD page.
+            save_as: Kebab-case slug WITHOUT extension. The tool appends `.md`.
+                Use company + role (e.g. "amazon-senior-ai-solution-architect-jd").
+
+        Returns:
+            Short confirmation string with the saved path and markdown length,
+            or `Error: ...` on failure.
+
+        """
+        parsed = urlparse(url)
+        if parsed.scheme not in ("http", "https") or not parsed.netloc:
+            return f"Error: invalid url {url!r} (must be http(s)://...)"
+        if (
+            not save_as
+            or any(c in save_as for c in ("/", "\\"))
+            or ".." in save_as
+            or "." in save_as
+        ):
+            return (
+                f"Error: invalid save_as {save_as!r} "
+                "(use a kebab-case slug, no path separators or extension)"
+            )
+
+        dest = f"/processed/{save_as}.md"
+        try:
+            title, raw_markdown = _tavily_extract_one(url)
+            body = _strip_image_filenames(raw_markdown)
+            header = f"# {title}\n\n" if title else ""
+            content = f"{header}_Source: {url}_\n\n{body}"
+            write_result = _upsert(backend, dest, content)
+            if write_result.error:
+                return f"Error writing {dest}: {write_result.error}"
+        except Exception as e:
+            return f"Error extracting {url}: {e}"
+        return f"Saved {dest} ({len(content)} chars from {url})"
+
+    return extract_jd

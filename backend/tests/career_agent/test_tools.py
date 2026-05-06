@@ -289,3 +289,165 @@ def test_parse_document_handles_empty_markdown(tmp_path, monkeypatch, backend):
 
     assert "no markdown" in result.lower()
     assert not (tmp_path / "processed" / "x.md").exists()
+
+
+# ---------------------------------------------------------------------------
+# extract_jd
+# ---------------------------------------------------------------------------
+
+
+def _fake_tavily_returning(*, title: str = "", raw_content: str = "", url: str = "https://e.com/j"):
+    """Build a fake TavilyClient whose `extract` returns a single-result payload."""
+
+    class _Fake:
+        def extract(self, **_kwargs):
+            return {
+                "results": [
+                    {"url": url, "title": title, "raw_content": raw_content, "images": []},
+                ],
+            }
+
+    return _Fake()
+
+
+def _fake_tavily_empty():
+    class _Fake:
+        def extract(self, **_kwargs):
+            return {"results": []}
+
+    return _Fake()
+
+
+def test_extract_jd_writes_markdown_with_header(tmp_path, backend):
+    from backend.app.career_agent import tools
+
+    fake = _fake_tavily_returning(title="Senior AI SA", raw_content="Body here.")
+    with patch("tavily.TavilyClient", return_value=fake):
+        result = tools.make_extract_jd(backend).invoke(
+            {"url": "https://www.amazon.jobs/en/jobs/3195366", "save_as": "amazon-senior-ai-sa-jd"},
+        )
+
+    assert "Saved /processed/amazon-senior-ai-sa-jd.md" in result
+    assert "https://www.amazon.jobs/en/jobs/3195366" in result
+    written = (tmp_path / "processed" / "amazon-senior-ai-sa-jd.md").read_text()
+    assert written.startswith("# Senior AI SA\n\n")
+    assert "_Source: https://www.amazon.jobs/en/jobs/3195366_" in written
+    assert "Body here." in written
+
+
+def test_extract_jd_omits_header_when_title_empty(tmp_path, backend):
+    from backend.app.career_agent import tools
+
+    fake = _fake_tavily_returning(title="", raw_content="Just body.")
+    with patch("tavily.TavilyClient", return_value=fake):
+        tools.make_extract_jd(backend).invoke(
+            {"url": "https://example.com/jd", "save_as": "ex-jd"},
+        )
+
+    written = (tmp_path / "processed" / "ex-jd.md").read_text()
+    assert not written.startswith("# ")
+    assert written.startswith("_Source: https://example.com/jd_\n\n")
+
+
+def test_extract_jd_strips_image_filename_refs(tmp_path, backend):
+    from backend.app.career_agent import tools
+
+    raw = "Job summary\n\n![logo](https://cdn.example.com/logo.png) Apply now."
+    fake = _fake_tavily_returning(title="JD", raw_content=raw)
+    with patch("tavily.TavilyClient", return_value=fake):
+        tools.make_extract_jd(backend).invoke(
+            {"url": "https://example.com/jd", "save_as": "ex-jd"},
+        )
+
+    written = (tmp_path / "processed" / "ex-jd.md").read_text()
+    assert "[logo]" in written
+    assert "https://cdn.example.com/logo.png" not in written
+
+
+@pytest.mark.parametrize(
+    "url",
+    [
+        "",
+        "not-a-url",
+        "file:///etc/passwd",
+        "ftp://example.com/jd",
+        "https://",
+    ],
+)
+def test_extract_jd_rejects_invalid_urls(backend, url):
+    from backend.app.career_agent.tools import make_extract_jd
+
+    result = make_extract_jd(backend).invoke({"url": url, "save_as": "x"})
+    assert result.startswith("Error: invalid url")
+
+
+@pytest.mark.parametrize(
+    "save_as",
+    [
+        "",
+        "../escape",
+        "nested/slug",
+        "with.extension",
+        "back\\slash",
+    ],
+)
+def test_extract_jd_rejects_invalid_save_as(backend, save_as):
+    from backend.app.career_agent.tools import make_extract_jd
+
+    result = make_extract_jd(backend).invoke({"url": "https://example.com/jd", "save_as": save_as})
+    assert result.startswith("Error: invalid save_as")
+
+
+def test_extract_jd_handles_empty_tavily_results(tmp_path, backend):
+    from backend.app.career_agent import tools
+
+    with patch("tavily.TavilyClient", return_value=_fake_tavily_empty()):
+        result = tools.make_extract_jd(backend).invoke(
+            {"url": "https://example.com/jd", "save_as": "ex-jd"},
+        )
+
+    assert result.startswith("Error extracting https://example.com/jd")
+    assert "no results" in result.lower()
+    assert not (tmp_path / "processed" / "ex-jd.md").exists()
+
+
+def test_extract_jd_surfaces_tavily_exception(tmp_path, backend):
+    from backend.app.career_agent import tools
+
+    class _Boom:
+        def extract(self, **_kwargs):
+            msg = "tavily down"
+            raise RuntimeError(msg)
+
+    with patch("tavily.TavilyClient", return_value=_Boom()):
+        result = tools.make_extract_jd(backend).invoke(
+            {"url": "https://example.com/jd", "save_as": "ex-jd"},
+        )
+
+    assert result.startswith("Error extracting https://example.com/jd")
+    assert "tavily down" in result
+    assert not (tmp_path / "processed" / "ex-jd.md").exists()
+
+
+def test_extract_jd_overwrites_existing_processed_file(tmp_path, backend):
+    from backend.app.career_agent import tools
+
+    tool = tools.make_extract_jd(backend)
+
+    with patch(
+        "tavily.TavilyClient",
+        return_value=_fake_tavily_returning(title="v1", raw_content="first"),
+    ):
+        first = tool.invoke({"url": "https://example.com/jd", "save_as": "ex"})
+    assert "Saved /processed/ex.md" in first
+    assert "first" in (tmp_path / "processed" / "ex.md").read_text()
+
+    with patch(
+        "tavily.TavilyClient",
+        return_value=_fake_tavily_returning(title="v2", raw_content="second"),
+    ):
+        second = tool.invoke({"url": "https://example.com/jd", "save_as": "ex"})
+    assert "Saved /processed/ex.md" in second
+    written = (tmp_path / "processed" / "ex.md").read_text()
+    assert "second" in written
+    assert "first" not in written

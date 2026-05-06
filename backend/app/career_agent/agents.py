@@ -9,6 +9,7 @@ from backend.app.career_agent import prompts as _prompts
 from backend.app.career_agent.middleware import UtcDatetimeMiddleware
 from backend.app.career_agent.tools import (
     CAREER_AGENT_DIR,
+    make_extract_jd,
     make_list_files,
     make_parse_document,
 )
@@ -98,6 +99,7 @@ career_agent = create_deep_agent(
     tools=[
         make_list_files(_backend),
         make_parse_document(_backend),
+        make_extract_jd(_backend),
     ],
     subagents=load_subagents(CAREER_AGENT_DIR / "subagents.yaml"),
     backend=_backend,
