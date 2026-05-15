@@ -41,19 +41,20 @@ def _apply_prompt_overrides() -> None:
     will also see these prompts.
     """
     # `setattr` (rather than direct assignment) sidesteps ty's literal-type
-    # narrowing on the module-level `BASE_AGENT_PROMPT` constant.
+    # narrowing: upstream constants ≤4096 chars are typed as `Literal["..."]`,
+    # so reassigning them to a divergent string fails type-check.
     setattr(_graph_mod, "BASE_AGENT_PROMPT", _prompts.BASE)  # noqa: B010
-
-    _skills_mw.SKILLS_SYSTEM_PROMPT = _prompts.SKILLS
-    _fs_mw._FILESYSTEM_SYSTEM_PROMPT_TEMPLATE = _prompts.FILESYSTEM  # noqa: SLF001
-    _fs_mw.FILESYSTEM_SYSTEM_PROMPT = _prompts.FILESYSTEM.format(
-        large_tool_results_prefix="/large_tool_results",
+    setattr(_skills_mw, "SKILLS_SYSTEM_PROMPT", _prompts.SKILLS)  # noqa: B010
+    setattr(_fs_mw, "_FILESYSTEM_SYSTEM_PROMPT_TEMPLATE", _prompts.FILESYSTEM)  # noqa: B010
+    setattr(  # noqa: B010
+        _fs_mw,
+        "FILESYSTEM_SYSTEM_PROMPT",
+        _prompts.FILESYSTEM.format(large_tool_results_prefix="/large_tool_results"),
     )
-    _fs_mw.EXECUTION_SYSTEM_PROMPT = _prompts.EXECUTION
-    _mem_mw.MEMORY_SYSTEM_PROMPT = _prompts.MEMORY
-
-    _todo_mw.WRITE_TODOS_SYSTEM_PROMPT = _prompts.TODO
-    _sub_mw.TASK_SYSTEM_PROMPT = _prompts.TASK
+    setattr(_fs_mw, "EXECUTION_SYSTEM_PROMPT", _prompts.EXECUTION)  # noqa: B010
+    setattr(_mem_mw, "MEMORY_SYSTEM_PROMPT", _prompts.MEMORY)  # noqa: B010
+    setattr(_todo_mw, "WRITE_TODOS_SYSTEM_PROMPT", _prompts.TODO)  # noqa: B010
+    setattr(_sub_mw, "TASK_SYSTEM_PROMPT", _prompts.TASK)  # noqa: B010
 
     _todo_mw.TodoListMiddleware.__init__.__kwdefaults__["system_prompt"] = _prompts.TODO  # type: ignore # noqa: PGH003
     _sub_mw.SubAgentMiddleware.__init__.__kwdefaults__["system_prompt"] = _prompts.TASK  # type: ignore # noqa: PGH003

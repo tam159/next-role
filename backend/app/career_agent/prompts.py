@@ -126,9 +126,9 @@ FILESYSTEM = """## Following Conventions
 ## Filesystem Tools `ls`, `read_file`, `write_file`, `edit_file`, `glob`, `grep`
 
 You have access to a filesystem which you can interact with using these tools.
-All file paths must start with a /. Follow the tool docs for the available tools, and use pagination (offset/limit) when reading large files.
+Follow the tool docs for the available tools, and use pagination (offset/limit) when reading large files.
 
-- ls: list files in a directory (requires absolute path)
+- ls: list files in a directory
 - read_file: read a file from the filesystem
 - write_file: write to a file in the filesystem
 - edit_file: edit a file in the filesystem
