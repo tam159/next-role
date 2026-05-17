@@ -88,17 +88,31 @@ def _fake_llamacloud_returning(markdown: str):
     )
 
 
+def _seed_upload(tmp_path: Path, monkeypatch, filename: str, content: bytes = b"x") -> Path:
+    """Anchor `CAREER_AGENT_DIR` at `tmp_path` and drop a fake upload on disk.
+
+    `parse_document` resolves source paths under `CAREER_AGENT_DIR`, so pointing
+    that at the test's tmp_path lets us seed `/upload/<name>` (and any other
+    backend path) as a real on-disk file.
+    """
+    from backend.app.career_agent import tools
+
+    monkeypatch.setattr(tools, "CAREER_AGENT_DIR", tmp_path)
+    upload = tmp_path / "upload"
+    upload.mkdir(parents=True, exist_ok=True)
+    src = upload / filename
+    src.write_bytes(content)
+    return src
+
+
 def test_parse_document_writes_markdown_to_backend(tmp_path, monkeypatch, backend):
     from backend.app.career_agent import tools
 
-    upload = tmp_path / "upload"
-    upload.mkdir(parents=True)
-    (upload / "resume.pdf").write_bytes(b"%PDF-fake")
-    monkeypatch.setattr(tools, "UPLOAD_DIR", upload)
+    _seed_upload(tmp_path, monkeypatch, "resume.pdf", b"%PDF-fake")
 
     with patch("llama_cloud.LlamaCloud", return_value=_fake_llamacloud_returning("# Resume\nhi")):
         result = tools.make_parse_document(backend).invoke(
-            {"filename": "resume.pdf", "save_as": "tam-resume"},
+            {"source_path": "/upload/resume.pdf", "output_path": "/processed/tam-resume.md"},
         )
 
     assert "Saved /processed/tam-resume.md" in result
@@ -111,10 +125,7 @@ def test_parse_document_passes_expected_args_to_llamacloud(tmp_path, monkeypatch
     """Lock in the LlamaParse call shape so we notice if it drifts."""
     from backend.app.career_agent import tools
 
-    upload = tmp_path / "upload"
-    upload.mkdir(parents=True)
-    (upload / "x.pdf").write_bytes(b"x")
-    monkeypatch.setattr(tools, "UPLOAD_DIR", upload)
+    _seed_upload(tmp_path, monkeypatch, "x.pdf")
 
     captured: dict = {}
 
@@ -131,7 +142,9 @@ def test_parse_document_passes_expected_args_to_llamacloud(tmp_path, monkeypatch
         parsing=SimpleNamespace(parse=_capture_parse),
     )
     with patch("llama_cloud.LlamaCloud", return_value=fake_client):
-        tools.make_parse_document(backend).invoke({"filename": "x.pdf", "save_as": "x"})
+        tools.make_parse_document(backend).invoke(
+            {"source_path": "/upload/x.pdf", "output_path": "/processed/x.md"},
+        )
 
     assert captured["create"]["purpose"] == "parse"
     assert captured["create"]["file"].endswith("/upload/x.pdf")
@@ -142,31 +155,54 @@ def test_parse_document_passes_expected_args_to_llamacloud(tmp_path, monkeypatch
     assert parse_kwargs["processing_options"] == {"cost_optimizer": {"enable": True}}
 
 
-def test_parse_document_rejects_path_traversal(backend):
-    from backend.app.career_agent.tools import make_parse_document
+def test_parse_document_rejects_path_traversal(tmp_path, monkeypatch, backend):
+    from backend.app.career_agent import tools
 
-    result = make_parse_document(backend).invoke({"filename": "../etc/passwd", "save_as": "x"})
-    assert result.startswith("Error: file not found")
+    monkeypatch.setattr(tools, "CAREER_AGENT_DIR", tmp_path)
+    result = tools.make_parse_document(backend).invoke(
+        {"source_path": "/upload/../etc/passwd", "output_path": "/processed/x.md"},
+    )
+    assert result.startswith("Error: invalid source_path")
+    assert "traversal" in result
+
+
+def test_parse_document_rejects_relative_source_path(tmp_path, monkeypatch, backend):
+    from backend.app.career_agent import tools
+
+    monkeypatch.setattr(tools, "CAREER_AGENT_DIR", tmp_path)
+    result = tools.make_parse_document(backend).invoke(
+        {"source_path": "upload/x.pdf", "output_path": "/processed/x.md"},
+    )
+    assert result.startswith("Error: invalid source_path")
+    assert "absolute" in result
+
+
+def test_parse_document_rejects_non_md_output(tmp_path, monkeypatch, backend):
+    from backend.app.career_agent import tools
+
+    _seed_upload(tmp_path, monkeypatch, "r.pdf")
+    result = tools.make_parse_document(backend).invoke(
+        {"source_path": "/upload/r.pdf", "output_path": "/processed/x.txt"},
+    )
+    assert result.startswith("Error: invalid output_path")
 
 
 def test_parse_document_handles_missing_file(tmp_path, monkeypatch, backend):
     from backend.app.career_agent import tools
 
-    upload = tmp_path / "upload"
-    upload.mkdir(parents=True)
-    monkeypatch.setattr(tools, "UPLOAD_DIR", upload)
+    monkeypatch.setattr(tools, "CAREER_AGENT_DIR", tmp_path)
+    (tmp_path / "upload").mkdir(parents=True, exist_ok=True)
 
-    result = tools.make_parse_document(backend).invoke({"filename": "ghost.pdf", "save_as": "x"})
-    assert result.startswith("Error: file not found")
+    result = tools.make_parse_document(backend).invoke(
+        {"source_path": "/upload/ghost.pdf", "output_path": "/processed/x.md"},
+    )
+    assert result.startswith("Error: file not found at /upload/ghost.pdf")
 
 
 def test_parse_document_surfaces_parse_failure(tmp_path, monkeypatch, backend):
     from backend.app.career_agent import tools
 
-    upload = tmp_path / "upload"
-    upload.mkdir(parents=True)
-    (upload / "r.pdf").write_bytes(b"x")
-    monkeypatch.setattr(tools, "UPLOAD_DIR", upload)
+    _seed_upload(tmp_path, monkeypatch, "r.pdf")
 
     def _explode(**_kw):
         msg = "api down"
@@ -177,29 +213,29 @@ def test_parse_document_surfaces_parse_failure(tmp_path, monkeypatch, backend):
         parsing=SimpleNamespace(parse=lambda **_kw: None),
     )
     with patch("llama_cloud.LlamaCloud", return_value=fake):
-        result = tools.make_parse_document(backend).invoke({"filename": "r.pdf", "save_as": "x"})
+        result = tools.make_parse_document(backend).invoke(
+            {"source_path": "/upload/r.pdf", "output_path": "/processed/x.md"},
+        )
 
-    assert result.startswith("Error processing r.pdf")
+    assert result.startswith("Error processing /upload/r.pdf")
     assert "api down" in result
 
 
-def test_parse_document_overwrites_existing_processed_file(tmp_path, monkeypatch, backend):
+def test_parse_document_overwrites_existing_output_file(tmp_path, monkeypatch, backend):
     from backend.app.career_agent import tools
 
-    upload = tmp_path / "upload"
-    upload.mkdir(parents=True)
-    (upload / "r.pdf").write_bytes(b"x")
-    monkeypatch.setattr(tools, "UPLOAD_DIR", upload)
+    _seed_upload(tmp_path, monkeypatch, "r.pdf")
 
     tool = tools.make_parse_document(backend)
+    args = {"source_path": "/upload/r.pdf", "output_path": "/processed/tam.md"}
 
     with patch("llama_cloud.LlamaCloud", return_value=_fake_llamacloud_returning("# v1")):
-        first = tool.invoke({"filename": "r.pdf", "save_as": "tam"})
+        first = tool.invoke(args)
     assert "Saved /processed/tam.md" in first
     assert (tmp_path / "processed" / "tam.md").read_text() == "# v1"
 
     with patch("llama_cloud.LlamaCloud", return_value=_fake_llamacloud_returning("# v2 newer")):
-        second = tool.invoke({"filename": "r.pdf", "save_as": "tam"})
+        second = tool.invoke(args)
     assert "Saved /processed/tam.md" in second
     assert (tmp_path / "processed" / "tam.md").read_text() == "# v2 newer"
 
@@ -207,31 +243,41 @@ def test_parse_document_overwrites_existing_processed_file(tmp_path, monkeypatch
 def test_parse_document_noop_when_content_identical(tmp_path, monkeypatch, backend):
     from backend.app.career_agent import tools
 
-    upload = tmp_path / "upload"
-    upload.mkdir(parents=True)
-    (upload / "r.pdf").write_bytes(b"x")
-    monkeypatch.setattr(tools, "UPLOAD_DIR", upload)
+    _seed_upload(tmp_path, monkeypatch, "r.pdf")
 
     tool = tools.make_parse_document(backend)
+    args = {"source_path": "/upload/r.pdf", "output_path": "/processed/x.md"}
     same = "# Resume\nidentical"
 
     with patch("llama_cloud.LlamaCloud", return_value=_fake_llamacloud_returning(same)):
-        first = tool.invoke({"filename": "r.pdf", "save_as": "x"})
-        second = tool.invoke({"filename": "r.pdf", "save_as": "x"})
+        first = tool.invoke(args)
+        second = tool.invoke(args)
 
     assert "Saved /processed/x.md" in first
     assert "Saved /processed/x.md" in second
     assert (tmp_path / "processed" / "x.md").read_text() == same
 
 
+def test_parse_document_accepts_arbitrary_output_path(tmp_path, monkeypatch, backend):
+    """Output can land outside `/processed/` — the tool is generic."""
+    from backend.app.career_agent import tools
+
+    _seed_upload(tmp_path, monkeypatch, "spec.docx")
+
+    with patch("llama_cloud.LlamaCloud", return_value=_fake_llamacloud_returning("# Spec")):
+        result = tools.make_parse_document(backend).invoke(
+            {"source_path": "/upload/spec.docx", "output_path": "/workspace/notes/spec.md"},
+        )
+
+    assert "Saved /workspace/notes/spec.md" in result
+    assert (tmp_path / "workspace" / "notes" / "spec.md").read_text() == "# Spec"
+
+
 def test_parse_document_strips_image_filename_refs(tmp_path, monkeypatch, backend):
     """LlamaParse emits `![alt](page_X_image_Y.jpg)`; we strip the `(filename)` part."""
     from backend.app.career_agent import tools
 
-    upload = tmp_path / "upload"
-    upload.mkdir(parents=True)
-    (upload / "r.pdf").write_bytes(b"x")
-    monkeypatch.setattr(tools, "UPLOAD_DIR", upload)
+    _seed_upload(tmp_path, monkeypatch, "r.pdf")
 
     raw = (
         "# Resume\n\n"
@@ -247,7 +293,9 @@ def test_parse_document_strips_image_filename_refs(tmp_path, monkeypatch, backen
     )
 
     with patch("llama_cloud.LlamaCloud", return_value=_fake_llamacloud_returning(raw)):
-        tools.make_parse_document(backend).invoke({"filename": "r.pdf", "save_as": "x"})
+        tools.make_parse_document(backend).invoke(
+            {"source_path": "/upload/r.pdf", "output_path": "/processed/x.md"},
+        )
 
     assert (tmp_path / "processed" / "x.md").read_text() == expected
 
@@ -256,10 +304,7 @@ def test_parse_document_passes_images_to_save_empty(tmp_path, monkeypatch, backe
     """Verify we tell LlamaParse not to save any images (no extraction cost)."""
     from backend.app.career_agent import tools
 
-    upload = tmp_path / "upload"
-    upload.mkdir(parents=True)
-    (upload / "x.pdf").write_bytes(b"x")
-    monkeypatch.setattr(tools, "UPLOAD_DIR", upload)
+    _seed_upload(tmp_path, monkeypatch, "x.pdf")
 
     captured: dict = {}
 
@@ -272,7 +317,9 @@ def test_parse_document_passes_images_to_save_empty(tmp_path, monkeypatch, backe
         parsing=SimpleNamespace(parse=_capture_parse),
     )
     with patch("llama_cloud.LlamaCloud", return_value=fake):
-        tools.make_parse_document(backend).invoke({"filename": "x.pdf", "save_as": "x"})
+        tools.make_parse_document(backend).invoke(
+            {"source_path": "/upload/x.pdf", "output_path": "/processed/x.md"},
+        )
 
     assert captured["parse"]["output_options"]["images_to_save"] == []
 
@@ -280,13 +327,12 @@ def test_parse_document_passes_images_to_save_empty(tmp_path, monkeypatch, backe
 def test_parse_document_handles_empty_markdown(tmp_path, monkeypatch, backend):
     from backend.app.career_agent import tools
 
-    upload = tmp_path / "upload"
-    upload.mkdir(parents=True)
-    (upload / "r.pdf").write_bytes(b"x")
-    monkeypatch.setattr(tools, "UPLOAD_DIR", upload)
+    _seed_upload(tmp_path, monkeypatch, "r.pdf")
 
     with patch("llama_cloud.LlamaCloud", return_value=_fake_llamacloud_returning("")):
-        result = tools.make_parse_document(backend).invoke({"filename": "r.pdf", "save_as": "x"})
+        result = tools.make_parse_document(backend).invoke(
+            {"source_path": "/upload/r.pdf", "output_path": "/processed/x.md"},
+        )
 
     assert "no markdown" in result.lower()
     assert not (tmp_path / "processed" / "x.md").exists()

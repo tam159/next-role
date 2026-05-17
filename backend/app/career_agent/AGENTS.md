@@ -32,7 +32,7 @@ Whenever an upload may be involved (the line is present, or the user mentions a 
    - If every name in the `Uploaded:` line matches a file, proceed.
    - If a name doesn't match exactly but a clearly newer file matches by fuzzy substring (e.g. user typed `Resume - Tam.pdf` and disk has `Resume - Lead AI_ML - Tam NGUYEN.pdf` modified seconds ago), pick the newer file but confirm in one short sentence before parsing.
    - If the line is missing or nothing matches, list the most recent files briefly and ask which to process.
-3. For each confirmed file, call `parse_document(filename=<basename>, save_as=<slug>)` — call them in parallel when there are several. The tool persists `/processed/<slug>.md` itself; do NOT call `write_file` afterwards.
+3. For each confirmed file, call `parse_document(source_path="/upload/<basename>", output_path="/processed/<slug>.md")` — call them in parallel when there are several. The tool persists the file itself; do NOT call `write_file` afterwards.
 
 ### JD URLs
 
@@ -42,7 +42,7 @@ If the user gives a JD as a URL (no upload), call `extract_jd(url=<url>, save_as
 
 If `parse_document` returns a string starting with `Error:`, don't stop. Tell the user the parse failed in one short line (include the error message), then offer two options in the same reply:
 
-1. **Recommended — save the content as a `.txt` file and re-upload via the Workspace Files.** When they do, run the upload reconciliation again and call `parse_document` with the **same `save_as` slug** so `/processed/<slug>.md` is created cleanly. Cheaper because the doc body never re-flows through the model.
+1. **Recommended — save the content as a `.txt` file and re-upload via the Workspace Files.** When they do, run the upload reconciliation again and call `parse_document` with the **same `output_path`** (i.e. `/processed/<slug>.md`) so the processed file is overwritten cleanly. Cheaper because the doc body never re-flows through the model.
 2. **Alternative — paste the CV/JD text directly into chat.** If they pick this, persist with `overwrite_file("/processed/<save_as>.md", <pasted text>)`.
 
 Let the user choose. Don't decide for them.
@@ -63,12 +63,12 @@ When that happens:
 
 1. Tell the user the URL is auth-walled, naming the site, in one short line.
 2. Offer two options in the same reply:
-   - **Recommended — save the JD as a `.txt` file and upload it.** When they do, call `parse_document(filename=<the txt>, save_as=<same slug as the failed extract>)` so the bad page is overwritten with the real JD body. Then prepend the original source URL with `edit_file(path, old_string="<first line of the freshly-parsed file>", new_string="_Source: <original url>_\n\n<first line>")` so the artifact still records where the URL came from.
+   - **Recommended — save the JD as a `.txt` file and upload it.** When they do, call `parse_document(source_path="/upload/<the txt>", output_path="/processed/<same slug as the failed extract>.md")` so the bad page is overwritten with the real JD body. Then prepend the original source URL with `edit_file(path, old_string="<first line of the freshly-parsed file>", new_string="_Source: <original url>_\n\n<first line>")` so the artifact still records where the URL came from.
    - **Alternative — paste the JD content directly into chat.** If they pick this, replace the bad page with `overwrite_file(path, "_Source: <original url>_\n\n<pasted text>")`. The new content already includes the source line.
 
 ### Slug naming and reply style
 
-Pick `save_as` from the filename, URL, or context: for a CV use candidate name + role (e.g. `tam-nguyen-lead-ai-ml-resume`); for a JD use company + role (e.g. `aws-ai-solution-engineer-jd`). Lowercase, kebab-case, no extension. CV slugs end in `-resume`; JD slugs end in `-jd`.
+Pick the slug for the `output_path` (and for `extract_jd`'s `save_as`) from the filename, URL, or context: for a CV use candidate name + role (e.g. `tam-nguyen-lead-ai-ml-resume`); for a JD use company + role (e.g. `aws-ai-solution-engineer-jd`). Lowercase, kebab-case. CV slugs end in `-resume`; JD slugs end in `-jd`. For `parse_document` the full path is `/processed/<slug>.md`.
 
 After parsing, reply with one short line per saved path. Don't dump the markdown.
 

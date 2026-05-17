@@ -10,7 +10,6 @@ from deepagents.backends.protocol import WriteResult
 from langchain_core.tools import BaseTool, tool
 
 CAREER_AGENT_DIR: Path = Path(__file__).parent
-UPLOAD_DIR: Path = CAREER_AGENT_DIR / "upload"
 
 # LlamaParse emits `![alt](page_X_image_Y.jpg)` markdown for embedded images
 # even when we don't extract them, which renders as broken-image 404s in the
@@ -191,24 +190,47 @@ def make_overwrite_file(backend: CompositeBackend) -> BaseTool:
     return overwrite_file
 
 
+def _resolve_source_on_disk(source_path: str) -> Path | str:
+    """Resolve a backend absolute path to a real on-disk file under `CAREER_AGENT_DIR`.
+
+    Returns a `Path` if the file exists on disk, or a string error message
+    suitable for returning to the caller. LlamaCloud needs a real file on disk
+    — paths backed by `StoreBackend` routes (e.g. `/processed/`, `/research/`)
+    are not on disk and will be rejected here.
+    """
+    if not source_path.startswith("/"):
+        return (
+            f"Error: invalid source_path {source_path!r} (must be absolute, e.g. /upload/foo.pdf)"
+        )
+    if ".." in Path(source_path).parts:
+        return f"Error: invalid source_path {source_path!r} (path traversal not allowed)"
+    src = CAREER_AGENT_DIR / source_path.lstrip("/")
+    if not src.is_file():
+        return f"Error: file not found at {source_path}"
+    return src
+
+
 def make_parse_document(backend: CompositeBackend) -> BaseTool:
     """Build the `parse_document` tool, closed over the agent's backend."""
 
     @tool
-    def parse_document(filename: str, save_as: str) -> str:
-        """Parse a document from /upload/ with LlamaParse and persist as markdown.
+    def parse_document(source_path: str, output_path: str) -> str:
+        """Parse a document with LlamaParse and persist the result as markdown.
 
-        The parsed markdown is written directly to `/processed/<save_as>.md`
-        — you do NOT need to call `write_file` afterwards.
+        Works on any document the agent can read from disk: PDFs, DOCX, PPTX,
+        images, etc. Common source dir is `/upload/` (user uploads), but any
+        on-disk file under the agent's workspace is supported. The parsed
+        markdown is written directly to `output_path` — you do NOT need to
+        call `write_file` afterwards.
 
         Args:
-            filename: Basename of a file in `/upload/`, e.g.
-                "Resume - Lead AI_ML - Tam NGUYEN.pdf". Path separators are
-                rejected.
-            save_as: Kebab-case slug WITHOUT extension. The tool appends `.md`.
-                Pick something content-meaningful — for a CV, candidate name
-                + role (e.g. "tam-nguyen-lead-ai-ml-resume"); for a JD,
-                company + role (e.g. "aws-ai-solution-engineer-jd").
+            source_path: Absolute backend path to the document to parse, e.g.
+                "/upload/Resume - Tam NGUYEN.pdf" or
+                "/workspace/spec.docx". Must point to a real on-disk file.
+                Path traversal (`..`) is rejected.
+            output_path: Absolute backend path where the parsed markdown will
+                be saved, e.g. "/processed/tam-nguyen-lead-ai-ml-resume.md".
+                Must end with `.md`. Pick a content-meaningful filename.
 
         Returns:
             Short confirmation string with the saved path and markdown length,
@@ -217,11 +239,17 @@ def make_parse_document(backend: CompositeBackend) -> BaseTool:
         """
         from llama_cloud import LlamaCloud
 
-        src = UPLOAD_DIR / filename
-        if Path(filename).name != filename or not src.is_file():
-            return f"Error: file not found at /upload/{filename}"
+        resolved = _resolve_source_on_disk(source_path)
+        if isinstance(resolved, str):
+            return resolved
+        src = resolved
 
-        dest = f"/processed/{save_as}.md"
+        if not output_path.startswith("/") or not output_path.endswith(".md"):
+            return (
+                f"Error: invalid output_path {output_path!r} "
+                "(must be an absolute path ending in .md)"
+            )
+
         try:
             client = LlamaCloud()
             file_obj = client.files.create(file=str(src), purpose="parse")
@@ -239,14 +267,14 @@ def make_parse_document(backend: CompositeBackend) -> BaseTool:
             )
             markdown = getattr(result, "markdown_full", None) or ""
             if not markdown:
-                return f"Error: LlamaParse returned no markdown for {filename}"
+                return f"Error: LlamaParse returned no markdown for {source_path}"
             markdown = _strip_image_filenames(markdown)
-            write_result = _upsert(backend, dest, markdown)
+            write_result = _upsert(backend, output_path, markdown)
             if write_result.error:
-                return f"Error writing {dest}: {write_result.error}"
+                return f"Error writing {output_path}: {write_result.error}"
         except Exception as e:
-            return f"Error processing {filename}: {e}"
-        return f"Saved {dest} ({len(markdown)} chars)"
+            return f"Error processing {source_path}: {e}"
+        return f"Saved {output_path} ({len(markdown)} chars)"
 
     return parse_document
 
