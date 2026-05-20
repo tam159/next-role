@@ -14,12 +14,24 @@ The agent is configured by files:
 career_agent/
 ├── AGENTS.md                    # Per-stage procedure (loaded as memory)
 ├── subagents.yaml               # Subagent definitions (hiring-recon, resume-tailor, interview-coach)
-├── skills/
-│   └── interview-battlecard/
-│       └── SKILL.md             # Day-of one-pager workflow
+├── skills/                      # Per-consumer skill grouping (one source path per agent)
+│   ├── career-agent/            # main agent
+│   │   └── interview-battlecard/
+│   │       └── SKILL.md         # Day-of one-pager workflow
+│   ├── hiring-recon/            # hiring-recon subagent
+│   │   └── hiring-recon/
+│   │       └── SKILL.md
+│   ├── resume-tailor/           # resume-tailor subagent
+│   │   └── resume-tailor/
+│   │       └── SKILL.md
+│   └── interview-coach/         # interview-coach subagent
+│       └── interview-coach/
+│           └── SKILL.md
 ├── tools.py                     # Tools for the agents and subagents
 └── utils.py                     # Utilities
 ```
+
+The outer folder under `skills/` is the consumer grouping (a deepagents source path); the inner folder is the skill name (matches `name:` in frontmatter). Each consumer points at its own outer folder so its `SkillsMiddleware` only loads the skills it actually uses.
 
 
 | File                | Purpose                              | When Loaded                  |
@@ -33,7 +45,7 @@ career_agent/
 
 The `memory` and `skills` parameters are handled natively by deepagents middleware. Tools are defined in the script and passed directly.
 
-**Note on subagents:** Unlike `memory` and `skills`, subagents must be defined in code. We use a small `load_subagents()` helper to externalize config to YAML. You can also define them inline:
+**Note on subagents:** Unlike `memory` and `skills`, subagents must be defined in code. We use a small `load_subagents()` helper to externalize config to YAML. Each subagent can also declare its own `skills:` paths — deepagents constructs a dedicated `SkillsMiddleware` per subagent, so skills do not propagate from the main agent. You can also define a subagent inline:
 
 ```python
 subagents=[
@@ -41,8 +53,9 @@ subagents=[
         "name": "researcher",
         "description": "Research topics before writing...",
         "model": "anthropic:claude-sonnet-4-6",
-        "system_prompt": "You are a research assistant...",
+        "system_prompt": "You are a research assistant. Read the `web-research` skill for the full workflow, then execute it using user inputs.",
         "tools": [web_search],
+        "skills": ["skills/researcher/"],
     }
 ],
 ```

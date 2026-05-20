@@ -123,15 +123,16 @@ FILESYSTEM = """## Following Conventions
 - Read files before editing — understand existing content before making changes
 - Mimic existing style, naming conventions, and patterns
 
-## Filesystem Tools `ls`, `read_file`, `write_file`, `edit_file`, `glob`, `grep`
+## Filesystem Tools `ls`, `read_file`, `write_file`, `edit_file`, `overwrite_file`, `glob`, `grep`
 
 You have access to a filesystem which you can interact with using these tools.
 All file paths must start with a /. Follow the tool docs for the available tools, and use pagination (offset/limit) when reading large files.
 
 - ls: list files in a directory (requires absolute path)
 - read_file: read a file from the filesystem
-- write_file: write to a file in the filesystem
+- write_file: write to a file in the filesystem — parent directories are created automatically, do NOT run `mkdir` (or any other shell command) to create them first
 - edit_file: edit a file in the filesystem
+- overwrite_file: replace the entire contents of a file, or create it if missing — parent directories are created automatically, do NOT run `mkdir` first. Use when you want write-or-replace semantics and don't care whether the path exists.
 - glob: find files matching a pattern (e.g., "**/*.py")
 - grep: search for text within files
 

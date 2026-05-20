@@ -34,6 +34,8 @@ def load_subagents(config_path: Path) -> list:
             subagent["model"] = spec["model"]
         if "tools" in spec:
             subagent["tools"] = [available_tools[t] for t in spec["tools"]]
+        if "skills" in spec:
+            subagent["skills"] = spec["skills"]
         subagents.append(subagent)
 
     return subagents

@@ -163,6 +163,9 @@ def make_overwrite_file(backend: CompositeBackend) -> BaseTool:
     def overwrite_file(file_path: str, new_content: str) -> str:
         """Replace the entire contents of a file (or create it if missing).
 
+        Parent directories are created automatically — do NOT run `mkdir`
+        (or any other shell command) to create them first.
+
         Use this when:
         - You need to fully replace the body of an existing file.
         - You need to write a file at a path that may or may not already exist

@@ -98,7 +98,7 @@ career_agent = create_deep_agent(
     system_prompt=_prompts.SYSTEM_PROMPT,
     model=_MODEL,
     memory=["AGENTS.md"],
-    skills=["skills/"],
+    skills=["skills/career-agent/"],
     tools=[
         make_list_files(_backend),
         make_parse_document(_backend),
