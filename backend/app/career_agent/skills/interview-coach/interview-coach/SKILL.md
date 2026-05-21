@@ -82,4 +82,4 @@ _These two versions are reused across every round. Do not rewrite per round._
 - Every STAR story must trace to the candidate's resume (or intake additions). No invention.
 - Questions to ask back must reference specifics from the research (named team members, recent news, culture signals) — generic questions like "what's a typical day?" don't count.
 - Keep total under ~800 lines.
-- Single output file. No web tools.
+- Single output file.

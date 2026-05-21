@@ -13,7 +13,7 @@ Stage 5 of the career-agent workflow, only after the tailored resume and the int
 
 The main agent passes the resume slug and JD slug as part of the orchestration context. Read all three at `limit=1000`:
 
-- `/tailored_resume/<resume-slug>/<jd-slug>.md` — for the candidate's strongest claims and headline metrics.
+- `/tailored_resume/<resume-slug>/<jd-slug>.yaml` — for the candidate's strongest claims and headline metrics.
 - `/interview_coach/<resume-slug>/<jd-slug>.md` — for the round taxonomy, STAR stories (use the 60-second versions), questions to ask back, and watch-outs.
 - `/research/<resume-slug>/<jd-slug>.md` — for the 3 punchiest company facts.
 

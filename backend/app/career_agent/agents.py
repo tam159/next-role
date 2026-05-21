@@ -14,6 +14,9 @@ from backend.app.career_agent.tools import (
     make_list_files,
     make_overwrite_file,
     make_parse_document,
+    make_prepare_render_settings,
+    web_extract,
+    web_search,
 )
 from backend.app.career_agent.utils import load_subagents
 from deepagents import create_deep_agent
@@ -94,18 +97,45 @@ _backend = CompositeBackend(
     },
 )
 
+# Build each tool instance once so the closure over `_backend` is not
+# duplicated, and we can hand the same instance to both the main agent and any
+# subagent that opts into it via subagents.yaml.
+_list_files = make_list_files(_backend)
+_parse_document = make_parse_document(_backend)
+_extract_jd = make_extract_jd(_backend)
+_overwrite_file = make_overwrite_file(_backend)
+_prepare_render_settings = make_prepare_render_settings(_backend)
+
+# Generic filesystem utilities every subagent gets unconditionally — saves
+# re-declaring them in subagents.yaml per entry.
+_SUBAGENT_DEFAULT_TOOLS = [_list_files, _overwrite_file]
+
+# Opt-in pool: tools a subagent must explicitly request via `tools:` in YAML.
+# Anything NOT listed here is unavailable to subagents — without this guard
+# deepagents would silently inherit the main agent's full tool set
+# (parse_document, extract_jd, …) into subagents that have no business with them.
+_SUBAGENT_TOOLS = {
+    "web_search": web_search,
+    "web_extract": web_extract,
+    "prepare_render_settings": _prepare_render_settings,
+}
+
 career_agent = create_deep_agent(
     system_prompt=_prompts.SYSTEM_PROMPT,
     model=_MODEL,
     memory=["AGENTS.md"],
     skills=["skills/career-agent/"],
     tools=[
-        make_list_files(_backend),
-        make_parse_document(_backend),
-        make_extract_jd(_backend),
-        make_overwrite_file(_backend),
+        _list_files,
+        _parse_document,
+        _extract_jd,
+        _overwrite_file,
     ],
-    subagents=load_subagents(CAREER_AGENT_DIR / "subagents.yaml"),
+    subagents=load_subagents(
+        CAREER_AGENT_DIR / "subagents.yaml",
+        tools=_SUBAGENT_TOOLS,
+        default_tools=_SUBAGENT_DEFAULT_TOOLS,
+    ),
     backend=_backend,
     middleware=[UtcDatetimeMiddleware()],
 )

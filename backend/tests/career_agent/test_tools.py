@@ -553,3 +553,141 @@ def test_overwrite_file_surfaces_upsert_error(backend):
         )
 
     assert result == "Error overwriting /processed/x.md: disk full"
+
+
+# ---------------------------------------------------------------------------
+# prepare_render_settings
+# ---------------------------------------------------------------------------
+
+
+_MINIMAL_CV_YAML = """\
+# changes:
+# - reordered: Role A above Role B
+# - keywords added: rag, agents
+cv:
+  name: Tam Nguyen
+  email: t@example.com
+  sections:
+    summary:
+      - Senior AI engineer.
+design:
+  theme: engineeringclassic
+locale:
+  language: english
+"""
+
+
+def _seed_yaml(tmp_path: Path, monkeypatch, *, relative: str, content: str) -> Path:
+    """Anchor `CAREER_AGENT_DIR` at tmp_path and drop a YAML under /tailored_resume/."""
+    from backend.app.career_agent import tools
+
+    monkeypatch.setattr(tools, "CAREER_AGENT_DIR", tmp_path)
+    target = tmp_path / relative.lstrip("/")
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_text(content)
+    return target
+
+
+def test_prepare_render_settings_appends_block(tmp_path, monkeypatch, backend):
+    from backend.app.career_agent.tools import make_prepare_render_settings
+
+    yaml_path = "/tailored_resume/tam-resume/aitomatic-jd.yaml"
+    on_disk = _seed_yaml(tmp_path, monkeypatch, relative=yaml_path, content=_MINIMAL_CV_YAML)
+
+    result = make_prepare_render_settings(backend).invoke({"yaml_path": yaml_path})
+
+    # Confirmation + the on-disk path the LLM must hand to `execute`.
+    assert f"Prepared {yaml_path} for rendering." in result
+    assert f"rendercv render {on_disk}" in result
+    written = on_disk.read_text()
+    # The body the LLM wrote is preserved verbatim.
+    assert "# changes:" in written
+    assert "cv:\n  name: Tam Nguyen" in written
+    assert "design:\n  theme: engineeringclassic" in written
+    # And the canonical settings block is appended.
+    assert "\nsettings:\n" in written
+    assert "current_date: today" in written
+    # PDF lands next to the YAML, .typ is routed into /render_intermediate/.
+    assert "pdf_path: OUTPUT_FOLDER/aitomatic-jd.pdf" in written
+    expected_typ = tmp_path / "render_intermediate" / "tam-resume" / "aitomatic-jd.typ"
+    assert f"typst_path: {expected_typ}" in written
+    # And rendercv's intermediate-dir mkdir was honoured.
+    assert expected_typ.parent.exists()
+    assert "dont_generate_markdown: true" in written
+    assert "dont_generate_html: true" in written
+    assert "dont_generate_png: true" in written
+    assert "dont_generate_typst: false" in written
+    assert "dont_generate_pdf: false" in written
+    # output_folder is the on-disk parent of the YAML.
+    assert f"output_folder: {on_disk.parent}" in written
+
+
+def test_prepare_render_settings_is_idempotent(tmp_path, monkeypatch, backend):
+    """Re-running the tool replaces the existing settings block instead of stacking."""
+    from backend.app.career_agent.tools import make_prepare_render_settings
+
+    yaml_path = "/tailored_resume/tam-resume/aitomatic-jd.yaml"
+    on_disk = _seed_yaml(tmp_path, monkeypatch, relative=yaml_path, content=_MINIMAL_CV_YAML)
+
+    tool = make_prepare_render_settings(backend)
+    tool.invoke({"yaml_path": yaml_path})
+    first = on_disk.read_text()
+    tool.invoke({"yaml_path": yaml_path})
+    second = on_disk.read_text()
+
+    assert first == second
+    # Exactly one settings header in the file.
+    assert second.count("\nsettings:\n") == 1
+
+
+def test_prepare_render_settings_derives_paths_from_stem(tmp_path, monkeypatch, backend):
+    """The injected pdf/typ filenames track the YAML stem and resume sub-dir."""
+    from backend.app.career_agent.tools import make_prepare_render_settings
+
+    yaml_path = "/tailored_resume/jane-doe-resume/google-staff-swe-jd.yaml"
+    on_disk = _seed_yaml(tmp_path, monkeypatch, relative=yaml_path, content=_MINIMAL_CV_YAML)
+
+    make_prepare_render_settings(backend).invoke({"yaml_path": yaml_path})
+
+    written = on_disk.read_text()
+    assert "pdf_path: OUTPUT_FOLDER/google-staff-swe-jd.pdf" in written
+    expected_typ = tmp_path / "render_intermediate" / "jane-doe-resume" / "google-staff-swe-jd.typ"
+    assert f"typst_path: {expected_typ}" in written
+
+
+@pytest.mark.parametrize(
+    "bad_path",
+    [
+        "/processed/x.yaml",  # outside /tailored_resume/
+        "tailored_resume/r/j.yaml",  # not absolute
+        "/tailored_resume/r/j.md",  # wrong extension
+        "/tailored_resume/r/j",  # no extension
+    ],
+)
+def test_prepare_render_settings_rejects_bad_paths(backend, bad_path):
+    from backend.app.career_agent.tools import make_prepare_render_settings
+
+    result = make_prepare_render_settings(backend).invoke({"yaml_path": bad_path})
+    assert result.startswith("Error: invalid yaml_path")
+
+
+def test_prepare_render_settings_rejects_missing_file(tmp_path, monkeypatch, backend):
+    from backend.app.career_agent import tools
+
+    monkeypatch.setattr(tools, "CAREER_AGENT_DIR", tmp_path)
+    result = tools.make_prepare_render_settings(backend).invoke(
+        {"yaml_path": "/tailored_resume/r/missing.yaml"},
+    )
+    assert result.startswith("Error reading /tailored_resume/r/missing.yaml")
+
+
+def test_prepare_render_settings_accepts_yml_extension(tmp_path, monkeypatch, backend):
+    from backend.app.career_agent.tools import make_prepare_render_settings
+
+    yaml_path = "/tailored_resume/r/j.yml"
+    on_disk = _seed_yaml(tmp_path, monkeypatch, relative=yaml_path, content=_MINIMAL_CV_YAML)
+
+    result = make_prepare_render_settings(backend).invoke({"yaml_path": yaml_path})
+    assert "Prepared" in result
+    assert f"rendercv render {on_disk}" in result
+    assert "settings:" in on_disk.read_text()

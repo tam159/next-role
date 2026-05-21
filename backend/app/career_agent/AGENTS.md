@@ -116,9 +116,9 @@ Spawn `resume-tailor` and `interview-coach` **in parallel** so they can run conc
 - `jd_path`: `/processed/<jd-slug>.md`
 - `intake_path`: `/processed/<resume-slug>-<jd-slug>-intake.md` (omit if missing)
 - `research_path`: `/research/<resume-slug>/<jd-slug>.md`
-- `output_path`:
-  - for `resume-tailor` → `/tailored_resume/<resume-slug>/<jd-slug>.md`
-  - for `interview-coach` → `/interview_coach/<resume-slug>/<jd-slug>.md`
+- output path:
+  - for `resume-tailor` → `yaml_path=/tailored_resume/<resume-slug>/<jd-slug>.yaml`. The subagent writes the YAML and renders the `.pdf` next to it; the intermediate `.typ` goes to `/render_intermediate/<resume-slug>/<jd-slug>.typ` (not shown in the UI Workspace).
+  - for `interview-coach` → `output_path=/interview_coach/<resume-slug>/<jd-slug>.md`
 
 ## Stage 5 — Interview battlecard
 

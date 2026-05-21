@@ -23,10 +23,13 @@ hiring-recon:
 resume-tailor:
   description: >
     Rewrite the candidate's resume tailored to one specific JD using the
-    hiring-recon report. Caller MUST pass: resume_path, jd_path, intake_path
-    (optional), research_path, output_path. Output is one markdown resume at
-    `/tailored_resume/<resume>/<jd>.md`.
+    hiring-recon report, then render it to PDF via rendercv. Caller MUST pass:
+    resume_path, jd_path, intake_path (optional), research_path, yaml_path. The
+    YAML is written to yaml_path and the .typ + .pdf siblings are produced next
+    to it under `/tailored_resume/<resume>/`.
   model: openai:gpt-5.4-mini
+  tools:
+    - prepare_render_settings
   skills:
     - skills/resume-tailor/
   system_prompt: |
@@ -34,9 +37,9 @@ resume-tailor:
     full workflow, then execute it using user inputs.
 
     Single-shot — do not call `write_todos`. Your final reply MUST be exactly
-    one line:
+    one line, note that <pdf_path> starts with /tailored_resume/.
 
-        Wrote tailored resume to: <output_path>
+        Wrote tailored resume PDF to: <pdf_path>
 
 interview-coach:
   description: >

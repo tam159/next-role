@@ -1,6 +1,7 @@
 """Tools for the career agent."""
 
 import re
+import textwrap
 from pathlib import Path
 from typing import Any, Literal
 from urllib.parse import urlparse
@@ -10,6 +11,11 @@ from deepagents.backends.protocol import WriteResult
 from langchain_core.tools import BaseTool, tool
 
 CAREER_AGENT_DIR: Path = Path(__file__).parent
+
+# Top-level YAML key marking the rendercv `settings:` block. Used by
+# `prepare_render_settings` to strip any pre-existing settings block so re-calls
+# stay idempotent. Anchored to start-of-line in MULTILINE mode.
+_SETTINGS_BLOCK_HEADER_RE = re.compile(r"^settings:", re.MULTILINE)
 
 # LlamaParse emits `![alt](page_X_image_Y.jpg)` markdown for embedded images
 # even when we don't extract them, which renders as broken-image 404s in the
@@ -298,6 +304,100 @@ def _tavily_extract_one(url: str) -> tuple[str, str]:
         raise ValueError(msg)
     first = results[0]
     return first.get("title") or "", first.get("raw_content") or ""
+
+
+def make_prepare_render_settings(backend: CompositeBackend) -> BaseTool:
+    """Build the `prepare_render_settings` tool, closed over the agent's backend."""
+
+    @tool
+    def prepare_render_settings(yaml_path: str) -> str:
+        """Append the canonical rendercv `settings:` block to a tailored-resume YAML.
+
+        Run this AFTER writing the YAML (`cv:`, `design:`, `locale:`) and
+        BEFORE invoking `rendercv render` via `execute`. The injected block
+        pins `<stem>.pdf` next to the YAML and routes the intermediate
+        `<stem>.typ` to `<CAREER_AGENT_DIR>/render_intermediate/<resume>/<jd>.typ`
+        (real disk, outside the UI's `agentFiles.ts` allowlist). Markdown,
+        html, png are disabled. Idempotent — any pre-existing trailing
+        `settings:` block is replaced.
+
+        Args:
+            yaml_path: Absolute backend path, e.g.
+                "/tailored_resume/<resume-slug>/<jd-slug>.yaml". Must live under
+                "/tailored_resume/" and end in ".yaml" or ".yml".
+
+        Returns:
+            Short confirmation string, or `Error: ...` on failure.
+
+        """
+        if not yaml_path.startswith("/tailored_resume/") or not yaml_path.endswith(
+            (".yaml", ".yml"),
+        ):
+            return (
+                f"Error: invalid yaml_path {yaml_path!r} "
+                "(must start with /tailored_resume/ and end with .yaml/.yml)"
+            )
+
+        read_res = backend.read(yaml_path, offset=0, limit=10**9)
+        if read_res.error or not read_res.file_data:
+            return f"Error reading {yaml_path}: {read_res.error or 'not found'}"
+        existing = read_res.file_data.get("content", "")
+        if isinstance(existing, list):
+            existing = "\n".join(existing)
+        if not existing.strip():
+            return f"Error: {yaml_path} is empty"
+
+        # Strip any trailing `settings:` block (idempotency on re-render).
+        match = _SETTINGS_BLOCK_HEADER_RE.search(existing)
+        body = existing[: match.start()] if match else existing
+        body = body.rstrip() + "\n"
+
+        # Map the backend path to its on-disk parent so rendercv writes the
+        # PDF alongside the YAML rather than in cwd / rendercv_output/.
+        on_disk_dir = (CAREER_AGENT_DIR / yaml_path.lstrip("/")).parent.resolve()
+        stem = Path(yaml_path).stem
+
+        # The .typ is an intermediate artifact users don't need to review,
+        # so route it to /render_intermediate/<resume>/<jd>.typ (real disk,
+        # outside the UI's `agentFiles.ts` allowlist). rendercv writes the
+        # file directly, so we must ensure the parent dir exists.
+        sub_under_tailored = yaml_path[len("/tailored_resume/") :]
+        typ_on_disk = (CAREER_AGENT_DIR / "render_intermediate" / sub_under_tailored).with_suffix(
+            ".typ",
+        )
+        typ_on_disk.parent.mkdir(parents=True, exist_ok=True)
+
+        settings_block = textwrap.dedent(
+            f"""\
+            settings:
+              current_date: today
+              render_command:
+                output_folder: {on_disk_dir}
+                typst_path: {typ_on_disk}
+                pdf_path: OUTPUT_FOLDER/{stem}.pdf
+                dont_generate_markdown: true
+                dont_generate_html: true
+                dont_generate_png: true
+                dont_generate_typst: false
+                dont_generate_pdf: false
+              bold_keywords: []
+            """,
+        )
+
+        new_content = body + settings_block
+        write_result = _upsert(backend, yaml_path, new_content)
+        if write_result.error:
+            return f"Error writing {yaml_path}: {write_result.error}"
+
+        # The shell can't see backend paths — surface the on-disk absolute path
+        # so the LLM can copy it verbatim into `execute("rendercv render …")`.
+        on_disk_yaml = on_disk_dir / Path(yaml_path).name
+        return (
+            f"Prepared {yaml_path} for rendering.\n"
+            f"Next, run via execute: rendercv render {on_disk_yaml}"
+        )
+
+    return prepare_render_settings
 
 
 def make_extract_jd(backend: CompositeBackend) -> BaseTool:

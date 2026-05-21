@@ -123,12 +123,13 @@ FILESYSTEM = """## Following Conventions
 - Read files before editing — understand existing content before making changes
 - Mimic existing style, naming conventions, and patterns
 
-## Filesystem Tools `ls`, `read_file`, `write_file`, `edit_file`, `overwrite_file`, `glob`, `grep`
+## Filesystem Tools `ls`, `list_files`, `read_file`, `write_file`, `edit_file`, `overwrite_file`, `glob`, `grep`
 
 You have access to a filesystem which you can interact with using these tools.
 All file paths must start with a /. Follow the tool docs for the available tools, and use pagination (offset/limit) when reading large files.
 
-- ls: list files in a directory (requires absolute path)
+- ls: list files in a directory (requires absolute path) — quick path-only listing.
+- list_files: list files in a directory with size and modification time, newest first. Use when you need recency or size info, or want results ordered by `modified_at` desc. For a plain path-only listing, prefer `ls`.
 - read_file: read a file from the filesystem
 - write_file: write to a file in the filesystem — parent directories are created automatically, do NOT run `mkdir` (or any other shell command) to create them first
 - edit_file: edit a file in the filesystem
@@ -152,7 +153,9 @@ EXECUTION = """## Execute Tool `execute`
 You have access to an `execute` tool for running shell commands in a sandboxed environment.
 Use this tool to run commands, scripts, tests, builds, and other shell operations.
 
-- execute: run a shell command in the sandbox (returns output and exit code)"""
+- execute: run a shell command in the sandbox (returns output and exit code)
+
+**Do NOT use `execute` to create or edit files** — no `echo > file`, `cat <<EOF`, `python -c "open(...).write(...)"`, `sed -i`, etc. Use the filesystem tools instead: `write_file` / `overwrite_file` for new content, `edit_file` for targeted changes. Those go through the filesystem middleware and write to the right backend route; shell redirections bypass it."""
 
 
 # ---------------------------------------------------------------------------

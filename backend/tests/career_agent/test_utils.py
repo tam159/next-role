@@ -4,6 +4,39 @@ from pathlib import Path
 
 import pytest
 from backend.app.career_agent.utils import load_subagents
+from langchain_core.tools import tool
+
+
+@tool
+def _fake_search(q: str) -> str:
+    """Stub web_search."""
+    return q
+
+
+@tool
+def _fake_extract(u: str) -> str:
+    """Stub web_extract."""
+    return u
+
+
+@tool
+def _fake_list_files(path: str) -> str:
+    """Stub list_files (a default tool)."""
+    return path
+
+
+@tool
+def _fake_overwrite(path: str, content: str) -> str:
+    """Stub overwrite_file (a default tool)."""
+    return f"{path}:{content}"
+
+
+_TOOL_POOL = {
+    "web_search": _fake_search,
+    "web_extract": _fake_extract,
+}
+
+_DEFAULTS = [_fake_list_files, _fake_overwrite]
 
 
 def _write_yaml(tmp_path: Path, text: str) -> Path:
@@ -26,7 +59,7 @@ hiring-recon:
 """,
     )
 
-    [spec] = load_subagents(yaml_path)
+    [spec] = load_subagents(yaml_path, tools=_TOOL_POOL)
 
     assert spec["skills"] == ["skills/hiring-recon/", "skills/shared/"]
 
@@ -42,13 +75,63 @@ plain-subagent:
 """,
     )
 
-    [spec] = load_subagents(yaml_path)
+    [spec] = load_subagents(yaml_path, tools=_TOOL_POOL)
 
     assert "skills" not in spec
 
 
+def test_tools_default_to_empty_list_without_defaults(tmp_path: Path) -> None:
+    """No `tools:` in YAML and no `default_tools` -> explicit empty list.
+
+    Guards against deepagents silently inheriting the main agent's tools
+    (parse_document, extract_jd, …) for subagents that didn't ask for them.
+    """
+    yaml_path = _write_yaml(
+        tmp_path,
+        """\
+no-tools:
+  description: just text
+  system_prompt: skill-only
+""",
+    )
+
+    [spec] = load_subagents(yaml_path, tools=_TOOL_POOL)
+
+    assert "tools" in spec
+    assert spec["tools"] == []
+
+
+def test_default_tools_included_for_every_subagent(tmp_path: Path) -> None:
+    """`default_tools` get prepended to every subagent's resolved tools list."""
+    yaml_path = _write_yaml(
+        tmp_path,
+        """\
+no-tools:
+  description: skill-only
+  system_prompt: do
+with-tools:
+  description: has opt-ins
+  system_prompt: do
+  tools:
+    - web_search
+""",
+    )
+
+    specs = load_subagents(yaml_path, tools=_TOOL_POOL, default_tools=_DEFAULTS)
+    by_name = {s["name"]: s for s in specs}
+
+    # Subagent with no `tools:` still gets the defaults.
+    assert by_name["no-tools"]["tools"] == [_fake_list_files, _fake_overwrite]
+    # Defaults come first; opt-ins concatenate after.
+    assert by_name["with-tools"]["tools"] == [
+        _fake_list_files,
+        _fake_overwrite,
+        _fake_search,
+    ]
+
+
 def test_existing_fields_still_mapped(tmp_path: Path) -> None:
-    """`model` and `tools` are still mapped alongside the new `skills` field."""
+    """`model`, `tools`, and `skills` are all mapped together."""
     yaml_path = _write_yaml(
         tmp_path,
         """\
@@ -64,13 +147,14 @@ hiring-recon:
 """,
     )
 
-    [spec] = load_subagents(yaml_path)
+    [spec] = load_subagents(yaml_path, tools=_TOOL_POOL)
 
     assert spec["name"] == "hiring-recon"
     assert spec["description"] == "recon"
     assert spec["system_prompt"] == "do the thing"
     assert spec["model"] == "openai:gpt-5.4-mini"
     assert len(spec["tools"]) == 2
+    assert spec["tools"] == [_fake_search, _fake_extract]
     assert spec["skills"] == ["skills/hiring-recon/"]
 
 
@@ -88,4 +172,4 @@ bad:
     )
 
     with pytest.raises(KeyError):
-        load_subagents(yaml_path)
+        load_subagents(yaml_path, tools=_TOOL_POOL)

@@ -66,7 +66,7 @@ subagents=[
 2.1. User uploads resume and optional JD → saves to `/upload/`.
 2.2. Agent processes the uploaded documents → saves to `/processed/<slug>.md`. Persists intake answers to `/processed/<resume>-<jd>-intake.md`. Reads both processed files in full so it has substance for delegating downstream stages.
 3. Delegates to `hiring-recon` subagent → company + role intel + match analysis → saves to `/research/<resume>/<jd>.md`.
-4.1. Delegates to `resume-tailor` subagent → tailored resume → saves to `/tailored_resume/<resume>/<jd>.md`.
+4.1. Delegates to `resume-tailor` subagent → tailored resume YAML at `/tailored_resume/<resume>/<jd>.yaml` (source of truth, user-editable), which `rendercv` then renders to `.typ` + `.pdf` siblings.
 4.2. In parallel with 4.1, delegates to `interview-coach` subagent → structured prep doc with self-introduction + per-round STAR stories → saves to `/interview_coach/<resume>/<jd>.md`.
 5. Agent loads `/skills/interview-battlecard/SKILL.md`, reads the tailored resume + interview-coach prep + research report, then writes a one-page-per-round battlecard → saves to `/interview_battlecard/<resume>/<jd>.md`.
 
@@ -108,7 +108,12 @@ Re-uploading the same filename overwrites. Scoping is global per the layout abov
 
 /tailored_resume/                                             # FilesystemBackend
 └── tam-nguyen-senior-ai-engineer-resume/
-    └── aws-ai-solution-engineer-jd.md                        # resume-tailor output
+    ├── aws-ai-solution-engineer-jd.yaml                      # rendercv source (LLM-written, user-editable)
+    └── aws-ai-solution-engineer-jd.pdf                       # rendercv-generated PDF
+
+/render_intermediate/                                         # FilesystemBackend, NOT in the UI allowlist
+└── tam-nguyen-senior-ai-engineer-resume/
+    └── aws-ai-solution-engineer-jd.typ                       # rendercv-generated Typst (intermediate)
 
 /interview_coach/                                             # StoreBackend
 └── tam-nguyen-senior-ai-engineer-resume/
@@ -119,4 +124,4 @@ Re-uploading the same filename overwrites. Scoping is global per the layout abov
     └── aws-ai-solution-engineer-jd.md                        # day-of cheat sheet
 ```
 
-Note: `.md` outputs reflect the current dev phase. PDF rendering for the tailored resume and battlecard is a future phase, which is also why those two artifacts use FilesystemBackend (so the eventual binary outputs land on disk, not in Postgres).
+Note: tailored resumes already render to PDF via `rendercv` (the YAML is the source of truth; the `.typ` / `.pdf` siblings are regenerated on demand by `prepare_render_settings` + `rendercv render`). The interview battlecard still emits `.md` today; PDF rendering for the battlecard is a future phase, which is why `/interview_battlecard/` uses FilesystemBackend (so the eventual binary output lands on disk, not in Postgres).
