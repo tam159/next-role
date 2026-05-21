@@ -66,8 +66,7 @@ def _apply_prompt_overrides() -> None:
 _apply_prompt_overrides()
 
 
-_MODEL = "bedrock_converse:global.anthropic.claude-sonnet-4-6"
-
+_MODEL = "openai:gpt-5.4"
 
 _backend = CompositeBackend(
     default=LocalShellBackend(

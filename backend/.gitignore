@@ -10,6 +10,7 @@ tailored_resume/
 render_intermediate/
 interview_coach/
 interview_battlecard/
+conversation_history/
 
 # Local experiments
 local_experiments/
