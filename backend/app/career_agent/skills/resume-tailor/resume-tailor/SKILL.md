@@ -35,6 +35,7 @@ Read all input files in full with `read_file(path, limit=1000)`.
    - **`cv.phone` `Input should be a valid string`** → the phone is unquoted (e.g. `phone: +15551234567`). YAML parses leading-`+` numbers as ints. Quote it: `phone: "+15551234567"`.
    - **`Input should be a valid string`** with an integer-looking value (e.g. `label: 2022`) → bare years/numbers parse as `int`; rendercv expects `str`. Wrap in quotes: `label: "2022"`.
    - **`Input should be 'LinkedIn', 'GitHub', …`** for a `social_networks.network` value → the network isn't in the 17-value enum. Either rename it to the closest allowed value (e.g. `Twitter` → `X`) or move the entry to `cv.custom_connections` with `fontawesome_icon`, `placeholder`, `url`.
+   - **`custom_connections.N.url URL scheme should be 'http' or 'https'`** → you used `mailto:` or `tel:` for a custom connection. Move the email to `cv.email` (plain string, no `mailto:` prefix) and the phone to `cv.phone`; delete the bogus custom_connections entry.
    - **`X is unknown for this object. Please remove it.`** → you used a field the entry type doesn't accept. The shared fields (`start_date`, `end_date`, `date`, `location`, `summary`, `highlights`) only exist on `ExperienceEntry`, `EducationEntry`, `NormalEntry`, and `PublicationEntry`. Remove them from `OneLineEntry`, `BulletEntry`, `NumberedEntry`, `ReversedNumberedEntry`, and `TextEntry`.
    - **`cv.label` (or `cv.title`, `cv.tagline`, etc.) `This field is unknown for this object`** → you put an invented field under `cv:`. The only valid CV-level fields are `name`, `headline`, `location`, `email`, `photo`, `phone`, `website`, `social_networks`, `custom_connections`, `sections`. Use `headline:` for the role tagline.
    - **`highlights.N Input should be a valid string`** → a highlight is a nested YAML list (sub-bullets). `highlights:` requires `list[str]`. Promote each sub-bullet to its own top-level highlight, or merge into the parent: `"Main: sub1; sub2"`. Never write `- main\n  - sub1\n  - sub2`.
@@ -64,6 +65,7 @@ Acceptable: reordering true information, emphasizing relevant experience, using 
 Unacceptable (do NOT do these):
 - Adding skills the candidate doesn't have
 - **Dropping skills the candidate DOES have.** Every skill category and every bullet/detail from the source resume must appear in the YAML. Reorder and reword for JD fit; never prune.
+- **Dropping URLs from the source.** The processed resume (parsed from a PDF) often carries URLs that don't show in the visible text — clickable company names, project links, social profiles, article citations, certification credentials. Every URL the candidate has on the original CV must survive into the YAML, in the appropriate field (`cv.website`, `social_networks`, `custom_connections`, publication `url`, OneLineEntry `details` as `[label](url)`, or inline `[text](url)` Markdown inside a highlight).
 - Changing numbers, metrics, or scope
 - Inventing experiences or projects
 - Claiming titles not held
@@ -177,6 +179,17 @@ cv:
 
 ## Markdown cleanup rules (CRITICAL)
 
+**URL preservation rule:** before stripping anything, scan the processed resume for `[text](url)` Markdown links — these usually carry URLs that were clickable in the source PDF but invisible in the rendered text (company names → company sites, project names → repos, certifications → credential pages, article titles → posts, profile names → social pages). Every such URL must end up in the YAML. Put each URL where it belongs:
+
+- candidate's main website → `cv.website`
+- LinkedIn / GitHub / GitLab / X / etc. → `cv.social_networks` (network from the 17-value enum)
+- Pluralsight, Medium, Credly, personal blog, etc. → `cv.custom_connections` with `fontawesome_icon`, `placeholder`, `url`
+- credential URLs on certifications → `OneLineEntry.details` as `"[AWS ML – Specialty](https://...)"`
+- article / blog post URLs → `PublicationEntry.url`
+- company / project / repo links inside a bullet → inline `[text](url)` Markdown inside the `highlights` string
+
+Never drop a URL just because the visible text reads cleanly without it. Treat URL omission with the same severity as dropping a skill.
+
 The processed resume usually contains formatting that rendercv cannot render. Strip / convert ALL of the following before writing the YAML:
 
 - **`<u>...</u>` wrappers** — drop them. Inline Markdown `[text](url)` is fine and renders as a hyperlink; underline is a design setting, not inline HTML.
@@ -192,6 +205,7 @@ The processed resume usually contains formatting that rendercv cannot render. St
 - **Quote any string that looks like a number you want as text** → `label: "2022"`, not `label: 2022`. rendercv types many fields strictly as `str`; bare years/numbers parse as `int` and fail validation. Same rule for SSN-like IDs, version strings, postal codes.
 - **Phone must be a QUOTED E.164 string** → `phone: "+15551234567"`. Without quotes, YAML parses `+15551234567` as an int and drops the leading `+`, which then fails `PhoneNumber` validation. Rules: leading `+`, country code, no spaces, drop any national leading 0 (e.g. UK `+44 020 7946 0000` becomes `"+442079460000"`). If you can't produce a clean E.164 number, omit the field; never invent.
 - **`cv.social_networks.network` is a strict enum** → exactly one of: `LinkedIn`, `GitHub`, `GitLab`, `IMDB`, `Instagram`, `ORCID`, `Mastodon`, `StackOverflow`, `ResearchGate`, `YouTube`, `Google Scholar`, `Telegram`, `WhatsApp`, `Leetcode`, `X`, `Bluesky`, `Reddit`. Note: `Twitter` is NOT in the list — use `X`. For anything else (Pluralsight, Medium, Credly, personal blog, …) put it under `cv.custom_connections` with `fontawesome_icon` (e.g. `globe`, `graduation-cap`, `pen`, `envelope`), `placeholder` (the displayed label), and `url`.
+- **`custom_connections.url` must be `http://` or `https://`** (typed as `pydantic.HttpUrl`). Do NOT use `mailto:`, `tel:`, `ftp:`, or any other scheme. The candidate's email belongs in `cv.email` (plain string, no `mailto:`), the phone in `cv.phone` — never as a `custom_connections` entry. If the source resume shows `<u>[name@example.com](mailto:name@example.com)</u>`, set `cv.email: name@example.com` and stop; don't duplicate it as a connection.
 - **`design.highlights.bullet`** accepts only: `●`, `•`, `◦`, `-`, `◆`, `★`, `■`, `—`, `○`. Omit to use the theme default. Never use en-dash `–`, `>`, or `*`.
 - **Section entries must share a single entry type.** If a section mixes (e.g.) certifications and a degree, split into two sections.
 - **Don't graft fields across entry types.** The shared fields (`start_date`, `end_date`, `date`, `location`, `summary`, `highlights`) only exist on `ExperienceEntry`, `EducationEntry`, `NormalEntry`, `PublicationEntry`. `OneLineEntry`, `BulletEntry`, `NumberedEntry`, `ReversedNumberedEntry`, `TextEntry` reject any field outside the ones listed for them in the entry-type mapping.
