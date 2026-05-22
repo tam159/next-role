@@ -16,6 +16,80 @@ import type { TodoItem, FileItem } from "@/app/types/types";
 import { useChatContext } from "@/providers/ChatProvider";
 import { cn } from "@/lib/utils";
 import { FileViewDialog } from "@/app/components/FileViewDialog";
+import { getFileCategory, splitBasename, splitFilePath } from "@/app/lib/fileCategories";
+
+function FileCard({
+  filePath,
+  fileContent,
+  editDisabled,
+  onOpen,
+  onRequestDelete,
+}: {
+  filePath: string;
+  fileContent: string;
+  editDisabled: boolean;
+  onOpen: (file: FileItem) => void;
+  onRequestDelete: (path: string) => void;
+}) {
+  const category = getFileCategory(filePath);
+  const { prefix, basename } = splitFilePath(filePath);
+  const { stem, ext } = splitBasename(basename);
+  const iconColor = category?.iconVar ?? "var(--color-primary)";
+
+  const nameRef = useRef<HTMLSpanElement>(null);
+  const [isTruncated, setIsTruncated] = useState(false);
+
+  useEffect(() => {
+    const el = nameRef.current;
+    if (!el) return;
+    const check = () => setIsTruncated(el.scrollWidth > el.clientWidth);
+    check();
+    const ro = new ResizeObserver(check);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [prefix, stem]);
+
+  return (
+    <div className="group relative" style={{ backgroundColor: "var(--color-file-button)" }}>
+      <button
+        type="button"
+        onClick={() => onOpen({ path: filePath, content: fileContent })}
+        title={filePath}
+        className="hover:border-primary/25 w-full cursor-pointer space-y-2 rounded-xl border border-border bg-transparent px-3 py-4 shadow-sm transition-colors"
+        onMouseEnter={(e) => {
+          e.currentTarget.parentElement!.style.backgroundColor = "var(--color-file-button-hover)";
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.parentElement!.style.backgroundColor = "var(--color-file-button)";
+        }}
+      >
+        <FileText size={24} className="mx-auto" style={{ color: iconColor }} />
+        <span className="flex w-full min-w-0 items-baseline text-sm leading-relaxed text-foreground">
+          <span ref={nameRef} className="min-w-0 flex-1 truncate">
+            {prefix}
+            {stem}
+          </span>
+          {ext && (
+            <span className={cn("shrink-0 font-semibold", isTruncated && "ml-1")}>{ext}</span>
+          )}
+        </span>
+      </button>
+      <button
+        type="button"
+        aria-label={`Delete ${filePath}`}
+        title="Delete"
+        onClick={(e) => {
+          e.stopPropagation();
+          onRequestDelete(filePath);
+        }}
+        disabled={editDisabled}
+        className="absolute right-1.5 top-1.5 inline-flex size-7 items-center justify-center rounded-md text-muted-foreground opacity-0 transition-opacity hover:bg-destructive/15 hover:text-destructive focus-visible:opacity-100 disabled:pointer-events-none group-hover:opacity-100"
+      >
+        <Trash2 size={14} />
+      </button>
+    </div>
+  );
+}
 
 export function FilesPopover({
   files,
@@ -83,43 +157,14 @@ export function FilesPopover({
             }
 
             return (
-              <div
+              <FileCard
                 key={filePath}
-                className="group relative"
-                style={{ backgroundColor: "var(--color-file-button)" }}
-              >
-                <button
-                  type="button"
-                  onClick={() => setSelectedFile({ path: filePath, content: fileContent })}
-                  className="hover:border-primary/25 w-full cursor-pointer space-y-2 truncate rounded-xl border border-border bg-transparent px-3 py-4 shadow-sm transition-colors"
-                  onMouseEnter={(e) => {
-                    e.currentTarget.parentElement!.style.backgroundColor =
-                      "var(--color-file-button-hover)";
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.parentElement!.style.backgroundColor =
-                      "var(--color-file-button)";
-                  }}
-                >
-                  <FileText size={24} className="mx-auto text-primary" />
-                  <span className="mx-auto block w-full truncate break-words text-center text-sm leading-relaxed text-foreground">
-                    {filePath}
-                  </span>
-                </button>
-                <button
-                  type="button"
-                  aria-label={`Delete ${filePath}`}
-                  title="Delete"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    requestDelete(filePath);
-                  }}
-                  disabled={editDisabled}
-                  className="absolute right-1.5 top-1.5 inline-flex size-7 items-center justify-center rounded-md text-muted-foreground opacity-0 transition-opacity hover:bg-destructive/15 hover:text-destructive focus-visible:opacity-100 disabled:pointer-events-none group-hover:opacity-100"
-                >
-                  <Trash2 size={14} />
-                </button>
-              </div>
+                filePath={filePath}
+                fileContent={fileContent}
+                editDisabled={editDisabled}
+                onOpen={setSelectedFile}
+                onRequestDelete={requestDelete}
+              />
             );
           })}
         </div>
