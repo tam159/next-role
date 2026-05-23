@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useMemo, useCallback, useState, useEffect } from "react";
-import { FileText, Copy, Download, Edit, Save, X, Loader2, Trash2 } from "lucide-react";
+import { FileText, Copy, Download, Edit, Printer, Save, X, Loader2, Trash2 } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,7 @@ import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { oneDark } from "react-syntax-highlighter/dist/esm/styles/prism";
 import { toast } from "sonner";
 import { MarkdownContent } from "@/app/components/MarkdownContent";
+import { PRINT_FILE_STORAGE_KEY, type PrintKind, type PrintPayload } from "@/app/print/file/page";
 import type { FileItem } from "@/app/types/types";
 import useSWRMutation from "swr/mutation";
 
@@ -185,6 +186,59 @@ export const FileViewDialog = React.memo<{
     URL.revokeObjectURL(url);
   }, [fileContent, fileName, isBinary, isImage, fileExtension]);
 
+  const handlePrint = useCallback(() => {
+    if (!fileContent || !fileName) return;
+    const kind: PrintKind = isMarkdown ? "markdown" : isDocx ? "docx" : "code";
+    if (kind === "docx" && !docxHtml) return;
+    const payload: PrintPayload = {
+      path: fileName,
+      kind,
+      content: kind === "docx" ? (docxHtml ?? "") : fileContent,
+      language: kind === "code" ? language : undefined,
+    };
+    sessionStorage.setItem(PRINT_FILE_STORAGE_KEY, JSON.stringify(payload));
+
+    // Browsers use the *top-level* document.title (not the iframe's) as the
+    // default filename in the print → Save as PDF dialog. Use the full path
+    // (slashes → dashes, extension stripped) so nested files keep their
+    // folder context in the saved filename. Restore on afterprint.
+    const printTitle =
+      fileName
+        .replace(/^\/+/, "")
+        .replace(/\.[^.]+$/, "")
+        .replace(/\//g, "-") || "file";
+    const originalTitle = document.title;
+    document.title = printTitle;
+
+    // Render the print page in a hidden, same-origin iframe so the browser's
+    // print dialog overlays the current tab. Same-origin iframes share
+    // sessionStorage with the parent, so the payload is readable inside.
+    const iframe = document.createElement("iframe");
+    iframe.setAttribute("aria-hidden", "true");
+    iframe.style.position = "fixed";
+    iframe.style.right = "0";
+    iframe.style.bottom = "0";
+    iframe.style.width = "0";
+    iframe.style.height = "0";
+    iframe.style.border = "0";
+    iframe.src = "/print/file";
+
+    const cleanup = () => {
+      iframe.remove();
+      document.title = originalTitle;
+    };
+    iframe.addEventListener("load", () => {
+      const childWin = iframe.contentWindow;
+      if (!childWin) {
+        cleanup();
+        return;
+      }
+      childWin.addEventListener("afterprint", cleanup);
+    });
+
+    document.body.appendChild(iframe);
+  }, [fileContent, fileName, isMarkdown, isDocx, docxHtml, language]);
+
   const handleEdit = useCallback(() => {
     setIsEditingMode(true);
   }, []);
@@ -248,6 +302,18 @@ export const FileViewDialog = React.memo<{
                   <Download size={16} className="mr-1" />
                   Download
                 </Button>
+                {!isImage && !isPdf && (!isBinary || isDocx) && (
+                  <Button
+                    onClick={handlePrint}
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 px-2"
+                    disabled={isDocx && (docxLoading || !!docxError || !docxHtml)}
+                  >
+                    <Printer size={16} className="mr-1" />
+                    Print
+                  </Button>
+                )}
                 {onDelete && file && (
                   <Button
                     onClick={() => onDelete(file.path)}
