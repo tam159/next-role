@@ -1,6 +1,6 @@
 # PRD: JD-from-URL Extraction (v1)
 
-**Status:** shipped · **Scope:** career_agent only · **Extends:** [Document Processing (v1)](document_processing.md)
+**Status:** shipped · **Scope:** career_agent only · **Extends:** [Document Processing (v1)](02_document_processing.md)
 
 ## Why
 
