@@ -1,7 +1,7 @@
 FROM langchain/langgraph-api:3.13
 
 RUN apt update && apt upgrade -y
-RUN apt install -y build-essential wget curl vim lsb-release gnupg2
+RUN apt install -y build-essential wget curl vim lsb-release gnupg2 weasyprint libpango-1.0-0 libpangoft2-1.0-0 libharfbuzz-subset0
 
 ADD . /deps/next-role
 
