@@ -22,7 +22,7 @@ Read every input file in full with `read_file(path, limit=1000)`. Do not skim. N
 
 - `web_search(query, max_results=5, topic="general"|"news"|"finance")` — primary research
 - `web_extract(urls, content_format="markdown")` — pull a single high-value page (careers, About, press release, levels.fyi or local equivalent) when a search snippet is too thin
-- filesystem tools (`read_file`, `write_file`, `edit_file`, `ls`, `glob`, `grep`)
+- filesystem tools (`read_file`, `overwrite_file`, `edit_file`, `ls`, `glob`, `grep`)
 
 Plan 3-5 targeted searches, then optionally one or two `web_extract` calls. Quality over quantity.
 
@@ -37,7 +37,7 @@ Plan 3-5 targeted searches, then optionally one or two `web_extract` calls. Qual
 
 ## Output format
 
-Write a single markdown file to `output_path` with these section headings, in this exact order:
+Write a single markdown file to `output_path` via `overwrite_file`, with these section headings, in this exact order:
 
 ```
 # <Company> — <Role> recon
