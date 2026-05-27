@@ -1,10 +1,19 @@
 """Tests for `backend.app.career_agent.utils.load_subagents`."""
 
 from pathlib import Path
+from typing import Any
 
 import pytest
 from backend.app.career_agent.utils import load_subagents
+from langchain.agents.middleware import AgentMiddleware
 from langchain_core.tools import tool
+
+
+class _NoopMiddleware(AgentMiddleware):
+    """Stub middleware for verifying threading into subagent specs."""
+
+    def wrap_model_call(self, request: Any, handler: Any) -> Any:  # noqa: ANN401
+        return handler(request)
 
 
 @tool
@@ -156,6 +165,48 @@ hiring-recon:
     assert len(spec["tools"]) == 2
     assert spec["tools"] == [_fake_search, _fake_extract]
     assert spec["skills"] == ["skills/hiring-recon/"]
+
+
+def test_default_middleware_threaded_into_every_subagent(tmp_path: Path) -> None:
+    """`default_middleware` is attached to every subagent.
+
+    The middleware runs inside the subagent's own model call. Without this,
+    the main agent's middleware list is not inherited — declarative subagents
+    get only what's in their spec.
+    """
+    yaml_path = _write_yaml(
+        tmp_path,
+        """\
+a:
+  description: a
+  system_prompt: a
+b:
+  description: b
+  system_prompt: b
+""",
+    )
+
+    mw = _NoopMiddleware()
+    specs = load_subagents(yaml_path, tools=_TOOL_POOL, default_middleware=[mw])
+
+    for spec in specs:
+        assert spec["middleware"] == [mw]
+
+
+def test_no_middleware_key_when_default_middleware_absent(tmp_path: Path) -> None:
+    """When `default_middleware` is omitted, no `middleware` key is added."""
+    yaml_path = _write_yaml(
+        tmp_path,
+        """\
+a:
+  description: a
+  system_prompt: a
+""",
+    )
+
+    [spec] = load_subagents(yaml_path, tools=_TOOL_POOL)
+
+    assert "middleware" not in spec
 
 
 def test_unknown_tool_raises(tmp_path: Path) -> None:

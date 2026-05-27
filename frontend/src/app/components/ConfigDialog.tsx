@@ -21,17 +21,40 @@ interface ConfigDialogProps {
   initialConfig?: StandaloneConfig;
 }
 
+const INIT_CHAT_MODEL_DOCS_URL =
+  "https://reference.langchain.com/python/langchain/chat_models/base/init_chat_model";
+
+const ModelsSectionHelp = () => (
+  <p className="text-xs text-muted-foreground">
+    Format <code>&lt;provider&gt;:&lt;model&gt;</code> — e.g.{" "}
+    <code>anthropic:claude-sonnet-4.6</code>. Leave blank to use the default.{" "}
+    <a
+      href={INIT_CHAT_MODEL_DOCS_URL}
+      target="_blank"
+      rel="noreferrer"
+      className="underline hover:text-foreground"
+    >
+      See all supported providers
+    </a>
+    .
+  </p>
+);
+
 export function ConfigDialog({ open, onOpenChange, onSave, initialConfig }: ConfigDialogProps) {
   const formConfig = initialConfig ?? DEFAULT_CONFIG;
   const [deploymentUrl, setDeploymentUrl] = useState(formConfig?.deploymentUrl || "");
   const [assistantId, setAssistantId] = useState(formConfig?.assistantId || "");
   const [langsmithApiKey, setLangsmithApiKey] = useState(formConfig?.langsmithApiKey || "");
+  const [mainAgentModel, setMainAgentModel] = useState(formConfig?.mainAgentModel || "");
+  const [subagentModel, setSubagentModel] = useState(formConfig?.subagentModel || "");
 
   useEffect(() => {
     if (open && formConfig) {
       setDeploymentUrl(formConfig.deploymentUrl);
       setAssistantId(formConfig.assistantId);
       setLangsmithApiKey(formConfig.langsmithApiKey || "");
+      setMainAgentModel(formConfig.mainAgentModel || "");
+      setSubagentModel(formConfig.subagentModel || "");
     }
   }, [open, formConfig]);
 
@@ -45,6 +68,8 @@ export function ConfigDialog({ open, onOpenChange, onSave, initialConfig }: Conf
       deploymentUrl,
       assistantId,
       langsmithApiKey: langsmithApiKey || undefined,
+      mainAgentModel: mainAgentModel.trim() || undefined,
+      subagentModel: subagentModel.trim() || undefined,
     });
     onOpenChange(false);
   };
@@ -89,6 +114,32 @@ export function ConfigDialog({ open, onOpenChange, onSave, initialConfig }: Conf
               value={langsmithApiKey}
               onChange={(e) => setLangsmithApiKey(e.target.value)}
             />
+          </div>
+          <div className="grid gap-3 border-t pt-4">
+            <div className="grid gap-1">
+              <h3 className="text-sm font-semibold">
+                Models <span className="font-normal text-muted-foreground">(Optional)</span>
+              </h3>
+              <ModelsSectionHelp />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="mainAgentModel">Main agent</Label>
+              <Input
+                id="mainAgentModel"
+                placeholder="openai:gpt-5.4"
+                value={mainAgentModel}
+                onChange={(e) => setMainAgentModel(e.target.value)}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="subagentModel">Subagents</Label>
+              <Input
+                id="subagentModel"
+                placeholder="openai:gpt-5.4-mini"
+                value={subagentModel}
+                onChange={(e) => setSubagentModel(e.target.value)}
+              />
+            </div>
           </div>
         </div>
         <DialogFooter>

@@ -7,7 +7,7 @@ import deepagents.middleware.skills as _skills_mw
 import deepagents.middleware.subagents as _sub_mw
 import langchain.agents.middleware.todo as _todo_mw
 from backend.app.career_agent import prompts as _prompts
-from backend.app.career_agent.middleware import UtcDatetimeMiddleware
+from backend.app.career_agent.middleware import ModelOverrideMiddleware, UtcDatetimeMiddleware
 from backend.app.career_agent.shell_backend import VirtualPathShellBackend
 from backend.app.career_agent.tools import (
     CAREER_AGENT_DIR,
@@ -122,6 +122,12 @@ _SUBAGENT_TOOLS = {
     "prepare_render_settings": _prepare_render_settings,
 }
 
+# Shared across the main agent and every declarative subagent: declarative
+# subagents are built by deepagents via `create_agent(..., middleware=...)`
+# and do NOT inherit the main agent's middleware list, so the override
+# middleware has to be threaded into each one explicitly.
+_model_override_middleware = ModelOverrideMiddleware()
+
 career_agent = create_deep_agent(
     system_prompt=_prompts.SYSTEM_PROMPT,
     model=_MODEL,
@@ -138,7 +144,8 @@ career_agent = create_deep_agent(
         CAREER_AGENT_DIR / "subagents.yaml",
         tools=_SUBAGENT_TOOLS,
         default_tools=_SUBAGENT_DEFAULT_TOOLS,
+        default_middleware=[_model_override_middleware],
     ),
     backend=_backend,
-    middleware=[UtcDatetimeMiddleware()],
+    middleware=[_model_override_middleware, UtcDatetimeMiddleware()],
 )

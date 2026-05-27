@@ -16,6 +16,7 @@ import {
   type AgentFile,
 } from "@/app/lib/agentFiles";
 import { deleteAgentFile } from "@/app/lib/uploadFiles";
+import { getConfig } from "@/lib/config";
 
 function stateFileSignature(value: unknown): string {
   if (typeof value === "string") return `s:${value.length}:${value.slice(0, 64)}`;
@@ -135,6 +136,33 @@ export function useChat({
   }, [isHotStreaming]);
   const messagesSnapshot = isHotStreaming ? throttledMessages : stream.messages;
 
+  // Build the `config` arg for every `stream.submit`. Merges:
+  //   - assistant-level config (from the LangGraph API)
+  //   - per-invocation user model overrides from Settings (configurable.*)
+  //   - any caller-supplied overrides (e.g. recursion_limit)
+  // The middleware in backend/app/career_agent/middleware.py reads
+  // `configurable.main_agent_model` / `configurable.subagent_model`.
+  const buildSubmitConfig = useCallback(
+    (extra?: Record<string, unknown>) => {
+      const assistantConfig = (activeAssistant?.config ?? {}) as Record<string, unknown>;
+      const assistantConfigurable = (assistantConfig.configurable ?? {}) as Record<string, unknown>;
+      const userConfig = getConfig();
+      const modelOverrides: Record<string, string> = {};
+      if (userConfig?.mainAgentModel) modelOverrides.main_agent_model = userConfig.mainAgentModel;
+      if (userConfig?.subagentModel) modelOverrides.subagent_model = userConfig.subagentModel;
+
+      return {
+        ...assistantConfig,
+        ...(extra ?? {}),
+        configurable: {
+          ...assistantConfigurable,
+          ...modelOverrides,
+        },
+      };
+    },
+    [activeAssistant?.config]
+  );
+
   const sendMessage = useCallback(
     (content: string) => {
       const newMessage: Message = { id: uuidv4(), type: "human", content };
@@ -144,7 +172,7 @@ export function useChat({
           optimisticValues: (prev) => ({
             messages: [...(prev.messages ?? []), newMessage],
           }),
-          config: { ...(activeAssistant?.config ?? {}), recursion_limit: 100 },
+          config: buildSubmitConfig({ recursion_limit: 100 }),
           // Surface subgraph events (namespaced) so the SDK's SubagentManager
           // can rebuild per-subagent streams from the `task`-spawned subgraphs.
           streamSubgraphs: true,
@@ -153,7 +181,7 @@ export function useChat({
       // Update thread list immediately when sending a message
       onHistoryRevalidate?.();
     },
-    [stream, activeAssistant?.config, onHistoryRevalidate]
+    [stream, buildSubmitConfig, onHistoryRevalidate]
   );
 
   const runSingleStep = useCallback(
@@ -166,7 +194,7 @@ export function useChat({
       if (checkpoint) {
         stream.submit(undefined, {
           ...(optimisticMessages ? { optimisticValues: { messages: optimisticMessages } } : {}),
-          config: activeAssistant?.config,
+          config: buildSubmitConfig(),
           checkpoint: checkpoint,
           streamSubgraphs: true,
           ...(isRerunningSubagent ? { interruptAfter: ["tools"] } : { interruptBefore: ["tools"] }),
@@ -175,14 +203,14 @@ export function useChat({
         stream.submit(
           { messages },
           {
-            config: activeAssistant?.config,
+            config: buildSubmitConfig(),
             interruptBefore: ["tools"],
             streamSubgraphs: true,
           }
         );
       }
     },
-    [stream, activeAssistant?.config]
+    [stream, buildSubmitConfig]
   );
 
   const graphId = activeAssistant?.graph_id ?? null;
@@ -411,17 +439,14 @@ export function useChat({
   const continueStream = useCallback(
     (hasTaskToolCall?: boolean) => {
       stream.submit(undefined, {
-        config: {
-          ...(activeAssistant?.config || {}),
-          recursion_limit: 100,
-        },
+        config: buildSubmitConfig({ recursion_limit: 100 }),
         streamSubgraphs: true,
         ...(hasTaskToolCall ? { interruptAfter: ["tools"] } : { interruptBefore: ["tools"] }),
       });
       // Update thread list when continuing stream
       onHistoryRevalidate?.();
     },
-    [stream, activeAssistant?.config, onHistoryRevalidate]
+    [stream, buildSubmitConfig, onHistoryRevalidate]
   );
 
   const markCurrentThreadAsResolved = useCallback(() => {
@@ -437,12 +462,13 @@ export function useChat({
     (value: any) => {
       stream.submit(null, {
         command: { resume: value },
+        config: buildSubmitConfig(),
         streamSubgraphs: true,
       });
       // Update thread list when resuming from interrupt
       onHistoryRevalidate?.();
     },
-    [stream, onHistoryRevalidate]
+    [stream, buildSubmitConfig, onHistoryRevalidate]
   );
 
   const stopStream = useCallback(() => {

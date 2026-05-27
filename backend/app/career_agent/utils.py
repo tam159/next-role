@@ -3,6 +3,7 @@
 from pathlib import Path
 
 import yaml
+from langchain.agents.middleware import AgentMiddleware
 from langchain_core.tools import BaseTool
 
 
@@ -10,6 +11,7 @@ def load_subagents(
     config_path: Path,
     tools: dict[str, BaseTool],
     default_tools: list[BaseTool] | None = None,
+    default_middleware: list[AgentMiddleware] | None = None,
 ) -> list:
     """Load subagent definitions from YAML and wire up tools by name.
 
@@ -30,12 +32,20 @@ def load_subagents(
         default_tools: BaseTools every subagent gets unconditionally — typically
             generic filesystem utilities (`list_files`, `overwrite_file`) that
             most subagents need but shouldn't have to re-declare per-entry.
+        default_middleware: AgentMiddlewares every subagent gets unconditionally.
+            Required for any middleware whose behavior must run inside a
+            subagent's own model call (e.g. per-request model overrides) —
+            deepagents builds each declarative subagent via `create_agent(...,
+            middleware=spec.get("middleware", []))` and does NOT inherit the
+            main agent's middleware list, so anything we want shared must be
+            threaded in here.
 
     """
     with config_path.open() as f:
         config = yaml.safe_load(f)
 
-    base: list[BaseTool] = list(default_tools or [])
+    base_tools: list[BaseTool] = list(default_tools or [])
+    base_middleware: list[AgentMiddleware] = list(default_middleware or [])
 
     subagents = []
     for name, spec in config.items():
@@ -44,8 +54,10 @@ def load_subagents(
             "name": name,
             "description": spec["description"],
             "system_prompt": spec["system_prompt"],
-            "tools": [*base, *opt_in],
+            "tools": [*base_tools, *opt_in],
         }
+        if base_middleware:
+            subagent["middleware"] = list(base_middleware)
         if "model" in spec:
             subagent["model"] = spec["model"]
         if "skills" in spec:
