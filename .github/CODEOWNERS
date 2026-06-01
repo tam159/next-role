@@ -1,0 +1,10 @@
+# Code owners for NextRole.
+#
+# @tam159 is the default owner for everything in the repo. With
+# "Require review from Code Owners" enabled on `main`, every pull request
+# therefore needs an approving review from @tam159 before it can be merged.
+# (Repo admins can still bypass — see branch protection settings.)
+#
+# Docs: https://docs.github.com/articles/about-code-owners
+
+* @tam159
