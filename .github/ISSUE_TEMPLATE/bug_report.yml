@@ -1,0 +1,58 @@
+name: 🐛 Bug report
+description: Report something that isn't working as expected
+title: "bug: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to file a bug! Please search [existing issues](https://github.com/tam159/next-role/issues) first to avoid duplicates.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: A clear description of the bug, and what you expected instead.
+      placeholder: When I ..., I expected ..., but instead ...
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      description: Minimal steps so we can see it too.
+      placeholder: |
+        1. Upload CV + JD
+        2. Ask for "..."
+        3. See error
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Affected area
+      options:
+        - Backend (agents / LangGraph / tools)
+        - Frontend (Next.js UI)
+        - Docker / local setup
+        - Docs
+        - Not sure
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs / screenshots / trace
+      description: |
+        Relevant logs, screenshots, or a LangSmith trace link. Container logs help a lot:
+        `docker compose logs backend` / `docker compose logs frontend`.
+      render: shell
+    validations:
+      required: false
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: OS, Docker version, and which LLM provider/model you had configured.
+      placeholder: macOS 15.5, Docker 27.x, main agent = openai:gpt-5.x
+    validations:
+      required: false
