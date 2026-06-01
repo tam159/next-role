@@ -14,6 +14,7 @@
 
 <!-- Row 1 · project -->
 
+[![CI](https://github.com/tam159/next-role/actions/workflows/ci.yml/badge.svg)](https://github.com/tam159/next-role/actions/workflows/ci.yml)
 ![Python](https://img.shields.io/badge/Python-3.13-3776AB?logo=python&logoColor=white)
 ![Next.js](https://img.shields.io/badge/Next.js-16-000000?logo=nextdotjs&logoColor=white)
 ![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)
