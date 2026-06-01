@@ -280,7 +280,9 @@ Set `LANGCHAIN_API_KEY` and `LANGCHAIN_TRACING_V2=true` in `.env`, and every run
 
 ## Contributing
 
-PRs and issues are welcome. Dev setup and conventions live in [`backend/CLAUDE.md`](backend/CLAUDE.md) and [`frontend/CLAUDE.md`](frontend/CLAUDE.md); commits follow [Conventional Commits](https://www.conventionalcommits.org/).
+PRs and issues are welcome! Start with **[`CONTRIBUTING.md`](CONTRIBUTING.md)** — it walks through the fork → PR workflow, local setup, the CI quality gate (pre-commit + backend tests), testing, and conventions. Stack-specific details live in [`backend/CLAUDE.md`](backend/CLAUDE.md) and [`frontend/CLAUDE.md`](frontend/CLAUDE.md); commits follow [Conventional Commits](https://www.conventionalcommits.org/).
+
+New here? Issues labelled [`good first issue`](https://github.com/tam159/next-role/labels/good%20first%20issue) are a gentle place to start, and questions are welcome in [Discussions](https://github.com/tam159/next-role/discussions).
 
 ## License
 
