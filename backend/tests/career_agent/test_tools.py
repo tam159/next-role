@@ -596,10 +596,10 @@ def test_prepare_render_settings_appends_block(tmp_path, monkeypatch, backend):
 
     result = make_prepare_render_settings(backend).invoke({"yaml_path": yaml_path})
 
-    # Confirmation + the verbatim execute command (virtual path — the shell
-    # backend translates `/tailored_resume/...` to its on-disk equivalent).
-    assert "Prepared for rendering." in result
-    assert f"rendercv render {yaml_path}" in result
+    # Confirmation names the prepared YAML; the agent invokes `rendercv render`
+    # separately via `execute` (the shell backend translates the virtual path).
+    assert f"Prepared for rendering: {yaml_path}" in result
+    assert "Ready to render now." in result
     written = on_disk.read_text()
     # The body the LLM wrote is preserved verbatim.
     assert "# changes:" in written
@@ -689,6 +689,6 @@ def test_prepare_render_settings_accepts_yml_extension(tmp_path, monkeypatch, ba
     on_disk = _seed_yaml(tmp_path, monkeypatch, relative=yaml_path, content=_MINIMAL_CV_YAML)
 
     result = make_prepare_render_settings(backend).invoke({"yaml_path": yaml_path})
-    assert "Prepared" in result
-    assert f"rendercv render {yaml_path}" in result
+    assert f"Prepared for rendering: {yaml_path}" in result
+    assert "Ready to render now." in result
     assert "settings:" in on_disk.read_text()
