@@ -1,0 +1,251 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <!--
+      NextRole social-preview (GitHub Open Graph card) generator.
+      Canvas: 1280x640. GitHub recommends a ~80px safe border (the "40pt" guide
+      in repository-open-graph-template.png) so nothing important is cropped /
+      lost to rounded corners — all text, cards, logo and footer stay inside it.
+      Re-render:
+        chrome --headless --screenshot --window-size=1280,640 \
+               --force-device-scale-factor=2 next-role-social-preview.html
+      then downscale 2x -> 1280x640. Decorative bleed (edge bar, glow) may sit
+      outside the safe area on purpose. The mark uses the transparency-flattened
+      next-role-logo-transparent.png so its drop-shadow follows the silhouette.
+    -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      :root {
+        --deep: #1a4fa3;
+        --blue: #1565d8;
+        --ink: #5b6b7c;
+        --grad: linear-gradient(90deg, #1565d8 0%, #1d9bf0 35%, #19b8a5 70%, #56d98a 100%);
+      }
+      html,
+      body {
+        width: 1280px;
+        height: 640px;
+        overflow: hidden;
+        background: #ffffff;
+        font-family: "Inter", "SF Pro Display", system-ui, -apple-system, "Segoe UI", sans-serif;
+        -webkit-font-smoothing: antialiased;
+      }
+      .stage {
+        position: relative;
+        width: 1280px;
+        height: 640px;
+        background: #ffffff;
+      }
+      /* decorative bleed: thin gradient edge bar (may sit outside safe area) */
+      .edge {
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 10px;
+        background: var(--grad);
+      }
+      /* decorative bleed: subtle brand glow behind the mark */
+      .glow {
+        position: absolute;
+        right: -140px;
+        top: -120px;
+        width: 560px;
+        height: 560px;
+        border-radius: 50%;
+        background: radial-gradient(
+          closest-side,
+          rgba(86, 217, 138, 0.16),
+          rgba(29, 155, 240, 0.1),
+          transparent 72%
+        );
+      }
+      /* hero — kept within the ~80px safe border */
+      .row {
+        position: relative;
+        display: flex;
+        align-items: center;
+        height: 640px;
+        padding: 0 96px 0 100px;
+        gap: 52px;
+      }
+      .left {
+        flex: 1;
+        min-width: 0;
+      }
+      .badge {
+        display: inline-block;
+        background: linear-gradient(90deg, #1565d8, #19b8a5);
+        color: #fff;
+        font-weight: 600;
+        font-size: 13px;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        padding: 7px 16px;
+        border-radius: 999px;
+        box-shadow: 0 8px 24px rgba(21, 101, 216, 0.18);
+      }
+      h1 {
+        font-size: 82px;
+        font-weight: 800;
+        line-height: 1.02;
+        letter-spacing: -0.02em;
+        margin: 20px 0 0;
+        background: var(--grad);
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+      }
+      .tagline {
+        font-size: 30px;
+        font-weight: 600;
+        color: var(--deep);
+        margin-top: 14px;
+        letter-spacing: -0.01em;
+      }
+      .sub {
+        font-size: 18px;
+        line-height: 1.5;
+        color: var(--ink);
+        margin-top: 16px;
+        max-width: 600px;
+        font-weight: 400;
+      }
+      .cards {
+        display: flex;
+        gap: 14px;
+        margin-top: 28px;
+      }
+      .card {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        background: #fff;
+        border: 1.5px solid #d7e8ff;
+        border-radius: 16px;
+        padding: 13px 18px;
+        box-shadow: 0 8px 24px rgba(21, 101, 216, 0.08);
+      }
+      .card span {
+        font-size: 16px;
+        font-weight: 600;
+        color: var(--deep);
+        white-space: nowrap;
+      }
+      .card svg {
+        width: 22px;
+        height: 22px;
+        stroke: var(--blue);
+        stroke-width: 1.8;
+        fill: none;
+        flex: none;
+      }
+      .mark {
+        flex: none;
+        width: 320px;
+        height: 320px;
+        display: grid;
+        place-items: center;
+      }
+      .mark img {
+        width: 296px;
+        height: 296px;
+        filter: drop-shadow(0 16px 32px rgba(21, 101, 216, 0.22));
+      }
+      /* footer — bottom edge kept ~84px above the canvas bottom (inside safe area) */
+      .foot {
+        position: absolute;
+        left: 100px;
+        bottom: 84px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-size: 15px;
+        color: #8294a6;
+        font-weight: 500;
+      }
+      .foot b {
+        color: var(--deep);
+        font-weight: 600;
+      }
+      .dot {
+        width: 4px;
+        height: 4px;
+        border-radius: 50%;
+        background: #c4d6ee;
+      }
+      .stack {
+        position: absolute;
+        right: 96px;
+        bottom: 84px;
+        font-size: 14px;
+        font-weight: 500;
+        color: #8294a6;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="stage">
+      <div class="edge"></div>
+      <div class="glow"></div>
+      <div class="row">
+        <div class="left">
+          <div class="badge">GenAI Career Assistant</div>
+          <h1>NextRole</h1>
+          <div class="tagline">GenAI-Accelerated Career Advancement</div>
+          <div class="sub">
+            Your CV + a job description in. A tailored résumé, researched interview prep, and a
+            day-of battlecard out — built by a multi-agent system with long-term memory.
+          </div>
+          <div class="cards">
+            <div class="card">
+              <svg viewBox="0 0 24 24">
+                <path
+                  d="M6 3h7l5 5v13a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z"
+                  stroke-linejoin="round"
+                />
+                <path d="M13 3v5h5M8 13h8M8 17h6" stroke-linecap="round" />
+              </svg>
+              <span>Tailored Résumé</span>
+            </div>
+            <div class="card">
+              <svg viewBox="0 0 24 24">
+                <path
+                  d="M5 4h14a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H9l-4 4V5a1 1 0 0 1 1-1Z"
+                  stroke-linejoin="round"
+                />
+                <path d="M8 9h8M8 12h5" stroke-linecap="round" />
+              </svg>
+              <span>Interview Prep</span>
+            </div>
+            <div class="card">
+              <svg viewBox="0 0 24 24">
+                <path d="M12 3l7 3v5c0 4.5-3 7.8-7 9-4-1.2-7-4.5-7-9V6l7-3Z" stroke-linejoin="round" />
+                <path d="M9.5 12l1.8 1.8L15 10" stroke-linecap="round" stroke-linejoin="round" />
+              </svg>
+              <span>Battlecard</span>
+            </div>
+          </div>
+        </div>
+        <div class="mark"><img src="next-role-logo-transparent.png" alt="NextRole" /></div>
+      </div>
+      <div class="foot">
+        <b>github.com/tam159/next-role</b>
+        <span class="dot"></span>
+        <span>MIT Licensed</span>
+      </div>
+      <div class="stack">LangGraph · DeepAgents · Next.js · Postgres</div>
+    </div>
+  </body>
+</html>
