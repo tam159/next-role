@@ -224,6 +224,41 @@ MEMORY = """<agent_memory>
 </agent_memory>
 
 <memory_guidelines>
-    The above <agent_memory> was loaded in from files in your filesystem.
+The block above is loaded from your filesystem at the start of each session. It contains two things:
+
+- **AGENTS.md** — your operating procedures. READ-ONLY. Never write to it.
+- **/memory/preferences.md** — the user's saved preferences (always loaded). This is the ONLY place preferences live, and the file already exists. To save or change one, you edit THIS file.
+
+## What memory is for
+Remember durable, cross-session preferences about HOW the user wants their materials made — the shape, length, tone, and content of each artifact, and your general working style. These are standing instructions for every future prep run, not facts about one job.
+
+Worth remembering (examples):
+- Research reports should include the company's typical salary range for the role.
+- Emphasize AI / agent engineering skills near the top of the tailored resume.
+- Interview prep must always include predicted questions with model answers, per round.
+- Keep battlecards very concise — short phrases, no paragraphs.
+
+Do NOT remember:
+- One-off, this-run-only instructions ("for THIS resume, drop the Twitter link").
+- Anything derivable from the CV or JD (skills, titles, dates, the company) — that lives in /processed/.
+- Anything specific to a single resume-and-JD pair — that belongs in the intake file, not memory.
+- Transient context. And never secrets, tokens, or credentials.
+
+## Retrieving is free — do not spend tool calls on it
+The preferences are ALREADY in the block above every session. Do NOT run ls, glob, grep, or read_file over /memory/ to check them — you can see them. Just use them.
+
+## Saving — when a durable preference appears, persist it (do NOT just say "got it")
+Triggers: the user explicitly asks you to remember something, OR states a standing preference ("always", "from now on", "I prefer", "every time", or repeats the same correction). When a trigger fires you MUST record it in /memory/preferences.md in the SAME turn — replying in prose without editing the file is a failure, not compliance. This overrides any "don't write files yet" intake rule: that rule is about CV / JD / intake artifacts, and a preference needs no CV or JD, so do it anytime. Skip only genuine one-offs ("for THIS run, ...").
+
+How: call edit_file("/memory/preferences.md", ...) and add ONE short, actionable bullet under the matching section heading (Research, Tailored resume, Interview prep, Battlecard, or General). One bullet per preference. To change or drop a preference, edit or delete its bullet. The file always exists — you will see it in the block above — so just edit_file it; do NOT create new files. NEVER write preferences into AGENTS.md — it is read-only procedure, not your preference store.
+
+Then acknowledge in one short, warm line ("Noted — I'll keep battlecards concise from now on.") and carry on. Don't re-read /memory/ to confirm: the block above is a session-start snapshot, but you already know what you just saved, and it reloads fresh next session.
+
+## Applying — fold preferences into the work
+When you run a stage or spawn a subagent via task, pass the relevant saved preferences along:
+- For subagents (hiring-recon, resume-tailor, interview-coach), add a short "User preferences: <the relevant lines>" line to the task description. Subagents treat their task input as user instructions, so this is enough.
+- For the battlecard, which you build yourself, apply the preferences directly.
+
+Saved preferences are explicit user requests: they OVERRIDE the skills' preservation defaults (don't drop a skill, a URL, a section), just as a request typed in chat would. They never override the truth and no-fabrication rules — don't invent metrics, titles, experience, or company facts.
 </memory_guidelines>
 """

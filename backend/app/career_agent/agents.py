@@ -7,7 +7,11 @@ import deepagents.middleware.skills as _skills_mw
 import deepagents.middleware.subagents as _sub_mw
 import langchain.agents.middleware.todo as _todo_mw
 from backend.app.career_agent import prompts as _prompts
-from backend.app.career_agent.middleware import ModelOverrideMiddleware, UtcDatetimeMiddleware
+from backend.app.career_agent.middleware import (
+    EnsurePreferencesFileMiddleware,
+    ModelOverrideMiddleware,
+    UtcDatetimeMiddleware,
+)
 from backend.app.career_agent.shell_backend import VirtualPathShellBackend
 from backend.app.career_agent.tools import (
     CAREER_AGENT_DIR,
@@ -29,11 +33,11 @@ def _apply_prompt_overrides() -> None:
     """Replace the prompts that deepagents/langchain inject into the system message.
 
     Most middlewares read their constant by bare name at call time, so patching
-    the module attribute is enough. `TodoListMiddleware` and `SubAgentMiddleware`
-    are different — they capture the constant as a keyword-only default arg,
-    which Python freezes into `__init__.__kwdefaults__` at class-definition
-    time. Reassigning the module attribute after that does nothing; we must
-    patch `__kwdefaults__` directly.
+    the module attribute is enough. `TodoListMiddleware`, `SubAgentMiddleware`,
+    and — on deepagents 0.6.3+ — `MemoryMiddleware` are different: they capture
+    the constant as a keyword-only default arg, which Python freezes into
+    `__init__.__kwdefaults__` at class-definition time. Reassigning the module
+    attribute after that does nothing; we must patch `__kwdefaults__` directly.
 
     `BASE_AGENT_PROMPT` is patched here (rather than via
     `HarnessProfile.base_system_prompt`) because the harness-profile overlay
@@ -63,6 +67,15 @@ def _apply_prompt_overrides() -> None:
 
     _todo_mw.TodoListMiddleware.__init__.__kwdefaults__["system_prompt"] = _prompts.TODO  # type: ignore # noqa: PGH003
     _sub_mw.SubAgentMiddleware.__init__.__kwdefaults__["system_prompt"] = _prompts.TASK  # type: ignore # noqa: PGH003
+
+    # deepagents 0.6.3+ freezes the memory prompt into MemoryMiddleware's
+    # keyword-only `system_prompt` default, so the module-level setattr above no
+    # longer reaches the constructed middleware (0.6.1 read the bare global, so it
+    # did). Patch the kwdefault too; guarded so it's a no-op on 0.6.1, which has
+    # no such parameter.
+    _mem_kwdefaults = _mem_mw.MemoryMiddleware.__init__.__kwdefaults__
+    if _mem_kwdefaults and "system_prompt" in _mem_kwdefaults:
+        _mem_kwdefaults["system_prompt"] = _prompts.MEMORY
 
 
 _apply_prompt_overrides()
@@ -131,7 +144,7 @@ _model_override_middleware = ModelOverrideMiddleware()
 career_agent = create_deep_agent(
     system_prompt=_prompts.SYSTEM_PROMPT,
     model=_MODEL,
-    memory=["AGENTS.md"],
+    memory=["AGENTS.md", "/memory/preferences.md"],
     skills=["skills/career-agent/"],
     tools=[
         _list_files,
@@ -147,5 +160,9 @@ career_agent = create_deep_agent(
         default_middleware=[_model_override_middleware],
     ),
     backend=_backend,
-    middleware=[_model_override_middleware, UtcDatetimeMiddleware()],
+    middleware=[
+        EnsurePreferencesFileMiddleware(_backend),
+        _model_override_middleware,
+        UtcDatetimeMiddleware(),
+    ],
 )

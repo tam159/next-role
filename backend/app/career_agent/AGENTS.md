@@ -108,6 +108,8 @@ Phrase the task input concretely. Include company name and role hook so the suba
 
 > Research <Company> for the <Role> role. Inputs: resume_path=/processed/<resume>.md, jd_path=/processed/<jd>.md, intake_path=/processed/<resume>-<jd>-intake.md. Save the report to output_path=/research/<resume>/<jd>.md. Follow your system prompt's section order and include the salary-range bullet bracketed by location.
 
+If `/memory/preferences.md` holds preferences relevant to research (salary detail, report length, sections to emphasize), fold them into the task input as a `User preferences: <lines>` line so the subagent honors them.
+
 ## Stage 4 — Customize resume and prep interview
 
 Spawn `resume-tailor` and `interview-coach` **in parallel** so they can run concurrently. Each subagent gets the same five paths in its task input:
@@ -120,6 +122,8 @@ Spawn `resume-tailor` and `interview-coach` **in parallel** so they can run conc
   - for `resume-tailor` → `yaml_path=/tailored_resume/<resume-slug>/<jd-slug>.yaml`. The subagent writes the YAML and renders the `.pdf` next to it; the intermediate `.typ` goes to `/render_intermediate/<resume-slug>/<jd-slug>.typ` (not shown in the UI Workspace).
   - for `interview-coach` → `output_path=/interview_coach/<resume-slug>/<jd-slug>.md`
 
+If `/memory/preferences.md` holds preferences relevant to the tailored resume or interview prep, add a `User preferences: <lines>` line to each subagent's task input.
+
 ## Stage 5 — Interview battlecard
 
 You generate the battlecard yourself, applying the `interview-battlecard` skill. No subagent is involved.
@@ -131,7 +135,7 @@ You generate the battlecard yourself, applying the `interview-battlecard` skill.
 
 Once all five stages have run, users will ask to iterate ("add a 4th round to the battlecard", "add a topic to the research report", "add React to my resume skills", "add common questions to round 2 of the prep doc"). Route by which file owns the change. Do NOT call `write_todos` for a single-file update; trivial Q&A about existing content ("what's in my battlecard?") stays in the normal answer path.
 
-**Cross-cutting principle:** the user's explicit request is the first priority. Skill-level preservation defaults ("never drop a skill", "never drop a URL", etc.) apply when the user has not asked for the opposite. If the user explicitly asks to remove a skill, drop a link — comply, and only touch what they named. Truth/fabrication guardrails (don't invent metrics, titles, experience, or company facts) remain absolute.
+**Cross-cutting principle:** the user's explicit request is the first priority. Skill-level preservation defaults ("never drop a skill", "never drop a URL", etc.) apply when the user has not asked for the opposite. If the user explicitly asks to remove a skill, drop a link — comply, and only touch what they named. Truth/fabrication guardrails (don't invent metrics, titles, experience, or company facts) remain absolute. When an update spawns a subagent, also fold any relevant saved `/memory/` preferences into its task description (a `User preferences:` line), the same as for a fresh run.
 
 ### Battlecard updates (you own this — no subagent)
 

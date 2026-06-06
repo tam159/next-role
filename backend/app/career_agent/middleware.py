@@ -14,19 +14,20 @@ logger = logging.getLogger(__name__)
 
 
 class UtcDatetimeMiddleware(AgentMiddleware):
-    """Append a fresh `Current UTC datetime: ...` line to the system message.
+    """Append a `Current UTC date: ...` line to the system message.
 
     Without this the agent has no clock and can't interpret `modified_at`
-    timestamps from `list_files(...)` (e.g. tell "uploaded seconds ago" apart
-    from "uploaded yesterday"). Injecting per call rather than at module
-    import keeps the value accurate across long-lived deployments.
+    timestamps from `list_files(...)` (e.g. tell "uploaded yesterday" apart
+    from "uploaded last month"). Injecting per call rather than at module
+    import keeps the value accurate across long-lived deployments, while date
+    precision avoids invalidating prompt caches on every turn.
     """
 
     @staticmethod
     def _inject(request: Any) -> Any:  # noqa: ANN401  # ModelRequest is generic
         existing = request.system_message.text if request.system_message else ""
-        now = datetime.now(UTC).isoformat(timespec="seconds")
-        new_content = f"{existing}\n\nCurrent UTC datetime: {now}".strip()
+        today = datetime.now(UTC).date().isoformat()
+        new_content = f"{existing}\n\nCurrent UTC date: {today}".strip()
         return request.override(system_message=SystemMessage(content=new_content))
 
     def wrap_model_call(self, request: Any, handler: Any) -> Any:  # noqa: ANN401
@@ -36,6 +37,64 @@ class UtcDatetimeMiddleware(AgentMiddleware):
     async def awrap_model_call(self, request: Any, handler: Any) -> Any:  # noqa: ANN401
         """Async entry point."""
         return await handler(self._inject(request))
+
+
+# Path of the always-loaded preferences file (a StoreBackend route; the same
+# string is wired as a `memory=` source in agents.py).
+PREFERENCES_PATH = "/memory/preferences.md"
+
+# Scaffold written when the preferences file is absent. The section headings
+# give the model an obvious place to append each preference, and let it pull the
+# right ones per stage when delegating to subagents.
+_PREFERENCES_SCAFFOLD = """# Saved preferences
+
+Standing preferences for how to prepare this user's materials. Apply the relevant
+ones on every run, and fold them into subagent task descriptions.
+
+## Research
+
+## Tailored resume
+
+## Interview prep
+
+## Battlecard
+
+## General
+"""
+
+
+class EnsurePreferencesFileMiddleware(AgentMiddleware):
+    """Guarantee the always-loaded preferences file exists before the model runs.
+
+    gpt-5.4 reliably *appends* a preference to `/memory/preferences.md` when the
+    file already exists, but won't reliably *create* it on a clean slate — it
+    fumbles toward AGENTS.md or starts the intake workflow instead. So we seed
+    the scaffold here in `before_agent`: a single cheap store write — no model
+    round trip, so no added response latency — and idempotent, because the
+    backend's `write` refuses to overwrite an existing file. This keeps the
+    preferences memory source present on every deployment without relying on the
+    LLM to bootstrap it.
+
+    Main-agent only — subagents have no memory and never touch this file.
+    """
+
+    def __init__(self, backend: Any) -> None:  # noqa: ANN401  # CompositeBackend
+        """Capture the backend used to seed the preferences scaffold."""
+        self._backend = backend
+
+    def before_agent(self, state: Any, runtime: Any) -> dict[str, Any] | None:  # noqa: ANN401, ARG002
+        """Seed the scaffold if missing (sync invocation path)."""
+        try:
+            self._backend.write(PREFERENCES_PATH, _PREFERENCES_SCAFFOLD)
+        except Exception:  # never break a run over preference seeding
+            logger.debug("ensure preferences file (sync) skipped", exc_info=True)
+
+    async def abefore_agent(self, state: Any, runtime: Any) -> dict[str, Any] | None:  # noqa: ANN401, ARG002
+        """Seed the scaffold if missing (async invocation path)."""
+        try:
+            await self._backend.awrite(PREFERENCES_PATH, _PREFERENCES_SCAFFOLD)
+        except Exception:  # never break a run over preference seeding
+            logger.debug("ensure preferences file (async) skipped", exc_info=True)
 
 
 # Module-level cache: `init_chat_model` builds a client each call (allocates
