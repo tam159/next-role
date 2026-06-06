@@ -51,7 +51,12 @@ def test_list_files_sorts_by_mtime_desc(tmp_path, backend):
 
 
 def test_list_files_returns_empty_for_nonexistent_dir(tmp_path, backend):
-    """FilesystemBackend treats missing dirs as empty — that's fine for our usage."""
+    """A missing dir is "no files yet", not an error.
+
+    deepagents >=0.6.x reports a missing path via ``error="...path_not_found"``
+    (older versions returned an empty listing); ``make_list_files`` normalizes
+    that back to ``[]`` so callers see "empty" rather than a surfaced error.
+    """
     result = make_list_files_then_invoke(backend, "/upload/")
     assert result == []
 

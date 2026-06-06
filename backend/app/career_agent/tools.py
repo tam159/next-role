@@ -123,6 +123,12 @@ def make_list_files(backend: CompositeBackend) -> BaseTool:
         except Exception as e:
             return [{"error": f"ls failed: {e}"}]
         if result.error:
+            # A missing directory is "no files yet" for our usage (e.g. a fresh
+            # user with nothing under /upload/), not an error. deepagents >=0.6.x
+            # reports this via error="Path '<path>': path_not_found" instead of
+            # the empty listing older versions returned, so normalize it back.
+            if result.error.endswith("path_not_found"):
+                return []
             return [{"error": result.error}]
         entries = [dict(e) for e in result.entries or []]
         return sorted(entries, key=lambda e: e.get("modified_at", ""), reverse=True)
