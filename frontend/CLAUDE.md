@@ -1,6 +1,6 @@
 # frontend/CLAUDE.md
 
-Next.js 16 (App Router, Turbopack) + React 19 + TypeScript + Tailwind. Talks to the backend agents via `@langchain/langgraph-sdk`.
+Next.js 16 (App Router, Turbopack) + React 19 + TypeScript + Tailwind. Talks to the backend agents via `@langchain/react` (the `useStream` v2 runtime + scoped selector hooks) with `@langchain/langgraph-sdk` for the raw `Client` (threads/store APIs) and shared types.
 
 ## Tooling
 
@@ -24,4 +24,7 @@ Next.js 16 (App Router, Turbopack) + React 19 + TypeScript + Tailwind. Talks to 
 
 - UI primitives are Radix (`@radix-ui/*`) + Tailwind, not a single component library.
 - State: `swr` for data fetching, `nuqs` for URL state, `zod` for runtime validation.
-- LangGraph integration uses `@langchain/langgraph-sdk` — keep the SDK version in sync with the backend's `langgraph` major.
+- LangGraph integration uses `@langchain/react` + `@langchain/langgraph-sdk`. Keep the direct
+  `@langchain/langgraph-sdk` pin identical to the version `@langchain/react` depends on (one copy
+  in node_modules — `Client` instances cross the package boundary), and the SDK in sync with the
+  backend's `langgraph` major.

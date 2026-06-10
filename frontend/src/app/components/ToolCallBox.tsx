@@ -22,17 +22,13 @@ import {
 import { Button } from "@/components/ui/button";
 import { ToolCall, ActionRequest, ReviewConfig } from "@/app/types/types";
 import { cn } from "@/lib/utils";
-import { LoadExternalComponent } from "@langchain/langgraph-sdk/react-ui";
 import { ToolApprovalInterrupt } from "@/app/components/ToolApprovalInterrupt";
 
 interface ToolCallBoxProps {
   toolCall: ToolCall;
-  uiComponent?: any;
-  stream?: any;
-  graphId?: string;
   actionRequest?: ActionRequest;
   reviewConfig?: ReviewConfig;
-  onResume?: (value: any) => void;
+  onResume?: (value: unknown) => void;
   isLoading?: boolean;
 }
 
@@ -162,17 +158,8 @@ function previewValue(value: unknown): string | null {
 }
 
 export const ToolCallBox = React.memo<ToolCallBoxProps>(
-  ({
-    toolCall,
-    uiComponent,
-    stream,
-    graphId,
-    actionRequest,
-    reviewConfig,
-    onResume,
-    isLoading,
-  }) => {
-    const [isExpanded, setIsExpanded] = useState(() => !!uiComponent || !!actionRequest);
+  ({ toolCall, actionRequest, reviewConfig, onResume, isLoading }) => {
+    const [isExpanded, setIsExpanded] = useState(() => !!actionRequest);
     const [expandedArgs, setExpandedArgs] = useState<Record<string, boolean>>({});
 
     const { name, args, result, status } = useMemo(() => {
@@ -304,17 +291,7 @@ export const ToolCallBox = React.memo<ToolCallBoxProps>(
 
         {isExpanded && hasContent && (
           <div className="relative z-10 px-4 pb-4">
-            {uiComponent && stream && graphId ? (
-              <div className="mt-3 overflow-hidden rounded-lg border border-border bg-card p-2">
-                <LoadExternalComponent
-                  key={uiComponent.id}
-                  stream={stream}
-                  message={uiComponent}
-                  namespace={graphId}
-                  meta={{ status, args, result: result ?? "No Result Yet" }}
-                />
-              </div>
-            ) : actionRequest && onResume ? (
+            {actionRequest && onResume ? (
               // Show tool approval UI when there's an action request but no GenUI
               <div className="mt-3 overflow-hidden rounded-lg border border-amber-500/25 bg-amber-500/10 p-3">
                 <ToolApprovalInterrupt

@@ -1,24 +1,24 @@
 "use client";
 
-import React, { useMemo, useState, useCallback, useRef } from "react";
+import React, { useMemo } from "react";
 import { SubAgentIndicator } from "@/app/components/SubAgentIndicator";
+import { SubagentCard } from "@/app/components/SubagentCard";
 import { ToolCallBox } from "@/app/components/ToolCallBox";
 import { MarkdownContent } from "@/app/components/MarkdownContent";
-import type { SubAgent, ToolCall, ActionRequest, ReviewConfig } from "@/app/types/types";
-import { Message } from "@langchain/langgraph-sdk";
-import { extractSubAgentContent, extractStringFromMessageContent } from "@/app/utils/utils";
+import type { ToolCall, ActionRequest, ReviewConfig } from "@/app/types/types";
+import type { BaseMessage } from "@langchain/core/messages";
+import type { AnyStream } from "@langchain/react";
+import { extractStringFromMessageContent } from "@/app/utils/utils";
 import { cn } from "@/lib/utils";
 
 interface ChatMessageProps {
-  message: Message;
+  message: BaseMessage;
   toolCalls: ToolCall[];
   isLoading?: boolean;
   actionRequestsMap?: Map<string, ActionRequest>;
   reviewConfigsMap?: Map<string, ReviewConfig>;
-  ui?: any[];
-  stream?: any;
-  onResumeInterrupt?: (value: any) => void;
-  graphId?: string;
+  stream: AnyStream;
+  onResumeInterrupt?: (value: unknown) => void;
 }
 
 export const ChatMessage = React.memo<ChatMessageProps>(
@@ -28,162 +28,27 @@ export const ChatMessage = React.memo<ChatMessageProps>(
     isLoading,
     actionRequestsMap,
     reviewConfigsMap,
-    ui,
     stream,
     onResumeInterrupt,
-    graphId,
   }) => {
     const isUser = message.type === "human";
     const messageContent = extractStringFromMessageContent(message);
     const hasContent = messageContent && messageContent.trim() !== "";
     const hasToolCalls = toolCalls.length > 0;
 
-    // Cache nested-tool-call objects (per subagent's tool call) by id so that
-    // ToolCallBox.memo short-circuits for completed nested tools while the
-    // streaming one alone passes a fresh reference.
-    const nestedToolCallCacheRef = useRef(new Map<string, ToolCall>());
-
-    // Subscribe to the SDK's per-subagent state so the box stays populated
-    // after the run reconciles with thread history (which only persists the
-    // parent `task` tool call). `stream.subagents` is a Map kept up to date
-    // by SubagentManager for the lifetime of the React state. We sample via
-    // `toolCalls` (throttled transitively by the messages snapshot in
-    // useChat) instead of `stream.subagents` directly — the SDK exposes it
-    // as a getter that returns a fresh reference on every read, which would
-    // re-run this memo on every token and starve the main thread under any
-    // high-rate streaming.
-    const sdkSubagents: any[] = useMemo(() => {
-      if (!stream?.getSubagentsByMessage || !message.id) return [];
-      try {
-        return stream.getSubagentsByMessage(message.id) ?? [];
-      } catch {
-        return [];
-      }
-    }, [stream, message.id, toolCalls]);
-
-    const subAgents = useMemo(() => {
-      const sdkById = new Map<string, any>(sdkSubagents.map((s) => [s.id, s]));
-      const mapStatus = (
-        sdkStatus: string | undefined,
-        fallback: ToolCall["status"]
-      ): SubAgent["status"] => {
-        switch (sdkStatus) {
-          case "running":
-            return "active";
-          case "complete":
-            return "completed";
-          case "pending":
-            return "pending";
-          case "error":
-            return "error";
-          default:
-            if (fallback === "completed") return "completed";
-            if (fallback === "error") return "error";
-            return "pending";
-        }
-      };
-      const toResultString = (result: unknown): string | undefined => {
-        if (result == null) return undefined;
-        if (typeof result === "string") return result;
-        if (Array.isArray(result)) {
-          return result
-            .map((block) => {
-              if (typeof block === "string") return block;
-              if (block && typeof block === "object" && "text" in block) {
-                return String((block as { text: unknown }).text ?? "");
-              }
-              try {
-                return JSON.stringify(block);
-              } catch {
-                return String(block);
-              }
-            })
-            .join("");
-        }
-        try {
-          return JSON.stringify(result);
-        } catch {
-          return String(result);
-        }
-      };
-      return toolCalls
-        .filter((toolCall: ToolCall) => {
-          return (
+    // A `task` tool call's id doubles as the subagent discovery key:
+    // `stream.subagents` is keyed by the spawning tool-call id.
+    const taskToolCalls = useMemo(
+      () =>
+        toolCalls.filter(
+          (toolCall) =>
             toolCall.name === "task" &&
             toolCall.args["subagent_type"] &&
             toolCall.args["subagent_type"] !== "" &&
             toolCall.args["subagent_type"] !== null
-          );
-        })
-        .map((toolCall: ToolCall) => {
-          const subagentType = (toolCall.args as Record<string, unknown>)[
-            "subagent_type"
-          ] as string;
-          const sdk = sdkById.get(toolCall.id);
-
-          // The SDK exposes nested tool calls as `ToolCallWithResult` objects:
-          // `{ id, call: { name, args, id }, result: ToolMessage|undefined, state }`.
-          // Map them into our local flat ToolCall shape and skip nested `task`
-          // invocations (we don't recursively render sub-subagents inside this
-          // box).
-          const nestedToolCalls: ToolCall[] | undefined = sdk?.toolCalls
-            ? (sdk.toolCalls as Array<any>)
-                .filter((tc) => tc?.call?.name && tc.call.name !== "task")
-                .map((tc) => {
-                  const call = tc.call ?? {};
-                  const resultStr = toResultString(tc.result?.content);
-                  const state = tc.state ?? (resultStr !== undefined ? "completed" : "pending");
-                  const status: ToolCall["status"] =
-                    state === "error" ? "error" : state === "completed" ? "completed" : "pending";
-                  const id =
-                    tc.id ||
-                    call.id ||
-                    `${toolCall.id}-${call.name}-${Math.random().toString(36).slice(2)}`;
-                  // Cache only finalized nested tools — pending ones must keep
-                  // emitting fresh refs so streaming tokens render live.
-                  if (status === "completed" || status === "error") {
-                    const cached = nestedToolCallCacheRef.current.get(id);
-                    if (cached && cached.status === status && cached.result === resultStr) {
-                      return cached;
-                    }
-                  }
-                  const next: ToolCall = {
-                    id,
-                    name: call.name,
-                    args: (call.args ?? {}) as Record<string, unknown>,
-                    result: resultStr,
-                    status,
-                  };
-                  if (status === "completed" || status === "error") {
-                    nestedToolCallCacheRef.current.set(id, next);
-                  }
-                  return next;
-                })
-            : undefined;
-
-          return {
-            id: toolCall.id,
-            name: toolCall.name,
-            subAgentName: subagentType,
-            input: toolCall.args,
-            output: toolCall.result ? { result: toolCall.result } : undefined,
-            status: mapStatus(sdk?.status, toolCall.status),
-            toolCalls: nestedToolCalls,
-          } as SubAgent;
-        });
-    }, [toolCalls, sdkSubagents]);
-
-    const [expandedSubAgents, setExpandedSubAgents] = useState<Record<string, boolean>>({});
-    const isSubAgentExpanded = useCallback(
-      (id: string) => expandedSubAgents[id] ?? true,
-      [expandedSubAgents]
+        ),
+      [toolCalls]
     );
-    const toggleSubAgent = useCallback((id: string) => {
-      setExpandedSubAgents((prev) => ({
-        ...prev,
-        [id]: prev[id] === undefined ? false : !prev[id],
-      }));
-    }, []);
 
     return (
       <div className={cn("flex w-full max-w-full overflow-x-hidden", isUser && "flex-row-reverse")}>
@@ -213,18 +78,12 @@ export const ChatMessage = React.memo<ChatMessageProps>(
             <div className="mt-4 flex w-full flex-col gap-2">
               {toolCalls.map((toolCall: ToolCall) => {
                 if (toolCall.name === "task") return null;
-                const toolCallGenUiComponent = ui?.find(
-                  (u) => u.metadata?.tool_call_id === toolCall.id
-                );
                 const actionRequest = actionRequestsMap?.get(toolCall.name);
                 const reviewConfig = reviewConfigsMap?.get(toolCall.name);
                 return (
                   <ToolCallBox
                     key={toolCall.id}
                     toolCall={toolCall}
-                    uiComponent={toolCallGenUiComponent}
-                    stream={stream}
-                    graphId={graphId}
                     actionRequest={actionRequest}
                     reviewConfig={reviewConfig}
                     onResume={onResumeInterrupt}
@@ -234,60 +93,37 @@ export const ChatMessage = React.memo<ChatMessageProps>(
               })}
             </div>
           )}
-          {!isUser && subAgents.length > 0 && (
+          {!isUser && taskToolCalls.length > 0 && (
             <div className="mt-4 flex w-fit max-w-full flex-col gap-4">
-              {subAgents.map((subAgent) => (
-                <div key={subAgent.id} className="flex w-full flex-col gap-3">
-                  <div className="flex items-end gap-2">
-                    <div className="w-[calc(100%-100px)]">
-                      <SubAgentIndicator
-                        subAgent={subAgent}
-                        onClick={() => toggleSubAgent(subAgent.id)}
-                        isExpanded={isSubAgentExpanded(subAgent.id)}
-                      />
-                    </div>
-                  </div>
-                  {isSubAgentExpanded(subAgent.id) && (
-                    <div className="w-full max-w-full">
-                      <div className="rounded-2xl border border-border bg-surface-raised p-4 shadow-sm">
-                        <h4 className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                          Input
-                        </h4>
-                        <div className="mb-4 rounded-xl border border-border bg-background/50 p-3">
-                          <MarkdownContent content={extractSubAgentContent(subAgent.input)} />
-                        </div>
-                        {subAgent.toolCalls && subAgent.toolCalls.length > 0 && (
-                          <>
-                            <h4 className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                              Activity
-                            </h4>
-                            <div className="mb-4 flex flex-col gap-2 border-l border-border pl-3">
-                              {subAgent.toolCalls.map((tc) => (
-                                <ToolCallBox
-                                  key={tc.id}
-                                  toolCall={tc}
-                                  stream={stream}
-                                  graphId={graphId}
-                                />
-                              ))}
-                            </div>
-                          </>
-                        )}
-                        {subAgent.output && (
-                          <>
-                            <h4 className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                              Output
-                            </h4>
-                            <div className="rounded-xl border border-border bg-background/50 p-3">
-                              <MarkdownContent content={extractSubAgentContent(subAgent.output)} />
-                            </div>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              ))}
+              {taskToolCalls.map((toolCall) => {
+                const snapshot = stream.subagents.get(toolCall.id);
+                if (!snapshot) {
+                  // Discovery hasn't landed yet (the task call's args are
+                  // still streaming): show a static queued indicator until
+                  // the tools-channel event creates the snapshot.
+                  return (
+                    <SubAgentIndicator
+                      key={toolCall.id}
+                      subAgent={{
+                        id: toolCall.id,
+                        name: toolCall.name,
+                        subAgentName: String(toolCall.args["subagent_type"]),
+                        input: toolCall.args,
+                        status: "pending",
+                      }}
+                      onClick={() => {}}
+                    />
+                  );
+                }
+                return (
+                  <SubagentCard
+                    key={toolCall.id}
+                    stream={stream}
+                    snapshot={snapshot}
+                    taskToolCall={toolCall}
+                  />
+                );
+              })}
             </div>
           )}
         </div>

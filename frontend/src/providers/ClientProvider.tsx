@@ -23,23 +23,6 @@ export function ClientProvider({ children, deploymentUrl, apiKey }: ClientProvid
         "Content-Type": "application/json",
         "X-Api-Key": apiKey,
       },
-      // langgraph-api 0.8.1 rejects stream_mode "tools"; the JS SDK 1.8.9
-      // auto-tracks it from internal getter access. Strip it on the way out.
-      onRequest: (_url, init) => {
-        if (typeof init.body !== "string") return init;
-        try {
-          const body = JSON.parse(init.body);
-          if (!Array.isArray(body?.stream_mode)) return init;
-          if (!body.stream_mode.includes("tools")) return init;
-          const filtered = body.stream_mode.filter((m: string) => m !== "tools");
-          return {
-            ...init,
-            body: JSON.stringify({ ...body, stream_mode: filtered }),
-          };
-        } catch {
-          return init;
-        }
-      },
     });
   }, [deploymentUrl, apiKey]);
 
