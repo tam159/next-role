@@ -1,6 +1,11 @@
 # PRD: Disable token streaming for subagents (v1)
 
-**Status:** shipped · **Scope:** Backend (career-agent model middleware) · **Extends:** [05_chat_streaming_throttle](05_chat_streaming_throttle.md)
+**Status:** superseded — default flipped to `False` (subagents stream again) after the frontend
+migrated to `@langchain/react`'s v2 stream runtime, whose fragment-array accumulation + per-tick
+batched flushes remove the O(n²) concat this PRD worked around. The toggle machinery is kept
+verbatim as the rollback lever (`DISABLE_SUBAGENT_STREAMING = True` or per-run
+`configurable.disable_subagent_streaming`). · **Scope:** Backend (career-agent model middleware) ·
+**Extends:** [05_chat_streaming_throttle](05_chat_streaming_throttle.md)
 
 ## Why
 

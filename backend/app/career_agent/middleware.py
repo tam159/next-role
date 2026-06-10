@@ -121,22 +121,27 @@ def _resolve_model(name: str) -> BaseChatModel | None:
     return model
 
 
-# Feature toggle (see PRD 16). Subagents don't stream tokens by default, because
-# parallel subagents streaming large tool-call args trigger an O(n^2) chunk
-# concat in the LangGraph SDK and hang the client. Flip to `False` — here for a
-# global default, or per run via `configurable.disable_subagent_streaming` — to
-# restore live subagent token streaming once the frontend/SDK is fixed for good.
-DISABLE_SUBAGENT_STREAMING: bool = True
+# Feature toggle (see PRD 16). Default `False`: subagents stream tokens live.
+# The freeze that forced the original `True` default was an O(n^2) per-token
+# chunk concat in the legacy `@langchain/langgraph-sdk` useStream path; the
+# frontend now runs on `@langchain/react`'s v2 stream runtime (fragment
+# accumulation + per-tick batched flushes), verified in-browser with
+# `resume-tailor` + `interview-coach` streaming large tool-call args in
+# parallel. Kept as a rollback lever: set `True` here — or per run via
+# `configurable.disable_subagent_streaming` — to drop subagents back to
+# per-step (whole-message) updates if a client-side freeze ever resurfaces.
+DISABLE_SUBAGENT_STREAMING: bool = False
 
 
 def _without_streaming(model: BaseChatModel) -> BaseChatModel:
     """Return a copy of `model` with token streaming disabled.
 
-    Subagents must not stream tokens: when two run in parallel and both emit a
-    large tool-call argument (e.g. `overwrite_file`'s `new_content`), the
-    LangGraph SDK's per-token `MessageTupleManager.concat` is O(n^2) and hangs
-    the client. `disable_streaming` makes the model defer to `(a)invoke`, so
-    LangGraph emits one complete message per step instead of token deltas.
+    Rollback path for subagent streaming (off by default since the
+    `@langchain/react` migration — see `DISABLE_SUBAGENT_STREAMING`). When
+    enabled, `disable_streaming` makes the model defer to `(a)invoke`, so
+    LangGraph emits one complete message per step instead of token deltas —
+    the historical mitigation for the legacy SDK's O(n^2) per-token concat
+    under parallel large tool-call args.
 
     `model_copy` leaves the shared/cached instance untouched — the main agent
     may use the same `provider:model` string (`openai:gpt-5.4` is shared with
@@ -161,8 +166,9 @@ class ModelOverrideMiddleware(AgentMiddleware):
        bake-time default (`_MODEL` in `agents.py`; `model:` in `subagents.yaml`)
        still wins.
 
-    2. **Disable streaming for subagents.** When `DISABLE_SUBAGENT_STREAMING`
-       is on (module default; overridable per run via
+    2. **Disable streaming for subagents (rollback lever).** When
+       `DISABLE_SUBAGENT_STREAMING` is on (module default `False` since the
+       `@langchain/react` migration; overridable per run via
        `configurable.disable_subagent_streaming`), every subagent call (override
        or default model) gets `disable_streaming=True` so parallel subagents
        emitting large tool-call args don't flood the client (see
