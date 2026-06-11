@@ -1,5 +1,5 @@
 import { type BaseMessage, isAIMessage, isToolMessage } from "@langchain/core/messages";
-import type { AssembledToolCall } from "@langchain/langgraph-sdk/stream";
+import type { AssembledToolCall } from "@langchain/react";
 import type { Source } from "@/app/types/types";
 import { extractStringFromMessageContent } from "@/app/utils/utils";
 

@@ -1,8 +1,7 @@
 "use client";
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useToolCalls, type AnyStream } from "@langchain/react";
-import type { SubagentDiscoverySnapshot } from "@langchain/langgraph-sdk/stream";
+import { useToolCalls, type AnyStream, type SubagentDiscoverySnapshot } from "@langchain/react";
 import { useChatContext } from "@/providers/ChatProvider";
 import { extractSources, extractSourcesFromToolCalls } from "@/app/utils/sources";
 import type { Source } from "@/app/types/types";

@@ -1,8 +1,12 @@
 "use client";
 
 import React, { useMemo, useState } from "react";
-import { useMessages, useToolCalls, type AnyStream } from "@langchain/react";
-import type { SubagentDiscoverySnapshot } from "@langchain/langgraph-sdk/stream";
+import {
+  useMessages,
+  useToolCalls,
+  type AnyStream,
+  type SubagentDiscoverySnapshot,
+} from "@langchain/react";
 import { type AIMessageChunk, isAIMessage } from "@langchain/core/messages";
 import { SubAgentIndicator } from "@/app/components/SubAgentIndicator";
 import { ToolCallBox } from "@/app/components/ToolCallBox";

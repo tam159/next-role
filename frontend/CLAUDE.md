@@ -24,7 +24,13 @@ Next.js 16 (App Router, Turbopack) + React 19 + TypeScript + Tailwind. Talks to 
 
 - UI primitives are Radix (`@radix-ui/*`) + Tailwind, not a single component library.
 - State: `swr` for data fetching, `nuqs` for URL state, `zod` for runtime validation.
-- LangGraph integration uses `@langchain/react` + `@langchain/langgraph-sdk`. Keep the direct
-  `@langchain/langgraph-sdk` pin identical to the version `@langchain/react` depends on (one copy
-  in node_modules — `Client` instances cross the package boundary), and the SDK in sync with the
-  backend's `langgraph` major.
+- LangGraph integration uses `@langchain/react` + `@langchain/langgraph-sdk` + `@langchain/core`.
+  All three direct deps are required: app code imports `Client`/`Assistant`/`Thread` from the SDK
+  (not re-exported by `@langchain/react`) and message classes from core (a _peer_ dep of
+  `@langchain/react` — peers are never bundled; the app owns the single `BaseMessage` identity).
+  **Upgrade rule:** bump `@langchain/react` first, then (a) set the `@langchain/langgraph-sdk` pin
+  to the exact version the new `@langchain/react` depends on (one copy in node_modules — `Client`
+  instances cross the package boundary), and (b) keep `@langchain/core` inside its peer range
+  (pnpm warns on violation). Prefer `@langchain/react` re-exports for stream types
+  (`SubagentDiscoverySnapshot`, `AssembledToolCall`); only `Client` + schema types come from the
+  SDK. Keep the SDK in sync with the backend's `langgraph` major.
