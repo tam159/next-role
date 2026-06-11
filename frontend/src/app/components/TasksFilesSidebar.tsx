@@ -365,7 +365,7 @@ export function FilesPopover({
           if (!open && !deleting) setPendingDelete(null);
         }}
       >
-        <DialogContent className="max-w-md">
+        <DialogContent className={pendingPaths.length > 1 ? "sm:max-w-2xl" : "max-w-md"}>
           <DialogTitle>
             {pendingDelete && pendingDelete.length > 1
               ? `Delete ${pendingDelete.length} files?`
@@ -385,9 +385,9 @@ export function FilesPopover({
                   <span>
                     The following files will be permanently removed. This cannot be undone.
                   </span>
-                  <ul className="mt-2 max-h-40 list-disc space-y-0.5 overflow-y-auto pl-5 font-mono text-foreground">
+                  <ul className="mt-2 max-h-72 list-disc space-y-1 overflow-y-auto pl-5 font-mono text-foreground">
                     {pendingPaths.slice(0, DELETE_PREVIEW_LIMIT).map((p) => (
-                      <li key={p} className="break-all">
+                      <li key={p} className="break-words">
                         {p}
                       </li>
                     ))}

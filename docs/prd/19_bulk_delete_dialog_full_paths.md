@@ -8,7 +8,7 @@
 
 ## What the user sees
 
-The `Delete N files?` dialog now lists each selected file by its **full virtual path** (`/tailored_resume/<slug>/<jd-slug>.pdf`), one row per file, wrapping long paths mid-token (`break-all`) inside the existing scrollable list. The 5-row cap with `and N more` is unchanged. The single-file dialog (`Delete file?`) still shows just the basename, exactly as before.
+The `Delete N files?` dialog now lists each selected file by its **full virtual path** (`/tailored_resume/<slug>/<jd-slug>.pdf`), one row per file, in a dialog widened to `sm:max-w-2xl` for the multi-file case. Paths wrap at hyphen boundaries (`break-words`), and the taller list (`max-h-72`) fits all five preview rows without scrolling. The 5-row cap with `and N more` is unchanged. The single-file dialog (`Delete file?`) keeps the compact width and still shows just the basename, exactly as before.
 
 ## How — the key architectural choice
 
@@ -25,7 +25,7 @@ The `Delete N files?` dialog now lists each selected file by its **full virtual 
 
 - **Keys come from `pendingDelete`, never from derived display strings.** The paths are unique by construction (spread from the `selected` `Set`). Any display transform — basename, truncation — can collide, which was exactly the v1 bug. A repo-wide grep confirmed this list was the only basename-keyed render; the file-card grid already keys by path.
 - **Single-file dialog keeps the basename.** PRD 14 promised "single-delete reads exactly as before", and a lone `<span>` can't key-collide. The basename now comes from the existing `splitFilePath` helper instead of an inline `split("/").pop()`.
-- **`break-all` on rows, not a wider dialog.** Virtual paths are long, mono, and hyphen-heavy; mid-token wrapping inside `max-w-md` preserves the `max-h-40 overflow-y-auto` scroll behavior. Widening the dialog for one list wasn't worth diverging from the app's dialog sizing.
+- **Wider fixed dialog + `break-words`, not a user-resizable one.** The first cut kept `max-w-md` and wrapped with `break-all`, which chopped paths mid-token and forced scrolling at three rows — hard to read in exactly the dialog that guards a permanent delete. The bulk branch now widens to `sm:max-w-2xl`; the `sm:` prefix matters, because the shadcn `DialogContent` base carries `sm:max-w-lg` and tailwind-merge only replaces same-variant classes — an unprefixed `max-w-*` override silently loses on desktop (the pre-existing `max-w-md` was in fact rendering at `lg`). Rows wrap at hyphen boundaries via `break-words` (slugs are hyphen-heavy, so lines break legibly; over-long unbroken runs still force-break). Drag-to-resize was considered and rejected: native CSS `resize` fights Radix's `translate(-50%,-50%)` centering — the box re-centers while dragging so the handle drifts away from the cursor — and a clean version needs custom handles, position pinning, and size persistence: a lot of interaction surface for a confirmation glanced at for seconds. Content is bounded anyway (`DELETE_PREVIEW_LIMIT` = 5 rows), so a fixed wider cap fits everything.
 
 ## Deferred (intentional non-goals for v1)
 
@@ -35,5 +35,5 @@ The `Delete N files?` dialog now lists each selected file by its **full virtual 
 
 1. Open a thread whose workspace holds two same-named files in different directories (a battlecard + tailored-resume run produces `<jd-slug>.pdf` in both folders).
 2. Select both (plus others) in Workspace > Files and click `Delete` in the action bar.
-3. The dialog lists full paths — the two same-named files are distinguishable. The browser console (relayed to `docker compose logs frontend` as `[browser]` lines) shows no `Encountered two children with the same key` error, and the dev overlay shows no issue badge.
+3. The dialog lists full paths in the widened box — the two same-named files are distinguishable, all five rows visible without scrolling, lines breaking at hyphens. The browser console (relayed to `docker compose logs frontend` as `[browser]` lines) shows no `Encountered two children with the same key` error, and the dev overlay shows no issue badge.
 4. Cancel → the selection is preserved. The per-card trash icon still opens the single-file dialog showing only the basename.
