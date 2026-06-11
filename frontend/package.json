@@ -18,7 +18,7 @@
   },
   "dependencies": {
     "@langchain/core": "^1.1.48",
-    "@langchain/langgraph-sdk": "^1.9.20",
+    "@langchain/langgraph-sdk": "1.9.20",
     "@langchain/react": "^1.0.20",
     "@radix-ui/colors": "^1.0.1",
     "@radix-ui/react-dialog": "^1.1.15",

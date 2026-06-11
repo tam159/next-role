@@ -30,7 +30,7 @@ if (appSdk !== reactSdk) {
     `✗ Two copies of @langchain/langgraph-sdk are installed:\n` +
       `    app resolves        ${version(appSdk)}  (${appSdk})\n` +
       `    @langchain/react uses ${wanted}  (${reactSdk})\n` +
-      `  Fix: pnpm --dir frontend add "@langchain/langgraph-sdk@^${wanted}"\n` +
+      `  Fix: pnpm --dir frontend add @langchain/langgraph-sdk@${wanted} --save-exact\n` +
       `  (then docker compose restart frontend)`
   );
   process.exit(1);
