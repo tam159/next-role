@@ -43,6 +43,37 @@ export function extractSubAgentContent(data: unknown): string {
   return JSON.stringify(data, null, 2);
 }
 
+/**
+ * Unwrap a ToolMessage-shaped wire envelope to its content. The v2 `tools`
+ * channel's `tool-finished` event carries the full serialized ToolMessage
+ * (`content` + `additional_kwargs`/`response_metadata`/`tool_call_id`/...).
+ * The SDK strips it for `AssembledToolCall.output`, but
+ * `SubagentDiscoverySnapshot.output` is the raw payload — without this,
+ * the whole envelope JSON leaks into the subagent Output panel.
+ */
+export function unwrapToolPayload(value: unknown): unknown {
+  if (value && typeof value === "object" && !Array.isArray(value)) {
+    const v = value as Record<string, unknown>;
+    if (v.type === "tool" && "content" in v) {
+      const content = v.content;
+      if (typeof content === "string") return content;
+      if (Array.isArray(content)) {
+        return content
+          .map((block) =>
+            typeof block === "string"
+              ? block
+              : block && typeof block === "object" && "text" in block
+                ? String((block as { text?: unknown }).text ?? "")
+                : ""
+          )
+          .join("");
+      }
+      return content;
+    }
+  }
+  return value;
+}
+
 export function toResultString(value: unknown): string | undefined {
   if (value == null) return undefined;
   if (typeof value === "string") return value;

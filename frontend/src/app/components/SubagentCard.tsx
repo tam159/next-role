@@ -12,7 +12,12 @@ import { SubAgentIndicator } from "@/app/components/SubAgentIndicator";
 import { ToolCallBox } from "@/app/components/ToolCallBox";
 import { MarkdownContent } from "@/app/components/MarkdownContent";
 import type { SubAgent, ToolCall } from "@/app/types/types";
-import { extractSubAgentContent, parsePartialArgs, toResultString } from "@/app/utils/utils";
+import {
+  extractSubAgentContent,
+  parsePartialArgs,
+  toResultString,
+  unwrapToolPayload,
+} from "@/app/utils/utils";
 
 function mapSnapshotStatus(status: SubagentDiscoverySnapshot["status"]): SubAgent["status"] {
   if (status === "running") return "active";
@@ -48,7 +53,7 @@ export const SubagentCard = React.memo<SubagentCardProps>(({ stream, snapshot, t
         id: tc.id,
         name: tc.name,
         args: (tc.args ?? {}) as Record<string, unknown>,
-        result: toResultString(tc.output),
+        result: toResultString(unwrapToolPayload(tc.output)),
         status:
           tc.status === "error" ? "error" : tc.status === "finished" ? "completed" : "pending",
       }));
@@ -78,7 +83,7 @@ export const SubagentCard = React.memo<SubagentCardProps>(({ stream, snapshot, t
       input: taskToolCall.args,
       output:
         snapshot.output != null
-          ? { result: toResultString(snapshot.output) ?? "" }
+          ? { result: toResultString(unwrapToolPayload(snapshot.output)) ?? "" }
           : taskToolCall.result
             ? { result: taskToolCall.result }
             : undefined,
