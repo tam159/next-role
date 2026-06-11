@@ -1,4 +1,5 @@
-import { Message } from "@langchain/langgraph-sdk";
+import { type BaseMessage, isAIMessage, isToolMessage } from "@langchain/core/messages";
+import type { AssembledToolCall } from "@langchain/react";
 import type { Source } from "@/app/types/types";
 import { extractStringFromMessageContent } from "@/app/utils/utils";
 
@@ -8,7 +9,7 @@ const MARKDOWN_BLOCK = /^##\s+(.+?)\s*\n\*\*URL:\*\*\s+(\S+)/gm;
 
 type ToolCallRef = { name: string };
 
-function parseFromString(raw: string, toolCallId: string): Array<{ title: string; url: string }> {
+function parseFromString(raw: string): Array<{ title: string; url: string }> {
   const trimmed = raw.trim();
   if (!trimmed) return [];
 
@@ -73,26 +74,12 @@ function extractFromJsonShape(data: unknown): Array<{ title: string; url: string
   return out;
 }
 
-export function extractSources(messages: Message[]): Source[] {
+export function extractSources(messages: BaseMessage[]): Source[] {
   const searchToolCalls = new Map<string, ToolCallRef>();
 
   for (const message of messages) {
-    if (message.type !== "ai") continue;
-    const calls: Array<{ id?: string; name?: string }> = [];
-    if (Array.isArray(message.tool_calls)) {
-      calls.push(...message.tool_calls);
-    } else if (Array.isArray(message.additional_kwargs?.tool_calls)) {
-      calls.push(
-        ...(
-          message.additional_kwargs.tool_calls as Array<{
-            id?: string;
-            function?: { name?: string };
-            name?: string;
-          }>
-        ).map((c) => ({ id: c.id, name: c.function?.name ?? c.name }))
-      );
-    }
-    for (const call of calls) {
+    if (!isAIMessage(message)) continue;
+    for (const call of message.tool_calls ?? []) {
       if (!call.id || !call.name) continue;
       if (SEARCH_TOOL_NAMES.has(call.name)) {
         searchToolCalls.set(call.id, { name: call.name });
@@ -104,11 +91,11 @@ export function extractSources(messages: Message[]): Source[] {
   const sources: Source[] = [];
 
   for (const message of messages) {
-    if (message.type !== "tool") continue;
+    if (!isToolMessage(message)) continue;
     const id = message.tool_call_id;
     if (!id || !searchToolCalls.has(id)) continue;
     const raw = extractStringFromMessageContent(message);
-    const parsed = parseFromString(raw, id);
+    const parsed = parseFromString(raw);
     parsed.forEach((entry, idx) => {
       if (seen.has(entry.url)) return;
       seen.add(entry.url);
@@ -117,6 +104,33 @@ export function extractSources(messages: Message[]): Source[] {
         title: entry.title,
         url: entry.url,
         toolCallId: id,
+      });
+    });
+  }
+
+  return sources;
+}
+
+/**
+ * Sources from a scoped tool-call projection (e.g. a subagent's calls via
+ * `useToolCalls(stream, snapshot)`), where outputs arrive already parsed.
+ */
+export function extractSourcesFromToolCalls(toolCalls: AssembledToolCall[]): Source[] {
+  const seen = new Set<string>();
+  const sources: Source[] = [];
+
+  for (const tc of toolCalls) {
+    if (!SEARCH_TOOL_NAMES.has(tc.name) || tc.status !== "finished") continue;
+    const parsed =
+      typeof tc.output === "string" ? parseFromString(tc.output) : extractFromJsonShape(tc.output);
+    parsed.forEach((entry, idx) => {
+      if (seen.has(entry.url)) return;
+      seen.add(entry.url);
+      sources.push({
+        id: `${tc.id}:${idx}`,
+        title: entry.title,
+        url: entry.url,
+        toolCallId: tc.id,
       });
     });
   }

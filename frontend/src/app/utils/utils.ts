@@ -1,4 +1,5 @@
-import { Message } from "@langchain/langgraph-sdk";
+import { BaseMessage } from "@langchain/core/messages";
+import { parsePartialJson } from "@langchain/core/output_parsers";
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
 
@@ -6,28 +7,9 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-export function extractStringFromMessageContent(message: Message): string {
-  return typeof message.content === "string"
-    ? message.content
-    : Array.isArray(message.content)
-      ? message.content
-          .filter(
-            (c: unknown) =>
-              (typeof c === "object" &&
-                c !== null &&
-                "type" in c &&
-                (c as { type: string }).type === "text") ||
-              typeof c === "string"
-          )
-          .map((c: unknown) =>
-            typeof c === "string"
-              ? c
-              : typeof c === "object" && c !== null && "text" in c
-                ? (c as { text?: string }).text || ""
-                : ""
-          )
-          .join("")
-      : "";
+export function extractStringFromMessageContent(message: BaseMessage): string {
+  // Core's `.text` accessor joins string content and `{type: "text"}` blocks.
+  return message.text;
 }
 
 export function extractSubAgentContent(data: unknown): string {
@@ -61,95 +43,52 @@ export function extractSubAgentContent(data: unknown): string {
   return JSON.stringify(data, null, 2);
 }
 
-export function isPreparingToCallTaskTool(messages: Message[]): boolean {
-  const lastMessage = messages[messages.length - 1];
-  return (
-    (lastMessage.type === "ai" &&
-      lastMessage.tool_calls?.some((call: { name?: string }) => call.name === "task")) ||
-    false
-  );
-}
-
-export function formatMessageForLLM(message: Message): string {
-  let role: string;
-  if (message.type === "human") {
-    role = "Human";
-  } else if (message.type === "ai") {
-    role = "Assistant";
-  } else if (message.type === "tool") {
-    role = `Tool Result`;
-  } else {
-    role = message.type || "Unknown";
-  }
-
-  const timestamp = message.id ? ` (${message.id.slice(0, 8)})` : "";
-
-  let contentText = "";
-
-  // Extract content text
-  if (typeof message.content === "string") {
-    contentText = message.content;
-  } else if (Array.isArray(message.content)) {
-    const textParts: string[] = [];
-
-    message.content.forEach((part: any) => {
-      if (typeof part === "string") {
-        textParts.push(part);
-      } else if (part && typeof part === "object" && part.type === "text") {
-        textParts.push(part.text || "");
+/**
+ * Unwrap a ToolMessage-shaped wire envelope to its content. The v2 `tools`
+ * channel's `tool-finished` event carries the full serialized ToolMessage
+ * (`content` + `additional_kwargs`/`response_metadata`/`tool_call_id`/...).
+ * The SDK strips it for `AssembledToolCall.output`, but
+ * `SubagentDiscoverySnapshot.output` is the raw payload — without this,
+ * the whole envelope JSON leaks into the subagent Output panel.
+ */
+export function unwrapToolPayload(value: unknown): unknown {
+  if (value && typeof value === "object" && !Array.isArray(value)) {
+    const v = value as Record<string, unknown>;
+    if (v.type === "tool" && "content" in v) {
+      const content = v.content;
+      if (typeof content === "string") return content;
+      if (Array.isArray(content)) {
+        return content
+          .map((block) =>
+            typeof block === "string"
+              ? block
+              : block && typeof block === "object" && "text" in block
+                ? String((block as { text?: unknown }).text ?? "")
+                : ""
+          )
+          .join("");
       }
-      // Ignore other types like tool_use in content - we handle tool calls separately
-    });
-
-    contentText = textParts.join("\n\n").trim();
-  }
-
-  // For tool messages, include additional tool metadata
-  if (message.type === "tool") {
-    const toolName = (message as any).name || "unknown_tool";
-    const toolCallId = (message as any).tool_call_id || "";
-    role = `Tool Result [${toolName}]`;
-    if (toolCallId) {
-      role += ` (call_id: ${toolCallId.slice(0, 8)})`;
+      return content;
     }
   }
-
-  // Handle tool calls from .tool_calls property (for AI messages)
-  const toolCallsText: string[] = [];
-  if (
-    message.type === "ai" &&
-    message.tool_calls &&
-    Array.isArray(message.tool_calls) &&
-    message.tool_calls.length > 0
-  ) {
-    message.tool_calls.forEach((call: any) => {
-      const toolName = call.name || "unknown_tool";
-      const toolArgs = call.args ? JSON.stringify(call.args, null, 2) : "{}";
-      toolCallsText.push(`[Tool Call: ${toolName}]\nArguments: ${toolArgs}`);
-    });
-  }
-
-  // Combine content and tool calls
-  const parts: string[] = [];
-  if (contentText) {
-    parts.push(contentText);
-  }
-  if (toolCallsText.length > 0) {
-    parts.push(...toolCallsText);
-  }
-
-  if (parts.length === 0) {
-    return `${role}${timestamp}: [Empty message]`;
-  }
-
-  if (parts.length === 1) {
-    return `${role}${timestamp}: ${parts[0]}`;
-  }
-
-  return `${role}${timestamp}:\n${parts.join("\n\n")}`;
+  return value;
 }
 
-export function formatConversationForLLM(messages: Message[]): string {
-  const formattedMessages = messages.map(formatMessageForLLM);
-  return formattedMessages.join("\n\n---\n\n");
+export function toResultString(value: unknown): string | undefined {
+  if (value == null) return undefined;
+  if (typeof value === "string") return value;
+  try {
+    return JSON.stringify(value, null, 2);
+  } catch {
+    return String(value);
+  }
+}
+
+/** Best-effort object from a streaming tool_call_chunk args string. */
+export function parsePartialArgs(raw: string | undefined): Record<string, unknown> {
+  if (!raw) return {};
+  const parsed = parsePartialJson(raw);
+  return parsed && typeof parsed === "object" && !Array.isArray(parsed)
+    ? (parsed as Record<string, unknown>)
+    : {};
 }

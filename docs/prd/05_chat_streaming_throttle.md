@@ -1,6 +1,15 @@
 # PRD: Chat Streaming Throttle (v1)
 
-**Status:** shipped · **Scope:** Frontend chat surface (LangGraph SDK consumer) — throttle + identity-stable caching + click responsiveness under streaming load
+**Status:** partially superseded by [18_langchain_react_migration](18_langchain_react_migration.md)
+— the headline mechanism (80 ms hot-window throttle, `isHotStreaming`, hot-exit scroll re-engage,
+`sdkSubagents` memo + nested tool-call cache, `uiByMessageId`) was removed with the
+`@langchain/react` migration, whose v2 stream runtime batches store flushes per macrotask and
+makes a render-side throttle unnecessary. The orthogonal hardening from the same commit **remains
+shipped and load-bearing**: `ToolCall`/`toolCalls[]` identity caches in `ChatInterface`, the
+`pending`-state `JSON.stringify` guards + 256-char error-inspection cap in `ToolCallBox`, the
+`onPointerDown`+`onClick` dedupe (Safari click-swallowing is OS behavior, SDK-independent), and
+the sweep animation. · **Scope:** Frontend chat surface (LangGraph SDK consumer) — throttle +
+identity-stable caching + click responsiveness under streaming load
 
 ## Why
 

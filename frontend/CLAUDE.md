@@ -1,6 +1,6 @@
 # frontend/CLAUDE.md
 
-Next.js 16 (App Router, Turbopack) + React 19 + TypeScript + Tailwind. Talks to the backend agents via `@langchain/langgraph-sdk`.
+Next.js 16 (App Router, Turbopack) + React 19 + TypeScript + Tailwind. Talks to the backend agents via `@langchain/react` (the `useStream` v2 runtime + scoped selector hooks) with `@langchain/langgraph-sdk` for the raw `Client` (threads/store APIs) and shared types.
 
 ## Tooling
 
@@ -24,4 +24,20 @@ Next.js 16 (App Router, Turbopack) + React 19 + TypeScript + Tailwind. Talks to 
 
 - UI primitives are Radix (`@radix-ui/*`) + Tailwind, not a single component library.
 - State: `swr` for data fetching, `nuqs` for URL state, `zod` for runtime validation.
-- LangGraph integration uses `@langchain/langgraph-sdk` — keep the SDK version in sync with the backend's `langgraph` major.
+- LangGraph integration uses `@langchain/react` + `@langchain/langgraph-sdk` + `@langchain/core`.
+  All three direct deps are required: app code imports `Client`/`Assistant`/`Thread` from the SDK
+  (not re-exported by `@langchain/react`) and message classes from core (a _peer_ dep of
+  `@langchain/react` — peers are never bundled; the app owns the single `BaseMessage` identity).
+  **Upgrade rule:** `@langchain/react` + `@langchain/langgraph-sdk` are a lockstep pair (same
+  monorepo, like `react`/`react-dom`) — bump `@langchain/react` first, then pin the SDK
+  **exactly** (no `^`) to the version the new `@langchain/react` depends on:
+  `pnpm --dir frontend add @langchain/langgraph-sdk@<ver> --save-exact`. The invariant is **one
+  installed copy of the SDK**, shared with `@langchain/react` (`Client` instances cross the
+  package boundary). The SDK is a _regular_ dep of `@langchain/react`, so a version conflict does
+  NOT warn at install time — pnpm silently installs two copies; only _peer_ conflicts
+  (`@langchain/core`) warn. The exact pin prevents self-inflicted drift (`pnpm update` can't
+  float it), and `scripts/check-langchain-sdk-sync.mjs` (pre-commit hook
+  `frontend-langchain-sdk-sync` + `pnpm quality`) catches the forgotten-sync case on
+  `@langchain/react` bumps, printing the exact fix command. Prefer `@langchain/react` re-exports for stream types
+  (`SubagentDiscoverySnapshot`, `AssembledToolCall`); only `Client` + schema types come from the
+  SDK. Keep the SDK in sync with the backend's `langgraph` major.

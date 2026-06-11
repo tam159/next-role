@@ -88,7 +88,12 @@ def test_main_agent_override_invokes_init_chat_model(middleware):
     assert result == "OK"
 
 
-def test_subagent_override_disables_streaming(middleware):
+def test_subagent_override_disables_streaming_when_default_on(middleware, monkeypatch):
+    """With the rollback default flipped on, a subagent override gets a no-stream copy."""
+    monkeypatch.setattr(
+        "backend.app.career_agent.middleware.DISABLE_SUBAGENT_STREAMING",
+        True,
+    )
     request, captured = _fake_request()
     received: dict = {}
     fake_model = _FakeModel(name="subagent-override")
@@ -119,7 +124,8 @@ def test_subagent_override_disables_streaming(middleware):
     assert fake_model.disable_streaming is False  # shared/cached instance untouched
 
 
-def test_subagent_without_override_disables_streaming_on_default(middleware):
+def test_subagent_streams_by_default(middleware):
+    """Module default is `False` since the `@langchain/react` migration: pass-through."""
     req_model = _FakeModel(name="subagent-default")
     request, captured = _fake_request(model=req_model)
     received: dict = {}
@@ -137,10 +143,9 @@ def test_subagent_without_override_disables_streaming_on_default(middleware):
         middleware.wrap_model_call(request, _fake_handler(received))
 
     mocked_init.assert_not_called()  # no override name → keep the request's own model
-    overridden = captured["model"]
-    assert overridden is not req_model
-    assert overridden.disable_streaming is True
-    assert req_model.disable_streaming is False  # copied, not mutated
+    assert captured == {}  # no override, streaming left intact
+    assert received["request"] is request
+    assert req_model.disable_streaming is False
 
 
 def test_subagent_streaming_can_be_reenabled_via_config(middleware):
@@ -192,11 +197,11 @@ def test_reenabled_subagent_still_gets_model_override(middleware):
     assert fake_model.disable_streaming is False
 
 
-def test_module_default_off_keeps_subagent_streaming(middleware, monkeypatch):
-    """Flipping the `DISABLE_SUBAGENT_STREAMING` module default off is enough to re-enable."""
+def test_module_default_on_disables_subagent_streaming(middleware, monkeypatch):
+    """Flipping the `DISABLE_SUBAGENT_STREAMING` module default back on is the rollback."""
     monkeypatch.setattr(
         "backend.app.career_agent.middleware.DISABLE_SUBAGENT_STREAMING",
-        False,
+        True,
     )
     req_model = _FakeModel(name="subagent-default")
     request, captured = _fake_request(model=req_model)
@@ -209,10 +214,34 @@ def test_module_default_off_keeps_subagent_streaming(middleware, monkeypatch):
     ):
         middleware.wrap_model_call(request, _fake_handler(received))
 
+    mocked_init.assert_not_called()  # no override name → keep the request's own model
+    overridden = captured["model"]
+    assert overridden is not req_model
+    assert overridden.disable_streaming is True
+    assert req_model.disable_streaming is False  # copied, not mutated
+
+
+def test_per_run_rollback_disables_streaming(middleware):
+    """`configurable.disable_subagent_streaming=True` overrides the `False` default."""
+    req_model = _FakeModel(name="subagent-default")
+    request, captured = _fake_request(model=req_model)
+    received: dict = {}
+
+    config = {
+        "configurable": {"disable_subagent_streaming": True},
+        "metadata": {"lc_agent_name": "interview-coach"},
+    }
+    with (
+        patch("backend.app.career_agent.middleware.get_config", return_value=config),
+        patch("backend.app.career_agent.middleware.init_chat_model") as mocked_init,
+    ):
+        middleware.wrap_model_call(request, _fake_handler(received))
+
     mocked_init.assert_not_called()
-    assert captured == {}
-    assert received["request"] is request
-    assert req_model.disable_streaming is False
+    overridden = captured["model"]
+    assert overridden is not req_model
+    assert overridden.disable_streaming is True
+    assert req_model.disable_streaming is False  # copied, not mutated
 
 
 def test_no_configurable_passes_request_through(middleware):

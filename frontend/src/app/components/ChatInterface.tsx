@@ -5,8 +5,15 @@ import { Button } from "@/components/ui/button";
 import { Square, ArrowUp } from "lucide-react";
 import { ChatMessage } from "@/app/components/ChatMessage";
 import type { ToolCall, ActionRequest, ReviewConfig } from "@/app/types/types";
-import { Assistant, Message } from "@langchain/langgraph-sdk";
-import { extractStringFromMessageContent } from "@/app/utils/utils";
+import { Assistant } from "@langchain/langgraph-sdk";
+import {
+  type AIMessageChunk,
+  type BaseMessage,
+  isAIMessage,
+  isHumanMessage,
+  isToolMessage,
+} from "@langchain/core/messages";
+import { extractStringFromMessageContent, parsePartialArgs } from "@/app/utils/utils";
 import { useChatContext } from "@/providers/ChatProvider";
 import { useStickToBottom } from "use-stick-to-bottom";
 
@@ -17,13 +24,11 @@ interface ChatInterfaceProps {
 export const ChatInterface = React.memo<ChatInterfaceProps>(({ assistant }) => {
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
 
-  const { scrollRef, contentRef, scrollToBottom } = useStickToBottom();
+  const { scrollRef, contentRef } = useStickToBottom();
 
   const {
     stream,
     messages,
-    isHotStreaming,
-    ui,
     isLoading,
     isThreadLoading,
     interrupt,
@@ -34,21 +39,6 @@ export const ChatInterface = React.memo<ChatInterfaceProps>(({ assistant }) => {
     setInput,
     focusComposerNonce,
   } = useChatContext();
-
-  // Re-engage sticky scroll whenever a throttled (hot) streaming window
-  // ends. During the hot window the user can lose the bottom-lock — a
-  // stray scroll-wheel tick, or the library reading a batched content jump
-  // as an escape — and any output that follows would otherwise render
-  // below the fold until the user manually scrolls. This transition is the
-  // right moment to recapture, regardless of which agent or step produced
-  // the window.
-  const prevHotRef = useRef(isHotStreaming);
-  useEffect(() => {
-    if (prevHotRef.current && !isHotStreaming) {
-      scrollToBottom();
-    }
-    prevHotRef.current = isHotStreaming;
-  }, [isHotStreaming, scrollToBottom]);
 
   const submitDisabled = isLoading || !assistant;
 
@@ -128,55 +118,38 @@ export const ChatInterface = React.memo<ChatInterfaceProps>(({ assistant }) => {
      2. For each AI message, add the AI message, and any tool calls to the messageMap
      3. For each tool message, find the corresponding tool call in the messageMap and update the status and output
     */
-    const messageMap = new Map<string, { message: Message; toolCalls: ToolCall[] }>();
-    messages.forEach((message: Message) => {
-      if (message.type === "ai") {
-        const toolCallsInMessage: Array<{
-          id?: string;
-          function?: { name?: string; arguments?: unknown };
-          name?: string;
-          type?: string;
-          args?: unknown;
-          input?: unknown;
-        }> = [];
-        if (
-          message.additional_kwargs?.tool_calls &&
-          Array.isArray(message.additional_kwargs.tool_calls)
-        ) {
-          toolCallsInMessage.push(...message.additional_kwargs.tool_calls);
-        } else if (message.tool_calls && Array.isArray(message.tool_calls)) {
-          toolCallsInMessage.push(
-            ...message.tool_calls.filter((toolCall: { name?: string }) => toolCall.name !== "")
-          );
-        } else if (Array.isArray(message.content)) {
-          const toolUseBlocks = message.content.filter(
-            (block: { type?: string }) => block.type === "tool_use"
-          );
-          toolCallsInMessage.push(...toolUseBlocks);
-        }
-        const toolCallsWithStatus = toolCallsInMessage.map(
-          (toolCall: {
-            id?: string;
-            function?: { name?: string; arguments?: unknown };
-            name?: string;
-            type?: string;
-            args?: unknown;
-            input?: unknown;
-          }) => {
-            const name = toolCall.function?.name || toolCall.name || toolCall.type || "unknown";
-            const args = toolCall.function?.arguments || toolCall.args || toolCall.input || {};
-            const id = toolCall.id || `tool-${Math.random()}`;
-            const status: ToolCall["status"] = interrupt ? "interrupted" : "pending";
-            // Pending tools: always fresh reference so the streaming box re-renders.
-            // Cache hit happens later when the matching ToolMessage flips status.
-            return { id, name, args, status } as ToolCall;
-          }
-        );
+    const messageMap = new Map<string, { message: BaseMessage; toolCalls: ToolCall[] }>();
+    messages.forEach((message: BaseMessage) => {
+      if (isAIMessage(message)) {
+        // Completed calls live on `tool_calls` (parsed args); a call whose
+        // args are still streaming only exists as a `tool_call_chunks` entry
+        // (partial-JSON string args) until it finishes assembling.
+        const status: ToolCall["status"] = interrupt ? "interrupted" : "pending";
+        const done = (message.tool_calls ?? []).filter((tc) => tc.name !== "");
+        const doneIds = new Set(done.map((tc) => tc.id));
+        const chunks = (message as AIMessageChunk).tool_call_chunks ?? [];
+        const streaming = chunks.filter((c) => c.id && c.name && !doneIds.has(c.id));
+        // Pending tools: always fresh reference so the streaming box re-renders.
+        // Cache hit happens later when the matching ToolMessage flips status.
+        const toolCallsWithStatus: ToolCall[] = [
+          ...done.map((tc) => ({
+            id: tc.id ?? `tool-${Math.random()}`,
+            name: tc.name,
+            args: (tc.args ?? {}) as Record<string, unknown>,
+            status,
+          })),
+          ...streaming.map((c) => ({
+            id: c.id!,
+            name: c.name!,
+            args: parsePartialArgs(c.args),
+            status,
+          })),
+        ];
         messageMap.set(message.id!, {
           message,
           toolCalls: toolCallsWithStatus,
         });
-      } else if (message.type === "tool") {
+      } else if (isToolMessage(message)) {
         const toolCallId = message.tool_call_id;
         if (!toolCallId) {
           return;
@@ -201,7 +174,7 @@ export const ChatInterface = React.memo<ChatInterfaceProps>(({ assistant }) => {
           }
           break;
         }
-      } else if (message.type === "human") {
+      } else if (isHumanMessage(message)) {
         messageMap.set(message.id!, {
           message,
           toolCalls: [],
@@ -257,22 +230,6 @@ export const ChatInterface = React.memo<ChatInterfaceProps>(({ assistant }) => {
     return new Map(reviewConfigs.map((rc: ReviewConfig) => [rc.actionName, rc]));
   }, [interrupt]);
 
-  // Bucket UI items by message_id once per ui change so that ChatMessage gets
-  // a stable array reference per message instead of a fresh `.filter()` result
-  // on every render.
-  const uiByMessageId = useMemo(() => {
-    const buckets = new Map<string, any[]>();
-    if (!ui) return buckets;
-    for (const u of ui as any[]) {
-      const mid = u?.metadata?.message_id;
-      if (!mid) continue;
-      const existing = buckets.get(mid);
-      if (existing) existing.push(u);
-      else buckets.set(mid, [u]);
-    }
-    return buckets;
-  }, [ui]);
-
   return (
     <div className="flex flex-1 flex-col overflow-hidden bg-canvas">
       <div className="flex-1 overflow-y-auto overflow-x-hidden overscroll-contain" ref={scrollRef}>
@@ -284,7 +241,6 @@ export const ChatInterface = React.memo<ChatInterfaceProps>(({ assistant }) => {
           ) : (
             <>
               {processedMessages.map((data, index) => {
-                const messageUi = data.message.id ? uiByMessageId.get(data.message.id) : undefined;
                 const isLastMessage = index === processedMessages.length - 1;
                 return (
                   <ChatMessage
@@ -294,10 +250,8 @@ export const ChatInterface = React.memo<ChatInterfaceProps>(({ assistant }) => {
                     isLoading={isLoading}
                     actionRequestsMap={isLastMessage ? actionRequestsMap : undefined}
                     reviewConfigsMap={isLastMessage ? reviewConfigsMap : undefined}
-                    ui={messageUi}
                     stream={stream}
                     onResumeInterrupt={resumeInterrupt}
-                    graphId={assistant?.graph_id}
                   />
                 );
               })}

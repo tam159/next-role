@@ -1,11 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useStream } from "@langchain/langgraph-sdk/react";
-import { type Message, type Assistant, type Checkpoint } from "@langchain/langgraph-sdk";
-import { v4 as uuidv4 } from "uuid";
-import type { UseStream, UseStreamThread } from "@langchain/langgraph-sdk/react";
-import type { TodoItem } from "@/app/types/types";
+import { useStream } from "@langchain/react";
+import { type Assistant } from "@langchain/langgraph-sdk";
+import { BaseMessage, HumanMessage } from "@langchain/core/messages";
+import type { TodoItem, ToolApprovalInterruptData } from "@/app/types/types";
 import { useClient } from "@/providers/ClientProvider";
 import { useQueryState } from "nuqs";
 import {
@@ -29,7 +28,7 @@ function stateFileSignature(value: unknown): string {
 }
 
 export type StateType = {
-  messages: Message[];
+  messages: BaseMessage[];
   todos: TodoItem[];
   files: Record<string, string>;
   email?: {
@@ -37,104 +36,37 @@ export type StateType = {
     subject?: string;
     page_content?: string;
   };
-  ui?: any;
 };
 
 export function useChat({
   activeAssistant,
   onHistoryRevalidate,
-  thread,
 }: {
   activeAssistant: Assistant | null;
   onHistoryRevalidate?: () => void;
-  thread?: UseStreamThread<StateType>;
 }) {
   const [threadId, setThreadId] = useQueryState("threadId");
   const client = useClient();
 
-  // Cast to UseStream so the subagent-tracking surface (subagents,
-  // activeSubagents, getSubagent*) is visible to TypeScript. The runtime
-  // already exposes them, but the default ResolveStreamInterface for a
-  // plain StateType resolves to BaseStream (without those getters).
-  //
-  // `filterSubagentMessages: true` is the switch that actually populates
-  // the SubagentManager: without it, the SDK lets subagent messages flow
-  // into the main `messages` array and never matches subgraph namespaces
-  // to their parent `task` tool call (see ui/manager.js:402, 461). The
-  // option is part of AnyStreamOptions and accepted by useStreamLGP at
-  // runtime even though it isn't on the public UseStreamOptions type.
-  const stream = useStream<StateType>({
+  // The v2 stream runtime handles reattach-to-in-flight-runs and thread
+  // hydration automatically (no reconnectOnMount / fetchStateHistory), and
+  // its root projections are root-namespace-only, so subagent output never
+  // bleeds into `messages` (no filterSubagentMessages). Subagent progress
+  // is exposed via `stream.subagents` + the scoped selector hooks.
+  const stream = useStream<StateType, ToolApprovalInterruptData>({
     assistantId: activeAssistant?.assistant_id || "",
     client: client ?? undefined,
-    reconnectOnMount: true,
-    threadId: threadId ?? null,
+    // Until the assistant resolves, assistantId is "" and hydrating a thread
+    // would throw (ThreadStream requires an assistantId). Hold the thread
+    // back; the assistantId change recreates the controller, which then
+    // hydrates this thread on activate().
+    threadId: activeAssistant ? (threadId ?? null) : null,
     onThreadId: setThreadId,
-    defaultHeaders: { "x-auth-scheme": "langsmith" },
-    // Enable fetching state history when switching to existing threads
-    fetchStateHistory: true,
-    // Revalidate thread list when stream finishes, errors, or creates new thread
-    onFinish: onHistoryRevalidate,
-    onError: onHistoryRevalidate,
-    onCreated: onHistoryRevalidate,
-    experimental_thread: thread,
-    filterSubagentMessages: true,
-  } as any) as unknown as UseStream<StateType>;
-
-  // Hot-streaming detection: at least one running subagent has a pending
-  // tool call (its LLM is streaming tool-call args token-by-token). This is
-  // when `stream.messages` and `stream.subagents` churn at the highest rate
-  // — multiple subagents emitting in parallel can saturate the main thread
-  // and starve user input. While this is true we sample stream state at
-  // 80 ms instead of on every token; the trigger is tool-name agnostic so
-  // it covers any current or future subagent that streams long tool args.
-  let isHotStreaming = false;
-  if (stream.isLoading) {
-    const subagentsMap = (stream as unknown as { subagents?: unknown }).subagents;
-    const iter =
-      subagentsMap && typeof (subagentsMap as { values?: unknown }).values === "function"
-        ? ((subagentsMap as { values: () => Iterable<any> }).values() as Iterable<any>)
-        : null;
-    if (iter) {
-      for (const s of iter) {
-        if (s?.status !== "running" || !Array.isArray(s?.toolCalls)) continue;
-        if (s.toolCalls.some((tc: { state?: string }) => tc?.state === "pending")) {
-          isHotStreaming = true;
-          break;
-        }
-      }
-    }
-  }
-
-  // Throttled snapshot of `stream.messages`. Inside the hot window we sample
-  // the latest array at 80 ms via `setInterval`; outside it we pass through
-  // `stream.messages` directly so non-streaming updates remain instant.
-  // Downstream consumers (e.g. ChatInterface's message-processing useMemo,
-  // and every derived tool-call array) depend on this snapshot, so their
-  // expensive rebuilds run at ~12 fps during the hot window.
-  //
-  // Subtlety: both `stream.messages` and `stream.subagents` are exposed by
-  // the SDK as getters that return a fresh reference on every read. We
-  // therefore CANNOT use them as useEffect deps (an unstable dep + setState
-  // inside the effect = infinite re-render loop). The effect below depends
-  // only on `isHotStreaming` (a derived boolean that flips at most a few
-  // times per run); the ref pulls the latest messages at sample time.
-  const messagesRef = useRef(stream.messages);
-  messagesRef.current = stream.messages;
-  const [throttledMessages, setThrottledMessages] = useState(stream.messages);
-  useEffect(() => {
-    if (!isHotStreaming) return;
-    // Sync immediately on entry so consumers don't see a stale snapshot.
-    setThrottledMessages(messagesRef.current);
-    const id = window.setInterval(() => {
-      setThrottledMessages(messagesRef.current);
-    }, 80);
-    return () => {
-      window.clearInterval(id);
-      // Final flush so the last tokens land instantly when streaming ends.
-      setThrottledMessages(messagesRef.current);
-    };
-  }, [isHotStreaming]);
-  const messagesSnapshot = isHotStreaming ? throttledMessages : stream.messages;
+    // Thread-list freshness: run accepted + run ended (any terminal reason,
+    // including errors and interrupts).
+    onCreated: () => onHistoryRevalidate?.(),
+    onCompleted: () => onHistoryRevalidate?.(),
+  });
 
   // Build the `config` arg for every `stream.submit`. Merges:
   //   - assistant-level config (from the LangGraph API)
@@ -165,52 +97,16 @@ export function useChat({
 
   const sendMessage = useCallback(
     (content: string) => {
-      const newMessage: Message = { id: uuidv4(), type: "human", content };
-      stream.submit(
-        { messages: [newMessage] },
-        {
-          optimisticValues: (prev) => ({
-            messages: [...(prev.messages ?? []), newMessage],
-          }),
-          config: buildSubmitConfig({ recursion_limit: 100 }),
-          // Surface subgraph events (namespaced) so the SDK's SubagentManager
-          // can rebuild per-subagent streams from the `task`-spawned subgraphs.
-          streamSubgraphs: true,
-        }
+      // Optimistic echo is built in: the message renders immediately with a
+      // client-minted id that the server echo reconciles against.
+      void stream.submit(
+        { messages: [new HumanMessage(content)] },
+        { config: buildSubmitConfig({ recursion_limit: 100 }) }
       );
       // Update thread list immediately when sending a message
       onHistoryRevalidate?.();
     },
     [stream, buildSubmitConfig, onHistoryRevalidate]
-  );
-
-  const runSingleStep = useCallback(
-    (
-      messages: Message[],
-      checkpoint?: Checkpoint,
-      isRerunningSubagent?: boolean,
-      optimisticMessages?: Message[]
-    ) => {
-      if (checkpoint) {
-        stream.submit(undefined, {
-          ...(optimisticMessages ? { optimisticValues: { messages: optimisticMessages } } : {}),
-          config: buildSubmitConfig(),
-          checkpoint: checkpoint,
-          streamSubgraphs: true,
-          ...(isRerunningSubagent ? { interruptAfter: ["tools"] } : { interruptBefore: ["tools"] }),
-        });
-      } else {
-        stream.submit(
-          { messages },
-          {
-            config: buildSubmitConfig(),
-            interruptBefore: ["tools"],
-            streamSubgraphs: true,
-          }
-        );
-      }
-    },
-    [stream, buildSubmitConfig]
   );
 
   const graphId = activeAssistant?.graph_id ?? null;
@@ -436,35 +332,11 @@ export function useChat({
     setFocusComposerNonce((n) => n + 1);
   }, []);
 
-  const continueStream = useCallback(
-    (hasTaskToolCall?: boolean) => {
-      stream.submit(undefined, {
-        config: buildSubmitConfig({ recursion_limit: 100 }),
-        streamSubgraphs: true,
-        ...(hasTaskToolCall ? { interruptAfter: ["tools"] } : { interruptBefore: ["tools"] }),
-      });
-      // Update thread list when continuing stream
-      onHistoryRevalidate?.();
-    },
-    [stream, buildSubmitConfig, onHistoryRevalidate]
-  );
-
-  const markCurrentThreadAsResolved = useCallback(() => {
-    stream.submit(null, {
-      command: { goto: "__end__", update: null },
-      streamSubgraphs: true,
-    });
-    // Update thread list when marking thread as resolved
-    onHistoryRevalidate?.();
-  }, [stream, onHistoryRevalidate]);
-
   const resumeInterrupt = useCallback(
-    (value: any) => {
-      stream.submit(null, {
-        command: { resume: value },
-        config: buildSubmitConfig(),
-        streamSubgraphs: true,
-      });
+    (value: unknown) => {
+      // Resumes the newest unresolved interrupt; our HITL flow raises a
+      // single interrupt carrying all action_requests, so no interruptId.
+      void stream.respond(value, { config: buildSubmitConfig() });
       // Update thread list when resuming from interrupt
       onHistoryRevalidate?.();
     },
@@ -472,7 +344,7 @@ export function useChat({
   );
 
   const stopStream = useCallback(() => {
-    stream.stop();
+    void stream.stop();
   }, [stream]);
 
   return {
@@ -480,7 +352,6 @@ export function useChat({
     todos: stream.values.todos ?? [],
     files: filesMap,
     email: stream.values.email,
-    ui: stream.values.ui,
     setFiles,
     refreshFiles,
     removeFile,
@@ -489,24 +360,16 @@ export function useChat({
     setInput,
     appendUploadNote,
     focusComposerNonce,
-    messages: messagesSnapshot,
-    isHotStreaming,
+    messages: stream.messages,
     isLoading: stream.isLoading,
     isThreadLoading: stream.isThreadLoading,
     interrupt: stream.interrupt,
-    getMessagesMetadata: stream.getMessagesMetadata,
     sendMessage,
-    runSingleStep,
-    continueStream,
     stopStream,
-    markCurrentThreadAsResolved,
     resumeInterrupt,
-    // Subagent progress surface from the SDK. Reading these getters is what
-    // adds "updates" + "messages-tuple" to stream_mode (both backend-supported).
+    // Subagent discovery map, keyed by the `task` tool-call id that spawned
+    // each subagent. Content (nested tool calls) is fetched lazily via the
+    // scoped selector hooks (`useToolCalls(stream, snapshot)`).
     subagents: stream.subagents,
-    activeSubagents: stream.activeSubagents,
-    getSubagent: stream.getSubagent,
-    getSubagentsByMessage: stream.getSubagentsByMessage,
-    getSubagentsByType: stream.getSubagentsByType,
   };
 }
