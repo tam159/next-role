@@ -13,11 +13,12 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "type-check": "tsc --noEmit",
-    "quality": "pnpm lint:fix && pnpm format && pnpm type-check"
+    "quality": "pnpm lint:fix && pnpm format && pnpm type-check && pnpm check:sdk-sync",
+    "check:sdk-sync": "node scripts/check-langchain-sdk-sync.mjs"
   },
   "dependencies": {
     "@langchain/core": "^1.1.48",
-    "@langchain/langgraph-sdk": "1.9.20",
+    "@langchain/langgraph-sdk": "^1.9.20",
     "@langchain/react": "^1.0.20",
     "@radix-ui/colors": "^1.0.1",
     "@radix-ui/react-dialog": "^1.1.15",

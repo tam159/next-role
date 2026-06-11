@@ -12,7 +12,7 @@ importers:
         specifier: ^1.1.48
         version: 1.1.48
       '@langchain/langgraph-sdk':
-        specifier: 1.9.20
+        specifier: ^1.9.20
         version: 1.9.20(@langchain/core@1.1.48)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
       '@langchain/react':
         specifier: ^1.0.20

@@ -59,3 +59,10 @@ repos:
         files: ^frontend/
         types_or: [ts, tsx]
         pass_filenames: false
+
+      - id: frontend-langchain-sdk-sync
+        name: Frontend LangChain SDK sync
+        entry: node frontend/scripts/check-langchain-sdk-sync.mjs
+        language: system
+        files: ^frontend/(package\.json|pnpm-lock\.yaml)$
+        pass_filenames: false

@@ -28,9 +28,13 @@ Next.js 16 (App Router, Turbopack) + React 19 + TypeScript + Tailwind. Talks to 
   All three direct deps are required: app code imports `Client`/`Assistant`/`Thread` from the SDK
   (not re-exported by `@langchain/react`) and message classes from core (a _peer_ dep of
   `@langchain/react` — peers are never bundled; the app owns the single `BaseMessage` identity).
-  **Upgrade rule:** bump `@langchain/react` first, then (a) set the `@langchain/langgraph-sdk` pin
-  to the exact version the new `@langchain/react` depends on (one copy in node_modules — `Client`
-  instances cross the package boundary), and (b) keep `@langchain/core` inside its peer range
-  (pnpm warns on violation). Prefer `@langchain/react` re-exports for stream types
+  **Upgrade rule:** bump `@langchain/react` first; the other two follow it. The invariant is
+  **one installed copy of `@langchain/langgraph-sdk`**, shared with `@langchain/react` (`Client`
+  instances cross the package boundary). The SDK is a _regular_ dep of `@langchain/react`
+  (exact-pinned upstream), so a version conflict does NOT warn at install time — pnpm silently
+  installs two copies; only _peer_ conflicts (`@langchain/core`) warn. That's why
+  `scripts/check-langchain-sdk-sync.mjs` guards the invariant (pre-commit hook
+  `frontend-langchain-sdk-sync` + `pnpm quality`) and prints the exact fix command when the
+  copies split. Prefer `@langchain/react` re-exports for stream types
   (`SubagentDiscoverySnapshot`, `AssembledToolCall`); only `Client` + schema types come from the
   SDK. Keep the SDK in sync with the backend's `langgraph` major.
