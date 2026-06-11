@@ -271,10 +271,7 @@ export function FilesPopover({
 
   const requestDelete = useCallback((path: string) => setPendingDelete([path]), []);
 
-  const pendingNames = useMemo(
-    () => (pendingDelete ?? []).map((p) => p.split("/").pop() || p),
-    [pendingDelete]
-  );
+  const pendingPaths = pendingDelete ?? [];
 
   return (
     <>
@@ -376,10 +373,12 @@ export function FilesPopover({
           </DialogTitle>
           <DialogDescription asChild>
             <div>
-              {pendingDelete && pendingDelete.length === 1 ? (
+              {pendingPaths.length === 1 ? (
                 <>
-                  <span className="font-mono text-foreground">{pendingNames[0]}</span> will be
-                  permanently removed. This cannot be undone.
+                  <span className="font-mono text-foreground">
+                    {splitFilePath(pendingPaths[0]).basename}
+                  </span>{" "}
+                  will be permanently removed. This cannot be undone.
                 </>
               ) : (
                 <>
@@ -387,13 +386,15 @@ export function FilesPopover({
                     The following files will be permanently removed. This cannot be undone.
                   </span>
                   <ul className="mt-2 max-h-40 list-disc space-y-0.5 overflow-y-auto pl-5 font-mono text-foreground">
-                    {pendingNames.slice(0, DELETE_PREVIEW_LIMIT).map((n) => (
-                      <li key={n}>{n}</li>
+                    {pendingPaths.slice(0, DELETE_PREVIEW_LIMIT).map((p) => (
+                      <li key={p} className="break-all">
+                        {p}
+                      </li>
                     ))}
                   </ul>
-                  {pendingNames.length > DELETE_PREVIEW_LIMIT && (
+                  {pendingPaths.length > DELETE_PREVIEW_LIMIT && (
                     <span className="mt-1 block text-xs text-muted-foreground">
-                      and {pendingNames.length - DELETE_PREVIEW_LIMIT} more
+                      and {pendingPaths.length - DELETE_PREVIEW_LIMIT} more
                     </span>
                   )}
                 </>
