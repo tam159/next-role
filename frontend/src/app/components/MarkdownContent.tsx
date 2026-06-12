@@ -82,7 +82,7 @@ export const MarkdownContent = React.memo<MarkdownContentProps>(({ content, clas
                 style={adaptiveCodeTheme}
                 language={match?.[1] ?? "text"}
                 PreTag="div"
-                className="border-border max-w-full rounded-xl border text-sm"
+                className="max-w-full rounded-xl border border-border text-sm"
                 wrapLines={true}
                 wrapLongLines={true}
                 lineProps={{
@@ -105,7 +105,7 @@ export const MarkdownContent = React.memo<MarkdownContentProps>(({ content, clas
               </SyntaxHighlighter>
             ) : (
               <code
-                className="border-border bg-tool-surface text-foreground rounded-md border px-1.5 py-0.5 font-mono text-[0.9em]"
+                className="rounded-md border border-border bg-tool-surface px-1.5 py-0.5 font-mono text-[0.9em] text-foreground"
                 {...props}
               >
                 {children}
@@ -121,7 +121,7 @@ export const MarkdownContent = React.memo<MarkdownContentProps>(({ content, clas
                 href={href}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-primary font-medium no-underline underline-offset-4 hover:underline"
+                className="font-medium text-primary no-underline underline-offset-4 hover:underline"
               >
                 {children}
               </a>
@@ -129,7 +129,7 @@ export const MarkdownContent = React.memo<MarkdownContentProps>(({ content, clas
           },
           blockquote({ children }: { children?: React.ReactNode }) {
             return (
-              <blockquote className="border-primary/30 bg-accent/40 text-muted-foreground my-4 rounded-r-xl border-l-4 py-2 pr-3 pl-4">
+              <blockquote className="my-4 rounded-r-xl border-l-4 border-primary/30 bg-accent/40 py-2 pr-3 pl-4 text-muted-foreground">
                 {children}
               </blockquote>
             );
@@ -151,7 +151,7 @@ export const MarkdownContent = React.memo<MarkdownContentProps>(({ content, clas
           table({ children }: { children?: React.ReactNode }) {
             return (
               <div className="my-4 overflow-x-auto">
-                <table className="border-border [&_td]:border-border [&_th]:border-border [&_th]:bg-tool-surface w-full border-separate border-spacing-0 overflow-hidden rounded-xl border text-sm [&_td]:border-b [&_td]:p-2 [&_th]:border-b [&_th]:p-2 [&_th]:text-left [&_th]:font-semibold [&_tr:last-child_td]:border-b-0">
+                <table className="w-full border-separate border-spacing-0 overflow-hidden rounded-xl border border-border text-sm [&_td]:border-b [&_td]:border-border [&_td]:p-2 [&_th]:border-b [&_th]:border-border [&_th]:bg-tool-surface [&_th]:p-2 [&_th]:text-left [&_th]:font-semibold [&_tr:last-child_td]:border-b-0">
                   {children}
                 </table>
               </div>
@@ -162,12 +162,12 @@ export const MarkdownContent = React.memo<MarkdownContentProps>(({ content, clas
               <img
                 src={typeof src === "string" ? src : undefined}
                 alt={alt ?? ""}
-                className="border-border my-4 h-auto max-w-full rounded-md border"
+                className="my-4 h-auto max-w-full rounded-md border border-border"
               />
             );
           },
           hr() {
-            return <hr className="border-border my-6" />;
+            return <hr className="my-6 border-border" />;
           },
         }}
       >

@@ -103,7 +103,7 @@ export function ToolApprovalInterrupt({
       {/* Header */}
       <div className="mb-3 flex items-center gap-2 text-foreground">
         <AlertCircle size={16} className="text-yellow-600 dark:text-yellow-400" />
-        <span className="text-xs font-semibold uppercase tracking-wider">Approval Required</span>
+        <span className="text-xs font-semibold tracking-wider uppercase">Approval Required</span>
       </div>
 
       {/* Description */}
@@ -114,7 +114,7 @@ export function ToolApprovalInterrupt({
       {/* Tool Info Card */}
       <div className="mb-4 rounded-sm border border-border bg-background p-3">
         <div className="mb-2">
-          <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+          <span className="text-xs font-medium tracking-wider text-muted-foreground uppercase">
             Tool
           </span>
           <p className="mt-1 font-mono text-sm font-medium text-foreground">{actionRequest.name}</p>
@@ -122,7 +122,7 @@ export function ToolApprovalInterrupt({
 
         {isEditing ? (
           <div>
-            <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+            <span className="text-xs font-medium tracking-wider text-muted-foreground uppercase">
               Edit Arguments
             </span>
             <div className="mt-2 space-y-3">
@@ -150,10 +150,10 @@ export function ToolApprovalInterrupt({
           </div>
         ) : (
           <div>
-            <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+            <span className="text-xs font-medium tracking-wider text-muted-foreground uppercase">
               Arguments
             </span>
-            <pre className="mt-2 overflow-x-auto whitespace-pre-wrap break-all rounded-sm border border-border bg-muted/40 p-2 font-mono text-xs text-foreground">
+            <pre className="mt-2 overflow-x-auto rounded-sm border border-border bg-muted/40 p-2 font-mono text-xs break-all whitespace-pre-wrap text-foreground">
               {JSON.stringify(actionRequest.args, null, 2)}
             </pre>
           </div>

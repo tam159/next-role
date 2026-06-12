@@ -112,14 +112,14 @@ function HomePageInner({
         onSave={handleSaveConfig}
         initialConfig={config}
       />
-      <div className="bg-background text-foreground flex h-screen flex-col">
-        <header className="bg-surface/90 border-border flex h-16 items-center justify-between border-b px-6 shadow-sm backdrop-blur-sm">
+      <div className="flex h-screen flex-col bg-background text-foreground">
+        <header className="flex h-16 items-center justify-between border-b border-border bg-surface/90 px-6 shadow-xs backdrop-blur-sm">
           <div className="flex items-center gap-4">
             <div>
               <h1 className="text-lg font-semibold tracking-tight">
                 GenAI-Accelerated Career Advancement
               </h1>
-              <p className="text-muted-foreground text-xs">
+              <p className="text-xs text-muted-foreground">
                 Take the friction out of landing your next big opportunity
               </p>
             </div>
@@ -128,12 +128,12 @@ function HomePageInner({
                 variant="ghost"
                 size="sm"
                 onClick={() => setSidebar("1")}
-                className="hover:border-primary/25 border-border bg-card text-foreground hover:bg-accent rounded-full border px-3 py-2 shadow-xs"
+                className="rounded-full border border-border bg-card px-3 py-2 text-foreground shadow-xs hover:border-primary/25 hover:bg-accent"
               >
                 <MessagesSquare className="mr-2 h-4 w-4" />
                 Threads
                 {interruptCount > 0 && (
-                  <span className="bg-destructive text-destructive-foreground ml-2 inline-flex min-h-4 min-w-4 items-center justify-center rounded-full px-1 text-[10px]">
+                  <span className="ml-2 inline-flex min-h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[10px] text-destructive-foreground">
                     {interruptCount}
                   </span>
                 )}
@@ -141,14 +141,14 @@ function HomePageInner({
             )}
           </div>
           <div className="flex items-center gap-2">
-            <div className="border-border bg-background/70 text-muted-foreground hidden rounded-full border px-3 py-1.5 text-xs md:block">
+            <div className="hidden rounded-full border border-border bg-background/70 px-3 py-1.5 text-xs text-muted-foreground md:block">
               <span className="font-medium">Assistant:</span> {config.assistantId}
             </div>
             <Button
               variant="outline"
               size="sm"
               onClick={() => setConfigDialogOpen(true)}
-              className="bg-card rounded-full"
+              className="rounded-full bg-card"
             >
               <Settings className="mr-2 h-4 w-4" />
               Settings
@@ -158,7 +158,7 @@ function HomePageInner({
               size="sm"
               onClick={() => setThreadId(null)}
               disabled={!threadId}
-              className="text-primary-foreground hover:bg-primary/90 border-primary bg-primary rounded-full shadow-sm"
+              className="rounded-full border-primary bg-primary shadow-xs hover:bg-primary/90"
             >
               <SquarePen className="mr-2 h-4 w-4" />
               New Thread
@@ -166,7 +166,7 @@ function HomePageInner({
           </div>
         </header>
 
-        <div className="bg-canvas flex-1 overflow-hidden">
+        <div className="flex-1 overflow-hidden bg-canvas">
           <ChatProvider activeAssistant={assistant} onHistoryRevalidate={() => mutateThreads?.()}>
             <ResizablePanelGroup
               orientation="horizontal"
@@ -264,7 +264,7 @@ function HomePageContent() {
         <div className="flex h-screen items-center justify-center">
           <div className="text-center">
             <h1 className="text-2xl font-bold">Welcome to Standalone Chat</h1>
-            <p className="text-muted-foreground mt-2">Configure your deployment to get started</p>
+            <p className="mt-2 text-muted-foreground">Configure your deployment to get started</p>
             <Button onClick={() => setConfigDialogOpen(true)} className="mt-4">
               Open Configuration
             </Button>

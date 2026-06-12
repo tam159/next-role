@@ -266,7 +266,7 @@ export const FileViewDialog = React.memo<{
         </DialogDescription>
         <div className="mb-4 flex items-center justify-between border-b border-border pb-4">
           <div className="flex min-w-0 items-center gap-2">
-            <FileText className="text-primary/50 h-5 w-5 shrink-0" />
+            <FileText className="h-5 w-5 shrink-0 text-primary/50" />
             {isEditingMode && file === null ? (
               <Input
                 value={fileName}
@@ -276,7 +276,7 @@ export const FileViewDialog = React.memo<{
                 aria-invalid={!fileNameIsValid}
               />
             ) : (
-              <span className="overflow-hidden text-ellipsis whitespace-nowrap text-base font-medium text-primary">
+              <span className="overflow-hidden text-base font-medium text-ellipsis whitespace-nowrap text-primary">
                 {file?.path}
               </span>
             )}

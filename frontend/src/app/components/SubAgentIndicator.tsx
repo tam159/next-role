@@ -75,7 +75,7 @@ export const SubAgentIndicator = React.memo<SubAgentIndicatorProps>(
     return (
       <div
         className={cn(
-          "hover:border-primary/25 border-border bg-surface-raised relative w-fit max-w-[70vw] overflow-hidden rounded-2xl border shadow-sm outline-hidden transition-colors",
+          "relative w-fit max-w-[70vw] overflow-hidden rounded-2xl border border-border bg-surface-raised shadow-xs outline-hidden transition-colors hover:border-primary/25",
           isActive && "tool-running-sweep"
         )}
       >
@@ -87,11 +87,11 @@ export const SubAgentIndicator = React.memo<SubAgentIndicatorProps>(
           className="relative z-10 flex h-auto w-full items-center justify-between gap-3 border-none px-3 py-3 text-left shadow-none outline-hidden transition-colors duration-200 hover:bg-transparent"
         >
           <div className="flex min-w-0 flex-1 items-center gap-3">
-            <span className="bg-primary/10 text-primary flex size-8 shrink-0 items-center justify-center rounded-xl">
+            <span className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
               <Bot size={16} />
             </span>
             <div className="min-w-0">
-              <span className="text-foreground block truncate font-sans text-[15px] leading-[140%] font-bold tracking-[-0.4px]">
+              <span className="block truncate font-sans text-[15px] leading-[140%] font-bold tracking-[-0.4px] text-foreground">
                 {subAgent.subAgentName}
               </span>
               <span

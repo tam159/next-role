@@ -66,7 +66,7 @@ function FileCard({
     <div
       className={cn(
         "group relative rounded-xl transition-shadow",
-        selected && "ring-primary/40 ring-2"
+        selected && "ring-2 ring-primary/40"
       )}
       style={{ backgroundColor: "var(--color-file-button)" }}
     >
@@ -74,7 +74,7 @@ function FileCard({
         type="button"
         onClick={() => onOpen({ path: filePath, content: fileContent })}
         title={filePath}
-        className="hover:border-primary/25 border-border w-full cursor-pointer space-y-2 rounded-xl border bg-transparent px-3 py-4 shadow-sm transition-colors"
+        className="w-full cursor-pointer space-y-2 rounded-xl border border-border bg-transparent px-3 py-4 shadow-xs transition-colors hover:border-primary/25"
         onMouseEnter={(e) => {
           e.currentTarget.parentElement!.style.backgroundColor = "var(--color-file-button-hover)";
         }}
@@ -83,7 +83,7 @@ function FileCard({
         }}
       >
         <FileText size={24} className="mx-auto" style={{ color: iconColor }} />
-        <span className="text-foreground flex w-full min-w-0 items-baseline text-sm leading-relaxed">
+        <span className="flex w-full min-w-0 items-baseline text-sm leading-relaxed text-foreground">
           <span ref={nameRef} className="min-w-0 flex-1 truncate">
             {prefix}
             {stem}
@@ -105,10 +105,10 @@ function FileCard({
         }}
         className={cn(
           "absolute top-1.5 left-1.5 inline-flex size-5 items-center justify-center rounded border transition-opacity",
-          "focus-visible:ring-primary/50 focus-visible:opacity-100 focus-visible:ring-2 focus-visible:outline-hidden",
+          "focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:outline-hidden",
           selected
-            ? "text-primary-foreground border-primary bg-primary opacity-100"
-            : "hover:border-primary/60 border-border bg-background text-transparent opacity-0 group-hover:opacity-100"
+            ? "border-primary bg-primary opacity-100"
+            : "border-border bg-background text-transparent opacity-0 group-hover:opacity-100 hover:border-primary/60"
         )}
       >
         <Check size={12} strokeWidth={3} />
@@ -122,7 +122,7 @@ function FileCard({
           onRequestDelete(filePath);
         }}
         disabled={editDisabled}
-        className="text-muted-foreground hover:bg-destructive/15 hover:text-destructive absolute top-1.5 right-1.5 inline-flex size-7 items-center justify-center rounded-md opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100 disabled:pointer-events-none"
+        className="absolute top-1.5 right-1.5 inline-flex size-7 items-center justify-center rounded-md text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 hover:bg-destructive/15 hover:text-destructive focus-visible:opacity-100 disabled:pointer-events-none"
       >
         <Trash2 size={14} />
       </button>
@@ -277,14 +277,14 @@ export function FilesPopover({
     <>
       {filePaths.length === 0 ? (
         <div className="flex h-full items-center justify-center p-4 text-center">
-          <p className="text-muted-foreground text-xs">No files created yet</p>
+          <p className="text-xs text-muted-foreground">No files created yet</p>
         </div>
       ) : (
         <div ref={wrapperRef} tabIndex={-1} onKeyDown={onWrapperKeyDown} className="outline-hidden">
           {selected.size > 0 && (
-            <div className="bg-muted-secondary border-border sticky top-0 z-10 mb-2 flex items-center justify-between gap-2 rounded-lg border px-3 py-2 text-sm">
+            <div className="bg-muted-secondary sticky top-0 z-10 mb-2 flex items-center justify-between gap-2 rounded-lg border border-border px-3 py-2 text-sm">
               <span className="text-muted-foreground">
-                <span className="text-foreground font-medium">{selected.size}</span> selected
+                <span className="font-medium text-foreground">{selected.size}</span> selected
               </span>
               <div className="flex items-center gap-1">
                 <Button
@@ -375,7 +375,7 @@ export function FilesPopover({
             <div>
               {pendingPaths.length === 1 ? (
                 <>
-                  <span className="text-foreground font-mono">
+                  <span className="font-mono text-foreground">
                     {splitFilePath(pendingPaths[0]).basename}
                   </span>{" "}
                   will be permanently removed. This cannot be undone.
@@ -385,7 +385,7 @@ export function FilesPopover({
                   <span>
                     The following files will be permanently removed. This cannot be undone.
                   </span>
-                  <ul className="text-foreground mt-2 max-h-72 list-disc space-y-1 overflow-y-auto pl-5 font-mono">
+                  <ul className="mt-2 max-h-72 list-disc space-y-1 overflow-y-auto pl-5 font-mono text-foreground">
                     {pendingPaths.slice(0, DELETE_PREVIEW_LIMIT).map((p) => (
                       <li key={p} className="wrap-break-word">
                         {p}
@@ -393,7 +393,7 @@ export function FilesPopover({
                     ))}
                   </ul>
                   {pendingPaths.length > DELETE_PREVIEW_LIMIT && (
-                    <span className="text-muted-foreground mt-1 block text-xs">
+                    <span className="mt-1 block text-xs text-muted-foreground">
                       and {pendingPaths.length - DELETE_PREVIEW_LIMIT} more
                     </span>
                   )}
@@ -490,7 +490,7 @@ export const TasksFilesSidebar = React.memo<{
             <button
               onClick={() => setTasksOpen((v) => !v)}
               className={cn(
-                "text-muted-foreground hover:bg-muted flex h-6 w-6 items-center justify-center rounded-md transition-transform duration-200",
+                "flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground transition-transform duration-200 hover:bg-muted",
                 tasksOpen ? "rotate-180" : "rotate-0"
               )}
               aria-label="Toggle tasks panel"
@@ -503,13 +503,13 @@ export const TasksFilesSidebar = React.memo<{
               <ScrollArea className="h-full">
                 {todos.length === 0 ? (
                   <div className="flex h-full items-center justify-center p-4 text-center">
-                    <p className="text-muted-foreground text-xs">No tasks created yet</p>
+                    <p className="text-xs text-muted-foreground">No tasks created yet</p>
                   </div>
                 ) : (
                   <div className="ml-1 p-0.5">
                     {Object.entries(groupedTodos).map(([status, todos]) => (
                       <div className="mb-4">
-                        <h3 className="text-tertiary mb-1 text-[10px] font-semibold tracking-wider uppercase">
+                        <h3 className="mb-1 text-[10px] font-semibold tracking-wider text-tertiary uppercase">
                           {groupedLabels[status as keyof typeof groupedLabels]}
                         </h3>
                         {todos.map((todo, index) => (
@@ -536,7 +536,7 @@ export const TasksFilesSidebar = React.memo<{
             <button
               onClick={() => setFilesOpen((v) => !v)}
               className={cn(
-                "text-muted-foreground hover:bg-muted flex h-6 w-6 items-center justify-center rounded-md transition-transform duration-200",
+                "flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground transition-transform duration-200 hover:bg-muted",
                 filesOpen ? "rotate-180" : "rotate-0"
               )}
               aria-label="Toggle files panel"

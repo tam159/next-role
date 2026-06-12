@@ -78,7 +78,7 @@ function ErrorState({ message }: { message: string }) {
   return (
     <div className="flex flex-col items-center justify-center p-8 text-center">
       <p className="text-sm text-red-600">Failed to load threads</p>
-      <p className="text-muted-foreground mt-1 text-xs">{message}</p>
+      <p className="mt-1 text-xs text-muted-foreground">{message}</p>
     </div>
   );
 }
@@ -96,11 +96,11 @@ function LoadingState() {
 function EmptyState() {
   return (
     <div className="flex flex-col items-center justify-center p-8 text-center">
-      <div className="bg-muted text-muted-foreground mb-3 flex size-14 items-center justify-center rounded-2xl">
+      <div className="mb-3 flex size-14 items-center justify-center rounded-2xl bg-muted text-muted-foreground">
         <MessageSquare className="h-7 w-7" />
       </div>
-      <p className="text-foreground text-sm font-medium">No threads found</p>
-      <p className="text-muted-foreground mt-1 text-xs">New conversations will appear here.</p>
+      <p className="text-sm font-medium text-foreground">No threads found</p>
+      <p className="mt-1 text-xs text-muted-foreground">New conversations will appear here.</p>
     </div>
   );
 }
@@ -201,16 +201,16 @@ export function ThreadList({
   }, [interruptedCount, onInterruptCountChange]);
 
   return (
-    <div className="border-border bg-background absolute inset-0 flex flex-col border-r">
+    <div className="absolute inset-0 flex flex-col border-r border-border bg-background">
       {/* Header with title, filter, and close button */}
-      <div className="bg-surface/80 border-border grid shrink-0 grid-cols-[1fr_auto] items-center gap-3 border-b p-4 backdrop-blur-sm">
+      <div className="grid shrink-0 grid-cols-[1fr_auto] items-center gap-3 border-b border-border bg-surface/80 p-4 backdrop-blur-sm">
         <div>
           <h2 className="text-lg font-semibold tracking-tight">Threads</h2>
-          <p className="text-muted-foreground text-xs">Conversation history</p>
+          <p className="text-xs text-muted-foreground">Conversation history</p>
         </div>
         <div className="flex items-center gap-2">
           <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as StatusFilter)}>
-            <SelectTrigger className="bg-card w-fit rounded-full">
+            <SelectTrigger className="w-fit rounded-full bg-card">
               <SelectValue />
             </SelectTrigger>
             <SelectContent align="end">
@@ -270,7 +270,7 @@ export function ThreadList({
 
               return (
                 <div key={group} className="mb-4">
-                  <h4 className="text-muted-foreground m-0 px-2 py-2 text-[11px] font-semibold tracking-[0.16em] uppercase">
+                  <h4 className="m-0 px-2 py-2 text-[11px] font-semibold tracking-[0.16em] text-muted-foreground uppercase">
                     {GROUP_LABELS[group]}
                   </h4>
                   <div className="flex flex-col gap-1">
@@ -283,7 +283,7 @@ export function ThreadList({
                           "grid w-full cursor-pointer items-center gap-3 rounded-xl px-3 py-3 text-left transition-all duration-200",
                           "hover:border-primary/20 hover:bg-surface-raised",
                           currentThreadId === thread.id
-                            ? "border-primary/40 bg-accent hover:bg-accent border shadow-sm"
+                            ? "border border-primary/40 bg-accent shadow-xs hover:bg-accent"
                             : "border border-transparent bg-transparent"
                         )}
                         aria-current={currentThreadId === thread.id}
@@ -291,16 +291,16 @@ export function ThreadList({
                         <div className="min-w-0 flex-1">
                           {/* Title + Timestamp Row */}
                           <div className="mb-1 flex items-center justify-between">
-                            <h3 className="text-foreground truncate text-sm font-semibold">
+                            <h3 className="truncate text-sm font-semibold text-foreground">
                               {thread.title}
                             </h3>
-                            <span className="text-muted-foreground ml-2 shrink-0 text-xs">
+                            <span className="ml-2 shrink-0 text-xs text-muted-foreground">
                               {formatTime(thread.updatedAt)}
                             </span>
                           </div>
                           {/* Description + Status Row */}
                           <div className="flex items-center justify-between">
-                            <p className="text-muted-foreground flex-1 truncate text-xs">
+                            <p className="flex-1 truncate text-xs text-muted-foreground">
                               {thread.description}
                             </p>
                             <div className="ml-2 shrink-0">

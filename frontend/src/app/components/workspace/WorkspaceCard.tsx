@@ -24,24 +24,24 @@ export function WorkspaceCard({
   headerAction,
 }: WorkspaceCardProps) {
   return (
-    <div className="hover:border-primary/20 border-border bg-surface-raised flex flex-col overflow-hidden rounded-2xl border shadow-sm transition-colors">
-      <div className="hover:bg-accent/50 flex items-center gap-3 px-4 py-3.5 transition-colors">
+    <div className="flex flex-col overflow-hidden rounded-2xl border border-border bg-surface-raised shadow-xs transition-colors hover:border-primary/20">
+      <div className="flex items-center gap-3 px-4 py-3.5 transition-colors hover:bg-accent/50">
         <button
           type="button"
           onClick={onToggle}
           aria-expanded={open}
           className="flex flex-1 items-center gap-3 text-left"
         >
-          <span className="bg-primary/10 text-primary flex size-9 items-center justify-center rounded-xl">
+          <span className="flex size-9 items-center justify-center rounded-xl bg-primary/10 text-primary">
             {icon}
           </span>
-          <span className="text-foreground text-base font-bold tracking-tight">{title}</span>
+          <span className="text-base font-bold tracking-tight text-foreground">{title}</span>
           {typeof count === "number" && count > 0 && (
-            <span className="text-primary-foreground bg-primary ml-1 inline-flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-xs font-semibold">
+            <span className="ml-1 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-xs font-semibold">
               {count}
             </span>
           )}
-          <span className="text-muted-foreground ml-auto">
+          <span className="ml-auto text-muted-foreground">
             <ChevronDown
               size={16}
               className={cn("transition-transform duration-200", open ? "rotate-0" : "-rotate-90")}
@@ -51,7 +51,7 @@ export function WorkspaceCard({
         {headerAction && <div className="flex shrink-0 items-center">{headerAction}</div>}
       </div>
       {open && (
-        <div className="border-border bg-background/35 border-t px-4 py-3.5">{children}</div>
+        <div className="border-t border-border bg-background/35 px-4 py-3.5">{children}</div>
       )}
     </div>
   );

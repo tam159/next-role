@@ -231,7 +231,7 @@ export const ChatInterface = React.memo<ChatInterfaceProps>(({ assistant }) => {
   }, [interrupt]);
 
   return (
-    <div className="bg-canvas flex flex-1 flex-col overflow-hidden">
+    <div className="flex flex-1 flex-col overflow-hidden bg-canvas">
       <div className="flex-1 overflow-x-hidden overflow-y-auto overscroll-contain" ref={scrollRef}>
         <div className="mx-auto w-full max-w-[1024px] px-6 pt-5 pb-8" ref={contentRef}>
           {isThreadLoading ? (
@@ -260,8 +260,8 @@ export const ChatInterface = React.memo<ChatInterfaceProps>(({ assistant }) => {
         </div>
       </div>
 
-      <div className="from-canvas via-canvas shrink-0 bg-linear-to-t to-transparent px-4 pt-4 pb-5">
-        <div className="border-border bg-surface-raised mx-auto flex w-full max-w-[1024px] shrink-0 flex-col overflow-hidden rounded-2xl border shadow-lg shadow-black/5">
+      <div className="shrink-0 bg-linear-to-t from-canvas via-canvas to-transparent px-4 pt-4 pb-5">
+        <div className="mx-auto flex w-full max-w-[1024px] shrink-0 flex-col overflow-hidden rounded-2xl border border-border bg-surface-raised shadow-lg shadow-black/5">
           <form onSubmit={handleSubmit} className="flex flex-col">
             <textarea
               ref={textareaRef}
@@ -272,11 +272,11 @@ export const ChatInterface = React.memo<ChatInterfaceProps>(({ assistant }) => {
               }}
               onKeyDown={handleKeyDown}
               placeholder={isLoading ? "Running..." : "Write your message..."}
-              className="font-inherit text-foreground placeholder:text-muted-foreground block w-full resize-none border-0 bg-transparent px-5 pt-4 pb-3 text-sm leading-7 outline-hidden"
+              className="font-inherit block w-full resize-none border-0 bg-transparent px-5 pt-4 pb-3 text-sm leading-7 text-foreground outline-hidden placeholder:text-muted-foreground"
               rows={2}
             />
-            <div className="border-border/70 flex items-center justify-between gap-2 border-t px-3 py-3">
-              <p className="text-muted-foreground pl-2 text-xs">
+            <div className="flex items-center justify-between gap-2 border-t border-border/70 px-3 py-3">
+              <p className="pl-2 text-xs text-muted-foreground">
                 Enter to send, Shift+Enter for a new line
               </p>
               <div className="flex justify-end gap-2">

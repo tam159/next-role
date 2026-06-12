@@ -1,8 +1,4 @@
 import plugin from "tailwindcss/plugin";
-import containerQueries from "@tailwindcss/container-queries";
-import typography from "@tailwindcss/typography";
-import forms from "@tailwindcss/forms";
-import tailwindcssAnimate from "tailwindcss-animate";
 
 /** @type {import('tailwindcss').Config} */
 export default {
@@ -81,9 +77,6 @@ export default {
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
         xs: "3px",
-      },
-      boxShadow: {
-        xs: "0 1px 2px 0 rgba(0, 0, 0, 0.05)",
       },
       backgroundColor: {
         primary: "var(--bg-primary)",
@@ -305,78 +298,8 @@ export default {
         swipeOut: "swipeOut 100ms ease-out",
       },
     },
-    typography: {
-      playground: {
-        css: {
-          "h1, h2, h3, h4, h5, h6": {
-            fontWeight: "bold",
-          },
-          h1: {
-            fontSize: "24px",
-          },
-          h2: {
-            fontSize: "20px",
-          },
-          h3: {
-            fontSize: "18px",
-          },
-          h4: {
-            fontSize: "16px",
-          },
-          h5: {
-            fontSize: "14px",
-          },
-          h6: {
-            fontSize: "12px",
-          },
-          ul: {
-            marginLeft: "20px !important",
-            listStyleType: "disc !important",
-          },
-          ol: {
-            marginLeft: "20px !important",
-            listStyleType: "decimal !important",
-          },
-          a: {
-            color: "#287977",
-            textDecoration: "underline",
-            "&:hover": {
-              textDecoration: "underline",
-            },
-          },
-          table: {
-            width: "100%",
-            borderCollapse: "collapse",
-            th: {
-              padding: "0.5rem",
-              border: "1px solid var(--gray-100)",
-              fontWeight: "bold",
-              textAlign: "left",
-            },
-            td: {
-              padding: "0.5rem",
-              border: "1px solid var(--gray-100)",
-            },
-          },
-          blockquote: {
-            borderLeft: "2px solid var(--gray-100)",
-            paddingLeft: "1rem",
-            marginLeft: "0",
-            fontStyle: "italic",
-          },
-
-          "s, strike, del": {
-            textDecoration: "line-through",
-          },
-        },
-      },
-    },
   },
   plugins: [
-    containerQueries,
-    typography,
-    forms,
-    tailwindcssAnimate,
     plugin(({ addUtilities, addBase }) => {
       addBase({
         input: {

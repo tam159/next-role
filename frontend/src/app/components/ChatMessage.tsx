@@ -59,7 +59,7 @@ export const ChatMessage = React.memo<ChatMessageProps>(
                 className={cn(
                   "mt-4 overflow-hidden text-sm leading-[150%] font-normal wrap-break-word",
                   isUser
-                    ? "border-primary/15 text-foreground rounded-2xl rounded-br-md border px-4 py-2.5 shadow-sm"
+                    ? "rounded-2xl rounded-br-md border border-primary/15 px-4 py-2.5 text-foreground shadow-xs"
                     : "text-foreground"
                 )}
                 style={isUser ? { backgroundColor: "var(--color-user-message-bg)" } : undefined}

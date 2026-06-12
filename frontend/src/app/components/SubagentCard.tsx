@@ -105,8 +105,8 @@ export const SubagentCard = React.memo<SubagentCardProps>(({ stream, snapshot, t
       </div>
       {isExpanded && (
         <div className="w-full max-w-full">
-          <div className="rounded-2xl border border-border bg-surface-raised p-4 shadow-sm">
-            <h4 className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          <div className="rounded-2xl border border-border bg-surface-raised p-4 shadow-xs">
+            <h4 className="mb-2 text-xs font-semibold tracking-wider text-muted-foreground uppercase">
               Input
             </h4>
             <div className="mb-4 rounded-xl border border-border bg-background/50 p-3">
@@ -114,7 +114,7 @@ export const SubagentCard = React.memo<SubagentCardProps>(({ stream, snapshot, t
             </div>
             {nestedToolCalls.length > 0 && (
               <>
-                <h4 className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                <h4 className="mb-2 text-xs font-semibold tracking-wider text-muted-foreground uppercase">
                   Activity
                 </h4>
                 <div className="mb-4 flex flex-col gap-2 border-l border-border pl-3">
@@ -126,7 +126,7 @@ export const SubagentCard = React.memo<SubagentCardProps>(({ stream, snapshot, t
             )}
             {subAgent.output && (
               <>
-                <h4 className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                <h4 className="mb-2 text-xs font-semibold tracking-wider text-muted-foreground uppercase">
                   Output
                 </h4>
                 <div className="rounded-xl border border-border bg-background/50 p-3">
