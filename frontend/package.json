@@ -18,8 +18,8 @@
   },
   "dependencies": {
     "@langchain/core": "^1.1.48",
-    "@langchain/langgraph-sdk": "1.9.20",
-    "@langchain/react": "^1.0.20",
+    "@langchain/langgraph-sdk": "1.9.21",
+    "@langchain/react": "^1.0.22",
     "@radix-ui/react-dialog": "^1.1.16",
     "@radix-ui/react-label": "^2.1.9",
     "@radix-ui/react-scroll-area": "^1.2.11",

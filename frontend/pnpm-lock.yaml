@@ -12,11 +12,11 @@ importers:
         specifier: ^1.1.48
         version: 1.1.48
       '@langchain/langgraph-sdk':
-        specifier: 1.9.20
-        version: 1.9.20(@langchain/core@1.1.48)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
+        specifier: 1.9.21
+        version: 1.9.21(@langchain/core@1.1.48)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       '@langchain/react':
-        specifier: ^1.0.20
-        version: 1.0.20(@langchain/core@1.1.48)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
+        specifier: ^1.0.22
+        version: 1.0.22(@langchain/core@1.1.48)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       '@radix-ui/react-dialog':
         specifier: ^1.1.16
         version: 1.1.16(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
@@ -434,8 +434,8 @@ packages:
     resolution: {integrity: sha512-fQU6Guyb1pwc2fEplmA8FPbKfOMAofjnyJzExevro0FxEiuGHE18Ov/ZHmT9trWCDTZRI9eW1VIc6aChxV8pAQ==}
     engines: {node: '>=20'}
 
-  '@langchain/langgraph-sdk@1.9.20':
-    resolution: {integrity: sha512-waZQNUN6apVg3jvDApy16wUGwrCvJB8WXHbIPvVrrUZHObqx0w5tk7P/Ite5Qvu4abWrvNtrmqk2zmcqCx7jVw==}
+  '@langchain/langgraph-sdk@1.9.21':
+    resolution: {integrity: sha512-XE4DL12BkVTjTRUWi9CJN8s/hZ/mn4k2VcIsC5mWVHIepWZLmuW7T1NhVmRRZ7Kv4HpZ4O1plZkVtLpl6YLsoQ==}
     peerDependencies:
       '@langchain/core': ^1.1.48
       react: ^18 || ^19
@@ -455,8 +455,8 @@ packages:
   '@langchain/protocol@0.0.16':
     resolution: {integrity: sha512-ws+J7MaHyhO5dG7f0vdyHQiUn9hoCnki0f3crJPa4MCTGzcRC39jYSCghyrGtBPYQnZbUQiGyRVpW3z3M8IpJg==}
 
-  '@langchain/react@1.0.20':
-    resolution: {integrity: sha512-KF6/88Ib847SPSRzOdvUcSu5E0Qlln6h4uB6ywdkPmVd+Ol3y9RcteFpF84dWAPdYl411nyOrIfA08PoO4M0hw==}
+  '@langchain/react@1.0.22':
+    resolution: {integrity: sha512-e3llirWyH6RI6XoTwm7i9e7jiV3A6GDp50JCFKyo8XfZiufE6HiMzZHtpiMLkR/JezfdOTEHDyEC148C0gVB8A==}
     peerDependencies:
       '@langchain/core': ^1.1.48
       react: ^18 || ^19
@@ -2757,7 +2757,7 @@ snapshots:
       - openai
       - ws
 
-  '@langchain/langgraph-sdk@1.9.20(@langchain/core@1.1.48)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)':
+  '@langchain/langgraph-sdk@1.9.21(@langchain/core@1.1.48)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)':
     dependencies:
       '@langchain/core': 1.1.48
       '@langchain/protocol': 0.0.16
@@ -2771,10 +2771,10 @@ snapshots:
 
   '@langchain/protocol@0.0.16': {}
 
-  '@langchain/react@1.0.20(@langchain/core@1.1.48)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)':
+  '@langchain/react@1.0.22(@langchain/core@1.1.48)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)':
     dependencies:
       '@langchain/core': 1.1.48
-      '@langchain/langgraph-sdk': 1.9.20(@langchain/core@1.1.48)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
+      '@langchain/langgraph-sdk': 1.9.21(@langchain/core@1.1.48)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       react: 19.2.7
     transitivePeerDependencies:
       - react-dom
