@@ -19,6 +19,10 @@ export default tseslint.config(
     },
     rules: {
       ...reactHooks.configs.recommended.rules,
+      // react-hooks 7 compiler rules: existing load-on-mount effects and one
+      // render-time ref read trip these; keep them visible but non-blocking.
+      "react-hooks/set-state-in-effect": "warn",
+      "react-hooks/refs": "warn",
       "@typescript-eslint/no-explicit-any": 0,
       "@typescript-eslint/no-unused-vars": [
         "error",
