@@ -9,6 +9,7 @@ import { Assistant } from "@langchain/langgraph-sdk";
 import { ClientProvider, useClient } from "@/providers/ClientProvider";
 import { Settings, MessagesSquare, SquarePen } from "lucide-react";
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
+import { useDefaultLayout } from "react-resizable-panels";
 import { ThreadList } from "@/app/components/ThreadList";
 import { ChatProvider } from "@/providers/ChatProvider";
 import { ChatInterface } from "@/app/components/ChatInterface";
@@ -34,6 +35,11 @@ function HomePageInner({
   const [mutateThreads, setMutateThreads] = useState<(() => void) | null>(null);
   const [interruptCount, setInterruptCount] = useState(0);
   const [assistant, setAssistant] = useState<Assistant | null>(null);
+
+  const { defaultLayout, onLayoutChanged } = useDefaultLayout({
+    id: "standalone-chat",
+    panelIds: sidebar ? ["thread-history", "chat", "workspace"] : ["chat", "workspace"],
+  });
 
   const fetchAssistant = useCallback(async () => {
     const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
@@ -162,14 +168,17 @@ function HomePageInner({
 
         <div className="flex-1 overflow-hidden bg-canvas">
           <ChatProvider activeAssistant={assistant} onHistoryRevalidate={() => mutateThreads?.()}>
-            <ResizablePanelGroup direction="horizontal" autoSaveId="standalone-chat">
+            <ResizablePanelGroup
+              orientation="horizontal"
+              defaultLayout={defaultLayout}
+              onLayoutChanged={onLayoutChanged}
+            >
               {sidebar && (
                 <>
                   <ResizablePanel
                     id="thread-history"
-                    order={1}
-                    defaultSize={20}
-                    minSize={15}
+                    defaultSize="20%"
+                    minSize="15%"
                     className="relative min-w-[320px]"
                   >
                     <ThreadList
@@ -188,18 +197,16 @@ function HomePageInner({
               <ResizablePanel
                 id="chat"
                 className="relative flex flex-col"
-                order={2}
-                defaultSize={50}
-                minSize={30}
+                defaultSize={sidebar ? "40%" : "50%"}
+                minSize="30%"
               >
                 <ChatInterface assistant={assistant} />
               </ResizablePanel>
               <ResizableHandle />
               <ResizablePanel
                 id="workspace"
-                order={3}
-                defaultSize={50}
-                minSize={25}
+                defaultSize={sidebar ? "40%" : "50%"}
+                minSize="25%"
                 className="relative flex flex-col"
               >
                 <Workspace />
