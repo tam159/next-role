@@ -52,20 +52,20 @@ export const ChatMessage = React.memo<ChatMessageProps>(
 
     return (
       <div className={cn("flex w-full max-w-full overflow-x-hidden", isUser && "flex-row-reverse")}>
-        <div className={cn("min-w-0 max-w-full", isUser ? "max-w-[70%]" : "w-full")}>
+        <div className={cn("max-w-full min-w-0", isUser ? "max-w-[70%]" : "w-full")}>
           {hasContent && (
             <div className={cn("relative flex items-end gap-0")}>
               <div
                 className={cn(
-                  "mt-4 overflow-hidden break-words text-sm font-normal leading-[150%]",
+                  "mt-4 overflow-hidden text-sm leading-[150%] font-normal wrap-break-word",
                   isUser
-                    ? "border-primary/15 rounded-2xl rounded-br-md border px-4 py-2.5 text-foreground shadow-sm"
+                    ? "border-primary/15 text-foreground rounded-2xl rounded-br-md border px-4 py-2.5 shadow-sm"
                     : "text-foreground"
                 )}
                 style={isUser ? { backgroundColor: "var(--color-user-message-bg)" } : undefined}
               >
                 {isUser ? (
-                  <p className="m-0 whitespace-pre-wrap break-words text-sm leading-relaxed">
+                  <p className="m-0 text-sm leading-relaxed wrap-break-word whitespace-pre-wrap">
                     {messageContent}
                   </p>
                 ) : hasContent ? (

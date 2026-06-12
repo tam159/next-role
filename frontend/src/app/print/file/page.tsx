@@ -125,7 +125,7 @@ export default function PrintFilePage(): React.JSX.Element {
       <style>{PRINT_STYLES}</style>
       <div className="print-root mx-auto max-w-[7in] p-6">
         {missing ? (
-          <p className="text-sm text-[color:var(--color-text-secondary)]">
+          <p className="text-sm text-(--color-text-secondary)">
             No file to print. Open a file from the Workspace and click <em>Save as PDF</em>.
           </p>
         ) : payload ? (

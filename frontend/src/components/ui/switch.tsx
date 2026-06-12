@@ -26,7 +26,7 @@ function Switch({ className, ...props }: React.ComponentProps<typeof SwitchPrimi
         },
       }}
       className={cn(
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:cursor-not-allowed disabled:opacity-50 data-[state=checked]:!bg-[var(--color-primary)]",
+        "focus-visible:ring-primary focus-visible:ring-2 focus-visible:outline-hidden disabled:cursor-not-allowed disabled:opacity-50 data-[state=checked]:bg-(--color-primary)!",
         className
       )}
       {...props}
@@ -43,7 +43,7 @@ function Switch({ className, ...props }: React.ComponentProps<typeof SwitchPrimi
           transition: "transform 0.2s",
           transform: "translateX(1px)",
         }}
-        className="data-[state=checked]:!translate-x-[17px]"
+        className="data-[state=checked]:translate-x-[17px]!"
       />
     </SwitchPrimitive.Root>
   );

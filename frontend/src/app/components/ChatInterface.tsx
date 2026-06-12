@@ -231,9 +231,9 @@ export const ChatInterface = React.memo<ChatInterfaceProps>(({ assistant }) => {
   }, [interrupt]);
 
   return (
-    <div className="flex flex-1 flex-col overflow-hidden bg-canvas">
-      <div className="flex-1 overflow-y-auto overflow-x-hidden overscroll-contain" ref={scrollRef}>
-        <div className="mx-auto w-full max-w-[1024px] px-6 pb-8 pt-5" ref={contentRef}>
+    <div className="bg-canvas flex flex-1 flex-col overflow-hidden">
+      <div className="flex-1 overflow-x-hidden overflow-y-auto overscroll-contain" ref={scrollRef}>
+        <div className="mx-auto w-full max-w-[1024px] px-6 pt-5 pb-8" ref={contentRef}>
           {isThreadLoading ? (
             <div className="flex items-center justify-center p-8">
               <p className="text-muted-foreground">Loading...</p>
@@ -260,8 +260,8 @@ export const ChatInterface = React.memo<ChatInterfaceProps>(({ assistant }) => {
         </div>
       </div>
 
-      <div className="flex-shrink-0 bg-gradient-to-t from-canvas via-canvas to-transparent px-4 pb-5 pt-4">
-        <div className="mx-auto flex w-full max-w-[1024px] flex-shrink-0 flex-col overflow-hidden rounded-2xl border border-border bg-surface-raised shadow-lg shadow-black/5">
+      <div className="from-canvas via-canvas shrink-0 bg-linear-to-t to-transparent px-4 pt-4 pb-5">
+        <div className="border-border bg-surface-raised mx-auto flex w-full max-w-[1024px] shrink-0 flex-col overflow-hidden rounded-2xl border shadow-lg shadow-black/5">
           <form onSubmit={handleSubmit} className="flex flex-col">
             <textarea
               ref={textareaRef}
@@ -272,11 +272,11 @@ export const ChatInterface = React.memo<ChatInterfaceProps>(({ assistant }) => {
               }}
               onKeyDown={handleKeyDown}
               placeholder={isLoading ? "Running..." : "Write your message..."}
-              className="font-inherit block w-full resize-none border-0 bg-transparent px-5 pb-3 pt-4 text-sm leading-7 text-foreground outline-none placeholder:text-muted-foreground"
+              className="font-inherit text-foreground placeholder:text-muted-foreground block w-full resize-none border-0 bg-transparent px-5 pt-4 pb-3 text-sm leading-7 outline-hidden"
               rows={2}
             />
-            <div className="flex items-center justify-between gap-2 border-t border-border/70 px-3 py-3">
-              <p className="pl-2 text-xs text-muted-foreground">
+            <div className="border-border/70 flex items-center justify-between gap-2 border-t px-3 py-3">
+              <p className="text-muted-foreground pl-2 text-xs">
                 Enter to send, Shift+Enter for a new line
               </p>
               <div className="flex justify-end gap-2">

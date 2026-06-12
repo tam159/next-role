@@ -117,7 +117,7 @@ export function Workspace() {
   const showSources = sources.length > 0;
 
   return (
-    <div className="flex h-full flex-col border-l border-border bg-background">
+    <div className="border-border bg-background flex h-full flex-col border-l">
       {Array.from(subagents.values()).map((snapshot) => (
         <SubagentSourcesProbe
           key={snapshot.id}
@@ -126,11 +126,11 @@ export function Workspace() {
           onSources={handleSubagentSources}
         />
       ))}
-      <div className="bg-surface/80 flex-shrink-0 border-b border-border px-6 py-4 backdrop-blur">
-        <h2 className="text-xl font-bold tracking-tight text-foreground">Workspace</h2>
-        <p className="text-sm text-muted-foreground">Plan, files, and sources</p>
+      <div className="bg-surface/80 border-border shrink-0 border-b px-6 py-4 backdrop-blur-sm">
+        <h2 className="text-foreground text-xl font-bold tracking-tight">Workspace</h2>
+        <p className="text-muted-foreground text-sm">Plan, files, and sources</p>
       </div>
-      <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden overscroll-contain">
+      <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain">
         <div className="flex flex-col gap-3 p-4">
           {showPlan && (
             <PlanSection todos={todos} open={planOpen} onToggle={() => setPlanOpen((v) => !v)} />

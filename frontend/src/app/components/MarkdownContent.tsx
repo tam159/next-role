@@ -59,7 +59,7 @@ export const MarkdownContent = React.memo<MarkdownContentProps>(({ content, clas
   return (
     <div
       className={cn(
-        "prose prose-sm min-w-0 max-w-full overflow-hidden break-words leading-relaxed text-inherit [&>p:last-child]:mb-0 [&>p]:mb-4 [&_h1:first-child]:mt-0 [&_h1]:mb-4 [&_h1]:mt-6 [&_h1]:font-semibold [&_h2:first-child]:mt-0 [&_h2]:mb-4 [&_h2]:mt-6 [&_h2]:font-semibold [&_h3:first-child]:mt-0 [&_h3]:mb-4 [&_h3]:mt-6 [&_h3]:font-semibold [&_h4:first-child]:mt-0 [&_h4]:mb-4 [&_h4]:mt-6 [&_h4]:font-semibold [&_h5:first-child]:mt-0 [&_h5]:mb-4 [&_h5]:mt-6 [&_h5]:font-semibold [&_h6:first-child]:mt-0 [&_h6]:mb-4 [&_h6]:mt-6 [&_h6]:font-semibold [&_li_p:last-child]:mb-0",
+        "prose prose-sm max-w-full min-w-0 overflow-hidden leading-relaxed wrap-break-word text-inherit [&_h1]:mt-6 [&_h1]:mb-4 [&_h1]:font-semibold [&_h1:first-child]:mt-0 [&_h2]:mt-6 [&_h2]:mb-4 [&_h2]:font-semibold [&_h2:first-child]:mt-0 [&_h3]:mt-6 [&_h3]:mb-4 [&_h3]:font-semibold [&_h3:first-child]:mt-0 [&_h4]:mt-6 [&_h4]:mb-4 [&_h4]:font-semibold [&_h4:first-child]:mt-0 [&_h5]:mt-6 [&_h5]:mb-4 [&_h5]:font-semibold [&_h5:first-child]:mt-0 [&_h6]:mt-6 [&_h6]:mb-4 [&_h6]:font-semibold [&_h6:first-child]:mt-0 [&_li_p:last-child]:mb-0 [&>p]:mb-4 [&>p:last-child]:mb-0",
         className
       )}
     >
@@ -82,7 +82,7 @@ export const MarkdownContent = React.memo<MarkdownContentProps>(({ content, clas
                 style={adaptiveCodeTheme}
                 language={match?.[1] ?? "text"}
                 PreTag="div"
-                className="max-w-full rounded-xl border border-border text-sm"
+                className="border-border max-w-full rounded-xl border text-sm"
                 wrapLines={true}
                 wrapLongLines={true}
                 lineProps={{
@@ -105,7 +105,7 @@ export const MarkdownContent = React.memo<MarkdownContentProps>(({ content, clas
               </SyntaxHighlighter>
             ) : (
               <code
-                className="rounded-md border border-border bg-tool-surface px-1.5 py-0.5 font-mono text-[0.9em] text-foreground"
+                className="border-border bg-tool-surface text-foreground rounded-md border px-1.5 py-0.5 font-mono text-[0.9em]"
                 {...props}
               >
                 {children}
@@ -121,7 +121,7 @@ export const MarkdownContent = React.memo<MarkdownContentProps>(({ content, clas
                 href={href}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="font-medium text-primary no-underline underline-offset-4 hover:underline"
+                className="text-primary font-medium no-underline underline-offset-4 hover:underline"
               >
                 {children}
               </a>
@@ -129,21 +129,21 @@ export const MarkdownContent = React.memo<MarkdownContentProps>(({ content, clas
           },
           blockquote({ children }: { children?: React.ReactNode }) {
             return (
-              <blockquote className="border-primary/30 my-4 rounded-r-xl border-l-4 bg-accent/40 py-2 pl-4 pr-3 text-muted-foreground">
+              <blockquote className="border-primary/30 bg-accent/40 text-muted-foreground my-4 rounded-r-xl border-l-4 py-2 pr-3 pl-4">
                 {children}
               </blockquote>
             );
           },
           ul({ children }: { children?: React.ReactNode }) {
             return (
-              <ul className="my-4 list-disc pl-6 [&>li:last-child]:mb-0 [&>li]:mb-1 [&_.task-list-item]:ml-0 [&_.task-list-item]:list-none [&_ul]:list-[circle] [&_ul_ul]:list-[square]">
+              <ul className="my-4 list-disc pl-6 [&_.task-list-item]:ml-0 [&_.task-list-item]:list-none [&_ul]:list-[circle] [&_ul_ul]:list-[square] [&>li]:mb-1 [&>li:last-child]:mb-0">
                 {children}
               </ul>
             );
           },
           ol({ children }: { children?: React.ReactNode }) {
             return (
-              <ol className="my-4 list-decimal pl-6 [&>li:last-child]:mb-0 [&>li]:mb-1">
+              <ol className="my-4 list-decimal pl-6 [&>li]:mb-1 [&>li:last-child]:mb-0">
                 {children}
               </ol>
             );
@@ -151,7 +151,7 @@ export const MarkdownContent = React.memo<MarkdownContentProps>(({ content, clas
           table({ children }: { children?: React.ReactNode }) {
             return (
               <div className="my-4 overflow-x-auto">
-                <table className="w-full border-separate border-spacing-0 overflow-hidden rounded-xl border border-border text-sm [&_td]:border-b [&_td]:border-border [&_td]:p-2 [&_th]:border-b [&_th]:border-border [&_th]:bg-tool-surface [&_th]:p-2 [&_th]:text-left [&_th]:font-semibold [&_tr:last-child_td]:border-b-0">
+                <table className="border-border [&_td]:border-border [&_th]:border-border [&_th]:bg-tool-surface w-full border-separate border-spacing-0 overflow-hidden rounded-xl border text-sm [&_td]:border-b [&_td]:p-2 [&_th]:border-b [&_th]:p-2 [&_th]:text-left [&_th]:font-semibold [&_tr:last-child_td]:border-b-0">
                   {children}
                 </table>
               </div>
@@ -162,12 +162,12 @@ export const MarkdownContent = React.memo<MarkdownContentProps>(({ content, clas
               <img
                 src={typeof src === "string" ? src : undefined}
                 alt={alt ?? ""}
-                className="my-4 h-auto max-w-full rounded-md border border-border"
+                className="border-border my-4 h-auto max-w-full rounded-md border"
               />
             );
           },
           hr() {
-            return <hr className="my-6 border-border" />;
+            return <hr className="border-border my-6" />;
           },
         }}
       >
