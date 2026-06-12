@@ -34,7 +34,7 @@
     "date-fns": "^4.4.0",
     "js-yaml": "^4.2.0",
     "lodash": "^4.18.1",
-    "lucide-react": "^0.539.0",
+    "lucide-react": "^1.18.0",
     "mammoth": "^1.12.0",
     "next": "^16.2.9",
     "nuqs": "^2.8.9",
