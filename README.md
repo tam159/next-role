@@ -205,7 +205,7 @@ flowchart LR
     Sem["Semantic memory · AGENTS.md"] -. loaded into system prompt .-> Agent
     Proc["Procedural memory · skills/*/SKILL.md"] -. loaded on demand .-> Agent
     Work["Working memory · LangGraph thread"] -. drives .-> Agent
-    Store --- Epi["Episodic memory · persisted artifacts<br/>(/memory/ auto-memory planned)"]
+    Store --- Epi["Episodic memory · persisted artifacts<br/>(incl. /memory/ auto-memory)"]
     Disk --- Epi
 ```
 
@@ -214,7 +214,7 @@ Mapped to memory types:
 - **Working memory** — the live LangGraph conversation thread.
 - **Semantic memory** — `AGENTS.md`, always in the system prompt.
 - **Procedural memory** — `skills/*/SKILL.md`, loaded on demand.
-- **Episodic memory** — persisted artifacts in Postgres + disk. Per-user *auto-memory* (personalization via the `/memory/` route) is on the [roadmap](#roadmap).
+- **Episodic memory** — persisted artifacts in Postgres + disk, including *auto-memory*: standing preferences saved to the `/memory/` route and auto-applied across sessions.
 
 </details>
 
@@ -227,7 +227,7 @@ Mapped to memory types:
 | --- | --- |
 | **Backend** | Python 3.13 · LangChain v1 · LangGraph 1.x · DeepAgents 0.6 · `uv` · served on `langchain/langgraph-api:3.13` |
 | **Agent I/O** | Tavily (web search) · LlamaParse / LlamaCloud (document parsing) · `rendercv` (resume → PDF) · WeasyPrint (battlecard → PDF) |
-| **Frontend** | Next.js 16 · React 19 · TypeScript · Tailwind · `pnpm` · `@langchain/langgraph-sdk` (`useStream`) |
+| **Frontend** | Next.js 16 · React 19 · TypeScript · Tailwind · `pnpm` · `@langchain/react` (v2 `useStream`) |
 | **Data** | PostgreSQL 18 + pgvector · Redis 8 |
 | **Infra** | Docker Compose (frontend · backend · postgres · redis) |
 | **Observability** | LangSmith |
@@ -260,12 +260,10 @@ Set `LANGCHAIN_API_KEY` and `LANGCHAIN_TRACING_V2=true` in `.env`, and every run
 
 ## Roadmap
 
-- 🧠 **Auto-memory & personalization** — populate the `/memory/` route so the agent learns your style, history, and preferences and auto-applies them across sessions.
 - 💤 **"Auto-dream" consolidation** — sleep-time compaction that prunes stale notes and merges insights into durable memory.
 - 📦 **Remote sandboxes** — swap `LocalShellBackend` for an isolated remote sandbox (e.g. [Daytona](https://www.daytona.io/)) so render/shell steps are safe for multi-tenant use.
 - 📊 **Agent evaluation** — LangSmith evals over the workflow (the `@pytest.mark.eval` marker is already reserved).
 - 🎨 **Enhanced UI** — richer artifact editing, diff views, and inline regeneration.
-- ⚡ **React streaming SDK migration** — evaluate `@langchain/react` to replace the current frontend `useStream` integration, using selector-based subagent subscriptions to avoid UI hangs when parallel subagents stream large tool inputs such as `write_file.content`.
 - 🔌 **MCP / A2A examples** — sample integrations driving `career_agent` from external agents and IDEs.
 - 🧵 **Per-thread / multi-user scoping** — namespace artifacts per user instead of the current global layout.
 - 🌐 **More sources & ATS-aware tailoring** — pluggable retrievers + keyword/ATS optimization passes.
@@ -277,7 +275,7 @@ Set `LANGCHAIN_API_KEY` and `LANGCHAIN_TRACING_V2=true` in `.env`, and every run
 - 🔒 **Local shell execution** — `VirtualPathShellBackend` runs render commands via `subprocess` on the host. Safe locally; **not** hardened for multi-tenant production (needs sandboxing — see roadmap).
 - 👤 **Global file scoping** — uploads and artifacts share one filesystem layout; re-uploading a filename overwrites. No per-user isolation yet.
 - 🧪 **LLM evals deferred** — current tests are unit + local-DB integration; automated quality evals aren't wired up yet.
-- 🧠 **No cross-session personalization yet** — memory persists within a project (conversation threads + artifacts in Postgres), but the agent doesn't yet learn your style and history and auto-apply them to brand-new chats; the `/memory/` auto-memory route is on the roadmap.
+- 🧠 **Personalization is preferences-only** — the agent persists and auto-applies the preferences you *state* across sessions, but doesn't yet infer your style/history on its own or consolidate memory over time (see [roadmap](#roadmap)).
 - ⏱️ **Latency** — a full run makes several LLM and tool calls across multiple agents; expect minutes, not seconds.
 
 ## Contributing

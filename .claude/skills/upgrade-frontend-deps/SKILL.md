@@ -119,7 +119,7 @@ Run the **full E2E one last time** on the final state, then commit the dedupe di
 
 ### 9. PR
 
-Push as `tam159` (`gh auth switch --user tam159` first for gh; `git push` already uses the right SSH identity), open the PR with `mcp__github__create_pull_request` (owner `tam159`, repo `next-role`, base `main`). Body follows the PR #15/#16 format: **Summary / Upgraded table (old → new, mark exact pins) / Removed / Held back (with reasons) / Migration notes / Test plan**. Watch `code-quality` + `backend-tests`; fix failures in the same PR. Leave merging to the user.
+Push  using `gh` or `git push` (already uses the right SSH identity), open the PR with `mcp__github__create_pull_request` (owner `tam159`, repo `next-role`, base `main`). Body follows the PR #15/#16 format: **Summary / Upgraded table (old → new, mark exact pins) / Removed / Held back (with reasons) / Migration notes / Test plan**. Watch `code-quality` + `backend-tests`; fix failures in the same PR. Leave merging to the user.
 
 ### 10. Report
 
