@@ -12,8 +12,8 @@ importers:
         specifier: ^1.1.48
         version: 1.1.48
       '@langchain/langgraph-sdk':
-        specifier: 1.9.21
-        version: 1.9.21(@langchain/core@1.1.48)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
+        specifier: 1.9.22
+        version: 1.9.22(@langchain/core@1.1.48)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
       '@langchain/react':
         specifier: ^1.0.22
         version: 1.0.22(@langchain/core@1.1.48)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
@@ -492,6 +492,24 @@ packages:
 
   '@langchain/langgraph-sdk@1.9.21':
     resolution: {integrity: sha512-XE4DL12BkVTjTRUWi9CJN8s/hZ/mn4k2VcIsC5mWVHIepWZLmuW7T1NhVmRRZ7Kv4HpZ4O1plZkVtLpl6YLsoQ==}
+    peerDependencies:
+      '@langchain/core': ^1.1.48
+      react: ^18 || ^19
+      react-dom: ^18 || ^19
+      svelte: ^4.0.0 || ^5.0.0
+      vue: ^3.0.0
+    peerDependenciesMeta:
+      react:
+        optional: true
+      react-dom:
+        optional: true
+      svelte:
+        optional: true
+      vue:
+        optional: true
+
+  '@langchain/langgraph-sdk@1.9.22':
+    resolution: {integrity: sha512-DBKs9R2SGivlGqK/ZRTOUu39Q7Z+yRrG4PoTYLIWn7pqrLNhyZ4yZI/tEEEi/J0inpCuKfg/eydSwnRmPV/q3w==}
     peerDependencies:
       '@langchain/core': ^1.1.48
       react: ^18 || ^19
@@ -1556,8 +1574,8 @@ packages:
   immediate@3.0.6:
     resolution: {integrity: sha512-XXOFtyqDjNDAQxVfYxuF7g9Il/IbWmmlQg2MYKOH8ExIT1qg6xc4zyS3HaEEATgs1btfzxq15ciUiY7gjSXRGQ==}
 
-  immutable@5.1.5:
-    resolution: {integrity: sha512-t7xcm2siw+hlUM68I+UEOK+z84RzmN59as9DZ7P1l0994DKUWV7UXBMQZVxaoMSRQ+PBZbHCOoBt7a2wxOMt+A==}
+  immutable@5.1.6:
+    resolution: {integrity: sha512-q1swsS8K7L8usSHuOqF2TAoCCkonYz0SG38wLAggaa4Wml70zixIvt2ql4coQ2C2B3hTjltJry4r6bULwgAXLQ==}
 
   imurmurhash@0.1.4:
     resolution: {integrity: sha512-JmXMZ6wuvDmLiHEml9ykzqO6lwFbof0GG4IkcGaENdCRDDmMVnny7s5HsIgHCbaq0w2MyPhDqkhTUgS2LU2PHA==}
@@ -2768,6 +2786,17 @@ snapshots:
       react: 19.2.7
       react-dom: 19.2.7(react@19.2.7)
 
+  '@langchain/langgraph-sdk@1.9.22(@langchain/core@1.1.48)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)':
+    dependencies:
+      '@langchain/core': 1.1.48
+      '@langchain/protocol': 0.0.16
+      '@types/json-schema': 7.0.15
+      p-queue: 9.3.0
+      p-retry: 7.1.1
+    optionalDependencies:
+      react: 19.2.7
+      react-dom: 19.2.7(react@19.2.7)
+
   '@langchain/protocol@0.0.16': {}
 
   '@langchain/react@1.0.22(@langchain/core@1.1.48)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)':
@@ -3748,7 +3777,7 @@ snapshots:
 
   immediate@3.0.6: {}
 
-  immutable@5.1.5:
+  immutable@5.1.6:
     optional: true
 
   imurmurhash@0.1.4: {}
@@ -4535,7 +4564,7 @@ snapshots:
   sass@1.99.0:
     dependencies:
       chokidar: 4.0.3
-      immutable: 5.1.5
+      immutable: 5.1.6
       source-map-js: 1.2.1
     optionalDependencies:
       '@parcel/watcher': 2.5.6
