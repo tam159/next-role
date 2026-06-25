@@ -1,0 +1,46 @@
+name: CI
+
+# File hygiene + secret scanning run on EVERY change, docs included — these
+# hooks apply to all file types, so (unlike code-quality) this pipeline is not
+# skipped for doc-only PRs. It stays lightweight: pre-commit runs via uvx with
+# no backend/frontend toolchain install; the code linters are SKIP-ped here and
+# run in the code-quality pipeline instead.
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+# Cancel superseded runs on the same ref (e.g. new push to a PR branch).
+concurrency:
+  group: ci-hygiene-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  hygiene:
+    name: hygiene
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v8.1.0 # no moving v8 major tag is published; pin the exact release
+        with:
+          enable-cache: true
+
+      - name: Cache pre-commit hook environments
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pre-commit
+          key: pre-commit-hygiene-${{ hashFiles('.pre-commit-config.yaml') }}
+
+      - name: Run file-hygiene hooks
+        env:
+          # Code linters run in the code-quality pipeline, not here. Keep this in
+          # sync with the SKIP list in ci.yml — the two partition the hook set.
+          SKIP: ruff-check,ruff-format,backend-typecheck,frontend-lint,frontend-format,frontend-typecheck,frontend-langchain-sdk-sync
+        run: uvx pre-commit run --all-files --show-diff-on-failure --color always

@@ -1,31 +1,43 @@
 name: CI
 
+# Code-quality runs the code linters on any change that isn't purely
+# documentation. Doc-only PRs (Markdown, docs/, LICENSE) skip it — these
+# linters are all scoped to code paths and never touch docs. File hygiene and
+# secret scanning (for every change, docs included) live in the hygiene
+# pipeline instead.
 on:
   pull_request:
     branches: [main]
+    paths-ignore:
+      - "**/*.md"
+      - "docs/**"
+      - "LICENSE"
   push:
     branches: [main]
+    paths-ignore:
+      - "**/*.md"
+      - "docs/**"
+      - "LICENSE"
 
 # Cancel superseded runs on the same ref (e.g. new push to a PR branch).
 concurrency:
-  group: ci-${{ github.workflow }}-${{ github.ref }}
+  group: ci-code-quality-${{ github.ref }}
   cancel-in-progress: true
 
 permissions:
   contents: read
 
 jobs:
-  # Code quality: the exact same pre-commit gate contributors run locally —
-  # ruff (lint + format), ty (backend types), eslint + prettier + tsc
-  # (frontend), gitleaks, and the file hygiene hooks.
+  # Code quality: the code linters from the pre-commit gate — ruff (lint +
+  # format), ty (backend types), eslint + prettier + tsc (frontend). File
+  # hygiene + gitleaks run in the hygiene pipeline (SKIP-ped here so they don't
+  # run twice on code changes).
   code-quality:
     name: code-quality
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v6
-        with:
-          fetch-depth: 0 # gitleaks scans full history
 
       - name: Install uv
         uses: astral-sh/setup-uv@v8.1.0 # no moving v8 major tag is published; pin the exact release
@@ -61,27 +73,7 @@ jobs:
       - name: Run pre-commit
         env:
           UV_PROJECT: backend # makes the `uv run ty check` hook resolve backend/ from repo root
+          # File-hygiene hooks + gitleaks run in the hygiene pipeline, not here.
+          # Keep in sync with hygiene.yml — the two SKIP lists partition the hooks.
+          SKIP: trailing-whitespace,end-of-file-fixer,check-yaml,check-added-large-files,gitleaks
         run: uv run pre-commit run --all-files --show-diff-on-failure --color always
-
-  # Backend tests: the default suite (unit tests). Integration tests
-  # (`-m integration`) need a live Postgres/Redis stack and run separately.
-  backend-tests:
-    name: backend-tests
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: backend
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v6
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@v8.1.0 # no moving v8 major tag is published; pin the exact release
-        with:
-          enable-cache: true
-
-      - name: Sync backend
-        run: uv sync
-
-      - name: Run unit tests
-        run: uv run pytest

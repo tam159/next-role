@@ -1,0 +1,47 @@
+name: CI
+
+# Backend unit tests only run when backend code changes (or a workflow file
+# does). Frontend-only and doc-only changes skip this pipeline entirely.
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "backend/**"
+      - ".github/workflows/**"
+  push:
+    branches: [main]
+    paths:
+      - "backend/**"
+      - ".github/workflows/**"
+
+# Cancel superseded runs on the same ref (e.g. new push to a PR branch).
+concurrency:
+  group: ci-backend-tests-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  # Backend tests: the default suite (unit tests). Integration tests
+  # (`-m integration`) need a live Postgres/Redis stack and run separately.
+  backend-tests:
+    name: backend-tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v8.1.0 # no moving v8 major tag is published; pin the exact release
+        with:
+          enable-cache: true
+
+      - name: Sync backend
+        run: uv sync
+
+      - name: Run unit tests
+        run: uv run pytest
