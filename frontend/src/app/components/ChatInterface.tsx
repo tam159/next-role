@@ -57,6 +57,11 @@ const SUGGESTIONS = [
   },
 ];
 
+// The composer's paperclip attach is hidden by default — uploads are handled in
+// the Workspace (Files → Upload), which uses the same path. Flip to `true` to
+// re-show the paperclip in the composer; the upload logic below stays wired.
+const COMPOSER_ATTACH_ENABLED = false;
+
 export const ChatInterface = React.memo<ChatInterfaceProps>(({ assistant }) => {
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const attachInputRef = useRef<HTMLInputElement | null>(null);
@@ -403,27 +408,31 @@ export const ChatInterface = React.memo<ChatInterfaceProps>(({ assistant }) => {
               />
               <div className="flex items-center justify-between gap-2 px-3 pb-3">
                 <div className="flex min-w-0 items-center gap-1.5">
-                  <input
-                    ref={attachInputRef}
-                    type="file"
-                    multiple
-                    accept=".pdf,.doc,.docx,.txt,.md"
-                    className="hidden"
-                    onChange={handleAttach}
-                  />
-                  <button
-                    type="button"
-                    title="Attach a file"
-                    onClick={() => attachInputRef.current?.click()}
-                    disabled={uploading || submitDisabled}
-                    className="grid size-9 shrink-0 place-items-center rounded-full text-tertiary transition-colors hover:bg-surface3 hover:text-primary disabled:opacity-50"
-                  >
-                    {uploading ? (
-                      <Loader2 size={16} className="animate-spin" />
-                    ) : (
-                      <Paperclip size={16} />
-                    )}
-                  </button>
+                  {COMPOSER_ATTACH_ENABLED && (
+                    <>
+                      <input
+                        ref={attachInputRef}
+                        type="file"
+                        multiple
+                        accept=".pdf,.doc,.docx,.txt,.md"
+                        className="hidden"
+                        onChange={handleAttach}
+                      />
+                      <button
+                        type="button"
+                        title="Attach a file"
+                        onClick={() => attachInputRef.current?.click()}
+                        disabled={uploading || submitDisabled}
+                        className="grid size-9 shrink-0 place-items-center rounded-full text-tertiary transition-colors hover:bg-surface3 hover:text-primary disabled:opacity-50"
+                      >
+                        {uploading ? (
+                          <Loader2 size={16} className="animate-spin" />
+                        ) : (
+                          <Paperclip size={16} />
+                        )}
+                      </button>
+                    </>
+                  )}
                   <span className="truncate text-xs text-tertiary">
                     Enter to send · Shift+Enter for newline
                   </span>
