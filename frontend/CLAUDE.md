@@ -2,6 +2,12 @@
 
 Next.js 16 (App Router, Turbopack) + React 19 + TypeScript + Tailwind. Talks to the backend agents via `@langchain/react` (the `useStream` v2 runtime + scoped selector hooks) with `@langchain/langgraph-sdk` for the raw `Client` (threads/store APIs) and shared types.
 
+## Design system
+
+`DESIGN.md` (in this folder) is the human-facing spec for the UI: color tokens (warm paper + espresso, user-selectable accent — emerald default), typography (Newsreader / Schibsted Grotesk / JetBrains Mono), spacing/radius/shadow scales, and per-component specs with do's & don'ts. **Read it before changing styling, colors, theming, or adding/altering components.** Keep it in sync when the design system changes.
+
+Tokens live in `src/app/globals.css` (CSS variables: app `--color-*`/`--brand-accent*` layer + Radix HSL layer) and `tailwind.config.mjs`. Gotcha: Tailwind `bg-primary`/`text-primary` map to the **paper** tokens, not the brand — use `bg-brand-accent`/`text-brand-accent`/`text-on-accent` or the Button `primary` variant for brand-colored elements.
+
 ## Tooling
 
 - **Package manager**: `pnpm` only (lockfile is `pnpm-lock.yaml`, version pinned via `packageManager` in `package.json`). Don't run `npm install` or `yarn`.
