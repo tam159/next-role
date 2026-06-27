@@ -1,23 +1,16 @@
 name: CI
 
 # Code-quality runs the code linters on any change that isn't purely
-# documentation. Doc-only PRs (Markdown, docs/, LICENSE) skip it — these
-# linters are all scoped to code paths and never touch docs. File hygiene and
-# secret scanning (for every change, docs included) live in the hygiene
-# pipeline instead.
+# documentation. The workflow ALWAYS triggers so the required `code-quality`
+# check is always reported; a job-level `if:` skips the linters (→ reports
+# success) for doc-only PRs. A workflow-level `paths-ignore:` skip would instead
+# leave the required check stuck in "Expected" and block the merge:
+# https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/defining-the-mergeability-of-pull-requests/troubleshooting-required-status-checks
 on:
   pull_request:
     branches: [main]
-    paths-ignore:
-      - "**/*.md"
-      - "docs/**"
-      - "LICENSE"
   push:
     branches: [main]
-    paths-ignore:
-      - "**/*.md"
-      - "docs/**"
-      - "LICENSE"
 
 # Cancel superseded runs on the same ref (e.g. new push to a PR branch).
 concurrency:
@@ -28,12 +21,38 @@ permissions:
   contents: read
 
 jobs:
+  # Cheap gate (~10s): is there any non-doc change? `predicate-quantifier: every`
+  # makes a file count only when it matches ALL patterns, so `code` is true
+  # unless every changed file is Markdown / under docs/ / LICENSE. Its own check
+  # (`detect-code`) is not required; it only feeds the `if:` below.
+  detect-code:
+    runs-on: ubuntu-latest
+    outputs:
+      code: ${{ steps.filter.outputs.code }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Detect non-doc changes
+        uses: dorny/paths-filter@fbd0ab8f3e69293af611ebaee6363fc25e6d187d # v4.0.1
+        id: filter
+        with:
+          predicate-quantifier: "every"
+          filters: |
+            code:
+              - "**"
+              - "!**/*.md"
+              - "!docs/**"
+              - "!LICENSE"
+
   # Code quality: the code linters from the pre-commit gate — ruff (lint +
   # format), ty (backend types), eslint + prettier + tsc (frontend). File
   # hygiene + gitleaks run in the hygiene pipeline (SKIP-ped here so they don't
-  # run twice on code changes).
+  # run twice on code changes). Skipped (→ reports success) on doc-only PRs.
   code-quality:
     name: code-quality
+    needs: detect-code
+    if: needs.detect-code.outputs.code == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
