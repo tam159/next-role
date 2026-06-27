@@ -13,6 +13,7 @@ import { useDefaultLayout } from "react-resizable-panels";
 import { ThreadList } from "@/app/components/ThreadList";
 import { ThreadsDrawer } from "@/app/components/ThreadsDrawer";
 import { ChatProvider } from "@/providers/ChatProvider";
+import { FilePreviewProvider } from "@/providers/FilePreviewProvider";
 import { ChatInterface } from "@/app/components/ChatInterface";
 import { Workspace } from "@/app/components/Workspace";
 
@@ -144,73 +145,75 @@ function HomePageInner({
         initialConfig={config}
       />
       <ChatProvider activeAssistant={assistant} onHistoryRevalidate={() => mutateThreads?.()}>
-        <div className="flex h-screen flex-col bg-background text-foreground">
-          <TopBar
-            assistant={assistant}
-            threadId={threadId}
-            interruptCount={interruptCount}
-            onOpenThreads={() => (threadsPinned ? setThreadsPinned(false) : setSidebar("1"))}
-            onOpenSettings={() => setConfigDialogOpen(true)}
-            onNewThread={() => setThreadId(null)}
-          />
+        <FilePreviewProvider>
+          <div className="flex h-screen flex-col bg-background text-foreground">
+            <TopBar
+              assistant={assistant}
+              threadId={threadId}
+              interruptCount={interruptCount}
+              onOpenThreads={() => (threadsPinned ? setThreadsPinned(false) : setSidebar("1"))}
+              onOpenSettings={() => setConfigDialogOpen(true)}
+              onNewThread={() => setThreadId(null)}
+            />
 
-          <div className="flex flex-1 overflow-hidden bg-canvas">
-            {/* Pinned → persistent docked column (stays open while switching). */}
-            {threadsPinned && (
-              <aside className="flex w-[300px] shrink-0 flex-col border-r border-border bg-surface">
+            <div className="flex flex-1 overflow-hidden bg-canvas">
+              {/* Pinned → persistent docked column (stays open while switching). */}
+              {threadsPinned && (
+                <aside className="flex w-[300px] shrink-0 flex-col border-r border-border bg-surface">
+                  <ThreadList
+                    pinned
+                    onTogglePin={() => setThreadsPinned(false)}
+                    onThreadSelect={handleThreadSelect}
+                    onMutateReady={(fn) => setMutateThreads(() => fn)}
+                    onInterruptCountChange={setInterruptCount}
+                  />
+                </aside>
+              )}
+
+              <div className="min-w-0 flex-1">
+                <ResizablePanelGroup
+                  orientation="horizontal"
+                  defaultLayout={defaultLayout}
+                  onLayoutChanged={onLayoutChanged}
+                >
+                  <ResizablePanel
+                    id="chat"
+                    className="relative flex flex-col"
+                    defaultSize="46%"
+                    minSize="30%"
+                  >
+                    <ChatInterface assistant={assistant} />
+                  </ResizablePanel>
+                  <ResizableHandle />
+                  <ResizablePanel
+                    id="workspace"
+                    defaultSize="54%"
+                    minSize="25%"
+                    className="relative flex flex-col"
+                  >
+                    <Workspace />
+                  </ResizablePanel>
+                </ResizablePanelGroup>
+              </div>
+            </div>
+
+            {/* Unpinned → overlay drawer that auto-closes on select. */}
+            {!threadsPinned && (
+              <ThreadsDrawer open={!!sidebar} onOpenChange={(o) => setSidebar(o ? "1" : null)}>
                 <ThreadList
-                  pinned
-                  onTogglePin={() => setThreadsPinned(false)}
+                  onTogglePin={() => {
+                    setThreadsPinned(true);
+                    setSidebar(null);
+                  }}
                   onThreadSelect={handleThreadSelect}
                   onMutateReady={(fn) => setMutateThreads(() => fn)}
+                  onClose={() => setSidebar(null)}
                   onInterruptCountChange={setInterruptCount}
                 />
-              </aside>
+              </ThreadsDrawer>
             )}
-
-            <div className="min-w-0 flex-1">
-              <ResizablePanelGroup
-                orientation="horizontal"
-                defaultLayout={defaultLayout}
-                onLayoutChanged={onLayoutChanged}
-              >
-                <ResizablePanel
-                  id="chat"
-                  className="relative flex flex-col"
-                  defaultSize="46%"
-                  minSize="30%"
-                >
-                  <ChatInterface assistant={assistant} />
-                </ResizablePanel>
-                <ResizableHandle />
-                <ResizablePanel
-                  id="workspace"
-                  defaultSize="54%"
-                  minSize="25%"
-                  className="relative flex flex-col"
-                >
-                  <Workspace />
-                </ResizablePanel>
-              </ResizablePanelGroup>
-            </div>
           </div>
-
-          {/* Unpinned → overlay drawer that auto-closes on select. */}
-          {!threadsPinned && (
-            <ThreadsDrawer open={!!sidebar} onOpenChange={(o) => setSidebar(o ? "1" : null)}>
-              <ThreadList
-                onTogglePin={() => {
-                  setThreadsPinned(true);
-                  setSidebar(null);
-                }}
-                onThreadSelect={handleThreadSelect}
-                onMutateReady={(fn) => setMutateThreads(() => fn)}
-                onClose={() => setSidebar(null)}
-                onInterruptCountChange={setInterruptCount}
-              />
-            </ThreadsDrawer>
-          )}
-        </div>
+        </FilePreviewProvider>
       </ChatProvider>
     </>
   );

@@ -1,14 +1,32 @@
 "use client";
 
 import React from "react";
-import ReactMarkdown from "react-markdown";
+import ReactMarkdown, { defaultUrlTransform } from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
+import { FileText } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useFilePreview } from "@/providers/FilePreviewProvider";
+import { FILE_PATH_URL_PREFIX, remarkFilePaths } from "@/app/utils/filePaths";
 
 interface MarkdownContentProps {
   content: string;
   className?: string;
+}
+
+/** A clickable workspace-file path that opens the file preview. */
+function FileLink({ label, onOpen }: { label: React.ReactNode; onOpen: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onOpen}
+      title="Open file"
+      className="inline-flex max-w-full items-baseline gap-1 rounded-md px-1 align-baseline font-mono text-[0.9em] text-brand-accent underline-offset-2 hover:bg-brand-accent-soft hover:underline"
+    >
+      <FileText className="size-3 shrink-0 translate-y-0.5" />
+      <span className="break-all">{label}</span>
+    </button>
+  );
 }
 
 const adaptiveCodeTheme = {
@@ -56,6 +74,7 @@ const adaptiveCodeTheme = {
 } as const;
 
 export const MarkdownContent = React.memo<MarkdownContentProps>(({ content, className = "" }) => {
+  const preview = useFilePreview();
   return (
     <div
       className={cn(
@@ -64,7 +83,12 @@ export const MarkdownContent = React.memo<MarkdownContentProps>(({ content, clas
       )}
     >
       <ReactMarkdown
-        remarkPlugins={[remarkGfm]}
+        remarkPlugins={[remarkGfm, remarkFilePaths]}
+        // Preserve our sentinel file scheme (react-markdown would otherwise
+        // sanitize the unknown protocol to an empty href).
+        urlTransform={(url) =>
+          url.startsWith(FILE_PATH_URL_PREFIX) ? url : defaultUrlTransform(url)
+        }
         components={{
           code({
             className,
@@ -104,18 +128,38 @@ export const MarkdownContent = React.memo<MarkdownContentProps>(({ content, clas
                 {codeStr.replace(/\n$/, "")}
               </SyntaxHighlighter>
             ) : (
-              <code
-                className="rounded-md border border-border bg-tool-surface px-1.5 py-0.5 font-mono text-[0.9em] text-foreground"
-                {...props}
-              >
-                {children}
-              </code>
+              (() => {
+                // Inline code that names a real workspace file → make it openable.
+                const fileKey = preview?.resolveFile(codeStr) ?? null;
+                if (fileKey) {
+                  return <FileLink label={children} onOpen={() => preview!.openFile(fileKey)} />;
+                }
+                return (
+                  <code
+                    className="rounded-md border border-border bg-tool-surface px-1.5 py-0.5 font-mono text-[0.9em] text-foreground"
+                    {...props}
+                  >
+                    {children}
+                  </code>
+                );
+              })()
             );
           },
           pre({ children }: { children?: React.ReactNode }) {
             return <div className="my-4 max-w-full overflow-hidden last:mb-0">{children}</div>;
           },
           a({ href, children }: { href?: string; children?: React.ReactNode }) {
+            // Bare file paths are rewritten to this scheme by remarkFilePaths.
+            // Link only if the path resolves to a real file; otherwise (e.g. a
+            // hallucinated path) render as plain text.
+            if (href?.startsWith(FILE_PATH_URL_PREFIX)) {
+              const candidate = href.slice(FILE_PATH_URL_PREFIX.length);
+              const fileKey = preview?.resolveFile(candidate) ?? null;
+              if (fileKey) {
+                return <FileLink label={children} onOpen={() => preview!.openFile(fileKey)} />;
+              }
+              return <>{children}</>;
+            }
             return (
               <a
                 href={href}
