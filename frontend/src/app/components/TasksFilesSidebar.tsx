@@ -44,53 +44,47 @@ function FileCard({
   onRequestDelete: (path: string) => void;
   onToggleSelect: (path: string, event: React.MouseEvent) => void;
 }) {
-  const category = getFileCategory(filePath);
   const { prefix, basename } = splitFilePath(filePath);
   const { stem, ext } = splitBasename(basename);
-  const iconColor = category?.iconVar ?? "var(--color-primary)";
-
-  const nameRef = useRef<HTMLSpanElement>(null);
-  const [isTruncated, setIsTruncated] = useState(false);
-
-  useEffect(() => {
-    const el = nameRef.current;
-    if (!el) return;
-    const check = () => setIsTruncated(el.scrollWidth > el.clientWidth);
-    check();
-    const ro = new ResizeObserver(check);
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, [prefix, stem]);
+  const extKey = ext.replace(/^\./, "").toLowerCase();
+  // Color groups files by folder category (tailored_resume, interview_battlecard,
+  // research, …) so related artifacts share a hue; the badge still labels the
+  // file format.
+  const category = getFileCategory(filePath);
+  const typeColor = category?.iconVar ?? "var(--text-secondary)";
+  const typeSoft = `color-mix(in srgb, ${typeColor} 14%, transparent)`;
+  const typeLabel = (extKey || "file").toUpperCase();
 
   return (
     <div
       className={cn(
-        "group relative rounded-xl transition-shadow",
-        selected && "ring-2 ring-primary/40"
+        "group relative rounded-xl transition-transform hover:-translate-y-0.5",
+        selected && "ring-2 ring-brand-accent/50"
       )}
-      style={{ backgroundColor: "var(--color-file-button)" }}
     >
       <button
         type="button"
         onClick={() => onOpen({ path: filePath, content: fileContent })}
         title={filePath}
-        className="w-full cursor-pointer space-y-2 rounded-xl border border-border bg-transparent px-3 py-4 shadow-xs transition-colors hover:border-primary/25"
-        onMouseEnter={(e) => {
-          e.currentTarget.parentElement!.style.backgroundColor = "var(--color-file-button-hover)";
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.parentElement!.style.backgroundColor = "var(--color-file-button)";
-        }}
+        className="w-full cursor-pointer space-y-2 rounded-xl border border-border bg-surface-raised px-3 py-3 text-left shadow-sm transition-colors hover:border-brand-strong/40"
       >
-        <FileText size={24} className="mx-auto" style={{ color: iconColor }} />
-        <span className="flex w-full min-w-0 items-baseline text-sm leading-relaxed text-foreground">
-          <span ref={nameRef} className="min-w-0 flex-1 truncate">
-            {prefix}
-            {stem}
+        <div className="flex items-center justify-between gap-2">
+          <span
+            className="grid size-9 place-items-center rounded-[9px]"
+            style={{ backgroundColor: typeSoft }}
+          >
+            <FileText size={17} style={{ color: typeColor }} />
           </span>
-          {ext && (
-            <span className={cn("shrink-0 font-semibold", isTruncated && "ml-1")}>{ext}</span>
-          )}
+          <span
+            className="rounded-md px-1.5 py-0.5 text-[10px] font-bold tracking-wide uppercase"
+            style={{ color: typeColor, backgroundColor: typeSoft }}
+          >
+            {typeLabel}
+          </span>
+        </div>
+        <span className="block truncate text-[12.5px] font-semibold text-foreground">{stem}</span>
+        <span className="block truncate font-mono text-[10.5px] text-tertiary">
+          {prefix || "/"}
         </span>
       </button>
       <button

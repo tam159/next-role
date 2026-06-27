@@ -69,11 +69,13 @@ export function PlanSection({ todos, open, onToggle }: PlanSectionProps) {
         </div>
       ) : (
         <div className="flex flex-col gap-4">
-          <div className="overflow-hidden rounded-2xl border border-primary/15 bg-linear-to-br from-primary/10 via-surface to-surface p-4 shadow-xs">
+          <div className="overflow-hidden rounded-2xl border border-brand-strong/15 bg-linear-to-br from-brand-accent-soft via-surface-raised to-surface-raised p-4 shadow-sm">
             <div className="flex items-center justify-between gap-3">
               <div className="text-sm font-semibold text-foreground">Progress</div>
               <div className="flex items-center gap-2">
-                <span className="text-sm font-semibold text-primary tabular-nums">{progress}%</span>
+                <span className="text-sm font-bold text-brand-accent-text tabular-nums">
+                  {progress}%
+                </span>
                 {activeCount > 0 && (
                   <span className="inline-flex items-center gap-1 rounded-full border border-warning/25 bg-warning/10 px-2.5 py-1 text-xs font-medium text-warning">
                     <span className="size-1.5 animate-pulse rounded-full bg-warning" />
@@ -82,10 +84,13 @@ export function PlanSection({ todos, open, onToggle }: PlanSectionProps) {
                 )}
               </div>
             </div>
-            <div className="mt-3 h-2 overflow-hidden rounded-full bg-muted">
+            <div className="mt-3 h-2.5 overflow-hidden rounded-full bg-surface3 ring-1 ring-border2/60 ring-inset">
               <div
-                className="h-full rounded-full bg-primary transition-all duration-500"
-                style={{ width: `${progress}%` }}
+                className={cn(
+                  "h-full rounded-full bg-brand-accent transition-[width] duration-500 ease-out",
+                  activeCount > 0 && "progress-active"
+                )}
+                style={{ width: `${Math.max(progress, activeCount > 0 ? 5 : 0)}%` }}
               />
             </div>
           </div>

@@ -4,7 +4,6 @@ import { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -12,6 +11,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { AppearanceSettings } from "@/app/components/AppearanceSettings";
 import { DEFAULT_CONFIG, StandaloneConfig } from "@/lib/config";
 
 interface ConfigDialogProps {
@@ -24,21 +24,7 @@ interface ConfigDialogProps {
 const INIT_CHAT_MODEL_DOCS_URL =
   "https://reference.langchain.com/python/langchain/chat_models/base/init_chat_model";
 
-const ModelsSectionHelp = () => (
-  <p className="text-xs text-muted-foreground">
-    Format <code>&lt;provider&gt;:&lt;model&gt;</code> — e.g.{" "}
-    <code>anthropic:claude-sonnet-4.6</code>. Leave blank to use the default.{" "}
-    <a
-      href={INIT_CHAT_MODEL_DOCS_URL}
-      target="_blank"
-      rel="noreferrer"
-      className="underline hover:text-foreground"
-    >
-      See all supported providers
-    </a>
-    .
-  </p>
-);
+const EYEBROW = "text-[11px] font-bold uppercase tracking-[0.08em] text-tertiary";
 
 export function ConfigDialog({ open, onOpenChange, onSave, initialConfig }: ConfigDialogProps) {
   const formConfig = initialConfig ?? DEFAULT_CONFIG;
@@ -76,54 +62,22 @@ export function ConfigDialog({ open, onOpenChange, onSave, initialConfig }: Conf
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[525px]">
-        <DialogHeader>
-          <DialogTitle>Configuration</DialogTitle>
-          <DialogDescription>
-            Configure your LangGraph deployment settings. These settings are saved in your
-            browser&apos;s local storage.
-          </DialogDescription>
+      <DialogContent className="flex max-h-[85vh] flex-col gap-0 overflow-hidden bg-surface-raised p-0 sm:max-w-[560px]">
+        <DialogHeader className="shrink-0 border-b border-primary px-6 py-4">
+          <DialogTitle className="text-xl font-bold tracking-tight">Settings</DialogTitle>
         </DialogHeader>
-        <div className="grid gap-4 py-4">
-          <div className="grid gap-2">
-            <Label htmlFor="deploymentUrl">Deployment URL</Label>
-            <Input
-              id="deploymentUrl"
-              placeholder="https://<deployment-url>"
-              value={deploymentUrl}
-              onChange={(e) => setDeploymentUrl(e.target.value)}
-            />
-          </div>
-          <div className="grid gap-2">
-            <Label htmlFor="assistantId">Assistant ID</Label>
-            <Input
-              id="assistantId"
-              placeholder="<assistant-id>"
-              value={assistantId}
-              onChange={(e) => setAssistantId(e.target.value)}
-            />
-          </div>
-          <div className="grid gap-2">
-            <Label htmlFor="langsmithApiKey">
-              LangSmith API Key <span className="text-muted-foreground">(Optional)</span>
-            </Label>
-            <Input
-              id="langsmithApiKey"
-              type="password"
-              placeholder="lsv2_pt_..."
-              value={langsmithApiKey}
-              onChange={(e) => setLangsmithApiKey(e.target.value)}
-            />
-          </div>
-          <div className="grid gap-3 border-t pt-4">
-            <div className="grid gap-1">
-              <h3 className="text-sm font-semibold">
-                Models <span className="font-normal text-muted-foreground">(Optional)</span>
-              </h3>
-              <ModelsSectionHelp />
-            </div>
+
+        <div className="grid flex-1 gap-7 overflow-y-auto px-6 py-5">
+          {/* Appearance — theme + accent */}
+          <AppearanceSettings />
+
+          {/* Model */}
+          <div className="grid gap-3">
+            <span className={EYEBROW}>Model</span>
             <div className="grid gap-2">
-              <Label htmlFor="mainAgentModel">Main agent</Label>
+              <Label htmlFor="mainAgentModel" className="text-xs text-secondary">
+                Main agent — <code className="font-mono">provider:model</code>
+              </Label>
               <Input
                 id="mainAgentModel"
                 placeholder="openai:gpt-5.4"
@@ -132,7 +86,9 @@ export function ConfigDialog({ open, onOpenChange, onSave, initialConfig }: Conf
               />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="subagentModel">Subagents</Label>
+              <Label htmlFor="subagentModel" className="text-xs text-secondary">
+                Subagents
+              </Label>
               <Input
                 id="subagentModel"
                 placeholder="openai:gpt-5.4-mini"
@@ -140,13 +96,67 @@ export function ConfigDialog({ open, onOpenChange, onSave, initialConfig }: Conf
                 onChange={(e) => setSubagentModel(e.target.value)}
               />
             </div>
+            <p className="text-xs text-tertiary">
+              Leave blank to use the assistant default.{" "}
+              <a
+                href={INIT_CHAT_MODEL_DOCS_URL}
+                target="_blank"
+                rel="noreferrer"
+                className="text-brand-accent underline-offset-2 hover:underline"
+              >
+                Supported providers
+              </a>
+              .
+            </p>
+          </div>
+
+          {/* Connection */}
+          <div className="grid gap-3">
+            <span className={EYEBROW}>Connection</span>
+            <div className="grid gap-2">
+              <Label htmlFor="deploymentUrl" className="text-xs text-secondary">
+                Deployment URL
+              </Label>
+              <Input
+                id="deploymentUrl"
+                placeholder="https://<deployment-url>"
+                value={deploymentUrl}
+                onChange={(e) => setDeploymentUrl(e.target.value)}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="assistantId" className="text-xs text-secondary">
+                Assistant ID
+              </Label>
+              <Input
+                id="assistantId"
+                placeholder="<assistant-id>"
+                value={assistantId}
+                onChange={(e) => setAssistantId(e.target.value)}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="langsmithApiKey" className="text-xs text-secondary">
+                LangSmith API Key <span className="text-tertiary">(optional)</span>
+              </Label>
+              <Input
+                id="langsmithApiKey"
+                type="password"
+                placeholder="lsv2_pt_..."
+                value={langsmithApiKey}
+                onChange={(e) => setLangsmithApiKey(e.target.value)}
+              />
+            </div>
           </div>
         </div>
-        <DialogFooter>
+
+        <DialogFooter className="shrink-0 border-t border-primary px-6 py-4">
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
-          <Button onClick={handleSave}>Save</Button>
+          <Button variant="primary" onClick={handleSave}>
+            Save
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

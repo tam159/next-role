@@ -46,26 +46,26 @@ const PRINT_STYLES = `
   background: #ffffff;
 
   /* App-specific color variables — light theme, mirroring globals.css :root */
-  --color-primary: #1f6f68;
-  --color-user-message: #174d49;
-  --color-user-message-bg: #e6f3ef;
-  --color-avatar-bg: #dfe9e6;
-  --color-secondary: #365f5b;
-  --color-success: #15956d;
+  --color-primary: #5b5bd6;
+  --color-user-message: #211f1a;
+  --color-user-message-bg: #ecebfb;
+  --color-avatar-bg: #ecebfb;
+  --color-secondary: #4a47c4;
+  --color-success: #3f9d6b;
   --color-warning: #c47a16;
-  --color-error: #d14b4b;
-  --color-background: #f5f2eb;
-  --color-canvas: #fbfaf6;
-  --color-subagent-hover: #e4efeb;
+  --color-error: #d9534f;
+  --color-background: #f3f0e9;
+  --color-canvas: #f3f0e9;
+  --color-subagent-hover: #f4f1ea;
   --color-surface: #ffffff;
-  --color-surface-raised: #fffdf8;
-  --color-tool-surface: #f6f4ed;
-  --color-tool-surface-hover: #efebe1;
-  --color-border: #ded8cc;
-  --color-border-light: #eee8dc;
-  --color-text-primary: #202622;
-  --color-text-secondary: #66706b;
-  --color-text-tertiary: #8d9690;
+  --color-surface-raised: #ffffff;
+  --color-tool-surface: #fbfaf5;
+  --color-tool-surface-hover: #f4f1ea;
+  --color-border: #e7e1d4;
+  --color-border-light: #efeadf;
+  --color-text-primary: #211f1a;
+  --color-text-secondary: #6e6a60;
+  --color-text-tertiary: #9c968b;
 
   color: var(--color-text-primary);
 }

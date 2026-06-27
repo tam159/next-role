@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { AlertCircle, Check, X, Pencil } from "lucide-react";
 import type { ActionRequest, ReviewConfig } from "@/app/types/types";
-import { cn } from "@/lib/utils";
 
 interface ToolApprovalInterruptProps {
   actionRequest: ActionRequest;
@@ -102,7 +101,7 @@ export function ToolApprovalInterrupt({
     <div className="w-full rounded-md border border-border bg-muted/30 p-4">
       {/* Header */}
       <div className="mb-3 flex items-center gap-2 text-foreground">
-        <AlertCircle size={16} className="text-yellow-600 dark:text-yellow-400" />
+        <AlertCircle size={16} className="text-warning" />
         <span className="text-xs font-semibold tracking-wider uppercase">Approval Required</span>
       </div>
 
@@ -184,12 +183,7 @@ export function ToolApprovalInterrupt({
             <Button variant="outline" size="sm" onClick={cancelEditing} disabled={isLoading}>
               Cancel
             </Button>
-            <Button
-              size="sm"
-              onClick={handleEdit}
-              disabled={isLoading}
-              className="bg-green-600 text-white hover:bg-green-700 dark:bg-green-600 dark:hover:bg-green-700"
-            >
+            <Button variant="primary" size="sm" onClick={handleEdit} disabled={isLoading}>
               <Check size={14} />
               {isLoading ? "Saving..." : "Save & Approve"}
             </Button>
@@ -237,15 +231,7 @@ export function ToolApprovalInterrupt({
               </Button>
             )}
             {allowedDecisions.includes("approve") && (
-              <Button
-                size="sm"
-                onClick={handleApprove}
-                disabled={isLoading}
-                className={cn(
-                  "bg-green-600 text-white hover:bg-green-700",
-                  "dark:bg-green-600 dark:hover:bg-green-700"
-                )}
-              >
+              <Button variant="primary" size="sm" onClick={handleApprove} disabled={isLoading}>
                 <Check size={14} />
                 {isLoading ? "Approving..." : "Approve"}
               </Button>

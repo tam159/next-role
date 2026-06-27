@@ -7,11 +7,13 @@ import { ConfigDialog } from "@/app/components/ConfigDialog";
 import { Button } from "@/components/ui/button";
 import { Assistant } from "@langchain/langgraph-sdk";
 import { ClientProvider, useClient } from "@/providers/ClientProvider";
-import { Settings, MessagesSquare, SquarePen } from "lucide-react";
+import { TopBar } from "@/app/components/TopBar";
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
 import { useDefaultLayout } from "react-resizable-panels";
 import { ThreadList } from "@/app/components/ThreadList";
+import { ThreadsDrawer } from "@/app/components/ThreadsDrawer";
 import { ChatProvider } from "@/providers/ChatProvider";
+import { FilePreviewProvider } from "@/providers/FilePreviewProvider";
 import { ChatInterface } from "@/app/components/ChatInterface";
 import { Workspace } from "@/app/components/Workspace";
 
@@ -36,9 +38,39 @@ function HomePageInner({
   const [interruptCount, setInterruptCount] = useState(0);
   const [assistant, setAssistant] = useState<Assistant | null>(null);
 
+  // Threads can be pinned to a persistent docked column (stays open while
+  // switching threads) or used as an overlay drawer. Pinned state is a
+  // persisted preference.
+  const [threadsPinned, setThreadsPinnedState] = useState(false);
+  useEffect(() => {
+    setThreadsPinnedState(localStorage.getItem("nr-threads-pinned") === "1");
+  }, []);
+  const setThreadsPinned = useCallback((value: boolean) => {
+    setThreadsPinnedState(value);
+    try {
+      localStorage.setItem("nr-threads-pinned", value ? "1" : "0");
+    } catch {
+      // ignore storage failures
+    }
+  }, []);
+
+  // Only set threadId here. Closing the overlay drawer is done in the effect
+  // below, after threadId commits — calling setSidebar in the same handler
+  // rebuilds the query from a pre-threadId snapshot and clobbers it (drawer
+  // closes but no thread loads).
+  const handleThreadSelect = useCallback((id: string) => setThreadId(id), [setThreadId]);
+
+  // Collapse the overlay drawer once a thread is open (the pinned dock stays).
+  useEffect(() => {
+    if (threadId && sidebar && !threadsPinned) setSidebar(null);
+  }, [threadId, sidebar, threadsPinned, setSidebar]);
+
+  // Threads now live in a slide-over drawer, so the main layout is a fixed two
+  // panels (chat + workspace). Bumped id so stale 3-panel saved layouts (with a
+  // thread-history panel) don't conflict with the new panel set.
   const { defaultLayout, onLayoutChanged } = useDefaultLayout({
-    id: "standalone-chat",
-    panelIds: sidebar ? ["thread-history", "chat", "workspace"] : ["chat", "workspace"],
+    id: "standalone-chat-v2",
+    panelIds: ["chat", "workspace"],
   });
 
   const fetchAssistant = useCallback(async () => {
@@ -112,109 +144,77 @@ function HomePageInner({
         onSave={handleSaveConfig}
         initialConfig={config}
       />
-      <div className="flex h-screen flex-col bg-background text-foreground">
-        <header className="flex h-16 items-center justify-between border-b border-border bg-surface/90 px-6 shadow-xs backdrop-blur-sm">
-          <div className="flex items-center gap-4">
-            <div>
-              <h1 className="text-lg font-semibold tracking-tight">
-                GenAI-Accelerated Career Advancement
-              </h1>
-              <p className="text-xs text-muted-foreground">
-                Take the friction out of landing your next big opportunity
-              </p>
-            </div>
-            {!sidebar && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setSidebar("1")}
-                className="rounded-full border border-border bg-card px-3 py-2 text-foreground shadow-xs hover:border-primary/25 hover:bg-accent"
-              >
-                <MessagesSquare className="mr-2 h-4 w-4" />
-                Threads
-                {interruptCount > 0 && (
-                  <span className="ml-2 inline-flex min-h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-[10px] text-destructive-foreground">
-                    {interruptCount}
-                  </span>
-                )}
-              </Button>
-            )}
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="hidden rounded-full border border-border bg-background/70 px-3 py-1.5 text-xs text-muted-foreground md:block">
-              <span className="font-medium">Assistant:</span> {config.assistantId}
-            </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setConfigDialogOpen(true)}
-              className="rounded-full bg-card"
-            >
-              <Settings className="mr-2 h-4 w-4" />
-              Settings
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setThreadId(null)}
-              disabled={!threadId}
-              className="rounded-full border-primary bg-primary shadow-xs hover:bg-primary/90"
-            >
-              <SquarePen className="mr-2 h-4 w-4" />
-              New Thread
-            </Button>
-          </div>
-        </header>
+      <ChatProvider activeAssistant={assistant} onHistoryRevalidate={() => mutateThreads?.()}>
+        <FilePreviewProvider>
+          <div className="flex h-screen flex-col bg-background text-foreground">
+            <TopBar
+              assistant={assistant}
+              threadId={threadId}
+              interruptCount={interruptCount}
+              onOpenThreads={() => (threadsPinned ? setThreadsPinned(false) : setSidebar("1"))}
+              onOpenSettings={() => setConfigDialogOpen(true)}
+              onNewThread={() => setThreadId(null)}
+            />
 
-        <div className="flex-1 overflow-hidden bg-canvas">
-          <ChatProvider activeAssistant={assistant} onHistoryRevalidate={() => mutateThreads?.()}>
-            <ResizablePanelGroup
-              orientation="horizontal"
-              defaultLayout={defaultLayout}
-              onLayoutChanged={onLayoutChanged}
-            >
-              {sidebar && (
-                <>
-                  <ResizablePanel
-                    id="thread-history"
-                    defaultSize="20%"
-                    minSize="15%"
-                    className="relative min-w-[320px]"
-                  >
-                    <ThreadList
-                      onThreadSelect={async (id) => {
-                        await setThreadId(id);
-                      }}
-                      onMutateReady={(fn) => setMutateThreads(() => fn)}
-                      onClose={() => setSidebar(null)}
-                      onInterruptCountChange={setInterruptCount}
-                    />
-                  </ResizablePanel>
-                  <ResizableHandle />
-                </>
+            <div className="flex flex-1 overflow-hidden bg-canvas">
+              {/* Pinned → persistent docked column (stays open while switching). */}
+              {threadsPinned && (
+                <aside className="flex w-[300px] shrink-0 flex-col border-r border-border bg-surface">
+                  <ThreadList
+                    pinned
+                    onTogglePin={() => setThreadsPinned(false)}
+                    onThreadSelect={handleThreadSelect}
+                    onMutateReady={(fn) => setMutateThreads(() => fn)}
+                    onInterruptCountChange={setInterruptCount}
+                  />
+                </aside>
               )}
 
-              <ResizablePanel
-                id="chat"
-                className="relative flex flex-col"
-                defaultSize={sidebar ? "40%" : "50%"}
-                minSize="30%"
-              >
-                <ChatInterface assistant={assistant} />
-              </ResizablePanel>
-              <ResizableHandle />
-              <ResizablePanel
-                id="workspace"
-                defaultSize={sidebar ? "40%" : "50%"}
-                minSize="25%"
-                className="relative flex flex-col"
-              >
-                <Workspace />
-              </ResizablePanel>
-            </ResizablePanelGroup>
-          </ChatProvider>
-        </div>
-      </div>
+              <div className="min-w-0 flex-1">
+                <ResizablePanelGroup
+                  orientation="horizontal"
+                  defaultLayout={defaultLayout}
+                  onLayoutChanged={onLayoutChanged}
+                >
+                  <ResizablePanel
+                    id="chat"
+                    className="relative flex flex-col"
+                    defaultSize="46%"
+                    minSize="30%"
+                  >
+                    <ChatInterface assistant={assistant} />
+                  </ResizablePanel>
+                  <ResizableHandle />
+                  <ResizablePanel
+                    id="workspace"
+                    defaultSize="54%"
+                    minSize="25%"
+                    className="relative flex flex-col"
+                  >
+                    <Workspace />
+                  </ResizablePanel>
+                </ResizablePanelGroup>
+              </div>
+            </div>
+
+            {/* Unpinned → overlay drawer that auto-closes on select. */}
+            {!threadsPinned && (
+              <ThreadsDrawer open={!!sidebar} onOpenChange={(o) => setSidebar(o ? "1" : null)}>
+                <ThreadList
+                  onTogglePin={() => {
+                    setThreadsPinned(true);
+                    setSidebar(null);
+                  }}
+                  onThreadSelect={handleThreadSelect}
+                  onMutateReady={(fn) => setMutateThreads(() => fn)}
+                  onClose={() => setSidebar(null)}
+                  onInterruptCountChange={setInterruptCount}
+                />
+              </ThreadsDrawer>
+            )}
+          </div>
+        </FilePreviewProvider>
+      </ChatProvider>
     </>
   );
 }

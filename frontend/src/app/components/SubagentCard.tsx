@@ -117,7 +117,7 @@ export const SubagentCard = React.memo<SubagentCardProps>(({ stream, snapshot, t
                 <h4 className="mb-2 text-xs font-semibold tracking-wider text-muted-foreground uppercase">
                   Activity
                 </h4>
-                <div className="mb-4 flex flex-col gap-2 border-l border-border pl-3">
+                <div className="relative mb-4 flex flex-col gap-1.5 before:absolute before:top-2 before:bottom-2 before:left-[12px] before:w-px before:bg-border2">
                   {nestedToolCalls.map((tc) => (
                     <ToolCallBox key={tc.id} toolCall={tc} />
                   ))}
