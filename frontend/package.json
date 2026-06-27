@@ -17,9 +17,9 @@
     "check:sdk-sync": "node scripts/check-langchain-sdk-sync.mjs"
   },
   "dependencies": {
-    "@langchain/core": "^1.1.48",
-    "@langchain/langgraph-sdk": "1.9.21",
-    "@langchain/react": "^1.0.22",
+    "@langchain/core": "^1.2.1",
+    "@langchain/langgraph-sdk": "1.9.25",
+    "@langchain/react": "^1.0.26",
     "@radix-ui/react-dialog": "^1.1.17",
     "@radix-ui/react-label": "^2.1.10",
     "@radix-ui/react-scroll-area": "^1.2.12",
