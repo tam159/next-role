@@ -10,9 +10,9 @@ import { createContext, useCallback, useContext, useEffect, useState } from "rea
  * before JS runs; an inline pre-paint script in layout.tsx restores a saved
  * non-default accent before first paint to avoid a flash.
  */
-export const ACCENTS = ["indigo", "blue", "emerald", "coral"] as const;
+export const ACCENTS = ["emerald", "indigo", "blue", "coral"] as const;
 export type Accent = (typeof ACCENTS)[number];
-export const DEFAULT_ACCENT: Accent = "indigo";
+export const DEFAULT_ACCENT: Accent = "emerald";
 export const ACCENT_STORAGE_KEY = "nr-accent";
 
 function isAccent(value: unknown): value is Accent {

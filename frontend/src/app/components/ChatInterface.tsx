@@ -9,7 +9,7 @@ import {
   FileText,
   Search,
   ClipboardList,
-  Mic,
+  GraduationCap,
 } from "lucide-react";
 import { toast } from "sonner";
 import { ChatMessage } from "@/app/components/ChatMessage";
@@ -36,21 +36,25 @@ interface ChatInterfaceProps {
 // Empty-state suggestion chips. Clicking fills the composer.
 const SUGGESTIONS = [
   {
-    label: "Tailor my resume",
-    icon: FileText,
-    prompt: "Tailor my resume for a job I'm targeting.",
-  },
-  {
     label: "Research a company",
     icon: Search,
-    prompt: "Research a company and role I'm interviewing for.",
+    prompt: "Research a company and role I'm interviewing for, and summarize what they look for.",
+  },
+  {
+    label: "Tailor my resume",
+    icon: FileText,
+    prompt: "Tailor my resume to a specific job description.",
+  },
+  {
+    label: "Prepare for an interview",
+    icon: GraduationCap,
+    prompt: "Prepare me for the interview — build round-by-round prep with STAR stories.",
   },
   {
     label: "Build a battlecard",
     icon: ClipboardList,
-    prompt: "Build an interview battlecard for my upcoming round.",
+    prompt: "Build a one-page interview battlecard for my upcoming round.",
   },
-  { label: "Run a mock interview", icon: Mic, prompt: "Run a mock interview to help me practice." },
 ];
 
 export const ChatInterface = React.memo<ChatInterfaceProps>(({ assistant }) => {

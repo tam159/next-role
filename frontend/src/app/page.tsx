@@ -53,13 +53,16 @@ function HomePageInner({
     }
   }, []);
 
-  const handleThreadSelect = useCallback(
-    async (id: string) => {
-      await setThreadId(id);
-      if (!threadsPinned) await setSidebar(null);
-    },
-    [setThreadId, setSidebar, threadsPinned]
-  );
+  // Only set threadId here. Closing the overlay drawer is done in the effect
+  // below, after threadId commits — calling setSidebar in the same handler
+  // rebuilds the query from a pre-threadId snapshot and clobbers it (drawer
+  // closes but no thread loads).
+  const handleThreadSelect = useCallback((id: string) => setThreadId(id), [setThreadId]);
+
+  // Collapse the overlay drawer once a thread is open (the pinned dock stays).
+  useEffect(() => {
+    if (threadId && sidebar && !threadsPinned) setSidebar(null);
+  }, [threadId, sidebar, threadsPinned, setSidebar]);
 
   // Threads now live in a slide-over drawer, so the main layout is a fixed two
   // panels (chat + workspace). Bumped id so stale 3-panel saved layouts (with a

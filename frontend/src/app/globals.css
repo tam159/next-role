@@ -59,11 +59,11 @@
     --success-soft: #e8f3ec;
     --on-accent: #ffffff;
 
-    /* Brand accent (indigo default; overridden per [data-accent]) */
-    --brand-accent: #5b5bd6;
-    --brand-accent-hover: #4d4dc9;
-    --brand-accent-soft: #ecebfb;
-    --brand-accent-text: #4a47c4;
+    /* Brand accent (emerald default — matches the logo; overridden per [data-accent]) */
+    --brand-accent: #0e9f6e;
+    --brand-accent-hover: #0b855c;
+    --brand-accent-soft: #e3f5ec;
+    --brand-accent-text: #0b7e58;
 
     /* ===== App-specific color variables (repainted to paper/indigo) ===== */
     --color-primary: var(--brand-accent);
@@ -208,7 +208,7 @@
     --card-foreground: 43 12% 12%;
     --popover: 0 0% 100%;
     --popover-foreground: 43 12% 12%;
-    --primary: 240 60% 60%;
+    --primary: 160 84% 34%;
     --primary-foreground: 0 0% 100%;
     --secondary: 42 31% 94%;
     --secondary-foreground: 43 12% 12%;
@@ -220,9 +220,9 @@
     --destructive-foreground: 0 0% 100%;
     --border: 41 28% 87%;
     --input: 41 28% 87%;
-    --ring: 240 60% 60%;
+    --ring: 160 84% 34%;
     --sidebar: 50 43% 97%;
-    --chart-1: 240 60% 60%;
+    --chart-1: 160 84% 34%;
     --chart-2: 160 84% 34%;
     --chart-3: 221 83% 53%;
     --chart-4: 14 73% 56%;
@@ -238,13 +238,13 @@
     --primary: 221 83% 53%;
     --ring: 221 83% 53%;
   }
-  :root[data-accent="emerald"] {
-    --brand-accent: #0e9f6e;
-    --brand-accent-hover: #0b855c;
-    --brand-accent-soft: #e3f5ec;
-    --brand-accent-text: #0b7e58;
-    --primary: 160 84% 34%;
-    --ring: 160 84% 34%;
+  :root[data-accent="indigo"] {
+    --brand-accent: #5b5bd6;
+    --brand-accent-hover: #4d4dc9;
+    --brand-accent-soft: #ecebfb;
+    --brand-accent-text: #4a47c4;
+    --primary: 240 60% 60%;
+    --ring: 240 60% 60%;
   }
   :root[data-accent="coral"] {
     --brand-accent: #e0623c;
@@ -264,11 +264,11 @@
     --success-soft: rgba(91, 185, 138, 0.16);
     --on-accent: #1a1713;
 
-    /* Indigo default (dark) */
-    --brand-accent: #8e8bf0;
-    --brand-accent-hover: #a19ef5;
-    --brand-accent-soft: rgba(142, 139, 240, 0.16);
-    --brand-accent-text: #b6b3f7;
+    /* Emerald default (dark) */
+    --brand-accent: #3fcf95;
+    --brand-accent-hover: #5bd9a6;
+    --brand-accent-soft: rgba(63, 207, 149, 0.16);
+    --brand-accent-text: #6fdfb1;
 
     --color-primary: var(--brand-accent);
     --color-user-message: var(--color-text-primary);
@@ -357,7 +357,7 @@
     --card-foreground: 42 32% 92%;
     --popover: 38 15% 14%;
     --popover-foreground: 42 32% 92%;
-    --primary: 242 77% 74%;
+    --primary: 156 60% 53%;
     --primary-foreground: 34 16% 9%;
     --secondary: 40 19% 15%;
     --secondary-foreground: 42 32% 92%;
@@ -369,9 +369,9 @@
     --destructive-foreground: 34 16% 9%;
     --border: 39 16% 17%;
     --input: 39 16% 17%;
-    --ring: 242 77% 74%;
+    --ring: 156 60% 53%;
     --sidebar: 36 18% 11%;
-    --chart-1: 242 77% 74%;
+    --chart-1: 156 60% 53%;
     --chart-2: 156 60% 53%;
     --chart-3: 218 100% 71%;
     --chart-4: 16 82% 67%;
@@ -387,13 +387,13 @@
     --primary: 218 100% 71%;
     --ring: 218 100% 71%;
   }
-  .dark[data-accent="emerald"] {
-    --brand-accent: #3fcf95;
-    --brand-accent-hover: #5bd9a6;
-    --brand-accent-soft: rgba(63, 207, 149, 0.16);
-    --brand-accent-text: #6fdfb1;
-    --primary: 156 60% 53%;
-    --ring: 156 60% 53%;
+  .dark[data-accent="indigo"] {
+    --brand-accent: #8e8bf0;
+    --brand-accent-hover: #a19ef5;
+    --brand-accent-soft: rgba(142, 139, 240, 0.16);
+    --brand-accent-text: #b6b3f7;
+    --primary: 242 77% 74%;
+    --ring: 242 77% 74%;
   }
   .dark[data-accent="coral"] {
     --brand-accent: #f08a64;

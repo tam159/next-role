@@ -59,13 +59,13 @@ export const ChatMessage = React.memo<ChatMessageProps>(
     return (
       <div
         className={cn(
-          "flex w-full max-w-full overflow-x-hidden",
+          "flex w-full max-w-full items-start overflow-x-hidden",
           isUser ? "flex-row-reverse" : "gap-3"
         )}
       >
         {!isUser &&
           (showAvatar ? (
-            <LogoMark size={28} className="mt-4" />
+            <LogoMark size={28} className="mt-4 shrink-0" />
           ) : (
             <div className="w-7 shrink-0" aria-hidden />
           ))}

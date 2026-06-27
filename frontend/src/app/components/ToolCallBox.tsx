@@ -3,10 +3,10 @@
 import React, { useState, useMemo, useCallback, useRef } from "react";
 import {
   Bot,
+  BookOpen,
   ChevronDown,
   ChevronUp,
   FilePenLine,
-  FileSearch,
   FolderTree,
   Globe2,
   ImageIcon,
@@ -14,6 +14,7 @@ import {
   Network,
   Search,
   Terminal,
+  SquareTerminal,
   AlertCircle,
   Loader2,
   CircleCheckBigIcon,
@@ -34,9 +35,10 @@ interface ToolCallBoxProps {
 }
 
 const TOOL_ICON_MAP: Array<[RegExp, LucideIcon]> = [
-  [/^(read_file|read|open_file)$/i, FileSearch],
-  [/^(write_file|edit_file|create_file|patch)$/i, FilePenLine],
+  [/^(read_file|read|open_file|cat)$/i, BookOpen],
+  [/^(write_file|overwrite_file|edit_file|create_file|patch|write_todos)$/i, FilePenLine],
   [/^(ls|list|list_files)$/i, FolderTree],
+  [/^(execute|run|bash|shell|exec)$/i, SquareTerminal],
   [/(search|grep|rg|web)/i, Search],
   [/(image|generate_social)/i, ImageIcon],
   [/^(task|subagent)$/i, Bot],
