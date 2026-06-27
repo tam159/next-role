@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState, useRef, useCallback } from "react";
 import { format } from "date-fns";
-import { Loader2, MessageSquare, X } from "lucide-react";
+import { Loader2, MessageSquare, Pin, PinOff, X } from "lucide-react";
 import { useQueryState } from "nuqs";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -110,6 +110,8 @@ interface ThreadListProps {
   onMutateReady?: (mutate: () => void) => void;
   onClose?: () => void;
   onInterruptCountChange?: (count: number) => void;
+  pinned?: boolean;
+  onTogglePin?: () => void;
 }
 
 export function ThreadList({
@@ -117,6 +119,8 @@ export function ThreadList({
   onMutateReady,
   onClose,
   onInterruptCountChange,
+  pinned = false,
+  onTogglePin,
 }: ThreadListProps) {
   const [currentThreadId] = useQueryState("threadId");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
@@ -201,9 +205,9 @@ export function ThreadList({
   }, [interruptedCount, onInterruptCountChange]);
 
   return (
-    <div className="absolute inset-0 flex flex-col border-r border-border bg-background">
+    <div className="flex h-full flex-col bg-surface">
       {/* Header with title, filter, and close button */}
-      <div className="grid shrink-0 grid-cols-[1fr_auto] items-center gap-3 border-b border-border bg-surface/80 p-4 backdrop-blur-sm">
+      <div className="grid shrink-0 grid-cols-[1fr_auto] items-center gap-3 border-b border-primary bg-surface p-4">
         <div>
           <h2 className="text-lg font-semibold tracking-tight">Threads</h2>
           <p className="text-xs text-muted-foreground">Conversation history</p>
@@ -241,7 +245,19 @@ export function ThreadList({
               </SelectGroup>
             </SelectContent>
           </Select>
-          {onClose && (
+          {onTogglePin && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onTogglePin}
+              className="h-8 w-8"
+              aria-label={pinned ? "Unpin threads" : "Pin threads open"}
+              title={pinned ? "Unpin" : "Pin open"}
+            >
+              {pinned ? <PinOff className="h-4 w-4" /> : <Pin className="h-4 w-4" />}
+            </Button>
+          )}
+          {onClose && !pinned && (
             <Button
               variant="ghost"
               size="icon"

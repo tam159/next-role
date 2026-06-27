@@ -13,6 +13,10 @@ const buttonVariants = cva(
         // namespace), not the teal colors.primary — their *-foreground classes never
         // compiled under Tailwind 3, so text color inherits; keep it that way.
         default: "bg-primary shadow-xs hover:bg-primary/90",
+        // Solid brand-accent CTA (New thread, Send, Save/Done). Re-tints with
+        // the selected accent; pairs on-accent text. Use for primary actions.
+        primary:
+          "bg-brand-accent text-on-accent shadow-sm hover:bg-brand-accent-hover active:translate-y-px",
         destructive:
           "bg-destructive text-white shadow-xs hover:bg-destructive/90 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40 dark:bg-destructive/60",
         outline:

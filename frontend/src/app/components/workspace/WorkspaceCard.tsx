@@ -24,20 +24,20 @@ export function WorkspaceCard({
   headerAction,
 }: WorkspaceCardProps) {
   return (
-    <div className="flex flex-col overflow-hidden rounded-2xl border border-border bg-surface-raised shadow-xs transition-colors hover:border-primary/20">
-      <div className="flex items-center gap-3 px-4 py-3.5 transition-colors hover:bg-accent/50">
+    <div className="flex flex-col overflow-hidden rounded-2xl border border-border bg-surface-raised shadow-sm transition-colors hover:border-brand-strong/30">
+      <div className="flex items-center gap-3 px-4 py-3.5 transition-colors hover:bg-surface3/60">
         <button
           type="button"
           onClick={onToggle}
           aria-expanded={open}
           className="flex flex-1 items-center gap-3 text-left"
         >
-          <span className="flex size-9 items-center justify-center rounded-xl bg-primary/10 text-primary">
+          <span className="flex size-9 items-center justify-center rounded-[9px] bg-brand-accent-soft text-brand-accent">
             {icon}
           </span>
-          <span className="text-base font-bold tracking-tight text-foreground">{title}</span>
+          <span className="text-[17px] font-bold tracking-tight text-foreground">{title}</span>
           {typeof count === "number" && count > 0 && (
-            <span className="ml-1 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-xs font-semibold">
+            <span className="ml-1 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-surface3 px-1.5 text-xs font-semibold text-secondary">
               {count}
             </span>
           )}

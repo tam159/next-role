@@ -5,6 +5,7 @@ import { SubAgentIndicator } from "@/app/components/SubAgentIndicator";
 import { SubagentCard } from "@/app/components/SubagentCard";
 import { ToolCallBox } from "@/app/components/ToolCallBox";
 import { MarkdownContent } from "@/app/components/MarkdownContent";
+import { LogoMark } from "@/app/components/LogoMark";
 import type { ToolCall, ActionRequest, ReviewConfig } from "@/app/types/types";
 import type { BaseMessage } from "@langchain/core/messages";
 import type { AnyStream } from "@langchain/react";
@@ -15,6 +16,7 @@ interface ChatMessageProps {
   message: BaseMessage;
   toolCalls: ToolCall[];
   isLoading?: boolean;
+  showAvatar?: boolean;
   actionRequestsMap?: Map<string, ActionRequest>;
   reviewConfigsMap?: Map<string, ReviewConfig>;
   stream: AnyStream;
@@ -26,6 +28,7 @@ export const ChatMessage = React.memo<ChatMessageProps>(
     message,
     toolCalls,
     isLoading,
+    showAvatar = true,
     actionRequestsMap,
     reviewConfigsMap,
     stream,
@@ -50,22 +53,46 @@ export const ChatMessage = React.memo<ChatMessageProps>(
       [toolCalls]
     );
 
+    const isThinking =
+      !isUser && !hasContent && !hasToolCalls && taskToolCalls.length === 0 && isLoading;
+
     return (
-      <div className={cn("flex w-full max-w-full overflow-x-hidden", isUser && "flex-row-reverse")}>
-        <div className={cn("max-w-full min-w-0", isUser ? "max-w-[70%]" : "w-full")}>
+      <div
+        className={cn(
+          "flex w-full max-w-full overflow-x-hidden",
+          isUser ? "flex-row-reverse" : "gap-3"
+        )}
+      >
+        {!isUser &&
+          (showAvatar ? (
+            <LogoMark size={28} className="mt-4" />
+          ) : (
+            <div className="w-7 shrink-0" aria-hidden />
+          ))}
+        <div className={cn("min-w-0", isUser ? "max-w-[78%]" : "flex-1")}>
+          {isThinking && (
+            <div className="mt-4 flex items-center gap-2.5 text-sm text-secondary">
+              <span className="flex gap-1">
+                <span className="size-1.5 animate-pulse rounded-full bg-brand-accent [animation-duration:1s]" />
+                <span className="size-1.5 animate-pulse rounded-full bg-brand-accent [animation-delay:0.2s] [animation-duration:1s]" />
+                <span className="size-1.5 animate-pulse rounded-full bg-brand-accent [animation-delay:0.4s] [animation-duration:1s]" />
+              </span>
+              Working through your request
+            </div>
+          )}
           {hasContent && (
             <div className={cn("relative flex items-end gap-0")}>
               <div
                 className={cn(
-                  "mt-4 overflow-hidden text-sm leading-[150%] font-normal wrap-break-word",
+                  "mt-4 overflow-hidden text-[15px] leading-[1.6] font-normal wrap-break-word",
                   isUser
-                    ? "rounded-2xl rounded-br-md border border-primary/15 px-4 py-2.5 text-foreground shadow-xs"
-                    : "text-foreground"
+                    ? "rounded-2xl rounded-br-[5px] border border-primary/15 px-4 py-2.5 text-primary shadow-xs"
+                    : "pt-1 text-primary"
                 )}
                 style={isUser ? { backgroundColor: "var(--color-user-message-bg)" } : undefined}
               >
                 {isUser ? (
-                  <p className="m-0 text-sm leading-relaxed wrap-break-word whitespace-pre-wrap">
+                  <p className="m-0 text-[15px] leading-relaxed wrap-break-word whitespace-pre-wrap">
                     {messageContent}
                   </p>
                 ) : hasContent ? (
@@ -75,7 +102,7 @@ export const ChatMessage = React.memo<ChatMessageProps>(
             </div>
           )}
           {hasToolCalls && (
-            <div className="mt-4 flex w-full flex-col gap-2">
+            <div className="relative mt-4 flex w-full flex-col gap-1.5 before:absolute before:top-2 before:bottom-2 before:left-[12px] before:w-px before:bg-border2">
               {toolCalls.map((toolCall: ToolCall) => {
                 if (toolCall.name === "task") return null;
                 const actionRequest = actionRequestsMap?.get(toolCall.name);

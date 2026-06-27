@@ -3,7 +3,7 @@ import plugin from "tailwindcss/plugin";
 /** @type {import('tailwindcss').Config} */
 export default {
   content: ["./index.html", "./src/**/*.{js,ts,jsx,tsx}"],
-  darkMode: ["class", '[data-joy-color-scheme="dark"]'],
+  darkMode: ["class"],
   theme: {
     extend: {
       fontSize: {
@@ -47,7 +47,19 @@ export default {
         ],
       },
       fontFamily: {
+        sans: [
+          `var(--font-sans)`,
+          `-apple-system`,
+          `BlinkMacSystemFont`,
+          `"Segoe UI"`,
+          `Roboto`,
+          `"Helvetica Neue"`,
+          `Arial`,
+          `sans-serif`,
+        ],
+        serif: [`var(--font-serif)`, `Newsreader`, `Georgia`, `serif`],
         mono: [
+          `var(--font-mono)`,
           `"Fira Code"`,
           `ui-monospace`,
           `SFMono-Regular`,
@@ -152,9 +164,21 @@ export default {
         canvas: "var(--color-canvas)",
         surface: "var(--color-surface)",
         "surface-raised": "var(--color-surface-raised)",
+        surface2: "var(--surface-2)",
+        surface3: "var(--surface-3)",
+        border2: "var(--border-2)",
+        warm: "var(--warm)",
         "tool-surface": "var(--color-tool-surface)",
         "tool-surface-hover": "var(--color-tool-surface-hover)",
+        // Brand accent (user-selectable). Separate from Radix `accent` (a muted
+        // hover surface) so `bg-accent`/`hover:bg-accent` stay neutral.
+        "brand-accent": "var(--brand-accent)",
+        "brand-accent-hover": "var(--brand-accent-hover)",
+        "brand-accent-soft": "var(--brand-accent-soft)",
+        "brand-accent-text": "var(--brand-accent-text)",
+        "on-accent": "var(--on-accent)",
         success: "var(--color-success)",
+        "success-soft": "var(--success-soft)",
         warning: "var(--color-warning)",
         error: "var(--color-error)",
         primary: {

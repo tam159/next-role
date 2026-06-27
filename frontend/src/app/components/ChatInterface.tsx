@@ -1,9 +1,19 @@
 "use client";
 
-import React, { useRef, useCallback, useMemo, useEffect, FormEvent } from "react";
-import { Button } from "@/components/ui/button";
-import { Square, ArrowUp } from "lucide-react";
+import React, { useRef, useCallback, useMemo, useEffect, useState, FormEvent } from "react";
+import {
+  Square,
+  ArrowUp,
+  Paperclip,
+  Loader2,
+  FileText,
+  Search,
+  ClipboardList,
+  Mic,
+} from "lucide-react";
+import { toast } from "sonner";
 import { ChatMessage } from "@/app/components/ChatMessage";
+import { LogoMark } from "@/app/components/LogoMark";
 import type { ToolCall, ActionRequest, ReviewConfig } from "@/app/types/types";
 import { Assistant } from "@langchain/langgraph-sdk";
 import {
@@ -15,14 +25,38 @@ import {
 } from "@langchain/core/messages";
 import { extractStringFromMessageContent, parsePartialArgs } from "@/app/utils/utils";
 import { useChatContext } from "@/providers/ChatProvider";
+import { CAREER_AGENT_UPLOAD_DIR, uploadAgentFiles } from "@/app/lib/uploadFiles";
 import { useStickToBottom } from "use-stick-to-bottom";
+import { cn } from "@/lib/utils";
 
 interface ChatInterfaceProps {
   assistant: Assistant | null;
 }
 
+// Empty-state suggestion chips. Clicking fills the composer.
+const SUGGESTIONS = [
+  {
+    label: "Tailor my resume",
+    icon: FileText,
+    prompt: "Tailor my resume for a job I'm targeting.",
+  },
+  {
+    label: "Research a company",
+    icon: Search,
+    prompt: "Research a company and role I'm interviewing for.",
+  },
+  {
+    label: "Build a battlecard",
+    icon: ClipboardList,
+    prompt: "Build an interview battlecard for my upcoming round.",
+  },
+  { label: "Run a mock interview", icon: Mic, prompt: "Run a mock interview to help me practice." },
+];
+
 export const ChatInterface = React.memo<ChatInterfaceProps>(({ assistant }) => {
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const attachInputRef = useRef<HTMLInputElement | null>(null);
+  const [uploading, setUploading] = useState(false);
 
   const { scrollRef, contentRef } = useStickToBottom();
 
@@ -38,6 +72,8 @@ export const ChatInterface = React.memo<ChatInterfaceProps>(({ assistant }) => {
     input,
     setInput,
     focusComposerNonce,
+    refreshFiles,
+    appendUploadNote,
   } = useChatContext();
 
   const submitDisabled = isLoading || !assistant;
@@ -99,6 +135,49 @@ export const ChatInterface = React.memo<ChatInterfaceProps>(({ assistant }) => {
       }
     },
     [handleSubmit, submitDisabled]
+  );
+
+  const fillSuggestion = useCallback(
+    (prompt: string) => {
+      setInput(prompt);
+      requestAnimationFrame(() => {
+        const t = textareaRef.current;
+        if (!t) return;
+        t.focus();
+        const end = t.value.length;
+        t.setSelectionRange(end, end);
+      });
+    },
+    [setInput]
+  );
+
+  // Attach (paperclip) — reuses the same upload path as Workspace > Files.
+  const handleAttach = useCallback(
+    async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const list = e.target.files;
+      if (!list || list.length === 0) return;
+      const picked = Array.from(list);
+      e.target.value = "";
+      setUploading(true);
+      try {
+        const res = await uploadAgentFiles({ files: picked, targetDir: CAREER_AGENT_UPLOAD_DIR });
+        if (res.uploaded.length > 0) {
+          toast.success(
+            `Uploaded ${res.uploaded.length} file${res.uploaded.length > 1 ? "s" : ""}`
+          );
+          appendUploadNote(
+            res.uploaded.map((u) => u.path.split("/").pop()).filter((n): n is string => !!n)
+          );
+        }
+        for (const err of res.errors) toast.error(`${err.name}: ${err.reason}`);
+        await refreshFiles?.();
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : "Upload failed");
+      } finally {
+        setUploading(false);
+      }
+    },
+    [appendUploadNote, refreshFiles]
   );
 
   // Cache stable references for finalized ToolCall objects and per-message
@@ -230,16 +309,51 @@ export const ChatInterface = React.memo<ChatInterfaceProps>(({ assistant }) => {
     return new Map(reviewConfigs.map((rc: ReviewConfig) => [rc.actionName, rc]));
   }, [interrupt]);
 
+  const isEmpty = !isThreadLoading && processedMessages.length === 0;
+  const canSend = !submitDisabled && input.trim().length > 0;
+
   return (
     <div className="flex flex-1 flex-col overflow-hidden bg-canvas">
       <div className="flex-1 overflow-x-hidden overflow-y-auto overscroll-contain" ref={scrollRef}>
-        <div className="mx-auto w-full max-w-[1024px] px-6 pt-5 pb-8" ref={contentRef}>
+        <div ref={contentRef}>
           {isThreadLoading ? (
             <div className="flex items-center justify-center p-8">
-              <p className="text-muted-foreground">Loading...</p>
+              <p className="text-secondary">Loading…</p>
+            </div>
+          ) : isEmpty ? (
+            <div className="flex min-h-[68vh] flex-col items-center justify-center px-7 py-10 text-center">
+              <div
+                className="mb-6"
+                style={{
+                  filter:
+                    "drop-shadow(0 10px 28px color-mix(in srgb, var(--brand-accent) 32%, transparent))",
+                }}
+              >
+                <LogoMark size={56} />
+              </div>
+              <h1 className="font-serif text-[40px] leading-[1.08] font-medium tracking-[-0.01em] text-primary">
+                Land your <em className="text-brand-accent-text italic">next role</em>, faster.
+              </h1>
+              <p className="mx-auto mt-4 max-w-[480px] text-[15.5px] leading-relaxed text-secondary">
+                Drop in your resume and a job post. NextRole tailors your application, researches
+                the company, and preps you for every round — all in one workspace.
+              </p>
+              <div className="mt-7 flex max-w-[560px] flex-wrap justify-center gap-2.5">
+                {SUGGESTIONS.map((s) => (
+                  <button
+                    key={s.label}
+                    type="button"
+                    onClick={() => fillSuggestion(s.prompt)}
+                    className="flex items-center gap-2 rounded-[11px] border border-primary bg-surface-raised px-3.5 py-2.5 text-[13.5px] font-medium text-primary shadow-sm transition-all hover:-translate-y-px hover:border-brand-strong"
+                  >
+                    <s.icon className="size-4 text-brand-accent" />
+                    {s.label}
+                  </button>
+                ))}
+              </div>
             </div>
           ) : (
-            <>
+            <div className="mx-auto w-full max-w-[760px] px-6 pt-6 pb-8">
               {processedMessages.map((data, index) => {
                 const isLastMessage = index === processedMessages.length - 1;
                 return (
@@ -248,6 +362,7 @@ export const ChatInterface = React.memo<ChatInterfaceProps>(({ assistant }) => {
                     message={data.message}
                     toolCalls={data.toolCalls}
                     isLoading={isLoading}
+                    showAvatar={data.showAvatar}
                     actionRequestsMap={isLastMessage ? actionRequestsMap : undefined}
                     reviewConfigsMap={isLastMessage ? reviewConfigsMap : undefined}
                     stream={stream}
@@ -255,53 +370,79 @@ export const ChatInterface = React.memo<ChatInterfaceProps>(({ assistant }) => {
                   />
                 );
               })}
-            </>
+            </div>
           )}
         </div>
       </div>
 
       <div className="shrink-0 bg-linear-to-t from-canvas via-canvas to-transparent px-4 pt-4 pb-5">
-        <div className="mx-auto flex w-full max-w-[1024px] shrink-0 flex-col overflow-hidden rounded-2xl border border-border bg-surface-raised shadow-lg shadow-black/5">
-          <form onSubmit={handleSubmit} className="flex flex-col">
-            <textarea
-              ref={textareaRef}
-              value={input}
-              onChange={(e) => {
-                setInput(e.target.value);
-                requestAnimationFrame(resizeTextarea);
-              }}
-              onKeyDown={handleKeyDown}
-              placeholder={isLoading ? "Running..." : "Write your message..."}
-              className="font-inherit block w-full resize-none border-0 bg-transparent px-5 pt-4 pb-3 text-sm leading-7 text-foreground outline-hidden placeholder:text-muted-foreground"
-              rows={2}
-            />
-            <div className="flex items-center justify-between gap-2 border-t border-border/70 px-3 py-3">
-              <p className="pl-2 text-xs text-muted-foreground">
-                Enter to send, Shift+Enter for a new line
-              </p>
-              <div className="flex justify-end gap-2">
-                <Button
-                  type={isLoading ? "button" : "submit"}
-                  variant={isLoading ? "destructive" : "default"}
-                  onClick={isLoading ? stopStream : handleSubmit}
-                  disabled={!isLoading && (submitDisabled || !input.trim())}
-                  className="rounded-full px-4"
-                >
-                  {isLoading ? (
-                    <>
-                      <Square size={14} />
-                      <span>Stop</span>
-                    </>
-                  ) : (
-                    <>
-                      <ArrowUp size={18} />
-                      <span>Send</span>
-                    </>
-                  )}
-                </Button>
-              </div>
+        <div className="mx-auto w-full max-w-[760px]">
+          {isLoading && (
+            <div className="mb-2 flex items-center gap-2 px-2 text-xs text-secondary">
+              <span className="size-1.5 animate-pulse rounded-full bg-brand-accent" />
+              NextRole is working…
             </div>
-          </form>
+          )}
+          <div className="flex flex-col overflow-hidden rounded-[18px] border border-primary bg-surface-raised shadow-lg shadow-black/5 transition-colors focus-within:border-brand-strong focus-within:ring-2 focus-within:ring-brand-accent/30">
+            <form onSubmit={handleSubmit} className="flex flex-col">
+              <textarea
+                ref={textareaRef}
+                value={input}
+                onChange={(e) => {
+                  setInput(e.target.value);
+                  requestAnimationFrame(resizeTextarea);
+                }}
+                onKeyDown={handleKeyDown}
+                placeholder="Message NextRole — paste a job link, or describe the role…"
+                className="block w-full resize-none border-0 bg-transparent px-5 pt-4 pb-3 text-[15px] leading-7 text-primary outline-hidden placeholder:text-tertiary"
+                rows={2}
+              />
+              <div className="flex items-center justify-between gap-2 px-3 pb-3">
+                <div className="flex min-w-0 items-center gap-1.5">
+                  <input
+                    ref={attachInputRef}
+                    type="file"
+                    multiple
+                    accept=".pdf,.doc,.docx,.txt,.md"
+                    className="hidden"
+                    onChange={handleAttach}
+                  />
+                  <button
+                    type="button"
+                    title="Attach a file"
+                    onClick={() => attachInputRef.current?.click()}
+                    disabled={uploading || submitDisabled}
+                    className="grid size-9 shrink-0 place-items-center rounded-full text-tertiary transition-colors hover:bg-surface3 hover:text-primary disabled:opacity-50"
+                  >
+                    {uploading ? (
+                      <Loader2 size={16} className="animate-spin" />
+                    ) : (
+                      <Paperclip size={16} />
+                    )}
+                  </button>
+                  <span className="truncate text-xs text-tertiary">
+                    Enter to send · Shift+Enter for newline
+                  </span>
+                </div>
+                <button
+                  type={isLoading ? "button" : "submit"}
+                  onClick={isLoading ? stopStream : handleSubmit}
+                  disabled={!isLoading && !canSend}
+                  aria-label={isLoading ? "Stop" : "Send"}
+                  className={cn(
+                    "grid size-9 shrink-0 place-items-center rounded-full transition-colors",
+                    isLoading
+                      ? "bg-destructive text-white hover:bg-destructive/90"
+                      : canSend
+                        ? "bg-brand-accent text-on-accent hover:bg-brand-accent-hover"
+                        : "bg-border2 text-tertiary"
+                  )}
+                >
+                  {isLoading ? <Square size={14} /> : <ArrowUp size={18} />}
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       </div>
     </div>

@@ -18,6 +18,7 @@ import {
   Loader2,
   CircleCheckBigIcon,
   StopCircle,
+  Check,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ToolCall, ActionRequest, ReviewConfig } from "@/app/types/types";
@@ -207,6 +208,37 @@ export const ToolCallBox = React.memo<ToolCallBoxProps>(
       statusIcon
     );
 
+    // Timeline-rail status node (running ring / done check / hollow). Sits on the
+    // vertical rail drawn by the parent list container.
+    const statusNode = (() => {
+      switch (visualStatus) {
+        case "completed":
+          return (
+            <span className="grid size-[26px] place-items-center rounded-full bg-success-soft">
+              <Check size={13} className="text-success" strokeWidth={3} />
+            </span>
+          );
+        case "error":
+          return (
+            <span className="grid size-[26px] place-items-center rounded-full bg-destructive/10">
+              <AlertCircle size={14} className="text-destructive" />
+            </span>
+          );
+        case "interrupted":
+          return (
+            <span className="grid size-[26px] place-items-center rounded-full bg-warning/10">
+              <StopCircle size={14} className="text-warning" />
+            </span>
+          );
+        default: // pending === running
+          return (
+            <span className="grid size-[26px] place-items-center rounded-full bg-brand-accent-soft">
+              <span className="size-[13px] animate-spin rounded-full border-2 border-brand-accent border-t-transparent" />
+            </span>
+          );
+      }
+    })();
+
     // `onPointerDown` fires before the OS click-eating window during heavy
     // main-thread work (Safari, mid-stream). Keep `onClick` for keyboard
     // activation (Enter/Space → only fires click), and dedupe with a timestamp
@@ -231,126 +263,126 @@ export const ToolCallBox = React.memo<ToolCallBoxProps>(
     const hasContent = result || Object.keys(args).length > 0;
 
     return (
-      <div
-        className={cn(
-          "relative w-full overflow-hidden rounded-xl border border-border bg-tool-surface shadow-[0_1px_0_rgba(255,255,255,0.35)_inset] outline-hidden transition-all duration-200 hover:border-primary/25 hover:bg-tool-surface-hover",
-          isExpanded && hasContent && "border-primary/20 bg-surface-raised",
-          visualStatus === "pending" && "tool-running-sweep",
-          visualStatus === "error" && "border-destructive/30"
-        )}
-      >
-        <Button
-          variant="ghost"
-          size="sm"
-          onPointerDown={handlePointerToggle}
-          onClick={handleClickToggle}
+      <div className="relative grid grid-cols-[26px_minmax(0,1fr)] gap-3">
+        {/* Status node — sits on the vertical rail drawn by the parent list. */}
+        <div className="relative z-10 flex justify-center pt-1">{statusNode}</div>
+
+        {/* Row content */}
+        <div
           className={cn(
-            "relative z-10 flex h-auto w-full items-center justify-between gap-3 border-none px-3 py-3 text-left shadow-none outline-hidden focus-visible:ring-1 focus-visible:ring-primary/40 focus-visible:ring-offset-0 disabled:cursor-default"
+            "relative min-w-0 overflow-hidden rounded-xl outline-hidden transition-colors",
+            isExpanded && hasContent
+              ? "border border-primary bg-surface-raised shadow-xs"
+              : "border border-transparent hover:bg-surface3",
+            visualStatus === "pending" && "tool-running-sweep",
+            visualStatus === "error" && "border border-destructive/30"
           )}
-          disabled={!hasContent}
         >
-          <div className="flex min-w-0 flex-1 items-center gap-3">
-            <span className="relative flex size-8 shrink-0 items-center justify-center rounded-lg border border-border bg-card text-primary">
-              {visualStatus === "pending" && (
-                <span className="absolute size-2.5 animate-ping rounded-full bg-primary/40" />
-              )}
-              <ToolIcon size={16} className="relative" />
-            </span>
-            <div className="min-w-0 flex-1">
-              <div className="flex min-w-0 items-center gap-2">
-                <span className="truncate text-[15px] font-semibold tracking-[-0.3px] text-foreground">
-                  {name}
-                </span>
+          <Button
+            variant="ghost"
+            size="sm"
+            onPointerDown={handlePointerToggle}
+            onClick={handleClickToggle}
+            className="relative z-10 flex h-auto w-full items-center justify-between gap-2 border-none px-2.5 py-2 text-left shadow-none outline-hidden hover:bg-transparent focus-visible:ring-1 focus-visible:ring-ring/40 focus-visible:ring-offset-0 disabled:cursor-default"
+            disabled={!hasContent}
+          >
+            <div className="flex min-w-0 flex-1 items-center gap-2">
+              <ToolIcon size={15} className="shrink-0 text-tertiary" />
+              <span className="shrink-0 font-mono text-[12.5px] font-medium text-primary">
+                {name}
+              </span>
+              {statusMeta.showLabel && (
                 <span
                   className={cn(
-                    "inline-flex shrink-0 items-center gap-1 rounded-full text-xs leading-none font-medium",
-                    statusMeta.showLabel ? "border px-1.5 py-0.5" : "px-0.5 py-0",
+                    "inline-flex shrink-0 items-center gap-1 rounded-full border px-1.5 py-0.5 text-[11px] leading-none font-medium",
                     statusMeta.className
                   )}
                   title={statusMeta.label}
                 >
                   {visualStatusIcon}
-                  {statusMeta.showLabel && <span>{statusMeta.label}</span>}
-                  {!statusMeta.showLabel && <span className="sr-only">{statusMeta.label}</span>}
+                  <span>{statusMeta.label}</span>
                 </span>
-              </div>
+              )}
               {preview && !isExpanded && (
-                <p className="mt-1 truncate text-xs text-muted-foreground">{preview}</p>
+                <span className="min-w-0 flex-1 truncate text-xs text-secondary">{preview}</span>
               )}
             </div>
-          </div>
-          <div className="relative z-10 flex shrink-0 items-center">
-            {hasContent &&
-              (isExpanded ? (
-                <ChevronUp size={14} className="shrink-0 text-muted-foreground" />
-              ) : (
-                <ChevronDown size={14} className="shrink-0 text-muted-foreground" />
-              ))}
-          </div>
-        </Button>
-
-        {isExpanded && hasContent && (
-          <div className="relative z-10 px-4 pb-4">
-            {actionRequest && onResume ? (
-              // Show tool approval UI when there's an action request but no GenUI
-              <div className="mt-3 overflow-hidden rounded-lg border border-amber-500/25 bg-amber-500/10 p-3">
-                <ToolApprovalInterrupt
-                  actionRequest={actionRequest}
-                  reviewConfig={reviewConfig}
-                  onResume={onResume}
-                  isLoading={isLoading}
-                />
-              </div>
-            ) : (
-              <>
-                {Object.keys(args).length > 0 && (
-                  <div className="mt-3">
-                    <h4 className="mb-1 text-xs font-semibold tracking-wider text-muted-foreground uppercase">
-                      Arguments
-                    </h4>
-                    <div className="space-y-2">
-                      {Object.entries(args).map(([key, value]) => (
-                        <div
-                          key={key}
-                          className="overflow-hidden rounded-lg border border-border bg-card"
-                        >
-                          <button
-                            onClick={() => toggleArgExpanded(key)}
-                            className="flex w-full items-center justify-between bg-muted/40 p-2 text-left text-xs font-medium transition-colors hover:bg-muted/70"
-                          >
-                            <span className="font-mono">{key}</span>
-                            {expandedArgs[key] ? (
-                              <ChevronUp size={12} className="text-muted-foreground" />
-                            ) : (
-                              <ChevronDown size={12} className="text-muted-foreground" />
-                            )}
-                          </button>
-                          {expandedArgs[key] && (
-                            <div className="border-t border-border bg-background/60 p-2">
-                              <pre className="m-0 overflow-x-auto font-mono text-xs leading-6 break-all whitespace-pre-wrap text-foreground">
-                                {typeof value === "string" ? value : JSON.stringify(value, null, 2)}
-                              </pre>
-                            </div>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
+            {hasContent && (
+              <ChevronDown
+                size={14}
+                className={cn(
+                  "shrink-0 text-tertiary transition-transform duration-200",
+                  isExpanded && "rotate-180"
                 )}
-                {result && (
-                  <div className="mt-3">
-                    <h4 className="mb-1 text-xs font-semibold tracking-wider text-muted-foreground uppercase">
-                      Result
-                    </h4>
-                    <pre className="m-0 overflow-x-auto rounded-lg border border-border bg-background/70 p-3 font-mono text-xs leading-7 break-all whitespace-pre-wrap text-foreground">
-                      {typeof result === "string" ? result : JSON.stringify(result, null, 2)}
-                    </pre>
-                  </div>
-                )}
-              </>
+              />
             )}
-          </div>
-        )}
+          </Button>
+
+          {isExpanded && hasContent && (
+            <div className="relative z-10 px-3 pb-3">
+              {actionRequest && onResume ? (
+                // Show tool approval UI when there's an action request but no GenUI
+                <div className="mt-2 overflow-hidden rounded-lg border border-warning/30 bg-warning/10 p-3">
+                  <ToolApprovalInterrupt
+                    actionRequest={actionRequest}
+                    reviewConfig={reviewConfig}
+                    onResume={onResume}
+                    isLoading={isLoading}
+                  />
+                </div>
+              ) : (
+                <>
+                  {Object.keys(args).length > 0 && (
+                    <div className="mt-2">
+                      <h4 className="mb-1 text-[11px] font-semibold tracking-wider text-tertiary uppercase">
+                        Arguments
+                      </h4>
+                      <div className="space-y-2">
+                        {Object.entries(args).map(([key, value]) => (
+                          <div
+                            key={key}
+                            className="overflow-hidden rounded-lg border border-primary bg-surface-raised"
+                          >
+                            <button
+                              onClick={() => toggleArgExpanded(key)}
+                              className="flex w-full items-center justify-between bg-surface3 p-2 text-left text-xs font-medium transition-colors hover:bg-surface3/70"
+                            >
+                              <span className="font-mono text-secondary">{key}</span>
+                              {expandedArgs[key] ? (
+                                <ChevronUp size={12} className="text-tertiary" />
+                              ) : (
+                                <ChevronDown size={12} className="text-tertiary" />
+                              )}
+                            </button>
+                            {expandedArgs[key] && (
+                              <div className="border-t border-primary bg-surface3 p-2">
+                                <pre className="m-0 overflow-x-auto font-mono text-xs leading-6 break-all whitespace-pre-wrap text-primary">
+                                  {typeof value === "string"
+                                    ? value
+                                    : JSON.stringify(value, null, 2)}
+                                </pre>
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {result && (
+                    <div className="mt-2">
+                      <h4 className="mb-1 text-[11px] font-semibold tracking-wider text-tertiary uppercase">
+                        Result
+                      </h4>
+                      <pre className="m-0 overflow-x-auto rounded-lg border border-primary bg-surface3 p-3 font-mono text-xs leading-7 break-all whitespace-pre-wrap text-primary">
+                        {typeof result === "string" ? result : JSON.stringify(result, null, 2)}
+                      </pre>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          )}
+        </div>
       </div>
     );
   }
