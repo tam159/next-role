@@ -29,6 +29,10 @@
 ![LangSmith](https://img.shields.io/badge/Observability-LangSmith-FF6F61)
 ![Exposes MCP + A2A](https://img.shields.io/badge/exposes-MCP%20%2B%20A2A-0A7EA4)
 
+<br/>
+
+<img alt="NextRole start page — chat-driven prep on the left, a live artifact workspace on the right" src="docs/images/next-role-hero-image.png" width="100%">
+
 </div>
 
 ---
@@ -52,7 +56,7 @@ Preparing for an interview takes hours of tedious resume tailoring and company r
   Your browser does not support the video tag.
 </video>
 
-▶️ **[Watch the full walkthrough in HD on YouTube »](https://youtu.be/YUFFjFgR4Ig)**
+▶️ **[Watch the full walkthrough in HD on YouTube »](https://youtu.be/7RzDYpmfOyA)**
 
 ## Quick Start
 
