@@ -56,7 +56,7 @@ Preparing for an interview takes hours of tedious resume tailoring and company r
   Your browser does not support the video tag.
 </video>
 
-▶️ **[Watch the full walkthrough in HD on YouTube »](https://youtu.be/YUFFjFgR4Ig)**
+▶️ **[Watch the full walkthrough in HD on YouTube »](https://youtu.be/7RzDYpmfOyA)**
 
 ## Quick Start
 
