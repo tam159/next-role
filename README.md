@@ -52,7 +52,7 @@ Preparing for an interview takes hours of tedious resume tailoring and company r
 
 ## Demo
 
-<video src="https://github.com/user-attachments/assets/39995750-b0be-4d59-a98b-b3ec109a509c" width="100%" controls>
+<video src="https://github.com/user-attachments/assets/cc0386d8-c66f-4f72-a7c8-89ea80d0b3e5" width="100%" controls>
   Your browser does not support the video tag.
 </video>
 
