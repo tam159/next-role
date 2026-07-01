@@ -6,7 +6,7 @@ dev = [
   "pytest-cov>=7.1.0",
   "pre-commit>=4.6.0",
   "toml-sort>=0.24.4",
-  "ty>=0.0.54"
+  "ty>=0.0.55"
 ]
 
 [project]
