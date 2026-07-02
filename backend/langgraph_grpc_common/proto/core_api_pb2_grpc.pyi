@@ -5,16 +5,14 @@ Protobuf definitions for low-level CRUD operations supported by LangSmith Deploy
 This is essentially an extended version of Agent Protocol (https://github.com/langchain-ai/agent-protocol).
 """
 
-import abc as _abc_1
-import sys
-import typing as _typing
 from collections import abc as _abc
-
-import grpc as _grpc
 from google.protobuf import empty_pb2 as _empty_pb2
 from grpc import aio as _aio
-
+import abc as _abc_1
 from . import core_api_pb2 as _core_api_pb2
+import grpc as _grpc
+import sys
+import typing as _typing
 
 if sys.version_info >= (3, 11):
     from typing import Self as _Self
@@ -24,6 +22,7 @@ else:
 _T = _typing.TypeVar("_T")
 
 class _MaybeAsyncIterator(_abc.AsyncIterator[_T], _abc.Iterator[_T], metaclass=_abc_1.ABCMeta): ...
+
 class _ServicerContext(_grpc.ServicerContext, _aio.ServicerContext):  # type: ignore[misc, type-arg]
     ...
 
@@ -36,67 +35,25 @@ class AssistantsStub:
     @_typing.overload
     def __new__(cls, channel: _aio.Channel) -> AssistantsAsyncStub: ...
     Get: _grpc.UnaryUnaryMultiCallable[_core_api_pb2.GetAssistantRequest, _core_api_pb2.Assistant]
-    Create: _grpc.UnaryUnaryMultiCallable[
-        _core_api_pb2.CreateAssistantRequest,
-        _core_api_pb2.Assistant,
-    ]
-    Patch: _grpc.UnaryUnaryMultiCallable[
-        _core_api_pb2.PatchAssistantRequest,
-        _core_api_pb2.Assistant,
-    ]
-    Delete: _grpc.UnaryUnaryMultiCallable[
-        _core_api_pb2.DeleteAssistantRequest,
-        _core_api_pb2.DeleteAssistantsResponse,
-    ]
-    Search: _grpc.UnaryUnaryMultiCallable[
-        _core_api_pb2.SearchAssistantsRequest,
-        _core_api_pb2.SearchAssistantsResponse,
-    ]
-    SetLatest: _grpc.UnaryUnaryMultiCallable[
-        _core_api_pb2.SetLatestAssistantRequest,
-        _core_api_pb2.Assistant,
-    ]
-    GetVersions: _grpc.UnaryUnaryMultiCallable[
-        _core_api_pb2.GetAssistantVersionsRequest,
-        _core_api_pb2.GetAssistantVersionsResponse,
-    ]
-    Count: _grpc.UnaryUnaryMultiCallable[
-        _core_api_pb2.CountAssistantsRequest,
-        _core_api_pb2.CountResponse,
-    ]
+    Create: _grpc.UnaryUnaryMultiCallable[_core_api_pb2.CreateAssistantRequest, _core_api_pb2.Assistant]
+    Patch: _grpc.UnaryUnaryMultiCallable[_core_api_pb2.PatchAssistantRequest, _core_api_pb2.Assistant]
+    Delete: _grpc.UnaryUnaryMultiCallable[_core_api_pb2.DeleteAssistantRequest, _core_api_pb2.DeleteAssistantsResponse]
+    Search: _grpc.UnaryUnaryMultiCallable[_core_api_pb2.SearchAssistantsRequest, _core_api_pb2.SearchAssistantsResponse]
+    SetLatest: _grpc.UnaryUnaryMultiCallable[_core_api_pb2.SetLatestAssistantRequest, _core_api_pb2.Assistant]
+    GetVersions: _grpc.UnaryUnaryMultiCallable[_core_api_pb2.GetAssistantVersionsRequest, _core_api_pb2.GetAssistantVersionsResponse]
+    Count: _grpc.UnaryUnaryMultiCallable[_core_api_pb2.CountAssistantsRequest, _core_api_pb2.CountResponse]
 
 @_typing.type_check_only
 class AssistantsAsyncStub(AssistantsStub):
     def __init__(self, channel: _aio.Channel) -> None: ...
     Get: _aio.UnaryUnaryMultiCallable[_core_api_pb2.GetAssistantRequest, _core_api_pb2.Assistant]  # type: ignore[assignment]
-    Create: _aio.UnaryUnaryMultiCallable[
-        _core_api_pb2.CreateAssistantRequest,
-        _core_api_pb2.Assistant,
-    ]  # type: ignore[assignment]
-    Patch: _aio.UnaryUnaryMultiCallable[
-        _core_api_pb2.PatchAssistantRequest,
-        _core_api_pb2.Assistant,
-    ]  # type: ignore[assignment]
-    Delete: _aio.UnaryUnaryMultiCallable[
-        _core_api_pb2.DeleteAssistantRequest,
-        _core_api_pb2.DeleteAssistantsResponse,
-    ]  # type: ignore[assignment]
-    Search: _aio.UnaryUnaryMultiCallable[
-        _core_api_pb2.SearchAssistantsRequest,
-        _core_api_pb2.SearchAssistantsResponse,
-    ]  # type: ignore[assignment]
-    SetLatest: _aio.UnaryUnaryMultiCallable[
-        _core_api_pb2.SetLatestAssistantRequest,
-        _core_api_pb2.Assistant,
-    ]  # type: ignore[assignment]
-    GetVersions: _aio.UnaryUnaryMultiCallable[
-        _core_api_pb2.GetAssistantVersionsRequest,
-        _core_api_pb2.GetAssistantVersionsResponse,
-    ]  # type: ignore[assignment]
-    Count: _aio.UnaryUnaryMultiCallable[
-        _core_api_pb2.CountAssistantsRequest,
-        _core_api_pb2.CountResponse,
-    ]  # type: ignore[assignment]
+    Create: _aio.UnaryUnaryMultiCallable[_core_api_pb2.CreateAssistantRequest, _core_api_pb2.Assistant]  # type: ignore[assignment]
+    Patch: _aio.UnaryUnaryMultiCallable[_core_api_pb2.PatchAssistantRequest, _core_api_pb2.Assistant]  # type: ignore[assignment]
+    Delete: _aio.UnaryUnaryMultiCallable[_core_api_pb2.DeleteAssistantRequest, _core_api_pb2.DeleteAssistantsResponse]  # type: ignore[assignment]
+    Search: _aio.UnaryUnaryMultiCallable[_core_api_pb2.SearchAssistantsRequest, _core_api_pb2.SearchAssistantsResponse]  # type: ignore[assignment]
+    SetLatest: _aio.UnaryUnaryMultiCallable[_core_api_pb2.SetLatestAssistantRequest, _core_api_pb2.Assistant]  # type: ignore[assignment]
+    GetVersions: _aio.UnaryUnaryMultiCallable[_core_api_pb2.GetAssistantVersionsRequest, _core_api_pb2.GetAssistantVersionsResponse]  # type: ignore[assignment]
+    Count: _aio.UnaryUnaryMultiCallable[_core_api_pb2.CountAssistantsRequest, _core_api_pb2.CountResponse]  # type: ignore[assignment]
 
 class AssistantsServicer(metaclass=_abc_1.ABCMeta):
     @_abc_1.abstractmethod
@@ -105,65 +62,57 @@ class AssistantsServicer(metaclass=_abc_1.ABCMeta):
         request: _core_api_pb2.GetAssistantRequest,
         context: _ServicerContext,
     ) -> _typing.Union[_core_api_pb2.Assistant, _abc.Awaitable[_core_api_pb2.Assistant]]: ...
+
     @_abc_1.abstractmethod
     def Create(
         self,
         request: _core_api_pb2.CreateAssistantRequest,
         context: _ServicerContext,
     ) -> _typing.Union[_core_api_pb2.Assistant, _abc.Awaitable[_core_api_pb2.Assistant]]: ...
+
     @_abc_1.abstractmethod
     def Patch(
         self,
         request: _core_api_pb2.PatchAssistantRequest,
         context: _ServicerContext,
     ) -> _typing.Union[_core_api_pb2.Assistant, _abc.Awaitable[_core_api_pb2.Assistant]]: ...
+
     @_abc_1.abstractmethod
     def Delete(
         self,
         request: _core_api_pb2.DeleteAssistantRequest,
         context: _ServicerContext,
-    ) -> _typing.Union[
-        _core_api_pb2.DeleteAssistantsResponse,
-        _abc.Awaitable[_core_api_pb2.DeleteAssistantsResponse],
-    ]: ...
+    ) -> _typing.Union[_core_api_pb2.DeleteAssistantsResponse, _abc.Awaitable[_core_api_pb2.DeleteAssistantsResponse]]: ...
+
     @_abc_1.abstractmethod
     def Search(
         self,
         request: _core_api_pb2.SearchAssistantsRequest,
         context: _ServicerContext,
-    ) -> _typing.Union[
-        _core_api_pb2.SearchAssistantsResponse,
-        _abc.Awaitable[_core_api_pb2.SearchAssistantsResponse],
-    ]: ...
+    ) -> _typing.Union[_core_api_pb2.SearchAssistantsResponse, _abc.Awaitable[_core_api_pb2.SearchAssistantsResponse]]: ...
+
     @_abc_1.abstractmethod
     def SetLatest(
         self,
         request: _core_api_pb2.SetLatestAssistantRequest,
         context: _ServicerContext,
     ) -> _typing.Union[_core_api_pb2.Assistant, _abc.Awaitable[_core_api_pb2.Assistant]]: ...
+
     @_abc_1.abstractmethod
     def GetVersions(
         self,
         request: _core_api_pb2.GetAssistantVersionsRequest,
         context: _ServicerContext,
-    ) -> _typing.Union[
-        _core_api_pb2.GetAssistantVersionsResponse,
-        _abc.Awaitable[_core_api_pb2.GetAssistantVersionsResponse],
-    ]: ...
+    ) -> _typing.Union[_core_api_pb2.GetAssistantVersionsResponse, _abc.Awaitable[_core_api_pb2.GetAssistantVersionsResponse]]: ...
+
     @_abc_1.abstractmethod
     def Count(
         self,
         request: _core_api_pb2.CountAssistantsRequest,
         context: _ServicerContext,
-    ) -> _typing.Union[
-        _core_api_pb2.CountResponse,
-        _abc.Awaitable[_core_api_pb2.CountResponse],
-    ]: ...
+    ) -> _typing.Union[_core_api_pb2.CountResponse, _abc.Awaitable[_core_api_pb2.CountResponse]]: ...
 
-def add_AssistantsServicer_to_server(
-    servicer: AssistantsServicer,
-    server: _typing.Union[_grpc.Server, _aio.Server],
-) -> None: ...
+def add_AssistantsServicer_to_server(servicer: AssistantsServicer, server: _typing.Union[_grpc.Server, _aio.Server]) -> None: ...
 
 class AdminStub:
     """Global database admin operations."""
@@ -194,10 +143,7 @@ class AdminServicer(metaclass=_abc_1.ABCMeta):
     ) -> _typing.Union[_empty_pb2.Empty, _abc.Awaitable[_empty_pb2.Empty]]:
         """Truncate all RDBMS data (supported in dev only!)"""
 
-def add_AdminServicer_to_server(
-    servicer: AdminServicer,
-    server: _typing.Union[_grpc.Server, _aio.Server],
-) -> None: ...
+def add_AdminServicer_to_server(servicer: AdminServicer, server: _typing.Union[_grpc.Server, _aio.Server]) -> None: ...
 
 class ThreadsStub:
     @_typing.overload
@@ -208,30 +154,15 @@ class ThreadsStub:
     Get: _grpc.UnaryUnaryMultiCallable[_core_api_pb2.GetThreadRequest, _core_api_pb2.Thread]
     Patch: _grpc.UnaryUnaryMultiCallable[_core_api_pb2.PatchThreadRequest, _core_api_pb2.Thread]
     Delete: _grpc.UnaryUnaryMultiCallable[_core_api_pb2.DeleteThreadRequest, _core_api_pb2.UUID]
-    Search: _grpc.UnaryUnaryMultiCallable[
-        _core_api_pb2.SearchThreadsRequest,
-        _core_api_pb2.SearchThreadsResponse,
-    ]
-    Count: _grpc.UnaryUnaryMultiCallable[
-        _core_api_pb2.CountThreadsRequest,
-        _core_api_pb2.CountResponse,
-    ]
+    Search: _grpc.UnaryUnaryMultiCallable[_core_api_pb2.SearchThreadsRequest, _core_api_pb2.SearchThreadsResponse]
+    Count: _grpc.UnaryUnaryMultiCallable[_core_api_pb2.CountThreadsRequest, _core_api_pb2.CountResponse]
     Copy: _grpc.UnaryUnaryMultiCallable[_core_api_pb2.CopyThreadRequest, _core_api_pb2.Thread]
     SetStatus: _grpc.UnaryUnaryMultiCallable[_core_api_pb2.SetThreadStatusRequest, _empty_pb2.Empty]
-    Stream: _grpc.UnaryStreamMultiCallable[
-        _core_api_pb2.StreamThreadRequest,
-        _core_api_pb2.StreamEvent,
-    ]
+    Stream: _grpc.UnaryStreamMultiCallable[_core_api_pb2.StreamThreadRequest, _core_api_pb2.StreamEvent]
     """Stream run events for all runs associated with the thread."""
-    SetJointStatus: _grpc.UnaryUnaryMultiCallable[
-        _core_api_pb2.SetThreadJointStatusRequest,
-        _empty_pb2.Empty,
-    ]
+    SetJointStatus: _grpc.UnaryUnaryMultiCallable[_core_api_pb2.SetThreadJointStatusRequest, _empty_pb2.Empty]
     """Set the status of a thread and run atomically."""
-    GetGraphID: _grpc.UnaryUnaryMultiCallable[
-        _core_api_pb2.GetGraphIDRequest,
-        _core_api_pb2.GetGraphIDResponse,
-    ]
+    GetGraphID: _grpc.UnaryUnaryMultiCallable[_core_api_pb2.GetGraphIDRequest, _core_api_pb2.GetGraphIDResponse]
     """Get graph ID for the latest run in a thread (internal method, no auth)."""
 
 @_typing.type_check_only
@@ -241,30 +172,15 @@ class ThreadsAsyncStub(ThreadsStub):
     Get: _aio.UnaryUnaryMultiCallable[_core_api_pb2.GetThreadRequest, _core_api_pb2.Thread]  # type: ignore[assignment]
     Patch: _aio.UnaryUnaryMultiCallable[_core_api_pb2.PatchThreadRequest, _core_api_pb2.Thread]  # type: ignore[assignment]
     Delete: _aio.UnaryUnaryMultiCallable[_core_api_pb2.DeleteThreadRequest, _core_api_pb2.UUID]  # type: ignore[assignment]
-    Search: _aio.UnaryUnaryMultiCallable[
-        _core_api_pb2.SearchThreadsRequest,
-        _core_api_pb2.SearchThreadsResponse,
-    ]  # type: ignore[assignment]
-    Count: _aio.UnaryUnaryMultiCallable[
-        _core_api_pb2.CountThreadsRequest,
-        _core_api_pb2.CountResponse,
-    ]  # type: ignore[assignment]
+    Search: _aio.UnaryUnaryMultiCallable[_core_api_pb2.SearchThreadsRequest, _core_api_pb2.SearchThreadsResponse]  # type: ignore[assignment]
+    Count: _aio.UnaryUnaryMultiCallable[_core_api_pb2.CountThreadsRequest, _core_api_pb2.CountResponse]  # type: ignore[assignment]
     Copy: _aio.UnaryUnaryMultiCallable[_core_api_pb2.CopyThreadRequest, _core_api_pb2.Thread]  # type: ignore[assignment]
     SetStatus: _aio.UnaryUnaryMultiCallable[_core_api_pb2.SetThreadStatusRequest, _empty_pb2.Empty]  # type: ignore[assignment]
-    Stream: _aio.UnaryStreamMultiCallable[
-        _core_api_pb2.StreamThreadRequest,
-        _core_api_pb2.StreamEvent,
-    ]  # type: ignore[assignment]
+    Stream: _aio.UnaryStreamMultiCallable[_core_api_pb2.StreamThreadRequest, _core_api_pb2.StreamEvent]  # type: ignore[assignment]
     """Stream run events for all runs associated with the thread."""
-    SetJointStatus: _aio.UnaryUnaryMultiCallable[
-        _core_api_pb2.SetThreadJointStatusRequest,
-        _empty_pb2.Empty,
-    ]  # type: ignore[assignment]
+    SetJointStatus: _aio.UnaryUnaryMultiCallable[_core_api_pb2.SetThreadJointStatusRequest, _empty_pb2.Empty]  # type: ignore[assignment]
     """Set the status of a thread and run atomically."""
-    GetGraphID: _aio.UnaryUnaryMultiCallable[
-        _core_api_pb2.GetGraphIDRequest,
-        _core_api_pb2.GetGraphIDResponse,
-    ]  # type: ignore[assignment]
+    GetGraphID: _aio.UnaryUnaryMultiCallable[_core_api_pb2.GetGraphIDRequest, _core_api_pb2.GetGraphIDResponse]  # type: ignore[assignment]
     """Get graph ID for the latest run in a thread (internal method, no auth)."""
 
 class ThreadsServicer(metaclass=_abc_1.ABCMeta):
@@ -274,63 +190,62 @@ class ThreadsServicer(metaclass=_abc_1.ABCMeta):
         request: _core_api_pb2.CreateThreadRequest,
         context: _ServicerContext,
     ) -> _typing.Union[_core_api_pb2.Thread, _abc.Awaitable[_core_api_pb2.Thread]]: ...
+
     @_abc_1.abstractmethod
     def Get(
         self,
         request: _core_api_pb2.GetThreadRequest,
         context: _ServicerContext,
     ) -> _typing.Union[_core_api_pb2.Thread, _abc.Awaitable[_core_api_pb2.Thread]]: ...
+
     @_abc_1.abstractmethod
     def Patch(
         self,
         request: _core_api_pb2.PatchThreadRequest,
         context: _ServicerContext,
     ) -> _typing.Union[_core_api_pb2.Thread, _abc.Awaitable[_core_api_pb2.Thread]]: ...
+
     @_abc_1.abstractmethod
     def Delete(
         self,
         request: _core_api_pb2.DeleteThreadRequest,
         context: _ServicerContext,
     ) -> _typing.Union[_core_api_pb2.UUID, _abc.Awaitable[_core_api_pb2.UUID]]: ...
+
     @_abc_1.abstractmethod
     def Search(
         self,
         request: _core_api_pb2.SearchThreadsRequest,
         context: _ServicerContext,
-    ) -> _typing.Union[
-        _core_api_pb2.SearchThreadsResponse,
-        _abc.Awaitable[_core_api_pb2.SearchThreadsResponse],
-    ]: ...
+    ) -> _typing.Union[_core_api_pb2.SearchThreadsResponse, _abc.Awaitable[_core_api_pb2.SearchThreadsResponse]]: ...
+
     @_abc_1.abstractmethod
     def Count(
         self,
         request: _core_api_pb2.CountThreadsRequest,
         context: _ServicerContext,
-    ) -> _typing.Union[
-        _core_api_pb2.CountResponse,
-        _abc.Awaitable[_core_api_pb2.CountResponse],
-    ]: ...
+    ) -> _typing.Union[_core_api_pb2.CountResponse, _abc.Awaitable[_core_api_pb2.CountResponse]]: ...
+
     @_abc_1.abstractmethod
     def Copy(
         self,
         request: _core_api_pb2.CopyThreadRequest,
         context: _ServicerContext,
     ) -> _typing.Union[_core_api_pb2.Thread, _abc.Awaitable[_core_api_pb2.Thread]]: ...
+
     @_abc_1.abstractmethod
     def SetStatus(
         self,
         request: _core_api_pb2.SetThreadStatusRequest,
         context: _ServicerContext,
     ) -> _typing.Union[_empty_pb2.Empty, _abc.Awaitable[_empty_pb2.Empty]]: ...
+
     @_abc_1.abstractmethod
     def Stream(
         self,
         request: _core_api_pb2.StreamThreadRequest,
         context: _ServicerContext,
-    ) -> _typing.Union[
-        _abc.Iterator[_core_api_pb2.StreamEvent],
-        _abc.AsyncIterator[_core_api_pb2.StreamEvent],
-    ]:
+    ) -> _typing.Union[_abc.Iterator[_core_api_pb2.StreamEvent], _abc.AsyncIterator[_core_api_pb2.StreamEvent]]:
         """Stream run events for all runs associated with the thread."""
 
     @_abc_1.abstractmethod
@@ -346,47 +261,29 @@ class ThreadsServicer(metaclass=_abc_1.ABCMeta):
         self,
         request: _core_api_pb2.GetGraphIDRequest,
         context: _ServicerContext,
-    ) -> _typing.Union[
-        _core_api_pb2.GetGraphIDResponse,
-        _abc.Awaitable[_core_api_pb2.GetGraphIDResponse],
-    ]:
+    ) -> _typing.Union[_core_api_pb2.GetGraphIDResponse, _abc.Awaitable[_core_api_pb2.GetGraphIDResponse]]:
         """Get graph ID for the latest run in a thread (internal method, no auth)."""
 
-def add_ThreadsServicer_to_server(
-    servicer: ThreadsServicer,
-    server: _typing.Union[_grpc.Server, _aio.Server],
-) -> None: ...
+def add_ThreadsServicer_to_server(servicer: ThreadsServicer, server: _typing.Union[_grpc.Server, _aio.Server]) -> None: ...
 
 class RunsStub:
     @_typing.overload
     def __new__(cls, channel: _grpc.Channel) -> _Self: ...
     @_typing.overload
     def __new__(cls, channel: _aio.Channel) -> RunsAsyncStub: ...
-    Create: _grpc.UnaryUnaryMultiCallable[
-        _core_api_pb2.CreateRunRequest,
-        _core_api_pb2.CreateRunResponse,
-    ]
+    Create: _grpc.UnaryUnaryMultiCallable[_core_api_pb2.CreateRunRequest, _core_api_pb2.CreateRunResponse]
     Get: _grpc.UnaryUnaryMultiCallable[_core_api_pb2.GetRunRequest, _core_api_pb2.Run]
     Delete: _grpc.UnaryUnaryMultiCallable[_core_api_pb2.DeleteRunRequest, _core_api_pb2.UUID]
-    Search: _grpc.UnaryUnaryMultiCallable[
-        _core_api_pb2.SearchRunsRequest,
-        _core_api_pb2.SearchRunsResponse,
-    ]
+    Search: _grpc.UnaryUnaryMultiCallable[_core_api_pb2.SearchRunsRequest, _core_api_pb2.SearchRunsResponse]
     Cancel: _grpc.UnaryUnaryMultiCallable[_core_api_pb2.CancelRunRequest, _empty_pb2.Empty]
     SetStatus: _grpc.UnaryUnaryMultiCallable[_core_api_pb2.SetRunStatusRequest, _empty_pb2.Empty]
-    Stream: _grpc.StreamStreamMultiCallable[
-        _core_api_pb2.StreamRunClientMessage,
-        _core_api_pb2.StreamEvent,
-    ]
+    Stream: _grpc.StreamStreamMultiCallable[_core_api_pb2.StreamRunClientMessage, _core_api_pb2.StreamEvent]
     """Bidirectional stream for run events.
     Client opens stream, then sends JoinRunRequest to start receiving events.
     Server validates auth on join and starts streaming events.
     If client disconnects and cancel_on_disconnect was set, the run is cancelled.
     """
-    Publish: _grpc.UnaryUnaryMultiCallable[
-        _core_api_pb2.PublishStreamEventRequest,
-        _empty_pb2.Empty,
-    ]
+    Publish: _grpc.UnaryUnaryMultiCallable[_core_api_pb2.PublishStreamEventRequest, _empty_pb2.Empty]
     """Publish a stream event for a run"""
     Enter: _grpc.UnaryStreamMultiCallable[_core_api_pb2.EnterRunRequest, _core_api_pb2.ControlEvent]
     """Enter a run - starts heartbeat and streams control signals (internal worker method)
@@ -398,10 +295,7 @@ class RunsStub:
     """Get run statistics (internal method, no auth)"""
     PoolStats: _grpc.UnaryUnaryMultiCallable[_empty_pb2.Empty, _core_api_pb2.ConnectionPoolStats]
     """Get connection pool stats for metrics aggregation (internal method, no auth)"""
-    Count: _grpc.UnaryUnaryMultiCallable[
-        _core_api_pb2.CountRunsRequest,
-        _core_api_pb2.CountResponse,
-    ]
+    Count: _grpc.UnaryUnaryMultiCallable[_core_api_pb2.CountRunsRequest, _core_api_pb2.CountResponse]
     """Count runs matching criteria (internal method, no auth)"""
     Next: _grpc.UnaryUnaryMultiCallable[_core_api_pb2.NextRunRequest, _core_api_pb2.NextRunResponse]
     """Get next run from queue (internal worker method, no auth)
@@ -413,22 +307,13 @@ class RunsStub:
 @_typing.type_check_only
 class RunsAsyncStub(RunsStub):
     def __init__(self, channel: _aio.Channel) -> None: ...
-    Create: _aio.UnaryUnaryMultiCallable[
-        _core_api_pb2.CreateRunRequest,
-        _core_api_pb2.CreateRunResponse,
-    ]  # type: ignore[assignment]
+    Create: _aio.UnaryUnaryMultiCallable[_core_api_pb2.CreateRunRequest, _core_api_pb2.CreateRunResponse]  # type: ignore[assignment]
     Get: _aio.UnaryUnaryMultiCallable[_core_api_pb2.GetRunRequest, _core_api_pb2.Run]  # type: ignore[assignment]
     Delete: _aio.UnaryUnaryMultiCallable[_core_api_pb2.DeleteRunRequest, _core_api_pb2.UUID]  # type: ignore[assignment]
-    Search: _aio.UnaryUnaryMultiCallable[
-        _core_api_pb2.SearchRunsRequest,
-        _core_api_pb2.SearchRunsResponse,
-    ]  # type: ignore[assignment]
+    Search: _aio.UnaryUnaryMultiCallable[_core_api_pb2.SearchRunsRequest, _core_api_pb2.SearchRunsResponse]  # type: ignore[assignment]
     Cancel: _aio.UnaryUnaryMultiCallable[_core_api_pb2.CancelRunRequest, _empty_pb2.Empty]  # type: ignore[assignment]
     SetStatus: _aio.UnaryUnaryMultiCallable[_core_api_pb2.SetRunStatusRequest, _empty_pb2.Empty]  # type: ignore[assignment]
-    Stream: _aio.StreamStreamMultiCallable[
-        _core_api_pb2.StreamRunClientMessage,
-        _core_api_pb2.StreamEvent,
-    ]  # type: ignore[assignment]
+    Stream: _aio.StreamStreamMultiCallable[_core_api_pb2.StreamRunClientMessage, _core_api_pb2.StreamEvent]  # type: ignore[assignment]
     """Bidirectional stream for run events.
     Client opens stream, then sends JoinRunRequest to start receiving events.
     Server validates auth on join and starts streaming events.
@@ -461,52 +346,49 @@ class RunsServicer(metaclass=_abc_1.ABCMeta):
         self,
         request: _core_api_pb2.CreateRunRequest,
         context: _ServicerContext,
-    ) -> _typing.Union[
-        _core_api_pb2.CreateRunResponse,
-        _abc.Awaitable[_core_api_pb2.CreateRunResponse],
-    ]: ...
+    ) -> _typing.Union[_core_api_pb2.CreateRunResponse, _abc.Awaitable[_core_api_pb2.CreateRunResponse]]: ...
+
     @_abc_1.abstractmethod
     def Get(
         self,
         request: _core_api_pb2.GetRunRequest,
         context: _ServicerContext,
     ) -> _typing.Union[_core_api_pb2.Run, _abc.Awaitable[_core_api_pb2.Run]]: ...
+
     @_abc_1.abstractmethod
     def Delete(
         self,
         request: _core_api_pb2.DeleteRunRequest,
         context: _ServicerContext,
     ) -> _typing.Union[_core_api_pb2.UUID, _abc.Awaitable[_core_api_pb2.UUID]]: ...
+
     @_abc_1.abstractmethod
     def Search(
         self,
         request: _core_api_pb2.SearchRunsRequest,
         context: _ServicerContext,
-    ) -> _typing.Union[
-        _core_api_pb2.SearchRunsResponse,
-        _abc.Awaitable[_core_api_pb2.SearchRunsResponse],
-    ]: ...
+    ) -> _typing.Union[_core_api_pb2.SearchRunsResponse, _abc.Awaitable[_core_api_pb2.SearchRunsResponse]]: ...
+
     @_abc_1.abstractmethod
     def Cancel(
         self,
         request: _core_api_pb2.CancelRunRequest,
         context: _ServicerContext,
     ) -> _typing.Union[_empty_pb2.Empty, _abc.Awaitable[_empty_pb2.Empty]]: ...
+
     @_abc_1.abstractmethod
     def SetStatus(
         self,
         request: _core_api_pb2.SetRunStatusRequest,
         context: _ServicerContext,
     ) -> _typing.Union[_empty_pb2.Empty, _abc.Awaitable[_empty_pb2.Empty]]: ...
+
     @_abc_1.abstractmethod
     def Stream(
         self,
         request_iterator: _MaybeAsyncIterator[_core_api_pb2.StreamRunClientMessage],
         context: _ServicerContext,
-    ) -> _typing.Union[
-        _abc.Iterator[_core_api_pb2.StreamEvent],
-        _abc.AsyncIterator[_core_api_pb2.StreamEvent],
-    ]:
+    ) -> _typing.Union[_abc.Iterator[_core_api_pb2.StreamEvent], _abc.AsyncIterator[_core_api_pb2.StreamEvent]]:
         """Bidirectional stream for run events.
         Client opens stream, then sends JoinRunRequest to start receiving events.
         Server validates auth on join and starts streaming events.
@@ -526,10 +408,7 @@ class RunsServicer(metaclass=_abc_1.ABCMeta):
         self,
         request: _core_api_pb2.EnterRunRequest,
         context: _ServicerContext,
-    ) -> _typing.Union[
-        _abc.Iterator[_core_api_pb2.ControlEvent],
-        _abc.AsyncIterator[_core_api_pb2.ControlEvent],
-    ]:
+    ) -> _typing.Union[_abc.Iterator[_core_api_pb2.ControlEvent], _abc.AsyncIterator[_core_api_pb2.ControlEvent]]:
         """Enter a run - starts heartbeat and streams control signals (internal worker method)
         Returns a stream of interrupt/rollback signals for the specified run
         """
@@ -555,10 +434,7 @@ class RunsServicer(metaclass=_abc_1.ABCMeta):
         self,
         request: _empty_pb2.Empty,
         context: _ServicerContext,
-    ) -> _typing.Union[
-        _core_api_pb2.ConnectionPoolStats,
-        _abc.Awaitable[_core_api_pb2.ConnectionPoolStats],
-    ]:
+    ) -> _typing.Union[_core_api_pb2.ConnectionPoolStats, _abc.Awaitable[_core_api_pb2.ConnectionPoolStats]]:
         """Get connection pool stats for metrics aggregation (internal method, no auth)"""
 
     @_abc_1.abstractmethod
@@ -574,10 +450,7 @@ class RunsServicer(metaclass=_abc_1.ABCMeta):
         self,
         request: _core_api_pb2.NextRunRequest,
         context: _ServicerContext,
-    ) -> _typing.Union[
-        _core_api_pb2.NextRunResponse,
-        _abc.Awaitable[_core_api_pb2.NextRunResponse],
-    ]:
+    ) -> _typing.Union[_core_api_pb2.NextRunResponse, _abc.Awaitable[_core_api_pb2.NextRunResponse]]:
         """Get next run from queue (internal worker method, no auth)
         TODO: come back
         """
@@ -587,16 +460,10 @@ class RunsServicer(metaclass=_abc_1.ABCMeta):
         self,
         request: _empty_pb2.Empty,
         context: _ServicerContext,
-    ) -> _typing.Union[
-        _core_api_pb2.SweepRunsResponse,
-        _abc.Awaitable[_core_api_pb2.SweepRunsResponse],
-    ]:
+    ) -> _typing.Union[_core_api_pb2.SweepRunsResponse, _abc.Awaitable[_core_api_pb2.SweepRunsResponse]]:
         """Sweep abandoned runs (internal method, no auth)"""
 
-def add_RunsServicer_to_server(
-    servicer: RunsServicer,
-    server: _typing.Union[_grpc.Server, _aio.Server],
-) -> None: ...
+def add_RunsServicer_to_server(servicer: RunsServicer, server: _typing.Union[_grpc.Server, _aio.Server]) -> None: ...
 
 class CronsStub:
     @_typing.overload
@@ -607,19 +474,10 @@ class CronsStub:
     Get: _grpc.UnaryUnaryMultiCallable[_core_api_pb2.GetCronRequest, _core_api_pb2.Cron]
     Patch: _grpc.UnaryUnaryMultiCallable[_core_api_pb2.PatchCronRequest, _core_api_pb2.Cron]
     Delete: _grpc.UnaryUnaryMultiCallable[_core_api_pb2.DeleteCronRequest, _empty_pb2.Empty]
-    Search: _grpc.UnaryUnaryMultiCallable[
-        _core_api_pb2.SearchCronsRequest,
-        _core_api_pb2.SearchCronsResponse,
-    ]
-    Count: _grpc.UnaryUnaryMultiCallable[
-        _core_api_pb2.CountCronsRequest,
-        _core_api_pb2.CountResponse,
-    ]
+    Search: _grpc.UnaryUnaryMultiCallable[_core_api_pb2.SearchCronsRequest, _core_api_pb2.SearchCronsResponse]
+    Count: _grpc.UnaryUnaryMultiCallable[_core_api_pb2.CountCronsRequest, _core_api_pb2.CountResponse]
     Next: _grpc.UnaryUnaryMultiCallable[_empty_pb2.Empty, _core_api_pb2.NextCronsResponse]
-    SetNextRunDate: _grpc.UnaryUnaryMultiCallable[
-        _core_api_pb2.SetNextRunDateRequest,
-        _empty_pb2.Empty,
-    ]
+    SetNextRunDate: _grpc.UnaryUnaryMultiCallable[_core_api_pb2.SetNextRunDateRequest, _empty_pb2.Empty]
 
 @_typing.type_check_only
 class CronsAsyncStub(CronsStub):
@@ -628,19 +486,10 @@ class CronsAsyncStub(CronsStub):
     Get: _aio.UnaryUnaryMultiCallable[_core_api_pb2.GetCronRequest, _core_api_pb2.Cron]  # type: ignore[assignment]
     Patch: _aio.UnaryUnaryMultiCallable[_core_api_pb2.PatchCronRequest, _core_api_pb2.Cron]  # type: ignore[assignment]
     Delete: _aio.UnaryUnaryMultiCallable[_core_api_pb2.DeleteCronRequest, _empty_pb2.Empty]  # type: ignore[assignment]
-    Search: _aio.UnaryUnaryMultiCallable[
-        _core_api_pb2.SearchCronsRequest,
-        _core_api_pb2.SearchCronsResponse,
-    ]  # type: ignore[assignment]
-    Count: _aio.UnaryUnaryMultiCallable[
-        _core_api_pb2.CountCronsRequest,
-        _core_api_pb2.CountResponse,
-    ]  # type: ignore[assignment]
+    Search: _aio.UnaryUnaryMultiCallable[_core_api_pb2.SearchCronsRequest, _core_api_pb2.SearchCronsResponse]  # type: ignore[assignment]
+    Count: _aio.UnaryUnaryMultiCallable[_core_api_pb2.CountCronsRequest, _core_api_pb2.CountResponse]  # type: ignore[assignment]
     Next: _aio.UnaryUnaryMultiCallable[_empty_pb2.Empty, _core_api_pb2.NextCronsResponse]  # type: ignore[assignment]
-    SetNextRunDate: _aio.UnaryUnaryMultiCallable[
-        _core_api_pb2.SetNextRunDateRequest,
-        _empty_pb2.Empty,
-    ]  # type: ignore[assignment]
+    SetNextRunDate: _aio.UnaryUnaryMultiCallable[_core_api_pb2.SetNextRunDateRequest, _empty_pb2.Empty]  # type: ignore[assignment]
 
 class CronsServicer(metaclass=_abc_1.ABCMeta):
     @_abc_1.abstractmethod
@@ -649,51 +498,49 @@ class CronsServicer(metaclass=_abc_1.ABCMeta):
         request: _core_api_pb2.CreateCronRequest,
         context: _ServicerContext,
     ) -> _typing.Union[_core_api_pb2.Cron, _abc.Awaitable[_core_api_pb2.Cron]]: ...
+
     @_abc_1.abstractmethod
     def Get(
         self,
         request: _core_api_pb2.GetCronRequest,
         context: _ServicerContext,
     ) -> _typing.Union[_core_api_pb2.Cron, _abc.Awaitable[_core_api_pb2.Cron]]: ...
+
     @_abc_1.abstractmethod
     def Patch(
         self,
         request: _core_api_pb2.PatchCronRequest,
         context: _ServicerContext,
     ) -> _typing.Union[_core_api_pb2.Cron, _abc.Awaitable[_core_api_pb2.Cron]]: ...
+
     @_abc_1.abstractmethod
     def Delete(
         self,
         request: _core_api_pb2.DeleteCronRequest,
         context: _ServicerContext,
     ) -> _typing.Union[_empty_pb2.Empty, _abc.Awaitable[_empty_pb2.Empty]]: ...
+
     @_abc_1.abstractmethod
     def Search(
         self,
         request: _core_api_pb2.SearchCronsRequest,
         context: _ServicerContext,
-    ) -> _typing.Union[
-        _core_api_pb2.SearchCronsResponse,
-        _abc.Awaitable[_core_api_pb2.SearchCronsResponse],
-    ]: ...
+    ) -> _typing.Union[_core_api_pb2.SearchCronsResponse, _abc.Awaitable[_core_api_pb2.SearchCronsResponse]]: ...
+
     @_abc_1.abstractmethod
     def Count(
         self,
         request: _core_api_pb2.CountCronsRequest,
         context: _ServicerContext,
-    ) -> _typing.Union[
-        _core_api_pb2.CountResponse,
-        _abc.Awaitable[_core_api_pb2.CountResponse],
-    ]: ...
+    ) -> _typing.Union[_core_api_pb2.CountResponse, _abc.Awaitable[_core_api_pb2.CountResponse]]: ...
+
     @_abc_1.abstractmethod
     def Next(
         self,
         request: _empty_pb2.Empty,
         context: _ServicerContext,
-    ) -> _typing.Union[
-        _core_api_pb2.NextCronsResponse,
-        _abc.Awaitable[_core_api_pb2.NextCronsResponse],
-    ]: ...
+    ) -> _typing.Union[_core_api_pb2.NextCronsResponse, _abc.Awaitable[_core_api_pb2.NextCronsResponse]]: ...
+
     @_abc_1.abstractmethod
     def SetNextRunDate(
         self,
@@ -701,10 +548,7 @@ class CronsServicer(metaclass=_abc_1.ABCMeta):
         context: _ServicerContext,
     ) -> _typing.Union[_empty_pb2.Empty, _abc.Awaitable[_empty_pb2.Empty]]: ...
 
-def add_CronsServicer_to_server(
-    servicer: CronsServicer,
-    server: _typing.Union[_grpc.Server, _aio.Server],
-) -> None: ...
+def add_CronsServicer_to_server(servicer: CronsServicer, server: _typing.Union[_grpc.Server, _aio.Server]) -> None: ...
 
 class CacheStub:
     """A generic ephemeral key/value cache backed by Redis (or in-memory for local dev).
@@ -717,10 +561,7 @@ class CacheStub:
     @_typing.overload
     def __new__(cls, channel: _aio.Channel) -> CacheAsyncStub: ...
     Set: _grpc.UnaryUnaryMultiCallable[_core_api_pb2.CacheSetRequest, _empty_pb2.Empty]
-    Get: _grpc.UnaryUnaryMultiCallable[
-        _core_api_pb2.CacheGetRequest,
-        _core_api_pb2.CacheGetResponse,
-    ]
+    Get: _grpc.UnaryUnaryMultiCallable[_core_api_pb2.CacheGetRequest, _core_api_pb2.CacheGetResponse]
 
 @_typing.type_check_only
 class CacheAsyncStub(CacheStub):
@@ -745,17 +586,12 @@ class CacheServicer(metaclass=_abc_1.ABCMeta):
         request: _core_api_pb2.CacheSetRequest,
         context: _ServicerContext,
     ) -> _typing.Union[_empty_pb2.Empty, _abc.Awaitable[_empty_pb2.Empty]]: ...
+
     @_abc_1.abstractmethod
     def Get(
         self,
         request: _core_api_pb2.CacheGetRequest,
         context: _ServicerContext,
-    ) -> _typing.Union[
-        _core_api_pb2.CacheGetResponse,
-        _abc.Awaitable[_core_api_pb2.CacheGetResponse],
-    ]: ...
+    ) -> _typing.Union[_core_api_pb2.CacheGetResponse, _abc.Awaitable[_core_api_pb2.CacheGetResponse]]: ...
 
-def add_CacheServicer_to_server(
-    servicer: CacheServicer,
-    server: _typing.Union[_grpc.Server, _aio.Server],
-) -> None: ...
+def add_CacheServicer_to_server(servicer: CacheServicer, server: _typing.Union[_grpc.Server, _aio.Server]) -> None: ...

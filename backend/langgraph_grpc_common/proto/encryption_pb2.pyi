@@ -3,21 +3,18 @@
 isort:skip_file
 """
 
-import builtins as _builtins
-import sys
-import typing as _typing
 from collections import abc as _abc
-
 from google.protobuf import descriptor as _descriptor
 from google.protobuf import message as _message
 from google.protobuf.internal import containers as _containers
+import builtins as _builtins
+import sys
+import typing as _typing
 
 if sys.version_info >= (3, 11):
-    from typing import Never as _Never
-    from typing import TypeAlias as _TypeAlias
+    from typing import TypeAlias as _TypeAlias, Never as _Never
 else:
-    from typing_extensions import Never as _Never
-    from typing_extensions import TypeAlias as _TypeAlias
+    from typing_extensions import TypeAlias as _TypeAlias, Never as _Never
 
 DESCRIPTOR: _descriptor.FileDescriptor
 
@@ -44,9 +41,9 @@ class EncryptionContext(_message.Message):
             key: _builtins.str = ...,
             value: _builtins.bytes = ...,
         ) -> None: ...
-        _HasFieldArgType: _TypeAlias = _Never
+        _HasFieldArgType: _TypeAlias = _Never  # noqa: Y015
         def HasField(self, field_name: _HasFieldArgType) -> _builtins.bool: ...
-        _ClearFieldArgType: _TypeAlias = _typing.Literal["key", b"key", "value", b"value"]
+        _ClearFieldArgType: _TypeAlias = _typing.Literal["key", b"key", "value", b"value"]  # noqa: Y015
         def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
         def WhichOneof(self, oneof_group: _Never) -> None: ...
 
@@ -68,46 +65,20 @@ class EncryptionContext(_message.Message):
         field: _builtins.str | None = ...,
         metadata: _abc.Mapping[_builtins.str, _builtins.bytes] | None = ...,
     ) -> None: ...
-    _HasFieldArgType: _TypeAlias = _typing.Literal[
-        "_field",
-        b"_field",
-        "_model",
-        b"_model",
-        "field",
-        b"field",
-        "model",
-        b"model",
-    ]
+    _HasFieldArgType: _TypeAlias = _typing.Literal["_field", b"_field", "_model", b"_model", "field", b"field", "model", b"model"]  # noqa: Y015
     def HasField(self, field_name: _HasFieldArgType) -> _builtins.bool: ...
-    _ClearFieldArgType: _TypeAlias = _typing.Literal[
-        "_field",
-        b"_field",
-        "_model",
-        b"_model",
-        "field",
-        b"field",
-        "metadata",
-        b"metadata",
-        "model",
-        b"model",
-    ]
+    _ClearFieldArgType: _TypeAlias = _typing.Literal["_field", b"_field", "_model", b"_model", "field", b"field", "metadata", b"metadata", "model", b"model"]  # noqa: Y015
     def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
-    _WhichOneofReturnType__field: _TypeAlias = _typing.Literal["field"]
-    _WhichOneofArgType__field: _TypeAlias = _typing.Literal["_field", b"_field"]
-    _WhichOneofReturnType__model: _TypeAlias = _typing.Literal["model"]
-    _WhichOneofArgType__model: _TypeAlias = _typing.Literal["_model", b"_model"]
+    _WhichOneofReturnType__field: _TypeAlias = _typing.Literal["field"]  # noqa: Y015
+    _WhichOneofArgType__field: _TypeAlias = _typing.Literal["_field", b"_field"]  # noqa: Y015
+    _WhichOneofReturnType__model: _TypeAlias = _typing.Literal["model"]  # noqa: Y015
+    _WhichOneofArgType__model: _TypeAlias = _typing.Literal["_model", b"_model"]  # noqa: Y015
     @_typing.overload
-    def WhichOneof(
-        self,
-        oneof_group: _WhichOneofArgType__field,
-    ) -> _WhichOneofReturnType__field | None: ...
+    def WhichOneof(self, oneof_group: _WhichOneofArgType__field) -> _WhichOneofReturnType__field | None: ...
     @_typing.overload
-    def WhichOneof(
-        self,
-        oneof_group: _WhichOneofArgType__model,
-    ) -> _WhichOneofReturnType__model | None: ...
+    def WhichOneof(self, oneof_group: _WhichOneofArgType__model) -> _WhichOneofReturnType__model | None: ...
 
-Global___EncryptionContext: _TypeAlias = EncryptionContext
+Global___EncryptionContext: _TypeAlias = EncryptionContext  # noqa: Y015
 
 @_typing.final
 class EncryptJSONRequest(_message.Message):
@@ -129,13 +100,13 @@ class EncryptJSONRequest(_message.Message):
         data: _builtins.bytes = ...,
         context: Global___EncryptionContext | None = ...,
     ) -> None: ...
-    _HasFieldArgType: _TypeAlias = _typing.Literal["context", b"context"]
+    _HasFieldArgType: _TypeAlias = _typing.Literal["context", b"context"]  # noqa: Y015
     def HasField(self, field_name: _HasFieldArgType) -> _builtins.bool: ...
-    _ClearFieldArgType: _TypeAlias = _typing.Literal["context", b"context", "data", b"data"]
+    _ClearFieldArgType: _TypeAlias = _typing.Literal["context", b"context", "data", b"data"]  # noqa: Y015
     def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
     def WhichOneof(self, oneof_group: _Never) -> None: ...
 
-Global___EncryptJSONRequest: _TypeAlias = EncryptJSONRequest
+Global___EncryptJSONRequest: _TypeAlias = EncryptJSONRequest  # noqa: Y015
 
 @_typing.final
 class DecryptJSONRequest(_message.Message):
@@ -162,46 +133,20 @@ class DecryptJSONRequest(_message.Message):
         field: _builtins.str | None = ...,
         model: _builtins.str | None = ...,
     ) -> None: ...
-    _HasFieldArgType: _TypeAlias = _typing.Literal[
-        "_field",
-        b"_field",
-        "_model",
-        b"_model",
-        "field",
-        b"field",
-        "model",
-        b"model",
-    ]
+    _HasFieldArgType: _TypeAlias = _typing.Literal["_field", b"_field", "_model", b"_model", "field", b"field", "model", b"model"]  # noqa: Y015
     def HasField(self, field_name: _HasFieldArgType) -> _builtins.bool: ...
-    _ClearFieldArgType: _TypeAlias = _typing.Literal[
-        "_field",
-        b"_field",
-        "_model",
-        b"_model",
-        "data",
-        b"data",
-        "field",
-        b"field",
-        "model",
-        b"model",
-    ]
+    _ClearFieldArgType: _TypeAlias = _typing.Literal["_field", b"_field", "_model", b"_model", "data", b"data", "field", b"field", "model", b"model"]  # noqa: Y015
     def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
-    _WhichOneofReturnType__field: _TypeAlias = _typing.Literal["field"]
-    _WhichOneofArgType__field: _TypeAlias = _typing.Literal["_field", b"_field"]
-    _WhichOneofReturnType__model: _TypeAlias = _typing.Literal["model"]
-    _WhichOneofArgType__model: _TypeAlias = _typing.Literal["_model", b"_model"]
+    _WhichOneofReturnType__field: _TypeAlias = _typing.Literal["field"]  # noqa: Y015
+    _WhichOneofArgType__field: _TypeAlias = _typing.Literal["_field", b"_field"]  # noqa: Y015
+    _WhichOneofReturnType__model: _TypeAlias = _typing.Literal["model"]  # noqa: Y015
+    _WhichOneofArgType__model: _TypeAlias = _typing.Literal["_model", b"_model"]  # noqa: Y015
     @_typing.overload
-    def WhichOneof(
-        self,
-        oneof_group: _WhichOneofArgType__field,
-    ) -> _WhichOneofReturnType__field | None: ...
+    def WhichOneof(self, oneof_group: _WhichOneofArgType__field) -> _WhichOneofReturnType__field | None: ...
     @_typing.overload
-    def WhichOneof(
-        self,
-        oneof_group: _WhichOneofArgType__model,
-    ) -> _WhichOneofReturnType__model | None: ...
+    def WhichOneof(self, oneof_group: _WhichOneofArgType__model) -> _WhichOneofReturnType__model | None: ...
 
-Global___DecryptJSONRequest: _TypeAlias = DecryptJSONRequest
+Global___DecryptJSONRequest: _TypeAlias = DecryptJSONRequest  # noqa: Y015
 
 @_typing.final
 class EncryptResponse(_message.Message):
@@ -217,13 +162,13 @@ class EncryptResponse(_message.Message):
         *,
         data: _builtins.bytes = ...,
     ) -> None: ...
-    _HasFieldArgType: _TypeAlias = _Never
+    _HasFieldArgType: _TypeAlias = _Never  # noqa: Y015
     def HasField(self, field_name: _HasFieldArgType) -> _builtins.bool: ...
-    _ClearFieldArgType: _TypeAlias = _typing.Literal["data", b"data"]
+    _ClearFieldArgType: _TypeAlias = _typing.Literal["data", b"data"]  # noqa: Y015
     def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
     def WhichOneof(self, oneof_group: _Never) -> None: ...
 
-Global___EncryptResponse: _TypeAlias = EncryptResponse
+Global___EncryptResponse: _TypeAlias = EncryptResponse  # noqa: Y015
 
 @_typing.final
 class DecryptResponse(_message.Message):
@@ -239,10 +184,10 @@ class DecryptResponse(_message.Message):
         *,
         data: _builtins.bytes = ...,
     ) -> None: ...
-    _HasFieldArgType: _TypeAlias = _Never
+    _HasFieldArgType: _TypeAlias = _Never  # noqa: Y015
     def HasField(self, field_name: _HasFieldArgType) -> _builtins.bool: ...
-    _ClearFieldArgType: _TypeAlias = _typing.Literal["data", b"data"]
+    _ClearFieldArgType: _TypeAlias = _typing.Literal["data", b"data"]  # noqa: Y015
     def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
     def WhichOneof(self, oneof_group: _Never) -> None: ...
 
-Global___DecryptResponse: _TypeAlias = DecryptResponse
+Global___DecryptResponse: _TypeAlias = DecryptResponse  # noqa: Y015

@@ -5,28 +5,24 @@ engineCommon is the protos shared between engineApi and executorApi
 Some of these (EngineRunnableConfig, Checkpoint, ...) are by coreApi and checkpointer as well.
 """
 
-import builtins as _builtins
-import sys
-import typing as _typing
 from collections import abc as _abc
-
 from google.protobuf import descriptor as _descriptor
 from google.protobuf import empty_pb2 as _empty_pb2
 from google.protobuf import message as _message
 from google.protobuf import wrappers_pb2 as _wrappers_pb2
 from google.protobuf.internal import containers as _containers
 from google.protobuf.internal import enum_type_wrapper as _enum_type_wrapper
-
+import builtins as _builtins
 from . import enum_durability_pb2 as _enum_durability_pb2
 from . import enum_stream_mode_pb2 as _enum_stream_mode_pb2
 from . import errors_pb2 as _errors_pb2
+import sys
+import typing as _typing
 
 if sys.version_info >= (3, 11):
-    from typing import Never as _Never
-    from typing import TypeAlias as _TypeAlias
+    from typing import TypeAlias as _TypeAlias, Never as _Never
 else:
-    from typing_extensions import Never as _Never
-    from typing_extensions import TypeAlias as _TypeAlias
+    from typing_extensions import TypeAlias as _TypeAlias, Never as _Never
 
 DESCRIPTOR: _descriptor.FileDescriptor
 
@@ -50,36 +46,15 @@ class ChannelValue(_message.Message):
         sends: Global___Sends | None = ...,
         missing: _empty_pb2.Empty | None = ...,
     ) -> None: ...
-    _HasFieldArgType: _TypeAlias = _typing.Literal[
-        "missing",
-        b"missing",
-        "sends",
-        b"sends",
-        "serialized_value",
-        b"serialized_value",
-        "val",
-        b"val",
-    ]
+    _HasFieldArgType: _TypeAlias = _typing.Literal["missing", b"missing", "sends", b"sends", "serialized_value", b"serialized_value", "val", b"val"]  # noqa: Y015
     def HasField(self, field_name: _HasFieldArgType) -> _builtins.bool: ...
-    _ClearFieldArgType: _TypeAlias = _typing.Literal[
-        "missing",
-        b"missing",
-        "sends",
-        b"sends",
-        "serialized_value",
-        b"serialized_value",
-        "val",
-        b"val",
-    ]
+    _ClearFieldArgType: _TypeAlias = _typing.Literal["missing", b"missing", "sends", b"sends", "serialized_value", b"serialized_value", "val", b"val"]  # noqa: Y015
     def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
-    _WhichOneofReturnType_val: _TypeAlias = _typing.Literal["serialized_value", "sends", "missing"]
-    _WhichOneofArgType_val: _TypeAlias = _typing.Literal["val", b"val"]
-    def WhichOneof(
-        self,
-        oneof_group: _WhichOneofArgType_val,
-    ) -> _WhichOneofReturnType_val | None: ...
+    _WhichOneofReturnType_val: _TypeAlias = _typing.Literal["serialized_value", "sends", "missing"]  # noqa: Y015
+    _WhichOneofArgType_val: _TypeAlias = _typing.Literal["val", b"val"]  # noqa: Y015
+    def WhichOneof(self, oneof_group: _WhichOneofArgType_val) -> _WhichOneofReturnType_val | None: ...
 
-Global___ChannelValue: _TypeAlias = ChannelValue
+Global___ChannelValue: _TypeAlias = ChannelValue  # noqa: Y015
 
 @_typing.final
 class SerializedValue(_message.Message):
@@ -99,13 +74,13 @@ class SerializedValue(_message.Message):
         encoding: _builtins.str = ...,
         value: _builtins.bytes = ...,
     ) -> None: ...
-    _HasFieldArgType: _TypeAlias = _Never
+    _HasFieldArgType: _TypeAlias = _Never  # noqa: Y015
     def HasField(self, field_name: _HasFieldArgType) -> _builtins.bool: ...
-    _ClearFieldArgType: _TypeAlias = _typing.Literal["encoding", b"encoding", "value", b"value"]
+    _ClearFieldArgType: _TypeAlias = _typing.Literal["encoding", b"encoding", "value", b"value"]  # noqa: Y015
     def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
     def WhichOneof(self, oneof_group: _Never) -> None: ...
 
-Global___SerializedValue: _TypeAlias = SerializedValue
+Global___SerializedValue: _TypeAlias = SerializedValue  # noqa: Y015
 
 @_typing.final
 class ResponseChunk(_message.Message):
@@ -126,20 +101,13 @@ class ResponseChunk(_message.Message):
         mode: _builtins.str = ...,
         payload: Global___SerializedValue | None = ...,
     ) -> None: ...
-    _HasFieldArgType: _TypeAlias = _typing.Literal["payload", b"payload"]
+    _HasFieldArgType: _TypeAlias = _typing.Literal["payload", b"payload"]  # noqa: Y015
     def HasField(self, field_name: _HasFieldArgType) -> _builtins.bool: ...
-    _ClearFieldArgType: _TypeAlias = _typing.Literal[
-        "mode",
-        b"mode",
-        "namespaces",
-        b"namespaces",
-        "payload",
-        b"payload",
-    ]
+    _ClearFieldArgType: _TypeAlias = _typing.Literal["mode", b"mode", "namespaces", b"namespaces", "payload", b"payload"]  # noqa: Y015
     def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
     def WhichOneof(self, oneof_group: _Never) -> None: ...
 
-Global___ResponseChunk: _TypeAlias = ResponseChunk
+Global___ResponseChunk: _TypeAlias = ResponseChunk  # noqa: Y015
 
 @_typing.final
 class ResponseChunkList(_message.Message):
@@ -153,13 +121,13 @@ class ResponseChunkList(_message.Message):
         *,
         responses: _abc.Iterable[Global___ResponseChunk] | None = ...,
     ) -> None: ...
-    _HasFieldArgType: _TypeAlias = _Never
+    _HasFieldArgType: _TypeAlias = _Never  # noqa: Y015
     def HasField(self, field_name: _HasFieldArgType) -> _builtins.bool: ...
-    _ClearFieldArgType: _TypeAlias = _typing.Literal["responses", b"responses"]
+    _ClearFieldArgType: _TypeAlias = _typing.Literal["responses", b"responses"]  # noqa: Y015
     def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
     def WhichOneof(self, oneof_group: _Never) -> None: ...
 
-Global___ResponseChunkList: _TypeAlias = ResponseChunkList
+Global___ResponseChunkList: _TypeAlias = ResponseChunkList  # noqa: Y015
 
 @_typing.final
 class MessageIds(_message.Message):
@@ -175,13 +143,13 @@ class MessageIds(_message.Message):
         *,
         message_ids: _abc.Iterable[_builtins.str] | None = ...,
     ) -> None: ...
-    _HasFieldArgType: _TypeAlias = _Never
+    _HasFieldArgType: _TypeAlias = _Never  # noqa: Y015
     def HasField(self, field_name: _HasFieldArgType) -> _builtins.bool: ...
-    _ClearFieldArgType: _TypeAlias = _typing.Literal["message_ids", b"message_ids"]
+    _ClearFieldArgType: _TypeAlias = _typing.Literal["message_ids", b"message_ids"]  # noqa: Y015
     def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
     def WhichOneof(self, oneof_group: _Never) -> None: ...
 
-Global___MessageIds: _TypeAlias = MessageIds
+Global___MessageIds: _TypeAlias = MessageIds  # noqa: Y015
 
 @_typing.final
 class Channels(_message.Message):
@@ -204,9 +172,9 @@ class Channels(_message.Message):
             key: _builtins.str = ...,
             value: Global___Channel | None = ...,
         ) -> None: ...
-        _HasFieldArgType: _TypeAlias = _typing.Literal["value", b"value"]
+        _HasFieldArgType: _TypeAlias = _typing.Literal["value", b"value"]  # noqa: Y015
         def HasField(self, field_name: _HasFieldArgType) -> _builtins.bool: ...
-        _ClearFieldArgType: _TypeAlias = _typing.Literal["key", b"key", "value", b"value"]
+        _ClearFieldArgType: _TypeAlias = _typing.Literal["key", b"key", "value", b"value"]  # noqa: Y015
         def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
         def WhichOneof(self, oneof_group: _Never) -> None: ...
 
@@ -218,13 +186,13 @@ class Channels(_message.Message):
         *,
         channels: _abc.Mapping[_builtins.str, Global___Channel] | None = ...,
     ) -> None: ...
-    _HasFieldArgType: _TypeAlias = _Never
+    _HasFieldArgType: _TypeAlias = _Never  # noqa: Y015
     def HasField(self, field_name: _HasFieldArgType) -> _builtins.bool: ...
-    _ClearFieldArgType: _TypeAlias = _typing.Literal["channels", b"channels"]
+    _ClearFieldArgType: _TypeAlias = _typing.Literal["channels", b"channels"]  # noqa: Y015
     def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
     def WhichOneof(self, oneof_group: _Never) -> None: ...
 
-Global___Channels: _TypeAlias = Channels
+Global___Channels: _TypeAlias = Channels  # noqa: Y015
 
 @_typing.final
 class Channel(_message.Message):
@@ -245,25 +213,13 @@ class Channel(_message.Message):
         is_available_result: _builtins.bool = ...,
         checkpoint_result: Global___ChannelValue | None = ...,
     ) -> None: ...
-    _HasFieldArgType: _TypeAlias = _typing.Literal[
-        "checkpoint_result",
-        b"checkpoint_result",
-        "get_result",
-        b"get_result",
-    ]
+    _HasFieldArgType: _TypeAlias = _typing.Literal["checkpoint_result", b"checkpoint_result", "get_result", b"get_result"]  # noqa: Y015
     def HasField(self, field_name: _HasFieldArgType) -> _builtins.bool: ...
-    _ClearFieldArgType: _TypeAlias = _typing.Literal[
-        "checkpoint_result",
-        b"checkpoint_result",
-        "get_result",
-        b"get_result",
-        "is_available_result",
-        b"is_available_result",
-    ]
+    _ClearFieldArgType: _TypeAlias = _typing.Literal["checkpoint_result", b"checkpoint_result", "get_result", b"get_result", "is_available_result", b"is_available_result"]  # noqa: Y015
     def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
     def WhichOneof(self, oneof_group: _Never) -> None: ...
 
-Global___Channel: _TypeAlias = Channel
+Global___Channel: _TypeAlias = Channel  # noqa: Y015
 
 @_typing.final
 class Sends(_message.Message):
@@ -279,13 +235,13 @@ class Sends(_message.Message):
         *,
         sends: _abc.Iterable[Global___Send] | None = ...,
     ) -> None: ...
-    _HasFieldArgType: _TypeAlias = _Never
+    _HasFieldArgType: _TypeAlias = _Never  # noqa: Y015
     def HasField(self, field_name: _HasFieldArgType) -> _builtins.bool: ...
-    _ClearFieldArgType: _TypeAlias = _typing.Literal["sends", b"sends"]
+    _ClearFieldArgType: _TypeAlias = _typing.Literal["sends", b"sends"]  # noqa: Y015
     def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
     def WhichOneof(self, oneof_group: _Never) -> None: ...
 
-Global___Sends: _TypeAlias = Sends
+Global___Sends: _TypeAlias = Sends  # noqa: Y015
 
 @_typing.final
 class Send(_message.Message):
@@ -302,13 +258,13 @@ class Send(_message.Message):
         node: _builtins.str = ...,
         arg: Global___SerializedValue | None = ...,
     ) -> None: ...
-    _HasFieldArgType: _TypeAlias = _typing.Literal["arg", b"arg"]
+    _HasFieldArgType: _TypeAlias = _typing.Literal["arg", b"arg"]  # noqa: Y015
     def HasField(self, field_name: _HasFieldArgType) -> _builtins.bool: ...
-    _ClearFieldArgType: _TypeAlias = _typing.Literal["arg", b"arg", "node", b"node"]
+    _ClearFieldArgType: _TypeAlias = _typing.Literal["arg", b"arg", "node", b"node"]  # noqa: Y015
     def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
     def WhichOneof(self, oneof_group: _Never) -> None: ...
 
-Global___Send: _TypeAlias = Send
+Global___Send: _TypeAlias = Send  # noqa: Y015
 
 @_typing.final
 class Command(_message.Message):
@@ -335,9 +291,9 @@ class Command(_message.Message):
             key: _builtins.str = ...,
             value: Global___SerializedValue | None = ...,
         ) -> None: ...
-        _HasFieldArgType: _TypeAlias = _typing.Literal["value", b"value"]
+        _HasFieldArgType: _TypeAlias = _typing.Literal["value", b"value"]  # noqa: Y015
         def HasField(self, field_name: _HasFieldArgType) -> _builtins.bool: ...
-        _ClearFieldArgType: _TypeAlias = _typing.Literal["key", b"key", "value", b"value"]
+        _ClearFieldArgType: _TypeAlias = _typing.Literal["key", b"key", "value", b"value"]  # noqa: Y015
         def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
         def WhichOneof(self, oneof_group: _Never) -> None: ...
 
@@ -360,36 +316,15 @@ class Command(_message.Message):
         resume: Global___Resume | None = ...,
         gotos: _abc.Iterable[Global___Goto] | None = ...,
     ) -> None: ...
-    _HasFieldArgType: _TypeAlias = _typing.Literal[
-        "_graph",
-        b"_graph",
-        "graph",
-        b"graph",
-        "resume",
-        b"resume",
-    ]
+    _HasFieldArgType: _TypeAlias = _typing.Literal["_graph", b"_graph", "graph", b"graph", "resume", b"resume"]  # noqa: Y015
     def HasField(self, field_name: _HasFieldArgType) -> _builtins.bool: ...
-    _ClearFieldArgType: _TypeAlias = _typing.Literal[
-        "_graph",
-        b"_graph",
-        "gotos",
-        b"gotos",
-        "graph",
-        b"graph",
-        "resume",
-        b"resume",
-        "update",
-        b"update",
-    ]
+    _ClearFieldArgType: _TypeAlias = _typing.Literal["_graph", b"_graph", "gotos", b"gotos", "graph", b"graph", "resume", b"resume", "update", b"update"]  # noqa: Y015
     def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
-    _WhichOneofReturnType__graph: _TypeAlias = _typing.Literal["graph"]
-    _WhichOneofArgType__graph: _TypeAlias = _typing.Literal["_graph", b"_graph"]
-    def WhichOneof(
-        self,
-        oneof_group: _WhichOneofArgType__graph,
-    ) -> _WhichOneofReturnType__graph | None: ...
+    _WhichOneofReturnType__graph: _TypeAlias = _typing.Literal["graph"]  # noqa: Y015
+    _WhichOneofArgType__graph: _TypeAlias = _typing.Literal["_graph", b"_graph"]  # noqa: Y015
+    def WhichOneof(self, oneof_group: _WhichOneofArgType__graph) -> _WhichOneofReturnType__graph | None: ...
 
-Global___Command: _TypeAlias = Command
+Global___Command: _TypeAlias = Command  # noqa: Y015
 
 @_typing.final
 class Resume(_message.Message):
@@ -407,32 +342,15 @@ class Resume(_message.Message):
         value: Global___SerializedValue | None = ...,
         values: Global___InterruptValues | None = ...,
     ) -> None: ...
-    _HasFieldArgType: _TypeAlias = _typing.Literal[
-        "message",
-        b"message",
-        "value",
-        b"value",
-        "values",
-        b"values",
-    ]
+    _HasFieldArgType: _TypeAlias = _typing.Literal["message", b"message", "value", b"value", "values", b"values"]  # noqa: Y015
     def HasField(self, field_name: _HasFieldArgType) -> _builtins.bool: ...
-    _ClearFieldArgType: _TypeAlias = _typing.Literal[
-        "message",
-        b"message",
-        "value",
-        b"value",
-        "values",
-        b"values",
-    ]
+    _ClearFieldArgType: _TypeAlias = _typing.Literal["message", b"message", "value", b"value", "values", b"values"]  # noqa: Y015
     def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
-    _WhichOneofReturnType_message: _TypeAlias = _typing.Literal["value", "values"]
-    _WhichOneofArgType_message: _TypeAlias = _typing.Literal["message", b"message"]
-    def WhichOneof(
-        self,
-        oneof_group: _WhichOneofArgType_message,
-    ) -> _WhichOneofReturnType_message | None: ...
+    _WhichOneofReturnType_message: _TypeAlias = _typing.Literal["value", "values"]  # noqa: Y015
+    _WhichOneofArgType_message: _TypeAlias = _typing.Literal["message", b"message"]  # noqa: Y015
+    def WhichOneof(self, oneof_group: _WhichOneofArgType_message) -> _WhichOneofReturnType_message | None: ...
 
-Global___Resume: _TypeAlias = Resume
+Global___Resume: _TypeAlias = Resume  # noqa: Y015
 
 @_typing.final
 class InterruptValues(_message.Message):
@@ -453,9 +371,9 @@ class InterruptValues(_message.Message):
             key: _builtins.str = ...,
             value: Global___SerializedValue | None = ...,
         ) -> None: ...
-        _HasFieldArgType: _TypeAlias = _typing.Literal["value", b"value"]
+        _HasFieldArgType: _TypeAlias = _typing.Literal["value", b"value"]  # noqa: Y015
         def HasField(self, field_name: _HasFieldArgType) -> _builtins.bool: ...
-        _ClearFieldArgType: _TypeAlias = _typing.Literal["key", b"key", "value", b"value"]
+        _ClearFieldArgType: _TypeAlias = _typing.Literal["key", b"key", "value", b"value"]  # noqa: Y015
         def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
         def WhichOneof(self, oneof_group: _Never) -> None: ...
 
@@ -467,13 +385,13 @@ class InterruptValues(_message.Message):
         *,
         values: _abc.Mapping[_builtins.str, Global___SerializedValue] | None = ...,
     ) -> None: ...
-    _HasFieldArgType: _TypeAlias = _Never
+    _HasFieldArgType: _TypeAlias = _Never  # noqa: Y015
     def HasField(self, field_name: _HasFieldArgType) -> _builtins.bool: ...
-    _ClearFieldArgType: _TypeAlias = _typing.Literal["values", b"values"]
+    _ClearFieldArgType: _TypeAlias = _typing.Literal["values", b"values"]  # noqa: Y015
     def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
     def WhichOneof(self, oneof_group: _Never) -> None: ...
 
-Global___InterruptValues: _TypeAlias = InterruptValues
+Global___InterruptValues: _TypeAlias = InterruptValues  # noqa: Y015
 
 @_typing.final
 class Goto(_message.Message):
@@ -490,32 +408,15 @@ class Goto(_message.Message):
         node_name: _builtins.str = ...,
         send: Global___Send | None = ...,
     ) -> None: ...
-    _HasFieldArgType: _TypeAlias = _typing.Literal[
-        "message",
-        b"message",
-        "node_name",
-        b"node_name",
-        "send",
-        b"send",
-    ]
+    _HasFieldArgType: _TypeAlias = _typing.Literal["message", b"message", "node_name", b"node_name", "send", b"send"]  # noqa: Y015
     def HasField(self, field_name: _HasFieldArgType) -> _builtins.bool: ...
-    _ClearFieldArgType: _TypeAlias = _typing.Literal[
-        "message",
-        b"message",
-        "node_name",
-        b"node_name",
-        "send",
-        b"send",
-    ]
+    _ClearFieldArgType: _TypeAlias = _typing.Literal["message", b"message", "node_name", b"node_name", "send", b"send"]  # noqa: Y015
     def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
-    _WhichOneofReturnType_message: _TypeAlias = _typing.Literal["node_name", "send"]
-    _WhichOneofArgType_message: _TypeAlias = _typing.Literal["message", b"message"]
-    def WhichOneof(
-        self,
-        oneof_group: _WhichOneofArgType_message,
-    ) -> _WhichOneofReturnType_message | None: ...
+    _WhichOneofReturnType_message: _TypeAlias = _typing.Literal["node_name", "send"]  # noqa: Y015
+    _WhichOneofArgType_message: _TypeAlias = _typing.Literal["message", b"message"]  # noqa: Y015
+    def WhichOneof(self, oneof_group: _WhichOneofArgType_message) -> _WhichOneofReturnType_message | None: ...
 
-Global___Goto: _TypeAlias = Goto
+Global___Goto: _TypeAlias = Goto  # noqa: Y015
 
 @_typing.final
 class GraphBubbleUp(_message.Message):
@@ -524,13 +425,13 @@ class GraphBubbleUp(_message.Message):
     def __init__(
         self,
     ) -> None: ...
-    _HasFieldArgType: _TypeAlias = _Never
+    _HasFieldArgType: _TypeAlias = _Never  # noqa: Y015
     def HasField(self, field_name: _HasFieldArgType) -> _builtins.bool: ...
-    _ClearFieldArgType: _TypeAlias = _Never
+    _ClearFieldArgType: _TypeAlias = _Never  # noqa: Y015
     def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
     def WhichOneof(self, oneof_group: _Never) -> None: ...
 
-Global___GraphBubbleUp: _TypeAlias = GraphBubbleUp
+Global___GraphBubbleUp: _TypeAlias = GraphBubbleUp  # noqa: Y015
 
 @_typing.final
 class ParentCommand(_message.Message):
@@ -544,13 +445,13 @@ class ParentCommand(_message.Message):
         *,
         command: Global___Command | None = ...,
     ) -> None: ...
-    _HasFieldArgType: _TypeAlias = _typing.Literal["command", b"command"]
+    _HasFieldArgType: _TypeAlias = _typing.Literal["command", b"command"]  # noqa: Y015
     def HasField(self, field_name: _HasFieldArgType) -> _builtins.bool: ...
-    _ClearFieldArgType: _TypeAlias = _typing.Literal["command", b"command"]
+    _ClearFieldArgType: _TypeAlias = _typing.Literal["command", b"command"]  # noqa: Y015
     def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
     def WhichOneof(self, oneof_group: _Never) -> None: ...
 
-Global___ParentCommand: _TypeAlias = ParentCommand
+Global___ParentCommand: _TypeAlias = ParentCommand  # noqa: Y015
 
 @_typing.final
 class GraphInterrupt(_message.Message):
@@ -564,13 +465,13 @@ class GraphInterrupt(_message.Message):
         *,
         interrupts: _abc.Iterable[Global___Interrupt] | None = ...,
     ) -> None: ...
-    _HasFieldArgType: _TypeAlias = _Never
+    _HasFieldArgType: _TypeAlias = _Never  # noqa: Y015
     def HasField(self, field_name: _HasFieldArgType) -> _builtins.bool: ...
-    _ClearFieldArgType: _TypeAlias = _typing.Literal["interrupts", b"interrupts"]
+    _ClearFieldArgType: _TypeAlias = _typing.Literal["interrupts", b"interrupts"]  # noqa: Y015
     def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
     def WhichOneof(self, oneof_group: _Never) -> None: ...
 
-Global___GraphInterrupt: _TypeAlias = GraphInterrupt
+Global___GraphInterrupt: _TypeAlias = GraphInterrupt  # noqa: Y015
 
 @_typing.final
 class Interrupt(_message.Message):
@@ -589,13 +490,13 @@ class Interrupt(_message.Message):
         value: Global___SerializedValue | None = ...,
         id: _builtins.str = ...,
     ) -> None: ...
-    _HasFieldArgType: _TypeAlias = _typing.Literal["value", b"value"]
+    _HasFieldArgType: _TypeAlias = _typing.Literal["value", b"value"]  # noqa: Y015
     def HasField(self, field_name: _HasFieldArgType) -> _builtins.bool: ...
-    _ClearFieldArgType: _TypeAlias = _typing.Literal["id", b"id", "value", b"value"]
+    _ClearFieldArgType: _TypeAlias = _typing.Literal["id", b"id", "value", b"value"]  # noqa: Y015
     def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
     def WhichOneof(self, oneof_group: _Never) -> None: ...
 
-Global___Interrupt: _TypeAlias = Interrupt
+Global___Interrupt: _TypeAlias = Interrupt  # noqa: Y015
 
 @_typing.final
 class WrappedInterrupts(_message.Message):
@@ -613,21 +514,13 @@ class WrappedInterrupts(_message.Message):
         interrupts: _abc.Iterable[Global___Interrupt] | None = ...,
         serialized_interrupts: Global___SerializedValue | None = ...,
     ) -> None: ...
-    _HasFieldArgType: _TypeAlias = _typing.Literal[
-        "serialized_interrupts",
-        b"serialized_interrupts",
-    ]
+    _HasFieldArgType: _TypeAlias = _typing.Literal["serialized_interrupts", b"serialized_interrupts"]  # noqa: Y015
     def HasField(self, field_name: _HasFieldArgType) -> _builtins.bool: ...
-    _ClearFieldArgType: _TypeAlias = _typing.Literal[
-        "interrupts",
-        b"interrupts",
-        "serialized_interrupts",
-        b"serialized_interrupts",
-    ]
+    _ClearFieldArgType: _TypeAlias = _typing.Literal["interrupts", b"interrupts", "serialized_interrupts", b"serialized_interrupts"]  # noqa: Y015
     def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
     def WhichOneof(self, oneof_group: _Never) -> None: ...
 
-Global___WrappedInterrupts: _TypeAlias = WrappedInterrupts
+Global___WrappedInterrupts: _TypeAlias = WrappedInterrupts  # noqa: Y015
 
 @_typing.final
 class Write(_message.Message):
@@ -646,13 +539,13 @@ class Write(_message.Message):
         channel: _builtins.str = ...,
         value: Global___ChannelValue | None = ...,
     ) -> None: ...
-    _HasFieldArgType: _TypeAlias = _typing.Literal["value", b"value"]
+    _HasFieldArgType: _TypeAlias = _typing.Literal["value", b"value"]  # noqa: Y015
     def HasField(self, field_name: _HasFieldArgType) -> _builtins.bool: ...
-    _ClearFieldArgType: _TypeAlias = _typing.Literal["channel", b"channel", "value", b"value"]
+    _ClearFieldArgType: _TypeAlias = _typing.Literal["channel", b"channel", "value", b"value"]  # noqa: Y015
     def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
     def WhichOneof(self, oneof_group: _Never) -> None: ...
 
-Global___Write: _TypeAlias = Write
+Global___Write: _TypeAlias = Write  # noqa: Y015
 
 @_typing.final
 class PendingWrite(_message.Message):
@@ -672,20 +565,13 @@ class PendingWrite(_message.Message):
         channel: _builtins.str = ...,
         value: Global___ChannelValue | None = ...,
     ) -> None: ...
-    _HasFieldArgType: _TypeAlias = _typing.Literal["value", b"value"]
+    _HasFieldArgType: _TypeAlias = _typing.Literal["value", b"value"]  # noqa: Y015
     def HasField(self, field_name: _HasFieldArgType) -> _builtins.bool: ...
-    _ClearFieldArgType: _TypeAlias = _typing.Literal[
-        "channel",
-        b"channel",
-        "task_id",
-        b"task_id",
-        "value",
-        b"value",
-    ]
+    _ClearFieldArgType: _TypeAlias = _typing.Literal["channel", b"channel", "task_id", b"task_id", "value", b"value"]  # noqa: Y015
     def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
     def WhichOneof(self, oneof_group: _Never) -> None: ...
 
-Global___PendingWrite: _TypeAlias = PendingWrite
+Global___PendingWrite: _TypeAlias = PendingWrite  # noqa: Y015
 
 @_typing.final
 class ChannelVersions(_message.Message):
@@ -705,9 +591,9 @@ class ChannelVersions(_message.Message):
             key: _builtins.str = ...,
             value: _builtins.str = ...,
         ) -> None: ...
-        _HasFieldArgType: _TypeAlias = _Never
+        _HasFieldArgType: _TypeAlias = _Never  # noqa: Y015
         def HasField(self, field_name: _HasFieldArgType) -> _builtins.bool: ...
-        _ClearFieldArgType: _TypeAlias = _typing.Literal["key", b"key", "value", b"value"]
+        _ClearFieldArgType: _TypeAlias = _typing.Literal["key", b"key", "value", b"value"]  # noqa: Y015
         def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
         def WhichOneof(self, oneof_group: _Never) -> None: ...
 
@@ -719,13 +605,13 @@ class ChannelVersions(_message.Message):
         *,
         channel_versions: _abc.Mapping[_builtins.str, _builtins.str] | None = ...,
     ) -> None: ...
-    _HasFieldArgType: _TypeAlias = _Never
+    _HasFieldArgType: _TypeAlias = _Never  # noqa: Y015
     def HasField(self, field_name: _HasFieldArgType) -> _builtins.bool: ...
-    _ClearFieldArgType: _TypeAlias = _typing.Literal["channel_versions", b"channel_versions"]
+    _ClearFieldArgType: _TypeAlias = _typing.Literal["channel_versions", b"channel_versions"]  # noqa: Y015
     def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
     def WhichOneof(self, oneof_group: _Never) -> None: ...
 
-Global___ChannelVersions: _TypeAlias = ChannelVersions
+Global___ChannelVersions: _TypeAlias = ChannelVersions  # noqa: Y015
 
 @_typing.final
 class EngineRunnableConfig(_message.Message):
@@ -771,9 +657,9 @@ class EngineRunnableConfig(_message.Message):
             key: _builtins.str = ...,
             value: _builtins.bytes = ...,
         ) -> None: ...
-        _HasFieldArgType: _TypeAlias = _Never
+        _HasFieldArgType: _TypeAlias = _Never  # noqa: Y015
         def HasField(self, field_name: _HasFieldArgType) -> _builtins.bool: ...
-        _ClearFieldArgType: _TypeAlias = _typing.Literal["key", b"key", "value", b"value"]
+        _ClearFieldArgType: _TypeAlias = _typing.Literal["key", b"key", "value", b"value"]  # noqa: Y015
         def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
         def WhichOneof(self, oneof_group: _Never) -> None: ...
 
@@ -791,9 +677,9 @@ class EngineRunnableConfig(_message.Message):
             key: _builtins.str = ...,
             value: _builtins.bytes = ...,
         ) -> None: ...
-        _HasFieldArgType: _TypeAlias = _Never
+        _HasFieldArgType: _TypeAlias = _Never  # noqa: Y015
         def HasField(self, field_name: _HasFieldArgType) -> _builtins.bool: ...
-        _ClearFieldArgType: _TypeAlias = _typing.Literal["key", b"key", "value", b"value"]
+        _ClearFieldArgType: _TypeAlias = _typing.Literal["key", b"key", "value", b"value"]  # noqa: Y015
         def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
         def WhichOneof(self, oneof_group: _Never) -> None: ...
 
@@ -811,9 +697,9 @@ class EngineRunnableConfig(_message.Message):
             key: _builtins.str = ...,
             value: _builtins.bytes = ...,
         ) -> None: ...
-        _HasFieldArgType: _TypeAlias = _Never
+        _HasFieldArgType: _TypeAlias = _Never  # noqa: Y015
         def HasField(self, field_name: _HasFieldArgType) -> _builtins.bool: ...
-        _ClearFieldArgType: _TypeAlias = _typing.Literal["key", b"key", "value", b"value"]
+        _ClearFieldArgType: _TypeAlias = _typing.Literal["key", b"key", "value", b"value"]  # noqa: Y015
         def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
         def WhichOneof(self, oneof_group: _Never) -> None: ...
 
@@ -831,9 +717,9 @@ class EngineRunnableConfig(_message.Message):
             key: _builtins.str = ...,
             value: _builtins.str = ...,
         ) -> None: ...
-        _HasFieldArgType: _TypeAlias = _Never
+        _HasFieldArgType: _TypeAlias = _Never  # noqa: Y015
         def HasField(self, field_name: _HasFieldArgType) -> _builtins.bool: ...
-        _ClearFieldArgType: _TypeAlias = _typing.Literal["key", b"key", "value", b"value"]
+        _ClearFieldArgType: _TypeAlias = _typing.Literal["key", b"key", "value", b"value"]  # noqa: Y015
         def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
         def WhichOneof(self, oneof_group: _Never) -> None: ...
 
@@ -852,9 +738,9 @@ class EngineRunnableConfig(_message.Message):
             key: _builtins.str = ...,
             value: Global___SerializedValue | None = ...,
         ) -> None: ...
-        _HasFieldArgType: _TypeAlias = _typing.Literal["value", b"value"]
+        _HasFieldArgType: _TypeAlias = _typing.Literal["value", b"value"]  # noqa: Y015
         def HasField(self, field_name: _HasFieldArgType) -> _builtins.bool: ...
-        _ClearFieldArgType: _TypeAlias = _typing.Literal["key", b"key", "value", b"value"]
+        _ClearFieldArgType: _TypeAlias = _typing.Literal["key", b"key", "value", b"value"]  # noqa: Y015
         def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
         def WhichOneof(self, oneof_group: _Never) -> None: ...
 
@@ -1032,9 +918,7 @@ class EngineRunnableConfig(_message.Message):
         """
 
     @_builtins.property
-    def root_stream_modes(
-        self,
-    ) -> _containers.RepeatedScalarFieldContainer[_enum_stream_mode_pb2.StreamMode.ValueType]:
+    def root_stream_modes(self) -> _containers.RepeatedScalarFieldContainer[_enum_stream_mode_pb2.StreamMode.ValueType]:
         """Stream modes for the root graph.
         This is set when streaming with stream_subgraphs=True.
         Maps to: config.configurable.__pregel_stream
@@ -1070,289 +954,76 @@ class EngineRunnableConfig(_message.Message):
         tracing_project: _builtins.str | None = ...,
         tracing_example_id: _builtins.str | None = ...,
     ) -> None: ...
-    _HasFieldArgType: _TypeAlias = _typing.Literal[
-        "_checkpoint_id",
-        b"_checkpoint_id",
-        "_checkpoint_ns",
-        b"_checkpoint_ns",
-        "_durability",
-        b"_durability",
-        "_graph_id",
-        b"_graph_id",
-        "_max_concurrency",
-        b"_max_concurrency",
-        "_recursion_limit",
-        b"_recursion_limit",
-        "_resuming",
-        b"_resuming",
-        "_run_attempt",
-        b"_run_attempt",
-        "_run_id",
-        b"_run_id",
-        "_run_name",
-        b"_run_name",
-        "_runtime",
-        b"_runtime",
-        "_server_run_id",
-        b"_server_run_id",
-        "_task_id",
-        b"_task_id",
-        "_thread_id",
-        b"_thread_id",
-        "_tracing_example_id",
-        b"_tracing_example_id",
-        "_tracing_project",
-        b"_tracing_project",
-        "checkpoint_id",
-        b"checkpoint_id",
-        "checkpoint_ns",
-        b"checkpoint_ns",
-        "durability",
-        b"durability",
-        "graph_id",
-        b"graph_id",
-        "max_concurrency",
-        b"max_concurrency",
-        "recursion_limit",
-        b"recursion_limit",
-        "resuming",
-        b"resuming",
-        "run_attempt",
-        b"run_attempt",
-        "run_id",
-        b"run_id",
-        "run_name",
-        b"run_name",
-        "runtime",
-        b"runtime",
-        "server_run_id",
-        b"server_run_id",
-        "task_id",
-        b"task_id",
-        "thread_id",
-        b"thread_id",
-        "tracing_example_id",
-        b"tracing_example_id",
-        "tracing_project",
-        b"tracing_project",
-    ]
+    _HasFieldArgType: _TypeAlias = _typing.Literal["_checkpoint_id", b"_checkpoint_id", "_checkpoint_ns", b"_checkpoint_ns", "_durability", b"_durability", "_graph_id", b"_graph_id", "_max_concurrency", b"_max_concurrency", "_recursion_limit", b"_recursion_limit", "_resuming", b"_resuming", "_run_attempt", b"_run_attempt", "_run_id", b"_run_id", "_run_name", b"_run_name", "_runtime", b"_runtime", "_server_run_id", b"_server_run_id", "_task_id", b"_task_id", "_thread_id", b"_thread_id", "_tracing_example_id", b"_tracing_example_id", "_tracing_project", b"_tracing_project", "checkpoint_id", b"checkpoint_id", "checkpoint_ns", b"checkpoint_ns", "durability", b"durability", "graph_id", b"graph_id", "max_concurrency", b"max_concurrency", "recursion_limit", b"recursion_limit", "resuming", b"resuming", "run_attempt", b"run_attempt", "run_id", b"run_id", "run_name", b"run_name", "runtime", b"runtime", "server_run_id", b"server_run_id", "task_id", b"task_id", "thread_id", b"thread_id", "tracing_example_id", b"tracing_example_id", "tracing_project", b"tracing_project"]  # noqa: Y015
     def HasField(self, field_name: _HasFieldArgType) -> _builtins.bool: ...
-    _ClearFieldArgType: _TypeAlias = _typing.Literal[
-        "_checkpoint_id",
-        b"_checkpoint_id",
-        "_checkpoint_ns",
-        b"_checkpoint_ns",
-        "_durability",
-        b"_durability",
-        "_graph_id",
-        b"_graph_id",
-        "_max_concurrency",
-        b"_max_concurrency",
-        "_recursion_limit",
-        b"_recursion_limit",
-        "_resuming",
-        b"_resuming",
-        "_run_attempt",
-        b"_run_attempt",
-        "_run_id",
-        b"_run_id",
-        "_run_name",
-        b"_run_name",
-        "_runtime",
-        b"_runtime",
-        "_server_run_id",
-        b"_server_run_id",
-        "_task_id",
-        b"_task_id",
-        "_thread_id",
-        b"_thread_id",
-        "_tracing_example_id",
-        b"_tracing_example_id",
-        "_tracing_project",
-        b"_tracing_project",
-        "checkpoint_id",
-        b"checkpoint_id",
-        "checkpoint_map",
-        b"checkpoint_map",
-        "checkpoint_ns",
-        b"checkpoint_ns",
-        "durability",
-        b"durability",
-        "extra_configurable_json",
-        b"extra_configurable_json",
-        "extra_json",
-        b"extra_json",
-        "graph_id",
-        b"graph_id",
-        "max_concurrency",
-        b"max_concurrency",
-        "metadata_json",
-        b"metadata_json",
-        "recursion_limit",
-        b"recursion_limit",
-        "resume_map",
-        b"resume_map",
-        "resuming",
-        b"resuming",
-        "root_stream_modes",
-        b"root_stream_modes",
-        "run_attempt",
-        b"run_attempt",
-        "run_id",
-        b"run_id",
-        "run_name",
-        b"run_name",
-        "runtime",
-        b"runtime",
-        "server_run_id",
-        b"server_run_id",
-        "tags",
-        b"tags",
-        "task_id",
-        b"task_id",
-        "thread_id",
-        b"thread_id",
-        "tracing_example_id",
-        b"tracing_example_id",
-        "tracing_project",
-        b"tracing_project",
-    ]
+    _ClearFieldArgType: _TypeAlias = _typing.Literal["_checkpoint_id", b"_checkpoint_id", "_checkpoint_ns", b"_checkpoint_ns", "_durability", b"_durability", "_graph_id", b"_graph_id", "_max_concurrency", b"_max_concurrency", "_recursion_limit", b"_recursion_limit", "_resuming", b"_resuming", "_run_attempt", b"_run_attempt", "_run_id", b"_run_id", "_run_name", b"_run_name", "_runtime", b"_runtime", "_server_run_id", b"_server_run_id", "_task_id", b"_task_id", "_thread_id", b"_thread_id", "_tracing_example_id", b"_tracing_example_id", "_tracing_project", b"_tracing_project", "checkpoint_id", b"checkpoint_id", "checkpoint_map", b"checkpoint_map", "checkpoint_ns", b"checkpoint_ns", "durability", b"durability", "extra_configurable_json", b"extra_configurable_json", "extra_json", b"extra_json", "graph_id", b"graph_id", "max_concurrency", b"max_concurrency", "metadata_json", b"metadata_json", "recursion_limit", b"recursion_limit", "resume_map", b"resume_map", "resuming", b"resuming", "root_stream_modes", b"root_stream_modes", "run_attempt", b"run_attempt", "run_id", b"run_id", "run_name", b"run_name", "runtime", b"runtime", "server_run_id", b"server_run_id", "tags", b"tags", "task_id", b"task_id", "thread_id", b"thread_id", "tracing_example_id", b"tracing_example_id", "tracing_project", b"tracing_project"]  # noqa: Y015
     def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
-    _WhichOneofReturnType__checkpoint_id: _TypeAlias = _typing.Literal["checkpoint_id"]
-    _WhichOneofArgType__checkpoint_id: _TypeAlias = _typing.Literal[
-        "_checkpoint_id",
-        b"_checkpoint_id",
-    ]
-    _WhichOneofReturnType__checkpoint_ns: _TypeAlias = _typing.Literal["checkpoint_ns"]
-    _WhichOneofArgType__checkpoint_ns: _TypeAlias = _typing.Literal[
-        "_checkpoint_ns",
-        b"_checkpoint_ns",
-    ]
-    _WhichOneofReturnType__durability: _TypeAlias = _typing.Literal["durability"]
-    _WhichOneofArgType__durability: _TypeAlias = _typing.Literal["_durability", b"_durability"]
-    _WhichOneofReturnType__graph_id: _TypeAlias = _typing.Literal["graph_id"]
-    _WhichOneofArgType__graph_id: _TypeAlias = _typing.Literal["_graph_id", b"_graph_id"]
-    _WhichOneofReturnType__max_concurrency: _TypeAlias = _typing.Literal["max_concurrency"]
-    _WhichOneofArgType__max_concurrency: _TypeAlias = _typing.Literal[
-        "_max_concurrency",
-        b"_max_concurrency",
-    ]
-    _WhichOneofReturnType__recursion_limit: _TypeAlias = _typing.Literal["recursion_limit"]
-    _WhichOneofArgType__recursion_limit: _TypeAlias = _typing.Literal[
-        "_recursion_limit",
-        b"_recursion_limit",
-    ]
-    _WhichOneofReturnType__resuming: _TypeAlias = _typing.Literal["resuming"]
-    _WhichOneofArgType__resuming: _TypeAlias = _typing.Literal["_resuming", b"_resuming"]
-    _WhichOneofReturnType__run_attempt: _TypeAlias = _typing.Literal["run_attempt"]
-    _WhichOneofArgType__run_attempt: _TypeAlias = _typing.Literal["_run_attempt", b"_run_attempt"]
-    _WhichOneofReturnType__run_id: _TypeAlias = _typing.Literal["run_id"]
-    _WhichOneofArgType__run_id: _TypeAlias = _typing.Literal["_run_id", b"_run_id"]
-    _WhichOneofReturnType__run_name: _TypeAlias = _typing.Literal["run_name"]
-    _WhichOneofArgType__run_name: _TypeAlias = _typing.Literal["_run_name", b"_run_name"]
-    _WhichOneofReturnType__runtime: _TypeAlias = _typing.Literal["runtime"]
-    _WhichOneofArgType__runtime: _TypeAlias = _typing.Literal["_runtime", b"_runtime"]
-    _WhichOneofReturnType__server_run_id: _TypeAlias = _typing.Literal["server_run_id"]
-    _WhichOneofArgType__server_run_id: _TypeAlias = _typing.Literal[
-        "_server_run_id",
-        b"_server_run_id",
-    ]
-    _WhichOneofReturnType__task_id: _TypeAlias = _typing.Literal["task_id"]
-    _WhichOneofArgType__task_id: _TypeAlias = _typing.Literal["_task_id", b"_task_id"]
-    _WhichOneofReturnType__thread_id: _TypeAlias = _typing.Literal["thread_id"]
-    _WhichOneofArgType__thread_id: _TypeAlias = _typing.Literal["_thread_id", b"_thread_id"]
-    _WhichOneofReturnType__tracing_example_id: _TypeAlias = _typing.Literal["tracing_example_id"]
-    _WhichOneofArgType__tracing_example_id: _TypeAlias = _typing.Literal[
-        "_tracing_example_id",
-        b"_tracing_example_id",
-    ]
-    _WhichOneofReturnType__tracing_project: _TypeAlias = _typing.Literal["tracing_project"]
-    _WhichOneofArgType__tracing_project: _TypeAlias = _typing.Literal[
-        "_tracing_project",
-        b"_tracing_project",
-    ]
+    _WhichOneofReturnType__checkpoint_id: _TypeAlias = _typing.Literal["checkpoint_id"]  # noqa: Y015
+    _WhichOneofArgType__checkpoint_id: _TypeAlias = _typing.Literal["_checkpoint_id", b"_checkpoint_id"]  # noqa: Y015
+    _WhichOneofReturnType__checkpoint_ns: _TypeAlias = _typing.Literal["checkpoint_ns"]  # noqa: Y015
+    _WhichOneofArgType__checkpoint_ns: _TypeAlias = _typing.Literal["_checkpoint_ns", b"_checkpoint_ns"]  # noqa: Y015
+    _WhichOneofReturnType__durability: _TypeAlias = _typing.Literal["durability"]  # noqa: Y015
+    _WhichOneofArgType__durability: _TypeAlias = _typing.Literal["_durability", b"_durability"]  # noqa: Y015
+    _WhichOneofReturnType__graph_id: _TypeAlias = _typing.Literal["graph_id"]  # noqa: Y015
+    _WhichOneofArgType__graph_id: _TypeAlias = _typing.Literal["_graph_id", b"_graph_id"]  # noqa: Y015
+    _WhichOneofReturnType__max_concurrency: _TypeAlias = _typing.Literal["max_concurrency"]  # noqa: Y015
+    _WhichOneofArgType__max_concurrency: _TypeAlias = _typing.Literal["_max_concurrency", b"_max_concurrency"]  # noqa: Y015
+    _WhichOneofReturnType__recursion_limit: _TypeAlias = _typing.Literal["recursion_limit"]  # noqa: Y015
+    _WhichOneofArgType__recursion_limit: _TypeAlias = _typing.Literal["_recursion_limit", b"_recursion_limit"]  # noqa: Y015
+    _WhichOneofReturnType__resuming: _TypeAlias = _typing.Literal["resuming"]  # noqa: Y015
+    _WhichOneofArgType__resuming: _TypeAlias = _typing.Literal["_resuming", b"_resuming"]  # noqa: Y015
+    _WhichOneofReturnType__run_attempt: _TypeAlias = _typing.Literal["run_attempt"]  # noqa: Y015
+    _WhichOneofArgType__run_attempt: _TypeAlias = _typing.Literal["_run_attempt", b"_run_attempt"]  # noqa: Y015
+    _WhichOneofReturnType__run_id: _TypeAlias = _typing.Literal["run_id"]  # noqa: Y015
+    _WhichOneofArgType__run_id: _TypeAlias = _typing.Literal["_run_id", b"_run_id"]  # noqa: Y015
+    _WhichOneofReturnType__run_name: _TypeAlias = _typing.Literal["run_name"]  # noqa: Y015
+    _WhichOneofArgType__run_name: _TypeAlias = _typing.Literal["_run_name", b"_run_name"]  # noqa: Y015
+    _WhichOneofReturnType__runtime: _TypeAlias = _typing.Literal["runtime"]  # noqa: Y015
+    _WhichOneofArgType__runtime: _TypeAlias = _typing.Literal["_runtime", b"_runtime"]  # noqa: Y015
+    _WhichOneofReturnType__server_run_id: _TypeAlias = _typing.Literal["server_run_id"]  # noqa: Y015
+    _WhichOneofArgType__server_run_id: _TypeAlias = _typing.Literal["_server_run_id", b"_server_run_id"]  # noqa: Y015
+    _WhichOneofReturnType__task_id: _TypeAlias = _typing.Literal["task_id"]  # noqa: Y015
+    _WhichOneofArgType__task_id: _TypeAlias = _typing.Literal["_task_id", b"_task_id"]  # noqa: Y015
+    _WhichOneofReturnType__thread_id: _TypeAlias = _typing.Literal["thread_id"]  # noqa: Y015
+    _WhichOneofArgType__thread_id: _TypeAlias = _typing.Literal["_thread_id", b"_thread_id"]  # noqa: Y015
+    _WhichOneofReturnType__tracing_example_id: _TypeAlias = _typing.Literal["tracing_example_id"]  # noqa: Y015
+    _WhichOneofArgType__tracing_example_id: _TypeAlias = _typing.Literal["_tracing_example_id", b"_tracing_example_id"]  # noqa: Y015
+    _WhichOneofReturnType__tracing_project: _TypeAlias = _typing.Literal["tracing_project"]  # noqa: Y015
+    _WhichOneofArgType__tracing_project: _TypeAlias = _typing.Literal["_tracing_project", b"_tracing_project"]  # noqa: Y015
     @_typing.overload
-    def WhichOneof(
-        self,
-        oneof_group: _WhichOneofArgType__checkpoint_id,
-    ) -> _WhichOneofReturnType__checkpoint_id | None: ...
+    def WhichOneof(self, oneof_group: _WhichOneofArgType__checkpoint_id) -> _WhichOneofReturnType__checkpoint_id | None: ...
     @_typing.overload
-    def WhichOneof(
-        self,
-        oneof_group: _WhichOneofArgType__checkpoint_ns,
-    ) -> _WhichOneofReturnType__checkpoint_ns | None: ...
+    def WhichOneof(self, oneof_group: _WhichOneofArgType__checkpoint_ns) -> _WhichOneofReturnType__checkpoint_ns | None: ...
     @_typing.overload
-    def WhichOneof(
-        self,
-        oneof_group: _WhichOneofArgType__durability,
-    ) -> _WhichOneofReturnType__durability | None: ...
+    def WhichOneof(self, oneof_group: _WhichOneofArgType__durability) -> _WhichOneofReturnType__durability | None: ...
     @_typing.overload
-    def WhichOneof(
-        self,
-        oneof_group: _WhichOneofArgType__graph_id,
-    ) -> _WhichOneofReturnType__graph_id | None: ...
+    def WhichOneof(self, oneof_group: _WhichOneofArgType__graph_id) -> _WhichOneofReturnType__graph_id | None: ...
     @_typing.overload
-    def WhichOneof(
-        self,
-        oneof_group: _WhichOneofArgType__max_concurrency,
-    ) -> _WhichOneofReturnType__max_concurrency | None: ...
+    def WhichOneof(self, oneof_group: _WhichOneofArgType__max_concurrency) -> _WhichOneofReturnType__max_concurrency | None: ...
     @_typing.overload
-    def WhichOneof(
-        self,
-        oneof_group: _WhichOneofArgType__recursion_limit,
-    ) -> _WhichOneofReturnType__recursion_limit | None: ...
+    def WhichOneof(self, oneof_group: _WhichOneofArgType__recursion_limit) -> _WhichOneofReturnType__recursion_limit | None: ...
     @_typing.overload
-    def WhichOneof(
-        self,
-        oneof_group: _WhichOneofArgType__resuming,
-    ) -> _WhichOneofReturnType__resuming | None: ...
+    def WhichOneof(self, oneof_group: _WhichOneofArgType__resuming) -> _WhichOneofReturnType__resuming | None: ...
     @_typing.overload
-    def WhichOneof(
-        self,
-        oneof_group: _WhichOneofArgType__run_attempt,
-    ) -> _WhichOneofReturnType__run_attempt | None: ...
+    def WhichOneof(self, oneof_group: _WhichOneofArgType__run_attempt) -> _WhichOneofReturnType__run_attempt | None: ...
     @_typing.overload
-    def WhichOneof(
-        self,
-        oneof_group: _WhichOneofArgType__run_id,
-    ) -> _WhichOneofReturnType__run_id | None: ...
+    def WhichOneof(self, oneof_group: _WhichOneofArgType__run_id) -> _WhichOneofReturnType__run_id | None: ...
     @_typing.overload
-    def WhichOneof(
-        self,
-        oneof_group: _WhichOneofArgType__run_name,
-    ) -> _WhichOneofReturnType__run_name | None: ...
+    def WhichOneof(self, oneof_group: _WhichOneofArgType__run_name) -> _WhichOneofReturnType__run_name | None: ...
     @_typing.overload
-    def WhichOneof(
-        self,
-        oneof_group: _WhichOneofArgType__runtime,
-    ) -> _WhichOneofReturnType__runtime | None: ...
+    def WhichOneof(self, oneof_group: _WhichOneofArgType__runtime) -> _WhichOneofReturnType__runtime | None: ...
     @_typing.overload
-    def WhichOneof(
-        self,
-        oneof_group: _WhichOneofArgType__server_run_id,
-    ) -> _WhichOneofReturnType__server_run_id | None: ...
+    def WhichOneof(self, oneof_group: _WhichOneofArgType__server_run_id) -> _WhichOneofReturnType__server_run_id | None: ...
     @_typing.overload
-    def WhichOneof(
-        self,
-        oneof_group: _WhichOneofArgType__task_id,
-    ) -> _WhichOneofReturnType__task_id | None: ...
+    def WhichOneof(self, oneof_group: _WhichOneofArgType__task_id) -> _WhichOneofReturnType__task_id | None: ...
     @_typing.overload
-    def WhichOneof(
-        self,
-        oneof_group: _WhichOneofArgType__thread_id,
-    ) -> _WhichOneofReturnType__thread_id | None: ...
+    def WhichOneof(self, oneof_group: _WhichOneofArgType__thread_id) -> _WhichOneofReturnType__thread_id | None: ...
     @_typing.overload
-    def WhichOneof(
-        self,
-        oneof_group: _WhichOneofArgType__tracing_example_id,
-    ) -> _WhichOneofReturnType__tracing_example_id | None: ...
+    def WhichOneof(self, oneof_group: _WhichOneofArgType__tracing_example_id) -> _WhichOneofReturnType__tracing_example_id | None: ...
     @_typing.overload
-    def WhichOneof(
-        self,
-        oneof_group: _WhichOneofArgType__tracing_project,
-    ) -> _WhichOneofReturnType__tracing_project | None: ...
+    def WhichOneof(self, oneof_group: _WhichOneofArgType__tracing_project) -> _WhichOneofReturnType__tracing_project | None: ...
 
-Global___EngineRunnableConfig: _TypeAlias = EngineRunnableConfig
+Global___EngineRunnableConfig: _TypeAlias = EngineRunnableConfig  # noqa: Y015
 
 @_typing.final
 class Runtime(_message.Message):
@@ -1374,49 +1045,20 @@ class Runtime(_message.Message):
         langgraph_context_json: _builtins.bytes | None = ...,
         previous: Global___ChannelValue | None = ...,
     ) -> None: ...
-    _HasFieldArgType: _TypeAlias = _typing.Literal[
-        "_langgraph_context_json",
-        b"_langgraph_context_json",
-        "_previous",
-        b"_previous",
-        "langgraph_context_json",
-        b"langgraph_context_json",
-        "previous",
-        b"previous",
-    ]
+    _HasFieldArgType: _TypeAlias = _typing.Literal["_langgraph_context_json", b"_langgraph_context_json", "_previous", b"_previous", "langgraph_context_json", b"langgraph_context_json", "previous", b"previous"]  # noqa: Y015
     def HasField(self, field_name: _HasFieldArgType) -> _builtins.bool: ...
-    _ClearFieldArgType: _TypeAlias = _typing.Literal[
-        "_langgraph_context_json",
-        b"_langgraph_context_json",
-        "_previous",
-        b"_previous",
-        "langgraph_context_json",
-        b"langgraph_context_json",
-        "previous",
-        b"previous",
-    ]
+    _ClearFieldArgType: _TypeAlias = _typing.Literal["_langgraph_context_json", b"_langgraph_context_json", "_previous", b"_previous", "langgraph_context_json", b"langgraph_context_json", "previous", b"previous"]  # noqa: Y015
     def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
-    _WhichOneofReturnType__langgraph_context_json: _TypeAlias = _typing.Literal[
-        "langgraph_context_json"
-    ]
-    _WhichOneofArgType__langgraph_context_json: _TypeAlias = _typing.Literal[
-        "_langgraph_context_json",
-        b"_langgraph_context_json",
-    ]
-    _WhichOneofReturnType__previous: _TypeAlias = _typing.Literal["previous"]
-    _WhichOneofArgType__previous: _TypeAlias = _typing.Literal["_previous", b"_previous"]
+    _WhichOneofReturnType__langgraph_context_json: _TypeAlias = _typing.Literal["langgraph_context_json"]  # noqa: Y015
+    _WhichOneofArgType__langgraph_context_json: _TypeAlias = _typing.Literal["_langgraph_context_json", b"_langgraph_context_json"]  # noqa: Y015
+    _WhichOneofReturnType__previous: _TypeAlias = _typing.Literal["previous"]  # noqa: Y015
+    _WhichOneofArgType__previous: _TypeAlias = _typing.Literal["_previous", b"_previous"]  # noqa: Y015
     @_typing.overload
-    def WhichOneof(
-        self,
-        oneof_group: _WhichOneofArgType__langgraph_context_json,
-    ) -> _WhichOneofReturnType__langgraph_context_json | None: ...
+    def WhichOneof(self, oneof_group: _WhichOneofArgType__langgraph_context_json) -> _WhichOneofReturnType__langgraph_context_json | None: ...
     @_typing.overload
-    def WhichOneof(
-        self,
-        oneof_group: _WhichOneofArgType__previous,
-    ) -> _WhichOneofReturnType__previous | None: ...
+    def WhichOneof(self, oneof_group: _WhichOneofArgType__previous) -> _WhichOneofReturnType__previous | None: ...
 
-Global___Runtime: _TypeAlias = Runtime
+Global___Runtime: _TypeAlias = Runtime  # noqa: Y015
 
 @_typing.final
 class Subgraph(_message.Message):
@@ -1429,13 +1071,13 @@ class Subgraph(_message.Message):
         *,
         graph_id: _builtins.str = ...,
     ) -> None: ...
-    _HasFieldArgType: _TypeAlias = _Never
+    _HasFieldArgType: _TypeAlias = _Never  # noqa: Y015
     def HasField(self, field_name: _HasFieldArgType) -> _builtins.bool: ...
-    _ClearFieldArgType: _TypeAlias = _typing.Literal["graph_id", b"graph_id"]
+    _ClearFieldArgType: _TypeAlias = _typing.Literal["graph_id", b"graph_id"]  # noqa: Y015
     def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
     def WhichOneof(self, oneof_group: _Never) -> None: ...
 
-Global___Subgraph: _TypeAlias = Subgraph
+Global___Subgraph: _TypeAlias = Subgraph  # noqa: Y015
 
 @_typing.final
 class Task(_message.Message):
@@ -1466,9 +1108,7 @@ class Task(_message.Message):
     @_builtins.property
     def task_path(self) -> _containers.RepeatedCompositeFieldContainer[Global___PathSegment]: ...
     @_builtins.property
-    def pending_writes(
-        self,
-    ) -> _containers.RepeatedCompositeFieldContainer[Global___PendingWrite]: ...
+    def pending_writes(self) -> _containers.RepeatedCompositeFieldContainer[Global___PendingWrite]: ...
     @_builtins.property
     def subgraph(self) -> Global___Subgraph: ...
     def __init__(
@@ -1484,46 +1124,15 @@ class Task(_message.Message):
         stream_subgraphs: _builtins.bool = ...,
         subgraph: Global___Subgraph | None = ...,
     ) -> None: ...
-    _HasFieldArgType: _TypeAlias = _typing.Literal[
-        "_subgraph",
-        b"_subgraph",
-        "config",
-        b"config",
-        "subgraph",
-        b"subgraph",
-    ]
+    _HasFieldArgType: _TypeAlias = _typing.Literal["_subgraph", b"_subgraph", "config", b"config", "subgraph", b"subgraph"]  # noqa: Y015
     def HasField(self, field_name: _HasFieldArgType) -> _builtins.bool: ...
-    _ClearFieldArgType: _TypeAlias = _typing.Literal[
-        "_subgraph",
-        b"_subgraph",
-        "config",
-        b"config",
-        "id",
-        b"id",
-        "name",
-        b"name",
-        "pending_writes",
-        b"pending_writes",
-        "stream_subgraphs",
-        b"stream_subgraphs",
-        "subgraph",
-        b"subgraph",
-        "task_path",
-        b"task_path",
-        "triggers",
-        b"triggers",
-        "writes",
-        b"writes",
-    ]
+    _ClearFieldArgType: _TypeAlias = _typing.Literal["_subgraph", b"_subgraph", "config", b"config", "id", b"id", "name", b"name", "pending_writes", b"pending_writes", "stream_subgraphs", b"stream_subgraphs", "subgraph", b"subgraph", "task_path", b"task_path", "triggers", b"triggers", "writes", b"writes"]  # noqa: Y015
     def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
-    _WhichOneofReturnType__subgraph: _TypeAlias = _typing.Literal["subgraph"]
-    _WhichOneofArgType__subgraph: _TypeAlias = _typing.Literal["_subgraph", b"_subgraph"]
-    def WhichOneof(
-        self,
-        oneof_group: _WhichOneofArgType__subgraph,
-    ) -> _WhichOneofReturnType__subgraph | None: ...
+    _WhichOneofReturnType__subgraph: _TypeAlias = _typing.Literal["subgraph"]  # noqa: Y015
+    _WhichOneofArgType__subgraph: _TypeAlias = _typing.Literal["_subgraph", b"_subgraph"]  # noqa: Y015
+    def WhichOneof(self, oneof_group: _WhichOneofArgType__subgraph) -> _WhichOneofReturnType__subgraph | None: ...
 
-Global___Task: _TypeAlias = Task
+Global___Task: _TypeAlias = Task  # noqa: Y015
 
 @_typing.final
 class TaskResult(_message.Message):
@@ -1553,47 +1162,15 @@ class TaskResult(_message.Message):
         recursion_limit_error: _errors_pb2.GraphRecursionLimitError | None = ...,
         writes: _abc.Iterable[Global___Write] | None = ...,
     ) -> None: ...
-    _HasFieldArgType: _TypeAlias = _typing.Literal[
-        "interrupts",
-        b"interrupts",
-        "message",
-        b"message",
-        "parent_command",
-        b"parent_command",
-        "recursion_limit_error",
-        b"recursion_limit_error",
-        "user_error",
-        b"user_error",
-    ]
+    _HasFieldArgType: _TypeAlias = _typing.Literal["interrupts", b"interrupts", "message", b"message", "parent_command", b"parent_command", "recursion_limit_error", b"recursion_limit_error", "user_error", b"user_error"]  # noqa: Y015
     def HasField(self, field_name: _HasFieldArgType) -> _builtins.bool: ...
-    _ClearFieldArgType: _TypeAlias = _typing.Literal[
-        "interrupts",
-        b"interrupts",
-        "message",
-        b"message",
-        "parent_command",
-        b"parent_command",
-        "recursion_limit_error",
-        b"recursion_limit_error",
-        "user_error",
-        b"user_error",
-        "writes",
-        b"writes",
-    ]
+    _ClearFieldArgType: _TypeAlias = _typing.Literal["interrupts", b"interrupts", "message", b"message", "parent_command", b"parent_command", "recursion_limit_error", b"recursion_limit_error", "user_error", b"user_error", "writes", b"writes"]  # noqa: Y015
     def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
-    _WhichOneofReturnType_message: _TypeAlias = _typing.Literal[
-        "user_error",
-        "interrupts",
-        "parent_command",
-        "recursion_limit_error",
-    ]
-    _WhichOneofArgType_message: _TypeAlias = _typing.Literal["message", b"message"]
-    def WhichOneof(
-        self,
-        oneof_group: _WhichOneofArgType_message,
-    ) -> _WhichOneofReturnType_message | None: ...
+    _WhichOneofReturnType_message: _TypeAlias = _typing.Literal["user_error", "interrupts", "parent_command", "recursion_limit_error"]  # noqa: Y015
+    _WhichOneofArgType_message: _TypeAlias = _typing.Literal["message", b"message"]  # noqa: Y015
+    def WhichOneof(self, oneof_group: _WhichOneofArgType_message) -> _WhichOneofReturnType_message | None: ...
 
-Global___TaskResult: _TypeAlias = TaskResult
+Global___TaskResult: _TypeAlias = TaskResult  # noqa: Y015
 
 @_typing.final
 class CheckpointRef(_message.Message):
@@ -1617,9 +1194,9 @@ class CheckpointRef(_message.Message):
             key: _builtins.str = ...,
             value: _builtins.str = ...,
         ) -> None: ...
-        _HasFieldArgType: _TypeAlias = _Never
+        _HasFieldArgType: _TypeAlias = _Never  # noqa: Y015
         def HasField(self, field_name: _HasFieldArgType) -> _builtins.bool: ...
-        _ClearFieldArgType: _TypeAlias = _typing.Literal["key", b"key", "value", b"value"]
+        _ClearFieldArgType: _TypeAlias = _typing.Literal["key", b"key", "value", b"value"]  # noqa: Y015
         def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
         def WhichOneof(self, oneof_group: _Never) -> None: ...
 
@@ -1640,22 +1217,13 @@ class CheckpointRef(_message.Message):
         checkpoint_ns: _builtins.str = ...,
         checkpoint_map: _abc.Mapping[_builtins.str, _builtins.str] | None = ...,
     ) -> None: ...
-    _HasFieldArgType: _TypeAlias = _Never
+    _HasFieldArgType: _TypeAlias = _Never  # noqa: Y015
     def HasField(self, field_name: _HasFieldArgType) -> _builtins.bool: ...
-    _ClearFieldArgType: _TypeAlias = _typing.Literal[
-        "checkpoint_id",
-        b"checkpoint_id",
-        "checkpoint_map",
-        b"checkpoint_map",
-        "checkpoint_ns",
-        b"checkpoint_ns",
-        "thread_id",
-        b"thread_id",
-    ]
+    _ClearFieldArgType: _TypeAlias = _typing.Literal["checkpoint_id", b"checkpoint_id", "checkpoint_map", b"checkpoint_map", "checkpoint_ns", b"checkpoint_ns", "thread_id", b"thread_id"]  # noqa: Y015
     def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
     def WhichOneof(self, oneof_group: _Never) -> None: ...
 
-Global___CheckpointRef: _TypeAlias = CheckpointRef
+Global___CheckpointRef: _TypeAlias = CheckpointRef  # noqa: Y015
 
 @_typing.final
 class PregelTaskSnapshot(_message.Message):
@@ -1694,46 +1262,15 @@ class PregelTaskSnapshot(_message.Message):
         checkpoint_ref: Global___CheckpointRef | None = ...,
         state_snapshot: Global___StateSnapshot | None = ...,
     ) -> None: ...
-    _HasFieldArgType: _TypeAlias = _typing.Literal[
-        "checkpoint_ref",
-        b"checkpoint_ref",
-        "error",
-        b"error",
-        "state",
-        b"state",
-        "state_snapshot",
-        b"state_snapshot",
-    ]
+    _HasFieldArgType: _TypeAlias = _typing.Literal["checkpoint_ref", b"checkpoint_ref", "error", b"error", "state", b"state", "state_snapshot", b"state_snapshot"]  # noqa: Y015
     def HasField(self, field_name: _HasFieldArgType) -> _builtins.bool: ...
-    _ClearFieldArgType: _TypeAlias = _typing.Literal[
-        "checkpoint_ref",
-        b"checkpoint_ref",
-        "error",
-        b"error",
-        "id",
-        b"id",
-        "interrupts",
-        b"interrupts",
-        "name",
-        b"name",
-        "path",
-        b"path",
-        "result_json",
-        b"result_json",
-        "state",
-        b"state",
-        "state_snapshot",
-        b"state_snapshot",
-    ]
+    _ClearFieldArgType: _TypeAlias = _typing.Literal["checkpoint_ref", b"checkpoint_ref", "error", b"error", "id", b"id", "interrupts", b"interrupts", "name", b"name", "path", b"path", "result_json", b"result_json", "state", b"state", "state_snapshot", b"state_snapshot"]  # noqa: Y015
     def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
-    _WhichOneofReturnType_state: _TypeAlias = _typing.Literal["checkpoint_ref", "state_snapshot"]
-    _WhichOneofArgType_state: _TypeAlias = _typing.Literal["state", b"state"]
-    def WhichOneof(
-        self,
-        oneof_group: _WhichOneofArgType_state,
-    ) -> _WhichOneofReturnType_state | None: ...
+    _WhichOneofReturnType_state: _TypeAlias = _typing.Literal["checkpoint_ref", "state_snapshot"]  # noqa: Y015
+    _WhichOneofArgType_state: _TypeAlias = _typing.Literal["state", b"state"]  # noqa: Y015
+    def WhichOneof(self, oneof_group: _WhichOneofArgType_state) -> _WhichOneofReturnType_state | None: ...
 
-Global___PregelTaskSnapshot: _TypeAlias = PregelTaskSnapshot
+Global___PregelTaskSnapshot: _TypeAlias = PregelTaskSnapshot  # noqa: Y015
 
 @_typing.final
 class Checkpoint(_message.Message):
@@ -1756,9 +1293,9 @@ class Checkpoint(_message.Message):
             key: _builtins.str = ...,
             value: Global___ChannelValue | None = ...,
         ) -> None: ...
-        _HasFieldArgType: _TypeAlias = _typing.Literal["value", b"value"]
+        _HasFieldArgType: _TypeAlias = _typing.Literal["value", b"value"]  # noqa: Y015
         def HasField(self, field_name: _HasFieldArgType) -> _builtins.bool: ...
-        _ClearFieldArgType: _TypeAlias = _typing.Literal["key", b"key", "value", b"value"]
+        _ClearFieldArgType: _TypeAlias = _typing.Literal["key", b"key", "value", b"value"]  # noqa: Y015
         def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
         def WhichOneof(self, oneof_group: _Never) -> None: ...
 
@@ -1776,9 +1313,9 @@ class Checkpoint(_message.Message):
             key: _builtins.str = ...,
             value: _builtins.str = ...,
         ) -> None: ...
-        _HasFieldArgType: _TypeAlias = _Never
+        _HasFieldArgType: _TypeAlias = _Never  # noqa: Y015
         def HasField(self, field_name: _HasFieldArgType) -> _builtins.bool: ...
-        _ClearFieldArgType: _TypeAlias = _typing.Literal["key", b"key", "value", b"value"]
+        _ClearFieldArgType: _TypeAlias = _typing.Literal["key", b"key", "value", b"value"]  # noqa: Y015
         def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
         def WhichOneof(self, oneof_group: _Never) -> None: ...
 
@@ -1797,9 +1334,9 @@ class Checkpoint(_message.Message):
             key: _builtins.str = ...,
             value: Global___ChannelVersions | None = ...,
         ) -> None: ...
-        _HasFieldArgType: _TypeAlias = _typing.Literal["value", b"value"]
+        _HasFieldArgType: _TypeAlias = _typing.Literal["value", b"value"]  # noqa: Y015
         def HasField(self, field_name: _HasFieldArgType) -> _builtins.bool: ...
-        _ClearFieldArgType: _TypeAlias = _typing.Literal["key", b"key", "value", b"value"]
+        _ClearFieldArgType: _TypeAlias = _typing.Literal["key", b"key", "value", b"value"]  # noqa: Y015
         def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
         def WhichOneof(self, oneof_group: _Never) -> None: ...
 
@@ -1832,28 +1369,13 @@ class Checkpoint(_message.Message):
         ts: _builtins.str = ...,
         updated_channels: _abc.Iterable[_builtins.str] | None = ...,
     ) -> None: ...
-    _HasFieldArgType: _TypeAlias = _Never
+    _HasFieldArgType: _TypeAlias = _Never  # noqa: Y015
     def HasField(self, field_name: _HasFieldArgType) -> _builtins.bool: ...
-    _ClearFieldArgType: _TypeAlias = _typing.Literal[
-        "channel_values",
-        b"channel_values",
-        "channel_versions",
-        b"channel_versions",
-        "id",
-        b"id",
-        "ts",
-        b"ts",
-        "updated_channels",
-        b"updated_channels",
-        "v",
-        b"v",
-        "versions_seen",
-        b"versions_seen",
-    ]
+    _ClearFieldArgType: _TypeAlias = _typing.Literal["channel_values", b"channel_values", "channel_versions", b"channel_versions", "id", b"id", "ts", b"ts", "updated_channels", b"updated_channels", "v", b"v", "versions_seen", b"versions_seen"]  # noqa: Y015
     def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
     def WhichOneof(self, oneof_group: _Never) -> None: ...
 
-Global___Checkpoint: _TypeAlias = Checkpoint
+Global___Checkpoint: _TypeAlias = Checkpoint  # noqa: Y015
 
 @_typing.final
 class CheckpointMetadata(_message.Message):
@@ -1861,12 +1383,9 @@ class CheckpointMetadata(_message.Message):
 
     class _CheckpointSource:
         ValueType = _typing.NewType("ValueType", _builtins.int)
-        V: _TypeAlias = ValueType
+        V: _TypeAlias = ValueType  # noqa: Y015
 
-    class _CheckpointSourceEnumTypeWrapper(
-        _enum_type_wrapper._EnumTypeWrapper[CheckpointMetadata._CheckpointSource.ValueType],
-        _builtins.type,
-    ):
+    class _CheckpointSourceEnumTypeWrapper(_enum_type_wrapper._EnumTypeWrapper[CheckpointMetadata._CheckpointSource.ValueType], _builtins.type):
         DESCRIPTOR: _descriptor.EnumDescriptor
         unknown: CheckpointMetadata._CheckpointSource.ValueType  # 0
         loop: CheckpointMetadata._CheckpointSource.ValueType  # 1
@@ -1895,9 +1414,9 @@ class CheckpointMetadata(_message.Message):
             key: _builtins.str = ...,
             value: _builtins.str = ...,
         ) -> None: ...
-        _HasFieldArgType: _TypeAlias = _Never
+        _HasFieldArgType: _TypeAlias = _Never  # noqa: Y015
         def HasField(self, field_name: _HasFieldArgType) -> _builtins.bool: ...
-        _ClearFieldArgType: _TypeAlias = _typing.Literal["key", b"key", "value", b"value"]
+        _ClearFieldArgType: _TypeAlias = _typing.Literal["key", b"key", "value", b"value"]  # noqa: Y015
         def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
         def WhichOneof(self, oneof_group: _Never) -> None: ...
 
@@ -1915,9 +1434,9 @@ class CheckpointMetadata(_message.Message):
             key: _builtins.str = ...,
             value: _builtins.bytes = ...,
         ) -> None: ...
-        _HasFieldArgType: _TypeAlias = _Never
+        _HasFieldArgType: _TypeAlias = _Never  # noqa: Y015
         def HasField(self, field_name: _HasFieldArgType) -> _builtins.bool: ...
-        _ClearFieldArgType: _TypeAlias = _typing.Literal["key", b"key", "value", b"value"]
+        _ClearFieldArgType: _TypeAlias = _typing.Literal["key", b"key", "value", b"value"]  # noqa: Y015
         def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
         def WhichOneof(self, oneof_group: _Never) -> None: ...
 
@@ -1942,31 +1461,15 @@ class CheckpointMetadata(_message.Message):
         run_id: _builtins.str | None = ...,
         extras: _abc.Mapping[_builtins.str, _builtins.bytes] | None = ...,
     ) -> None: ...
-    _HasFieldArgType: _TypeAlias = _typing.Literal["_run_id", b"_run_id", "run_id", b"run_id"]
+    _HasFieldArgType: _TypeAlias = _typing.Literal["_run_id", b"_run_id", "run_id", b"run_id"]  # noqa: Y015
     def HasField(self, field_name: _HasFieldArgType) -> _builtins.bool: ...
-    _ClearFieldArgType: _TypeAlias = _typing.Literal[
-        "_run_id",
-        b"_run_id",
-        "extras",
-        b"extras",
-        "parents",
-        b"parents",
-        "run_id",
-        b"run_id",
-        "source",
-        b"source",
-        "step",
-        b"step",
-    ]
+    _ClearFieldArgType: _TypeAlias = _typing.Literal["_run_id", b"_run_id", "extras", b"extras", "parents", b"parents", "run_id", b"run_id", "source", b"source", "step", b"step"]  # noqa: Y015
     def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
-    _WhichOneofReturnType__run_id: _TypeAlias = _typing.Literal["run_id"]
-    _WhichOneofArgType__run_id: _TypeAlias = _typing.Literal["_run_id", b"_run_id"]
-    def WhichOneof(
-        self,
-        oneof_group: _WhichOneofArgType__run_id,
-    ) -> _WhichOneofReturnType__run_id | None: ...
+    _WhichOneofReturnType__run_id: _TypeAlias = _typing.Literal["run_id"]  # noqa: Y015
+    _WhichOneofArgType__run_id: _TypeAlias = _typing.Literal["_run_id", b"_run_id"]  # noqa: Y015
+    def WhichOneof(self, oneof_group: _WhichOneofArgType__run_id) -> _WhichOneofReturnType__run_id | None: ...
 
-Global___CheckpointMetadata: _TypeAlias = CheckpointMetadata
+Global___CheckpointMetadata: _TypeAlias = CheckpointMetadata  # noqa: Y015
 
 @_typing.final
 class CheckpointTuple(_message.Message):
@@ -1986,9 +1489,7 @@ class CheckpointTuple(_message.Message):
     @_builtins.property
     def parent_config(self) -> Global___EngineRunnableConfig: ...
     @_builtins.property
-    def pending_writes(
-        self,
-    ) -> _containers.RepeatedCompositeFieldContainer[Global___PendingWrite]: ...
+    def pending_writes(self) -> _containers.RepeatedCompositeFieldContainer[Global___PendingWrite]: ...
     def __init__(
         self,
         *,
@@ -1998,33 +1499,13 @@ class CheckpointTuple(_message.Message):
         parent_config: Global___EngineRunnableConfig | None = ...,
         pending_writes: _abc.Iterable[Global___PendingWrite] | None = ...,
     ) -> None: ...
-    _HasFieldArgType: _TypeAlias = _typing.Literal[
-        "checkpoint",
-        b"checkpoint",
-        "config",
-        b"config",
-        "metadata",
-        b"metadata",
-        "parent_config",
-        b"parent_config",
-    ]
+    _HasFieldArgType: _TypeAlias = _typing.Literal["checkpoint", b"checkpoint", "config", b"config", "metadata", b"metadata", "parent_config", b"parent_config"]  # noqa: Y015
     def HasField(self, field_name: _HasFieldArgType) -> _builtins.bool: ...
-    _ClearFieldArgType: _TypeAlias = _typing.Literal[
-        "checkpoint",
-        b"checkpoint",
-        "config",
-        b"config",
-        "metadata",
-        b"metadata",
-        "parent_config",
-        b"parent_config",
-        "pending_writes",
-        b"pending_writes",
-    ]
+    _ClearFieldArgType: _TypeAlias = _typing.Literal["checkpoint", b"checkpoint", "config", b"config", "metadata", b"metadata", "parent_config", b"parent_config", "pending_writes", b"pending_writes"]  # noqa: Y015
     def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
     def WhichOneof(self, oneof_group: _Never) -> None: ...
 
-Global___CheckpointTuple: _TypeAlias = CheckpointTuple
+Global___CheckpointTuple: _TypeAlias = CheckpointTuple  # noqa: Y015
 
 @_typing.final
 class Updates(_message.Message):
@@ -2048,25 +1529,13 @@ class Updates(_message.Message):
         channels: Global___Channels | None = ...,
         updated_channels: _abc.Iterable[_builtins.str] | None = ...,
     ) -> None: ...
-    _HasFieldArgType: _TypeAlias = _typing.Literal[
-        "channels",
-        b"channels",
-        "checkpoint",
-        b"checkpoint",
-    ]
+    _HasFieldArgType: _TypeAlias = _typing.Literal["channels", b"channels", "checkpoint", b"checkpoint"]  # noqa: Y015
     def HasField(self, field_name: _HasFieldArgType) -> _builtins.bool: ...
-    _ClearFieldArgType: _TypeAlias = _typing.Literal[
-        "channels",
-        b"channels",
-        "checkpoint",
-        b"checkpoint",
-        "updated_channels",
-        b"updated_channels",
-    ]
+    _ClearFieldArgType: _TypeAlias = _typing.Literal["channels", b"channels", "checkpoint", b"checkpoint", "updated_channels", b"updated_channels"]  # noqa: Y015
     def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
     def WhichOneof(self, oneof_group: _Never) -> None: ...
 
-Global___Updates: _TypeAlias = Updates
+Global___Updates: _TypeAlias = Updates  # noqa: Y015
 
 @_typing.final
 class ToolCall(_message.Message):
@@ -2086,20 +1555,13 @@ class ToolCall(_message.Message):
         args_json: _builtins.bytes = ...,
         id: _wrappers_pb2.StringValue | None = ...,
     ) -> None: ...
-    _HasFieldArgType: _TypeAlias = _typing.Literal["id", b"id"]
+    _HasFieldArgType: _TypeAlias = _typing.Literal["id", b"id"]  # noqa: Y015
     def HasField(self, field_name: _HasFieldArgType) -> _builtins.bool: ...
-    _ClearFieldArgType: _TypeAlias = _typing.Literal[
-        "args_json",
-        b"args_json",
-        "id",
-        b"id",
-        "name",
-        b"name",
-    ]
+    _ClearFieldArgType: _TypeAlias = _typing.Literal["args_json", b"args_json", "id", b"id", "name", b"name"]  # noqa: Y015
     def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
     def WhichOneof(self, oneof_group: _Never) -> None: ...
 
-Global___ToolCall: _TypeAlias = ToolCall
+Global___ToolCall: _TypeAlias = ToolCall  # noqa: Y015
 
 @_typing.final
 class ToolCallChunk(_message.Message):
@@ -2125,31 +1587,13 @@ class ToolCallChunk(_message.Message):
         id: _wrappers_pb2.StringValue | None = ...,
         index: _wrappers_pb2.Int32Value | None = ...,
     ) -> None: ...
-    _HasFieldArgType: _TypeAlias = _typing.Literal[
-        "args_json",
-        b"args_json",
-        "id",
-        b"id",
-        "index",
-        b"index",
-        "name",
-        b"name",
-    ]
+    _HasFieldArgType: _TypeAlias = _typing.Literal["args_json", b"args_json", "id", b"id", "index", b"index", "name", b"name"]  # noqa: Y015
     def HasField(self, field_name: _HasFieldArgType) -> _builtins.bool: ...
-    _ClearFieldArgType: _TypeAlias = _typing.Literal[
-        "args_json",
-        b"args_json",
-        "id",
-        b"id",
-        "index",
-        b"index",
-        "name",
-        b"name",
-    ]
+    _ClearFieldArgType: _TypeAlias = _typing.Literal["args_json", b"args_json", "id", b"id", "index", b"index", "name", b"name"]  # noqa: Y015
     def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
     def WhichOneof(self, oneof_group: _Never) -> None: ...
 
-Global___ToolCallChunk: _TypeAlias = ToolCallChunk
+Global___ToolCallChunk: _TypeAlias = ToolCallChunk  # noqa: Y015
 
 @_typing.final
 class InvalidToolCall(_message.Message):
@@ -2175,31 +1619,13 @@ class InvalidToolCall(_message.Message):
         id: _wrappers_pb2.StringValue | None = ...,
         error: _wrappers_pb2.StringValue | None = ...,
     ) -> None: ...
-    _HasFieldArgType: _TypeAlias = _typing.Literal[
-        "args",
-        b"args",
-        "error",
-        b"error",
-        "id",
-        b"id",
-        "name",
-        b"name",
-    ]
+    _HasFieldArgType: _TypeAlias = _typing.Literal["args", b"args", "error", b"error", "id", b"id", "name", b"name"]  # noqa: Y015
     def HasField(self, field_name: _HasFieldArgType) -> _builtins.bool: ...
-    _ClearFieldArgType: _TypeAlias = _typing.Literal[
-        "args",
-        b"args",
-        "error",
-        b"error",
-        "id",
-        b"id",
-        "name",
-        b"name",
-    ]
+    _ClearFieldArgType: _TypeAlias = _typing.Literal["args", b"args", "error", b"error", "id", b"id", "name", b"name"]  # noqa: Y015
     def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
     def WhichOneof(self, oneof_group: _Never) -> None: ...
 
-Global___InvalidToolCall: _TypeAlias = InvalidToolCall
+Global___InvalidToolCall: _TypeAlias = InvalidToolCall  # noqa: Y015
 
 @_typing.final
 class InputTokenDetails(_message.Message):
@@ -2221,27 +1647,13 @@ class InputTokenDetails(_message.Message):
         cache_creation: _wrappers_pb2.Int64Value | None = ...,
         cache_read: _wrappers_pb2.Int64Value | None = ...,
     ) -> None: ...
-    _HasFieldArgType: _TypeAlias = _typing.Literal[
-        "audio",
-        b"audio",
-        "cache_creation",
-        b"cache_creation",
-        "cache_read",
-        b"cache_read",
-    ]
+    _HasFieldArgType: _TypeAlias = _typing.Literal["audio", b"audio", "cache_creation", b"cache_creation", "cache_read", b"cache_read"]  # noqa: Y015
     def HasField(self, field_name: _HasFieldArgType) -> _builtins.bool: ...
-    _ClearFieldArgType: _TypeAlias = _typing.Literal[
-        "audio",
-        b"audio",
-        "cache_creation",
-        b"cache_creation",
-        "cache_read",
-        b"cache_read",
-    ]
+    _ClearFieldArgType: _TypeAlias = _typing.Literal["audio", b"audio", "cache_creation", b"cache_creation", "cache_read", b"cache_read"]  # noqa: Y015
     def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
     def WhichOneof(self, oneof_group: _Never) -> None: ...
 
-Global___InputTokenDetails: _TypeAlias = InputTokenDetails
+Global___InputTokenDetails: _TypeAlias = InputTokenDetails  # noqa: Y015
 
 @_typing.final
 class OutputTokenDetails(_message.Message):
@@ -2259,13 +1671,13 @@ class OutputTokenDetails(_message.Message):
         audio: _wrappers_pb2.Int64Value | None = ...,
         reasoning: _wrappers_pb2.Int64Value | None = ...,
     ) -> None: ...
-    _HasFieldArgType: _TypeAlias = _typing.Literal["audio", b"audio", "reasoning", b"reasoning"]
+    _HasFieldArgType: _TypeAlias = _typing.Literal["audio", b"audio", "reasoning", b"reasoning"]  # noqa: Y015
     def HasField(self, field_name: _HasFieldArgType) -> _builtins.bool: ...
-    _ClearFieldArgType: _TypeAlias = _typing.Literal["audio", b"audio", "reasoning", b"reasoning"]
+    _ClearFieldArgType: _TypeAlias = _typing.Literal["audio", b"audio", "reasoning", b"reasoning"]  # noqa: Y015
     def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
     def WhichOneof(self, oneof_group: _Never) -> None: ...
 
-Global___OutputTokenDetails: _TypeAlias = OutputTokenDetails
+Global___OutputTokenDetails: _TypeAlias = OutputTokenDetails  # noqa: Y015
 
 @_typing.final
 class UsageMetadata(_message.Message):
@@ -2292,29 +1704,13 @@ class UsageMetadata(_message.Message):
         input_token_details: Global___InputTokenDetails | None = ...,
         output_token_details: Global___OutputTokenDetails | None = ...,
     ) -> None: ...
-    _HasFieldArgType: _TypeAlias = _typing.Literal[
-        "input_token_details",
-        b"input_token_details",
-        "output_token_details",
-        b"output_token_details",
-    ]
+    _HasFieldArgType: _TypeAlias = _typing.Literal["input_token_details", b"input_token_details", "output_token_details", b"output_token_details"]  # noqa: Y015
     def HasField(self, field_name: _HasFieldArgType) -> _builtins.bool: ...
-    _ClearFieldArgType: _TypeAlias = _typing.Literal[
-        "input_token_details",
-        b"input_token_details",
-        "input_tokens",
-        b"input_tokens",
-        "output_token_details",
-        b"output_token_details",
-        "output_tokens",
-        b"output_tokens",
-        "total_tokens",
-        b"total_tokens",
-    ]
+    _ClearFieldArgType: _TypeAlias = _typing.Literal["input_token_details", b"input_token_details", "input_tokens", b"input_tokens", "output_token_details", b"output_token_details", "output_tokens", b"output_tokens", "total_tokens", b"total_tokens"]  # noqa: Y015
     def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
     def WhichOneof(self, oneof_group: _Never) -> None: ...
 
-Global___UsageMetadata: _TypeAlias = UsageMetadata
+Global___UsageMetadata: _TypeAlias = UsageMetadata  # noqa: Y015
 
 @_typing.final
 class ResponseMetadata(_message.Message):
@@ -2334,9 +1730,9 @@ class ResponseMetadata(_message.Message):
             key: _builtins.str = ...,
             value: _builtins.bytes = ...,
         ) -> None: ...
-        _HasFieldArgType: _TypeAlias = _Never
+        _HasFieldArgType: _TypeAlias = _Never  # noqa: Y015
         def HasField(self, field_name: _HasFieldArgType) -> _builtins.bool: ...
-        _ClearFieldArgType: _TypeAlias = _typing.Literal["key", b"key", "value", b"value"]
+        _ClearFieldArgType: _TypeAlias = _typing.Literal["key", b"key", "value", b"value"]  # noqa: Y015
         def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
         def WhichOneof(self, oneof_group: _Never) -> None: ...
 
@@ -2348,13 +1744,13 @@ class ResponseMetadata(_message.Message):
         *,
         data: _abc.Mapping[_builtins.str, _builtins.bytes] | None = ...,
     ) -> None: ...
-    _HasFieldArgType: _TypeAlias = _Never
+    _HasFieldArgType: _TypeAlias = _Never  # noqa: Y015
     def HasField(self, field_name: _HasFieldArgType) -> _builtins.bool: ...
-    _ClearFieldArgType: _TypeAlias = _typing.Literal["data", b"data"]
+    _ClearFieldArgType: _TypeAlias = _typing.Literal["data", b"data"]  # noqa: Y015
     def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
     def WhichOneof(self, oneof_group: _Never) -> None: ...
 
-Global___ResponseMetadata: _TypeAlias = ResponseMetadata
+Global___ResponseMetadata: _TypeAlias = ResponseMetadata  # noqa: Y015
 
 @_typing.final
 class AIFields(_message.Message):
@@ -2375,13 +1771,9 @@ class AIFields(_message.Message):
     @_builtins.property
     def tool_calls(self) -> _containers.RepeatedCompositeFieldContainer[Global___ToolCall]: ...
     @_builtins.property
-    def tool_call_chunks(
-        self,
-    ) -> _containers.RepeatedCompositeFieldContainer[Global___ToolCallChunk]: ...
+    def tool_call_chunks(self) -> _containers.RepeatedCompositeFieldContainer[Global___ToolCallChunk]: ...
     @_builtins.property
-    def invalid_tool_calls(
-        self,
-    ) -> _containers.RepeatedCompositeFieldContainer[Global___InvalidToolCall]: ...
+    def invalid_tool_calls(self) -> _containers.RepeatedCompositeFieldContainer[Global___InvalidToolCall]: ...
     @_builtins.property
     def reasoning_content(self) -> _wrappers_pb2.StringValue:
         """Optional standardized reasoning hook you already surface in additional_kwargs."""
@@ -2397,78 +1789,24 @@ class AIFields(_message.Message):
         chunk_position: _builtins.str | None = ...,
         reasoning_content: _wrappers_pb2.StringValue | None = ...,
     ) -> None: ...
-    _HasFieldArgType: _TypeAlias = _typing.Literal[
-        "_chunk_position",
-        b"_chunk_position",
-        "_response_metadata",
-        b"_response_metadata",
-        "_usage_metadata",
-        b"_usage_metadata",
-        "chunk_position",
-        b"chunk_position",
-        "reasoning_content",
-        b"reasoning_content",
-        "response_metadata",
-        b"response_metadata",
-        "usage_metadata",
-        b"usage_metadata",
-    ]
+    _HasFieldArgType: _TypeAlias = _typing.Literal["_chunk_position", b"_chunk_position", "_response_metadata", b"_response_metadata", "_usage_metadata", b"_usage_metadata", "chunk_position", b"chunk_position", "reasoning_content", b"reasoning_content", "response_metadata", b"response_metadata", "usage_metadata", b"usage_metadata"]  # noqa: Y015
     def HasField(self, field_name: _HasFieldArgType) -> _builtins.bool: ...
-    _ClearFieldArgType: _TypeAlias = _typing.Literal[
-        "_chunk_position",
-        b"_chunk_position",
-        "_response_metadata",
-        b"_response_metadata",
-        "_usage_metadata",
-        b"_usage_metadata",
-        "chunk_position",
-        b"chunk_position",
-        "invalid_tool_calls",
-        b"invalid_tool_calls",
-        "reasoning_content",
-        b"reasoning_content",
-        "response_metadata",
-        b"response_metadata",
-        "tool_call_chunks",
-        b"tool_call_chunks",
-        "tool_calls",
-        b"tool_calls",
-        "usage_metadata",
-        b"usage_metadata",
-    ]
+    _ClearFieldArgType: _TypeAlias = _typing.Literal["_chunk_position", b"_chunk_position", "_response_metadata", b"_response_metadata", "_usage_metadata", b"_usage_metadata", "chunk_position", b"chunk_position", "invalid_tool_calls", b"invalid_tool_calls", "reasoning_content", b"reasoning_content", "response_metadata", b"response_metadata", "tool_call_chunks", b"tool_call_chunks", "tool_calls", b"tool_calls", "usage_metadata", b"usage_metadata"]  # noqa: Y015
     def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
-    _WhichOneofReturnType__chunk_position: _TypeAlias = _typing.Literal["chunk_position"]
-    _WhichOneofArgType__chunk_position: _TypeAlias = _typing.Literal[
-        "_chunk_position",
-        b"_chunk_position",
-    ]
-    _WhichOneofReturnType__response_metadata: _TypeAlias = _typing.Literal["response_metadata"]
-    _WhichOneofArgType__response_metadata: _TypeAlias = _typing.Literal[
-        "_response_metadata",
-        b"_response_metadata",
-    ]
-    _WhichOneofReturnType__usage_metadata: _TypeAlias = _typing.Literal["usage_metadata"]
-    _WhichOneofArgType__usage_metadata: _TypeAlias = _typing.Literal[
-        "_usage_metadata",
-        b"_usage_metadata",
-    ]
+    _WhichOneofReturnType__chunk_position: _TypeAlias = _typing.Literal["chunk_position"]  # noqa: Y015
+    _WhichOneofArgType__chunk_position: _TypeAlias = _typing.Literal["_chunk_position", b"_chunk_position"]  # noqa: Y015
+    _WhichOneofReturnType__response_metadata: _TypeAlias = _typing.Literal["response_metadata"]  # noqa: Y015
+    _WhichOneofArgType__response_metadata: _TypeAlias = _typing.Literal["_response_metadata", b"_response_metadata"]  # noqa: Y015
+    _WhichOneofReturnType__usage_metadata: _TypeAlias = _typing.Literal["usage_metadata"]  # noqa: Y015
+    _WhichOneofArgType__usage_metadata: _TypeAlias = _typing.Literal["_usage_metadata", b"_usage_metadata"]  # noqa: Y015
     @_typing.overload
-    def WhichOneof(
-        self,
-        oneof_group: _WhichOneofArgType__chunk_position,
-    ) -> _WhichOneofReturnType__chunk_position | None: ...
+    def WhichOneof(self, oneof_group: _WhichOneofArgType__chunk_position) -> _WhichOneofReturnType__chunk_position | None: ...
     @_typing.overload
-    def WhichOneof(
-        self,
-        oneof_group: _WhichOneofArgType__response_metadata,
-    ) -> _WhichOneofReturnType__response_metadata | None: ...
+    def WhichOneof(self, oneof_group: _WhichOneofArgType__response_metadata) -> _WhichOneofReturnType__response_metadata | None: ...
     @_typing.overload
-    def WhichOneof(
-        self,
-        oneof_group: _WhichOneofArgType__usage_metadata,
-    ) -> _WhichOneofReturnType__usage_metadata | None: ...
+    def WhichOneof(self, oneof_group: _WhichOneofArgType__usage_metadata) -> _WhichOneofReturnType__usage_metadata | None: ...
 
-Global___AIFields: _TypeAlias = AIFields
+Global___AIFields: _TypeAlias = AIFields  # noqa: Y015
 
 @_typing.final
 class ToolFields(_message.Message):
@@ -2489,34 +1827,15 @@ class ToolFields(_message.Message):
         status: _builtins.str = ...,
         artifact: Global___SerializedValue | None = ...,
     ) -> None: ...
-    _HasFieldArgType: _TypeAlias = _typing.Literal[
-        "_artifact",
-        b"_artifact",
-        "artifact",
-        b"artifact",
-        "tool_call_id",
-        b"tool_call_id",
-    ]
+    _HasFieldArgType: _TypeAlias = _typing.Literal["_artifact", b"_artifact", "artifact", b"artifact", "tool_call_id", b"tool_call_id"]  # noqa: Y015
     def HasField(self, field_name: _HasFieldArgType) -> _builtins.bool: ...
-    _ClearFieldArgType: _TypeAlias = _typing.Literal[
-        "_artifact",
-        b"_artifact",
-        "artifact",
-        b"artifact",
-        "status",
-        b"status",
-        "tool_call_id",
-        b"tool_call_id",
-    ]
+    _ClearFieldArgType: _TypeAlias = _typing.Literal["_artifact", b"_artifact", "artifact", b"artifact", "status", b"status", "tool_call_id", b"tool_call_id"]  # noqa: Y015
     def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
-    _WhichOneofReturnType__artifact: _TypeAlias = _typing.Literal["artifact"]
-    _WhichOneofArgType__artifact: _TypeAlias = _typing.Literal["_artifact", b"_artifact"]
-    def WhichOneof(
-        self,
-        oneof_group: _WhichOneofArgType__artifact,
-    ) -> _WhichOneofReturnType__artifact | None: ...
+    _WhichOneofReturnType__artifact: _TypeAlias = _typing.Literal["artifact"]  # noqa: Y015
+    _WhichOneofArgType__artifact: _TypeAlias = _typing.Literal["_artifact", b"_artifact"]  # noqa: Y015
+    def WhichOneof(self, oneof_group: _WhichOneofArgType__artifact) -> _WhichOneofReturnType__artifact | None: ...
 
-Global___ToolFields: _TypeAlias = ToolFields
+Global___ToolFields: _TypeAlias = ToolFields  # noqa: Y015
 
 @_typing.final
 class HumanFields(_message.Message):
@@ -2525,13 +1844,13 @@ class HumanFields(_message.Message):
     def __init__(
         self,
     ) -> None: ...
-    _HasFieldArgType: _TypeAlias = _Never
+    _HasFieldArgType: _TypeAlias = _Never  # noqa: Y015
     def HasField(self, field_name: _HasFieldArgType) -> _builtins.bool: ...
-    _ClearFieldArgType: _TypeAlias = _Never
+    _ClearFieldArgType: _TypeAlias = _Never  # noqa: Y015
     def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
     def WhichOneof(self, oneof_group: _Never) -> None: ...
 
-Global___HumanFields: _TypeAlias = HumanFields
+Global___HumanFields: _TypeAlias = HumanFields  # noqa: Y015
 
 @_typing.final
 class Content(_message.Message):
@@ -2553,32 +1872,15 @@ class Content(_message.Message):
         text: _builtins.str = ...,
         blocks: Global___ContentBlocks | None = ...,
     ) -> None: ...
-    _HasFieldArgType: _TypeAlias = _typing.Literal[
-        "blocks",
-        b"blocks",
-        "content",
-        b"content",
-        "text",
-        b"text",
-    ]
+    _HasFieldArgType: _TypeAlias = _typing.Literal["blocks", b"blocks", "content", b"content", "text", b"text"]  # noqa: Y015
     def HasField(self, field_name: _HasFieldArgType) -> _builtins.bool: ...
-    _ClearFieldArgType: _TypeAlias = _typing.Literal[
-        "blocks",
-        b"blocks",
-        "content",
-        b"content",
-        "text",
-        b"text",
-    ]
+    _ClearFieldArgType: _TypeAlias = _typing.Literal["blocks", b"blocks", "content", b"content", "text", b"text"]  # noqa: Y015
     def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
-    _WhichOneofReturnType_content: _TypeAlias = _typing.Literal["text", "blocks"]
-    _WhichOneofArgType_content: _TypeAlias = _typing.Literal["content", b"content"]
-    def WhichOneof(
-        self,
-        oneof_group: _WhichOneofArgType_content,
-    ) -> _WhichOneofReturnType_content | None: ...
+    _WhichOneofReturnType_content: _TypeAlias = _typing.Literal["text", "blocks"]  # noqa: Y015
+    _WhichOneofArgType_content: _TypeAlias = _typing.Literal["content", b"content"]  # noqa: Y015
+    def WhichOneof(self, oneof_group: _WhichOneofArgType_content) -> _WhichOneofReturnType_content | None: ...
 
-Global___Content: _TypeAlias = Content
+Global___Content: _TypeAlias = Content  # noqa: Y015
 
 @_typing.final
 class ContentBlocks(_message.Message):
@@ -2594,13 +1896,13 @@ class ContentBlocks(_message.Message):
         *,
         items: _abc.Iterable[Global___ContentBlock] | None = ...,
     ) -> None: ...
-    _HasFieldArgType: _TypeAlias = _Never
+    _HasFieldArgType: _TypeAlias = _Never  # noqa: Y015
     def HasField(self, field_name: _HasFieldArgType) -> _builtins.bool: ...
-    _ClearFieldArgType: _TypeAlias = _typing.Literal["items", b"items"]
+    _ClearFieldArgType: _TypeAlias = _typing.Literal["items", b"items"]  # noqa: Y015
     def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
     def WhichOneof(self, oneof_group: _Never) -> None: ...
 
-Global___ContentBlocks: _TypeAlias = ContentBlocks
+Global___ContentBlocks: _TypeAlias = ContentBlocks  # noqa: Y015
 
 @_typing.final
 class ContentBlock(_message.Message):
@@ -2617,32 +1919,15 @@ class ContentBlock(_message.Message):
         text: _builtins.str = ...,
         structured: Global___StructuredBlock | None = ...,
     ) -> None: ...
-    _HasFieldArgType: _TypeAlias = _typing.Literal[
-        "data",
-        b"data",
-        "structured",
-        b"structured",
-        "text",
-        b"text",
-    ]
+    _HasFieldArgType: _TypeAlias = _typing.Literal["data", b"data", "structured", b"structured", "text", b"text"]  # noqa: Y015
     def HasField(self, field_name: _HasFieldArgType) -> _builtins.bool: ...
-    _ClearFieldArgType: _TypeAlias = _typing.Literal[
-        "data",
-        b"data",
-        "structured",
-        b"structured",
-        "text",
-        b"text",
-    ]
+    _ClearFieldArgType: _TypeAlias = _typing.Literal["data", b"data", "structured", b"structured", "text", b"text"]  # noqa: Y015
     def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
-    _WhichOneofReturnType_data: _TypeAlias = _typing.Literal["text", "structured"]
-    _WhichOneofArgType_data: _TypeAlias = _typing.Literal["data", b"data"]
-    def WhichOneof(
-        self,
-        oneof_group: _WhichOneofArgType_data,
-    ) -> _WhichOneofReturnType_data | None: ...
+    _WhichOneofReturnType_data: _TypeAlias = _typing.Literal["text", "structured"]  # noqa: Y015
+    _WhichOneofArgType_data: _TypeAlias = _typing.Literal["data", b"data"]  # noqa: Y015
+    def WhichOneof(self, oneof_group: _WhichOneofArgType_data) -> _WhichOneofReturnType_data | None: ...
 
-Global___ContentBlock: _TypeAlias = ContentBlock
+Global___ContentBlock: _TypeAlias = ContentBlock  # noqa: Y015
 
 @_typing.final
 class StructuredBlock(_message.Message):
@@ -2662,46 +1947,20 @@ class StructuredBlock(_message.Message):
         type: _builtins.str | None = ...,
         data_json: _builtins.bytes = ...,
     ) -> None: ...
-    _HasFieldArgType: _TypeAlias = _typing.Literal[
-        "_index",
-        b"_index",
-        "_type",
-        b"_type",
-        "index",
-        b"index",
-        "type",
-        b"type",
-    ]
+    _HasFieldArgType: _TypeAlias = _typing.Literal["_index", b"_index", "_type", b"_type", "index", b"index", "type", b"type"]  # noqa: Y015
     def HasField(self, field_name: _HasFieldArgType) -> _builtins.bool: ...
-    _ClearFieldArgType: _TypeAlias = _typing.Literal[
-        "_index",
-        b"_index",
-        "_type",
-        b"_type",
-        "data_json",
-        b"data_json",
-        "index",
-        b"index",
-        "type",
-        b"type",
-    ]
+    _ClearFieldArgType: _TypeAlias = _typing.Literal["_index", b"_index", "_type", b"_type", "data_json", b"data_json", "index", b"index", "type", b"type"]  # noqa: Y015
     def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
-    _WhichOneofReturnType__index: _TypeAlias = _typing.Literal["index"]
-    _WhichOneofArgType__index: _TypeAlias = _typing.Literal["_index", b"_index"]
-    _WhichOneofReturnType__type: _TypeAlias = _typing.Literal["type"]
-    _WhichOneofArgType__type: _TypeAlias = _typing.Literal["_type", b"_type"]
+    _WhichOneofReturnType__index: _TypeAlias = _typing.Literal["index"]  # noqa: Y015
+    _WhichOneofArgType__index: _TypeAlias = _typing.Literal["_index", b"_index"]  # noqa: Y015
+    _WhichOneofReturnType__type: _TypeAlias = _typing.Literal["type"]  # noqa: Y015
+    _WhichOneofArgType__type: _TypeAlias = _typing.Literal["_type", b"_type"]  # noqa: Y015
     @_typing.overload
-    def WhichOneof(
-        self,
-        oneof_group: _WhichOneofArgType__index,
-    ) -> _WhichOneofReturnType__index | None: ...
+    def WhichOneof(self, oneof_group: _WhichOneofArgType__index) -> _WhichOneofReturnType__index | None: ...
     @_typing.overload
-    def WhichOneof(
-        self,
-        oneof_group: _WhichOneofArgType__type,
-    ) -> _WhichOneofReturnType__type | None: ...
+    def WhichOneof(self, oneof_group: _WhichOneofArgType__type) -> _WhichOneofReturnType__type | None: ...
 
-Global___StructuredBlock: _TypeAlias = StructuredBlock
+Global___StructuredBlock: _TypeAlias = StructuredBlock  # noqa: Y015
 
 @_typing.final
 class ChatMessage(_message.Message):
@@ -2721,9 +1980,9 @@ class ChatMessage(_message.Message):
             key: _builtins.str = ...,
             value: _builtins.bytes = ...,
         ) -> None: ...
-        _HasFieldArgType: _TypeAlias = _Never
+        _HasFieldArgType: _TypeAlias = _Never  # noqa: Y015
         def HasField(self, field_name: _HasFieldArgType) -> _builtins.bool: ...
-        _ClearFieldArgType: _TypeAlias = _typing.Literal["key", b"key", "value", b"value"]
+        _ClearFieldArgType: _TypeAlias = _typing.Literal["key", b"key", "value", b"value"]  # noqa: Y015
         def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
         def WhichOneof(self, oneof_group: _Never) -> None: ...
 
@@ -2741,9 +2000,9 @@ class ChatMessage(_message.Message):
             key: _builtins.str = ...,
             value: _builtins.bytes = ...,
         ) -> None: ...
-        _HasFieldArgType: _TypeAlias = _Never
+        _HasFieldArgType: _TypeAlias = _Never  # noqa: Y015
         def HasField(self, field_name: _HasFieldArgType) -> _builtins.bool: ...
-        _ClearFieldArgType: _TypeAlias = _typing.Literal["key", b"key", "value", b"value"]
+        _ClearFieldArgType: _TypeAlias = _typing.Literal["key", b"key", "value", b"value"]  # noqa: Y015
         def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
         def WhichOneof(self, oneof_group: _Never) -> None: ...
 
@@ -2788,50 +2047,15 @@ class ChatMessage(_message.Message):
         human: Global___HumanFields | None = ...,
         extensions: _abc.Mapping[_builtins.str, _builtins.bytes] | None = ...,
     ) -> None: ...
-    _HasFieldArgType: _TypeAlias = _typing.Literal[
-        "ai",
-        b"ai",
-        "content",
-        b"content",
-        "details",
-        b"details",
-        "human",
-        b"human",
-        "tool",
-        b"tool",
-    ]
+    _HasFieldArgType: _TypeAlias = _typing.Literal["ai", b"ai", "content", b"content", "details", b"details", "human", b"human", "tool", b"tool"]  # noqa: Y015
     def HasField(self, field_name: _HasFieldArgType) -> _builtins.bool: ...
-    _ClearFieldArgType: _TypeAlias = _typing.Literal[
-        "additional_kwargs",
-        b"additional_kwargs",
-        "ai",
-        b"ai",
-        "content",
-        b"content",
-        "details",
-        b"details",
-        "extensions",
-        b"extensions",
-        "human",
-        b"human",
-        "id",
-        b"id",
-        "name",
-        b"name",
-        "tool",
-        b"tool",
-        "type",
-        b"type",
-    ]
+    _ClearFieldArgType: _TypeAlias = _typing.Literal["additional_kwargs", b"additional_kwargs", "ai", b"ai", "content", b"content", "details", b"details", "extensions", b"extensions", "human", b"human", "id", b"id", "name", b"name", "tool", b"tool", "type", b"type"]  # noqa: Y015
     def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
-    _WhichOneofReturnType_details: _TypeAlias = _typing.Literal["ai", "tool", "human"]
-    _WhichOneofArgType_details: _TypeAlias = _typing.Literal["details", b"details"]
-    def WhichOneof(
-        self,
-        oneof_group: _WhichOneofArgType_details,
-    ) -> _WhichOneofReturnType_details | None: ...
+    _WhichOneofReturnType_details: _TypeAlias = _typing.Literal["ai", "tool", "human"]  # noqa: Y015
+    _WhichOneofArgType_details: _TypeAlias = _typing.Literal["details", b"details"]  # noqa: Y015
+    def WhichOneof(self, oneof_group: _WhichOneofArgType_details) -> _WhichOneofReturnType_details | None: ...
 
-Global___ChatMessage: _TypeAlias = ChatMessage
+Global___ChatMessage: _TypeAlias = ChatMessage  # noqa: Y015
 
 @_typing.final
 class ChatMessageEnvelope(_message.Message):
@@ -2858,52 +2082,20 @@ class ChatMessageEnvelope(_message.Message):
         metadata: _builtins.bytes | None = ...,
         node_name: _builtins.str | None = ...,
     ) -> None: ...
-    _HasFieldArgType: _TypeAlias = _typing.Literal[
-        "_metadata",
-        b"_metadata",
-        "_node_name",
-        b"_node_name",
-        "message",
-        b"message",
-        "metadata",
-        b"metadata",
-        "node_name",
-        b"node_name",
-    ]
+    _HasFieldArgType: _TypeAlias = _typing.Literal["_metadata", b"_metadata", "_node_name", b"_node_name", "message", b"message", "metadata", b"metadata", "node_name", b"node_name"]  # noqa: Y015
     def HasField(self, field_name: _HasFieldArgType) -> _builtins.bool: ...
-    _ClearFieldArgType: _TypeAlias = _typing.Literal[
-        "_metadata",
-        b"_metadata",
-        "_node_name",
-        b"_node_name",
-        "is_streaming_chunk",
-        b"is_streaming_chunk",
-        "message",
-        b"message",
-        "metadata",
-        b"metadata",
-        "namespace",
-        b"namespace",
-        "node_name",
-        b"node_name",
-    ]
+    _ClearFieldArgType: _TypeAlias = _typing.Literal["_metadata", b"_metadata", "_node_name", b"_node_name", "is_streaming_chunk", b"is_streaming_chunk", "message", b"message", "metadata", b"metadata", "namespace", b"namespace", "node_name", b"node_name"]  # noqa: Y015
     def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
-    _WhichOneofReturnType__metadata: _TypeAlias = _typing.Literal["metadata"]
-    _WhichOneofArgType__metadata: _TypeAlias = _typing.Literal["_metadata", b"_metadata"]
-    _WhichOneofReturnType__node_name: _TypeAlias = _typing.Literal["node_name"]
-    _WhichOneofArgType__node_name: _TypeAlias = _typing.Literal["_node_name", b"_node_name"]
+    _WhichOneofReturnType__metadata: _TypeAlias = _typing.Literal["metadata"]  # noqa: Y015
+    _WhichOneofArgType__metadata: _TypeAlias = _typing.Literal["_metadata", b"_metadata"]  # noqa: Y015
+    _WhichOneofReturnType__node_name: _TypeAlias = _typing.Literal["node_name"]  # noqa: Y015
+    _WhichOneofArgType__node_name: _TypeAlias = _typing.Literal["_node_name", b"_node_name"]  # noqa: Y015
     @_typing.overload
-    def WhichOneof(
-        self,
-        oneof_group: _WhichOneofArgType__metadata,
-    ) -> _WhichOneofReturnType__metadata | None: ...
+    def WhichOneof(self, oneof_group: _WhichOneofArgType__metadata) -> _WhichOneofReturnType__metadata | None: ...
     @_typing.overload
-    def WhichOneof(
-        self,
-        oneof_group: _WhichOneofArgType__node_name,
-    ) -> _WhichOneofReturnType__node_name | None: ...
+    def WhichOneof(self, oneof_group: _WhichOneofArgType__node_name) -> _WhichOneofReturnType__node_name | None: ...
 
-Global___ChatMessageEnvelope: _TypeAlias = ChatMessageEnvelope
+Global___ChatMessageEnvelope: _TypeAlias = ChatMessageEnvelope  # noqa: Y015
 
 @_typing.final
 class StateSnapshot(_message.Message):
@@ -2945,74 +2137,24 @@ class StateSnapshot(_message.Message):
         tasks: _abc.Iterable[Global___PregelTaskSnapshot] | None = ...,
         interrupts: _abc.Iterable[Global___Interrupt] | None = ...,
     ) -> None: ...
-    _HasFieldArgType: _TypeAlias = _typing.Literal[
-        "_created_at",
-        b"_created_at",
-        "_metadata",
-        b"_metadata",
-        "_parent_config",
-        b"_parent_config",
-        "config",
-        b"config",
-        "created_at",
-        b"created_at",
-        "metadata",
-        b"metadata",
-        "parent_config",
-        b"parent_config",
-    ]
+    _HasFieldArgType: _TypeAlias = _typing.Literal["_created_at", b"_created_at", "_metadata", b"_metadata", "_parent_config", b"_parent_config", "config", b"config", "created_at", b"created_at", "metadata", b"metadata", "parent_config", b"parent_config"]  # noqa: Y015
     def HasField(self, field_name: _HasFieldArgType) -> _builtins.bool: ...
-    _ClearFieldArgType: _TypeAlias = _typing.Literal[
-        "_created_at",
-        b"_created_at",
-        "_metadata",
-        b"_metadata",
-        "_parent_config",
-        b"_parent_config",
-        "config",
-        b"config",
-        "created_at",
-        b"created_at",
-        "interrupts",
-        b"interrupts",
-        "metadata",
-        b"metadata",
-        "next",
-        b"next",
-        "parent_config",
-        b"parent_config",
-        "tasks",
-        b"tasks",
-        "values_json",
-        b"values_json",
-    ]
+    _ClearFieldArgType: _TypeAlias = _typing.Literal["_created_at", b"_created_at", "_metadata", b"_metadata", "_parent_config", b"_parent_config", "config", b"config", "created_at", b"created_at", "interrupts", b"interrupts", "metadata", b"metadata", "next", b"next", "parent_config", b"parent_config", "tasks", b"tasks", "values_json", b"values_json"]  # noqa: Y015
     def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
-    _WhichOneofReturnType__created_at: _TypeAlias = _typing.Literal["created_at"]
-    _WhichOneofArgType__created_at: _TypeAlias = _typing.Literal["_created_at", b"_created_at"]
-    _WhichOneofReturnType__metadata: _TypeAlias = _typing.Literal["metadata"]
-    _WhichOneofArgType__metadata: _TypeAlias = _typing.Literal["_metadata", b"_metadata"]
-    _WhichOneofReturnType__parent_config: _TypeAlias = _typing.Literal["parent_config"]
-    _WhichOneofArgType__parent_config: _TypeAlias = _typing.Literal[
-        "_parent_config",
-        b"_parent_config",
-    ]
+    _WhichOneofReturnType__created_at: _TypeAlias = _typing.Literal["created_at"]  # noqa: Y015
+    _WhichOneofArgType__created_at: _TypeAlias = _typing.Literal["_created_at", b"_created_at"]  # noqa: Y015
+    _WhichOneofReturnType__metadata: _TypeAlias = _typing.Literal["metadata"]  # noqa: Y015
+    _WhichOneofArgType__metadata: _TypeAlias = _typing.Literal["_metadata", b"_metadata"]  # noqa: Y015
+    _WhichOneofReturnType__parent_config: _TypeAlias = _typing.Literal["parent_config"]  # noqa: Y015
+    _WhichOneofArgType__parent_config: _TypeAlias = _typing.Literal["_parent_config", b"_parent_config"]  # noqa: Y015
     @_typing.overload
-    def WhichOneof(
-        self,
-        oneof_group: _WhichOneofArgType__created_at,
-    ) -> _WhichOneofReturnType__created_at | None: ...
+    def WhichOneof(self, oneof_group: _WhichOneofArgType__created_at) -> _WhichOneofReturnType__created_at | None: ...
     @_typing.overload
-    def WhichOneof(
-        self,
-        oneof_group: _WhichOneofArgType__metadata,
-    ) -> _WhichOneofReturnType__metadata | None: ...
+    def WhichOneof(self, oneof_group: _WhichOneofArgType__metadata) -> _WhichOneofReturnType__metadata | None: ...
     @_typing.overload
-    def WhichOneof(
-        self,
-        oneof_group: _WhichOneofArgType__parent_config,
-    ) -> _WhichOneofReturnType__parent_config | None: ...
+    def WhichOneof(self, oneof_group: _WhichOneofArgType__parent_config) -> _WhichOneofReturnType__parent_config | None: ...
 
-Global___StateSnapshot: _TypeAlias = StateSnapshot
+Global___StateSnapshot: _TypeAlias = StateSnapshot  # noqa: Y015
 
 @_typing.final
 class StateUpdate(_message.Message):
@@ -3032,48 +2174,20 @@ class StateUpdate(_message.Message):
         as_node: _builtins.str | None = ...,
         task_id: _builtins.str | None = ...,
     ) -> None: ...
-    _HasFieldArgType: _TypeAlias = _typing.Literal[
-        "_as_node",
-        b"_as_node",
-        "_task_id",
-        b"_task_id",
-        "as_node",
-        b"as_node",
-        "task_id",
-        b"task_id",
-        "values",
-        b"values",
-    ]
+    _HasFieldArgType: _TypeAlias = _typing.Literal["_as_node", b"_as_node", "_task_id", b"_task_id", "as_node", b"as_node", "task_id", b"task_id", "values", b"values"]  # noqa: Y015
     def HasField(self, field_name: _HasFieldArgType) -> _builtins.bool: ...
-    _ClearFieldArgType: _TypeAlias = _typing.Literal[
-        "_as_node",
-        b"_as_node",
-        "_task_id",
-        b"_task_id",
-        "as_node",
-        b"as_node",
-        "task_id",
-        b"task_id",
-        "values",
-        b"values",
-    ]
+    _ClearFieldArgType: _TypeAlias = _typing.Literal["_as_node", b"_as_node", "_task_id", b"_task_id", "as_node", b"as_node", "task_id", b"task_id", "values", b"values"]  # noqa: Y015
     def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
-    _WhichOneofReturnType__as_node: _TypeAlias = _typing.Literal["as_node"]
-    _WhichOneofArgType__as_node: _TypeAlias = _typing.Literal["_as_node", b"_as_node"]
-    _WhichOneofReturnType__task_id: _TypeAlias = _typing.Literal["task_id"]
-    _WhichOneofArgType__task_id: _TypeAlias = _typing.Literal["_task_id", b"_task_id"]
+    _WhichOneofReturnType__as_node: _TypeAlias = _typing.Literal["as_node"]  # noqa: Y015
+    _WhichOneofArgType__as_node: _TypeAlias = _typing.Literal["_as_node", b"_as_node"]  # noqa: Y015
+    _WhichOneofReturnType__task_id: _TypeAlias = _typing.Literal["task_id"]  # noqa: Y015
+    _WhichOneofArgType__task_id: _TypeAlias = _typing.Literal["_task_id", b"_task_id"]  # noqa: Y015
     @_typing.overload
-    def WhichOneof(
-        self,
-        oneof_group: _WhichOneofArgType__as_node,
-    ) -> _WhichOneofReturnType__as_node | None: ...
+    def WhichOneof(self, oneof_group: _WhichOneofArgType__as_node) -> _WhichOneofReturnType__as_node | None: ...
     @_typing.overload
-    def WhichOneof(
-        self,
-        oneof_group: _WhichOneofArgType__task_id,
-    ) -> _WhichOneofReturnType__task_id | None: ...
+    def WhichOneof(self, oneof_group: _WhichOneofArgType__task_id) -> _WhichOneofReturnType__task_id | None: ...
 
-Global___StateUpdate: _TypeAlias = StateUpdate
+Global___StateUpdate: _TypeAlias = StateUpdate  # noqa: Y015
 
 @_typing.final
 class SuperstepUpdates(_message.Message):
@@ -3087,13 +2201,13 @@ class SuperstepUpdates(_message.Message):
         *,
         updates: _abc.Iterable[Global___StateUpdate] | None = ...,
     ) -> None: ...
-    _HasFieldArgType: _TypeAlias = _Never
+    _HasFieldArgType: _TypeAlias = _Never  # noqa: Y015
     def HasField(self, field_name: _HasFieldArgType) -> _builtins.bool: ...
-    _ClearFieldArgType: _TypeAlias = _typing.Literal["updates", b"updates"]
+    _ClearFieldArgType: _TypeAlias = _typing.Literal["updates", b"updates"]  # noqa: Y015
     def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
     def WhichOneof(self, oneof_group: _Never) -> None: ...
 
-Global___SuperstepUpdates: _TypeAlias = SuperstepUpdates
+Global___SuperstepUpdates: _TypeAlias = SuperstepUpdates  # noqa: Y015
 
 @_typing.final
 class StringOrSlice(_message.Message):
@@ -3110,13 +2224,13 @@ class StringOrSlice(_message.Message):
         values: _abc.Iterable[_builtins.str] | None = ...,
         is_string: _builtins.bool = ...,
     ) -> None: ...
-    _HasFieldArgType: _TypeAlias = _Never
+    _HasFieldArgType: _TypeAlias = _Never  # noqa: Y015
     def HasField(self, field_name: _HasFieldArgType) -> _builtins.bool: ...
-    _ClearFieldArgType: _TypeAlias = _typing.Literal["is_string", b"is_string", "values", b"values"]
+    _ClearFieldArgType: _TypeAlias = _typing.Literal["is_string", b"is_string", "values", b"values"]  # noqa: Y015
     def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
     def WhichOneof(self, oneof_group: _Never) -> None: ...
 
-Global___StringOrSlice: _TypeAlias = StringOrSlice
+Global___StringOrSlice: _TypeAlias = StringOrSlice  # noqa: Y015
 
 @_typing.final
 class PathSegment(_message.Message):
@@ -3168,40 +2282,15 @@ class PathSegment(_message.Message):
         int_value: _builtins.int = ...,
         bool_value: _builtins.bool = ...,
     ) -> None: ...
-    _HasFieldArgType: _TypeAlias = _typing.Literal[
-        "bool_value",
-        b"bool_value",
-        "int_value",
-        b"int_value",
-        "string_value",
-        b"string_value",
-        "value",
-        b"value",
-    ]
+    _HasFieldArgType: _TypeAlias = _typing.Literal["bool_value", b"bool_value", "int_value", b"int_value", "string_value", b"string_value", "value", b"value"]  # noqa: Y015
     def HasField(self, field_name: _HasFieldArgType) -> _builtins.bool: ...
-    _ClearFieldArgType: _TypeAlias = _typing.Literal[
-        "bool_value",
-        b"bool_value",
-        "int_value",
-        b"int_value",
-        "string_value",
-        b"string_value",
-        "value",
-        b"value",
-    ]
+    _ClearFieldArgType: _TypeAlias = _typing.Literal["bool_value", b"bool_value", "int_value", b"int_value", "string_value", b"string_value", "value", b"value"]  # noqa: Y015
     def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
-    _WhichOneofReturnType_value: _TypeAlias = _typing.Literal[
-        "string_value",
-        "int_value",
-        "bool_value",
-    ]
-    _WhichOneofArgType_value: _TypeAlias = _typing.Literal["value", b"value"]
-    def WhichOneof(
-        self,
-        oneof_group: _WhichOneofArgType_value,
-    ) -> _WhichOneofReturnType_value | None: ...
+    _WhichOneofReturnType_value: _TypeAlias = _typing.Literal["string_value", "int_value", "bool_value"]  # noqa: Y015
+    _WhichOneofArgType_value: _TypeAlias = _typing.Literal["value", b"value"]  # noqa: Y015
+    def WhichOneof(self, oneof_group: _WhichOneofArgType_value) -> _WhichOneofReturnType_value | None: ...
 
-Global___PathSegment: _TypeAlias = PathSegment
+Global___PathSegment: _TypeAlias = PathSegment  # noqa: Y015
 
 @_typing.final
 class StaticInterruptConfig(_message.Message):
@@ -3228,9 +2317,9 @@ class StaticInterruptConfig(_message.Message):
             *,
             names: _abc.Iterable[_builtins.str] | None = ...,
         ) -> None: ...
-        _HasFieldArgType: _TypeAlias = _Never
+        _HasFieldArgType: _TypeAlias = _Never  # noqa: Y015
         def HasField(self, field_name: _HasFieldArgType) -> _builtins.bool: ...
-        _ClearFieldArgType: _TypeAlias = _typing.Literal["names", b"names"]
+        _ClearFieldArgType: _TypeAlias = _typing.Literal["names", b"names"]  # noqa: Y015
         def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
         def WhichOneof(self, oneof_group: _Never) -> None: ...
 
@@ -3245,29 +2334,12 @@ class StaticInterruptConfig(_message.Message):
         all: _builtins.bool = ...,
         node_names: Global___StaticInterruptConfig.NodeNames | None = ...,
     ) -> None: ...
-    _HasFieldArgType: _TypeAlias = _typing.Literal[
-        "all",
-        b"all",
-        "config",
-        b"config",
-        "node_names",
-        b"node_names",
-    ]
+    _HasFieldArgType: _TypeAlias = _typing.Literal["all", b"all", "config", b"config", "node_names", b"node_names"]  # noqa: Y015
     def HasField(self, field_name: _HasFieldArgType) -> _builtins.bool: ...
-    _ClearFieldArgType: _TypeAlias = _typing.Literal[
-        "all",
-        b"all",
-        "config",
-        b"config",
-        "node_names",
-        b"node_names",
-    ]
+    _ClearFieldArgType: _TypeAlias = _typing.Literal["all", b"all", "config", b"config", "node_names", b"node_names"]  # noqa: Y015
     def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
-    _WhichOneofReturnType_config: _TypeAlias = _typing.Literal["all", "node_names"]
-    _WhichOneofArgType_config: _TypeAlias = _typing.Literal["config", b"config"]
-    def WhichOneof(
-        self,
-        oneof_group: _WhichOneofArgType_config,
-    ) -> _WhichOneofReturnType_config | None: ...
+    _WhichOneofReturnType_config: _TypeAlias = _typing.Literal["all", "node_names"]  # noqa: Y015
+    _WhichOneofArgType_config: _TypeAlias = _typing.Literal["config", b"config"]  # noqa: Y015
+    def WhichOneof(self, oneof_group: _WhichOneofArgType_config) -> _WhichOneofReturnType_config | None: ...
 
-Global___StaticInterruptConfig: _TypeAlias = StaticInterruptConfig
+Global___StaticInterruptConfig: _TypeAlias = StaticInterruptConfig  # noqa: Y015

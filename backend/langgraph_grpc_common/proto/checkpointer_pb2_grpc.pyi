@@ -3,16 +3,14 @@
 isort:skip_file
 """
 
-import abc as _abc_1
-import sys
-import typing as _typing
 from collections import abc as _abc
-
-import grpc as _grpc
 from google.protobuf import empty_pb2 as _empty_pb2
 from grpc import aio as _aio
-
+import abc as _abc_1
 from . import checkpointer_pb2 as _checkpointer_pb2
+import grpc as _grpc
+import sys
+import typing as _typing
 
 if sys.version_info >= (3, 11):
     from typing import Self as _Self
@@ -22,6 +20,7 @@ else:
 _T = _typing.TypeVar("_T")
 
 class _MaybeAsyncIterator(_abc.AsyncIterator[_T], _abc.Iterator[_T], metaclass=_abc_1.ABCMeta): ...
+
 class _ServicerContext(_grpc.ServicerContext, _aio.ServicerContext):  # type: ignore[misc, type-arg]
     ...
 
@@ -46,25 +45,13 @@ class CheckpointerStub:
     """PutWrites stores intermediate writes linked to a checkpoint (pending writes)."""
     GetCapabilities: _grpc.UnaryUnaryMultiCallable[_empty_pb2.Empty, _checkpointer_pb2.Capabilities]
     """GetCapabilities returns supported operations and batching limits."""
-    List: _grpc.UnaryUnaryMultiCallable[
-        _checkpointer_pb2.ListRequest,
-        _checkpointer_pb2.ListResponse,
-    ]
+    List: _grpc.UnaryUnaryMultiCallable[_checkpointer_pb2.ListRequest, _checkpointer_pb2.ListResponse]
     """List returns checkpoints that match a given configuration and filter criteria."""
-    GetTuple: _grpc.UnaryUnaryMultiCallable[
-        _checkpointer_pb2.GetTupleRequest,
-        _checkpointer_pb2.GetTupleResponse,
-    ]
+    GetTuple: _grpc.UnaryUnaryMultiCallable[_checkpointer_pb2.GetTupleRequest, _checkpointer_pb2.GetTupleResponse]
     """GetTuple fetches a checkpoint tuple for a given configuration (thread_id and checkpoint_id)."""
-    DeleteThread: _grpc.UnaryUnaryMultiCallable[
-        _checkpointer_pb2.DeleteThreadRequest,
-        _empty_pb2.Empty,
-    ]
+    DeleteThread: _grpc.UnaryUnaryMultiCallable[_checkpointer_pb2.DeleteThreadRequest, _empty_pb2.Empty]
     """DeleteThread deletes all checkpoints and writes for a thread."""
-    DeleteForRuns: _grpc.UnaryUnaryMultiCallable[
-        _checkpointer_pb2.DeleteForRunsRequest,
-        _empty_pb2.Empty,
-    ]
+    DeleteForRuns: _grpc.UnaryUnaryMultiCallable[_checkpointer_pb2.DeleteForRunsRequest, _empty_pb2.Empty]
     """DeleteForRuns deletes all checkpoints and writes for a set of runs.
     This is used for **rollbacks** (either from run cancellation or multitasking).
     """
@@ -89,25 +76,13 @@ class CheckpointerAsyncStub(CheckpointerStub):
     """PutWrites stores intermediate writes linked to a checkpoint (pending writes)."""
     GetCapabilities: _aio.UnaryUnaryMultiCallable[_empty_pb2.Empty, _checkpointer_pb2.Capabilities]  # type: ignore[assignment]
     """GetCapabilities returns supported operations and batching limits."""
-    List: _aio.UnaryUnaryMultiCallable[
-        _checkpointer_pb2.ListRequest,
-        _checkpointer_pb2.ListResponse,
-    ]  # type: ignore[assignment]
+    List: _aio.UnaryUnaryMultiCallable[_checkpointer_pb2.ListRequest, _checkpointer_pb2.ListResponse]  # type: ignore[assignment]
     """List returns checkpoints that match a given configuration and filter criteria."""
-    GetTuple: _aio.UnaryUnaryMultiCallable[
-        _checkpointer_pb2.GetTupleRequest,
-        _checkpointer_pb2.GetTupleResponse,
-    ]  # type: ignore[assignment]
+    GetTuple: _aio.UnaryUnaryMultiCallable[_checkpointer_pb2.GetTupleRequest, _checkpointer_pb2.GetTupleResponse]  # type: ignore[assignment]
     """GetTuple fetches a checkpoint tuple for a given configuration (thread_id and checkpoint_id)."""
-    DeleteThread: _aio.UnaryUnaryMultiCallable[
-        _checkpointer_pb2.DeleteThreadRequest,
-        _empty_pb2.Empty,
-    ]  # type: ignore[assignment]
+    DeleteThread: _aio.UnaryUnaryMultiCallable[_checkpointer_pb2.DeleteThreadRequest, _empty_pb2.Empty]  # type: ignore[assignment]
     """DeleteThread deletes all checkpoints and writes for a thread."""
-    DeleteForRuns: _aio.UnaryUnaryMultiCallable[
-        _checkpointer_pb2.DeleteForRunsRequest,
-        _empty_pb2.Empty,
-    ]  # type: ignore[assignment]
+    DeleteForRuns: _aio.UnaryUnaryMultiCallable[_checkpointer_pb2.DeleteForRunsRequest, _empty_pb2.Empty]  # type: ignore[assignment]
     """DeleteForRuns deletes all checkpoints and writes for a set of runs.
     This is used for **rollbacks** (either from run cancellation or multitasking).
     """
@@ -127,10 +102,7 @@ class CheckpointerServicer(metaclass=_abc_1.ABCMeta):
         self,
         request: _checkpointer_pb2.PutRequest,
         context: _ServicerContext,
-    ) -> _typing.Union[
-        _checkpointer_pb2.PutResponse,
-        _abc.Awaitable[_checkpointer_pb2.PutResponse],
-    ]:
+    ) -> _typing.Union[_checkpointer_pb2.PutResponse, _abc.Awaitable[_checkpointer_pb2.PutResponse]]:
         """Put stores a checkpoint with its configuration and metadata.
         Returns the next config pointing at the saved checkpoint ID.
         """
@@ -148,10 +120,7 @@ class CheckpointerServicer(metaclass=_abc_1.ABCMeta):
         self,
         request: _empty_pb2.Empty,
         context: _ServicerContext,
-    ) -> _typing.Union[
-        _checkpointer_pb2.Capabilities,
-        _abc.Awaitable[_checkpointer_pb2.Capabilities],
-    ]:
+    ) -> _typing.Union[_checkpointer_pb2.Capabilities, _abc.Awaitable[_checkpointer_pb2.Capabilities]]:
         """GetCapabilities returns supported operations and batching limits."""
 
     @_abc_1.abstractmethod
@@ -159,10 +128,7 @@ class CheckpointerServicer(metaclass=_abc_1.ABCMeta):
         self,
         request: _checkpointer_pb2.ListRequest,
         context: _ServicerContext,
-    ) -> _typing.Union[
-        _checkpointer_pb2.ListResponse,
-        _abc.Awaitable[_checkpointer_pb2.ListResponse],
-    ]:
+    ) -> _typing.Union[_checkpointer_pb2.ListResponse, _abc.Awaitable[_checkpointer_pb2.ListResponse]]:
         """List returns checkpoints that match a given configuration and filter criteria."""
 
     @_abc_1.abstractmethod
@@ -170,10 +136,7 @@ class CheckpointerServicer(metaclass=_abc_1.ABCMeta):
         self,
         request: _checkpointer_pb2.GetTupleRequest,
         context: _ServicerContext,
-    ) -> _typing.Union[
-        _checkpointer_pb2.GetTupleResponse,
-        _abc.Awaitable[_checkpointer_pb2.GetTupleResponse],
-    ]:
+    ) -> _typing.Union[_checkpointer_pb2.GetTupleResponse, _abc.Awaitable[_checkpointer_pb2.GetTupleResponse]]:
         """GetTuple fetches a checkpoint tuple for a given configuration (thread_id and checkpoint_id)."""
 
     @_abc_1.abstractmethod
@@ -210,7 +173,4 @@ class CheckpointerServicer(metaclass=_abc_1.ABCMeta):
     ) -> _typing.Union[_empty_pb2.Empty, _abc.Awaitable[_empty_pb2.Empty]]:
         """Prune deletes checkpoints and related data for a set of threads."""
 
-def add_CheckpointerServicer_to_server(
-    servicer: CheckpointerServicer,
-    server: _typing.Union[_grpc.Server, _aio.Server],
-) -> None: ...
+def add_CheckpointerServicer_to_server(servicer: CheckpointerServicer, server: _typing.Union[_grpc.Server, _aio.Server]) -> None: ...

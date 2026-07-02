@@ -3,12 +3,11 @@
 isort:skip_file
 """
 
+from google.protobuf import descriptor as _descriptor
+from google.protobuf.internal import enum_type_wrapper as _enum_type_wrapper
 import builtins as _builtins
 import sys
 import typing as _typing
-
-from google.protobuf import descriptor as _descriptor
-from google.protobuf.internal import enum_type_wrapper as _enum_type_wrapper
 
 if sys.version_info >= (3, 10):
     from typing import TypeAlias as _TypeAlias
@@ -19,12 +18,9 @@ DESCRIPTOR: _descriptor.FileDescriptor
 
 class _ThreadStreamMode:
     ValueType = _typing.NewType("ValueType", _builtins.int)
-    V: _TypeAlias = ValueType
+    V: _TypeAlias = ValueType  # noqa: Y015
 
-class _ThreadStreamModeEnumTypeWrapper(
-    _enum_type_wrapper._EnumTypeWrapper[_ThreadStreamMode.ValueType],
-    _builtins.type,
-):
+class _ThreadStreamModeEnumTypeWrapper(_enum_type_wrapper._EnumTypeWrapper[_ThreadStreamMode.ValueType], _builtins.type):
     DESCRIPTOR: _descriptor.EnumDescriptor
     unknown: _ThreadStreamMode.ValueType  # 0
     lifecycle: _ThreadStreamMode.ValueType  # 1
@@ -37,4 +33,4 @@ unknown: ThreadStreamMode.ValueType  # 0
 lifecycle: ThreadStreamMode.ValueType  # 1
 run_modes: ThreadStreamMode.ValueType  # 2
 state_update: ThreadStreamMode.ValueType  # 3
-Global___ThreadStreamMode: _TypeAlias = ThreadStreamMode
+Global___ThreadStreamMode: _TypeAlias = ThreadStreamMode  # noqa: Y015
