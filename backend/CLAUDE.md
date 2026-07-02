@@ -27,6 +27,16 @@ Python 3.13 backend. Built on LangChain / LangGraph / DeepAgents for the career-
 
 Suppress one line at a time. Don't blanket-disable a rule in `pyproject.toml` to make a single error go away.
 
+## Vendored server code
+
+`langgraph_api/`, `langgraph_runtime/`, `langgraph_runtime_postgres/`, `langgraph_grpc_common/`, and `core_server/` are a **vendored reimplementation of langgraph-api 0.10.0** — the server that runs the agents. Provenance, topology, and the upgrade path live in [`ARCHITECTURE.md`](ARCHITECTURE.md). House rules:
+
+- **Treat it like upstream code**: fix bugs surgically, don't refactor casually — every gratuitous edit makes future re-vendoring diffs harder. Record deliberate deviations in `ARCHITECTURE.md` §2.
+- **Relaxed quality gates by design**: a scoped `per-file-ignores` block in `pyproject.toml` turns off the stylistic rule families upstream never satisfied; ty excludes these dirs (`[tool.ty.src]`). `agents/` and `tests/` keep the full strict bar — don't let vendored leniency leak there.
+- **`langgraph_grpc_common/proto/` is generated** — never hand-edit, lint, or format it (excluded in both ruff config and the pre-commit hooks). Regenerate only with `grpcio-tools==1.80.0`.
+- **Import gotcha**: `langgraph_api.config` requires `REDIS_URI` (and `DATABASE_URI`/`POSTGRES_URI`) at import time — any script or test importing server modules needs those env vars set, even if unused.
+- **No mirrored unit tests** for these dirs — the correctness bar is the e2e contract (`tests/server/test_smoke.py` integration tests + the frontend round-trip), not upstream internals.
+
 ## Testing
 
 > **Current phase: unit tests + integration tests against the local DB.** LLM evals are deferred (slow + costly). When you create or modify code, write or update **unit tests** by default, and add **integration tests** when the code's value lives in real DB/Redis/HTTP behavior (e.g., pgvector queries, transaction semantics, connection pooling). Do **not** create `@pytest.mark.eval` tests — that marker exists for future use only.
@@ -59,7 +69,7 @@ Suppress one line at a time. Don't blanket-disable a rule in `pyproject.toml` to
 ## Local database
 
 - **Postgres 18 + pgvector** via `docker compose up postgres`. Connection: `POSTGRES_URI` in `.env`; local port is `${POSTGRES_LOCAL_PORT}` (default `5449`). Driver is `psycopg` (psycopg3).
-- **Schema is owned by `langchain/langgraph-api:3.13`** (the backend's base image). It runs its own migrations on container startup — don't write or expect Alembic/SQLModel migrations of your own. `backend/init.sql` only enables the `vector` extension at first volume creation.
+- **Schema is owned by `backend/storage/migrations/`** (vendored, versioned SQL), applied by the backend at container startup under a Redis lock — don't write or expect Alembic/SQLModel migrations of your own. `backend/init.sql` only enables the `vector` extension at first volume creation.
 - **To understand the schema, query the live DB** via the `next-role-postgres` MCP (`@bytebase/dbhub`). Default schema is `public`. Prefer it over reading source: list tables → describe the ones relevant to the task. Don't shell into `psql`.
 
 ## Library docs
