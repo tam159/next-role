@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "incremental": false,
+  "disable_existing_loggers": false,
+  "formatters": {
+    "simple": {
+      "class": "langgraph_api.logging.Formatter"
+    }
+  },
+  "handlers": {
+    "console": {
+      "class": "logging.StreamHandler",
+      "formatter": "simple",
+      "stream": "ext://sys.stdout"
+    }
+  },
+  "root": {
+    "handlers": ["console"]
+  }
+}

@@ -1,0 +1,1 @@
+DROP INDEX CONCURRENTLY IF EXISTS run_running_one_per_thread;
