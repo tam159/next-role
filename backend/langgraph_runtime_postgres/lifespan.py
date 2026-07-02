@@ -7,13 +7,9 @@ from contextlib import asynccontextmanager
 import structlog
 from langchain_core.runnables.config import RunnableConfig, var_child_runnable_config
 from langgraph.constants import CONF
-from langgraph_api.config import BG_JOB_SHUTDOWN_GRACE_PERIOD_SECS
-from langgraph_license.validation import (
-    check_license_periodically,
-    get_license_status,
-)
 from starlette.applications import Starlette
 
+from langgraph_api.config import BG_JOB_SHUTDOWN_GRACE_PERIOD_SECS
 from langgraph_runtime_postgres import (
     checkpoint,
     database,
@@ -39,7 +35,7 @@ async def lifespan(
     with_cron_scheduler: bool = True,
     taskset: set[asyncio.Task] | None = None,
 ):
-    from langgraph_api import (  # noqa: PLC0415
+    from langgraph_api import (
         __version__,
         config,
         cron_scheduler,
@@ -48,14 +44,14 @@ async def lifespan(
         http,
         metadata,
     )
-    from langgraph_api import (  # noqa: PLC0415
+    from langgraph_api import (
         _checkpointer as api_checkpointer,
     )
-    from langgraph_api import (  # noqa: PLC0415
+    from langgraph_api import (
         asyncio as langgraph_asyncio,
     )
-    from langgraph_api import store as api_store  # noqa: PLC0415
-    from langgraph_api.js import (  # noqa: PLC0415
+    from langgraph_api import store as api_store
+    from langgraph_api.js import (
         ui,
     )
 
@@ -76,16 +72,11 @@ async def lifespan(
     await api_checkpointer.start_checkpointer()
     await checkpoint.start_checkpoint_ingestion_loop()
 
-    if not await get_license_status():
-        raise ValueError(
-            "License verification failed. Please ensure proper configuration:\n"
-            "- For local development, set a valid LANGSMITH_API_KEY for an account with LangGraph Cloud access in the environment defined in your langgraph.json file.\n"
-            "- For production, configure the LANGGRAPH_CLOUD_LICENSE_KEY environment variable with your LangGraph Cloud license key.\n"
-            "Review your configuration settings and try again. If issues persist, contact support for assistance."
-        )
+    # Upstream verified a LangGraph Cloud license here; NextRole is open source
+    # and ships no license machinery (the stub always returned True anyway).
 
     if config.LANGGRAPH_LOGS_ENABLED:
-        from langgraph_api import self_hosted_logs  # noqa: PLC0415
+        from langgraph_api import self_hosted_logs
 
         self_hosted_logs.initialize_self_hosted_logs()
 
@@ -95,27 +86,25 @@ async def lifespan(
     grpc_waits = []
 
     if config.PYTHON_GRPC_SERVER_ENABLED:
-        from langgraph_api.grpc.server import (  # noqa: PLC0415
+        from langgraph_api.grpc.server import (
             run_python_grpc_server,
             wait_until_python_grpc_ready,
         )
 
-        langgraph_asyncio.create_task(
-            run_python_grpc_server(port=config.PYTHON_GRPC_SERVER_PORT)
-        )
+        langgraph_asyncio.create_task(run_python_grpc_server(port=config.PYTHON_GRPC_SERVER_PORT))
         grpc_waits.append(wait_until_python_grpc_ready())
 
-    from langgraph_api.grpc.client import wait_until_grpc_ready  # noqa: PLC0415
+    from langgraph_api.grpc.client import wait_until_grpc_ready
 
     grpc_waits.append(wait_until_grpc_ready())
     await asyncio.gather(*grpc_waits)
 
     if config.LANGGRAPH_METRICS_ENABLED:
-        from langgraph_api import self_hosted_metrics  # noqa: PLC0415
+        from langgraph_api import self_hosted_metrics
 
         self_hosted_metrics.initialize_self_hosted_metrics()
     if config.DATADOG_METRICS_ENABLED:
-        from langgraph_api.metrics_datadog import (  # noqa: PLC0415
+        from langgraph_api.metrics_datadog import (
             COUNTER_SERVER_STARTED,
             get_datadog_metrics_reporter,
         )
@@ -145,7 +134,6 @@ async def lifespan(
             taskgroup_name="Lifespan",
         ) as tg:
             tg.create_task(metadata.metadata_loop())
-            tg.create_task(check_license_periodically())
             await api_store.collect_store_from_env()
             store_instance = await api_store.get_store()
             if not api_store.CUSTOM_STORE:
@@ -156,20 +144,18 @@ async def lifespan(
             tg.create_task(long_query_monitor.long_query_monitor_loop())
 
             if feature_flags.USE_RUNTIME_CONTEXT_API:
-                from langgraph._internal._constants import (  # noqa: PLC0415
+                from langgraph._internal._constants import (
                     CONFIG_KEY_RUNTIME,
                 )
-                from langgraph.runtime import Runtime  # noqa: PLC0415
+                from langgraph.runtime import Runtime
 
                 langgraph_config: RunnableConfig = {
-                    CONF: {CONFIG_KEY_RUNTIME: Runtime(store=store_instance)}
+                    CONF: {CONFIG_KEY_RUNTIME: Runtime(store=store_instance)},
                 }
             else:
-                from langgraph.constants import CONFIG_KEY_STORE  # noqa: PLC0415
+                from langgraph.constants import CONFIG_KEY_STORE
 
-                langgraph_config: RunnableConfig = {
-                    CONF: {CONFIG_KEY_STORE: store_instance}
-                }
+                langgraph_config: RunnableConfig = {CONF: {CONFIG_KEY_STORE: store_instance}}
 
             var_child_runnable_config.set(langgraph_config)
 
@@ -202,11 +188,11 @@ async def lifespan(
         await api_store.exit_store()
         await ui.stop_ui_bundler()
         if config.LANGGRAPH_METRICS_ENABLED:
-            from langgraph_api import self_hosted_metrics  # noqa: PLC0415
+            from langgraph_api import self_hosted_metrics
 
             self_hosted_metrics.shutdown_self_hosted_metrics()
         if config.DATADOG_METRICS_ENABLED:
-            from langgraph_api.metrics_datadog import (  # noqa: PLC0415
+            from langgraph_api.metrics_datadog import (
                 COUNTER_SERVER_REQUESTED_TO_STOP,
                 COUNTER_SERVER_STOPPED,
                 get_datadog_metrics_reporter,
@@ -221,7 +207,7 @@ async def lifespan(
         await http.stop_http_client()
         await http.stop_webhook_http_client()
 
-        from langgraph_api.grpc.client import close_shared_client  # noqa: PLC0415
+        from langgraph_api.grpc.client import close_shared_client
 
         await close_shared_client()
 
@@ -229,14 +215,14 @@ async def lifespan(
         await database.stop_pool()
 
         if config.PYTHON_GRPC_SERVER_ENABLED:
-            from langgraph_api.grpc.server import (  # noqa: PLC0415
+            from langgraph_api.grpc.server import (
                 stop_python_grpc_server,
             )
 
             await stop_python_grpc_server()
 
         if config.LANGGRAPH_LOGS_ENABLED:
-            from langgraph_api import self_hosted_logs  # noqa: PLC0415
+            from langgraph_api import self_hosted_logs
 
             self_hosted_logs.shutdown_self_hosted_logs()
 
@@ -274,7 +260,7 @@ def _exit_after_flush(timeout: float = 5.0) -> None:
 
     def _hard_exit() -> None:
         sys.stderr.write(
-            f"Queue shutdown timer expired: threads did not exit within {timeout}s grace period. Force-exiting via os._exit.\n"
+            f"Queue shutdown timer expired: threads did not exit within {timeout}s grace period. Force-exiting via os._exit.\n",
         )
         sys.stderr.flush()
         os._exit(1)

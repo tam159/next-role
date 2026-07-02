@@ -1,5 +1,4 @@
-"""
-Run/node metadata.
+"""Run/node metadata.
 
 The usage-telemetry loop that periodically POSTed graph-run and node-execution
 counts to LangChain/LangSmith endpoints (``beacon.langchain.com`` and the
@@ -28,8 +27,6 @@ import uuid
 
 import structlog
 
-from langgraph_license.validation import plus_features_enabled
-
 logger = structlog.stdlib.get_logger(__name__)
 
 # Not in public docs: set by SaaS control plane, not user-configurable
@@ -39,16 +36,17 @@ if PROJECT_ID:
     try:
         uuid.UUID(PROJECT_ID)
     except ValueError:
-        raise ValueError(
-            f"Invalid project ID: {PROJECT_ID}. Must be a valid UUID"
-        ) from None
+        raise ValueError(f"Invalid project ID: {PROJECT_ID}. Must be a valid UUID") from None
 if VARIANT == "cloud":
     HOST = "saas"
 elif PROJECT_ID:
     HOST = "byoc"
 else:
     HOST = "self-hosted"
-PLAN = "enterprise" if plus_features_enabled() else "developer"
+# NextRole runs without license machinery (open source); upstream derived this
+# from langgraph_license.validation.plus_features_enabled(), a stub that always
+# returned True, so the constant is behavior-identical.
+PLAN = "enterprise"
 USER_API_URL = os.getenv("LANGGRAPH_API_URL", None)
 
 # Local-only run/node counters, maintained in-process (cumulative since startup).
