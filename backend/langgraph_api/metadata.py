@@ -43,6 +43,14 @@ elif PROJECT_ID:
     HOST = "byoc"
 else:
     HOST = "self-hosted"
+# Host/deployment identifiers surfaced by /info and the Prometheus label set
+# (api/meta.py). The source project's telemetry strip dropped these constants
+# but left their consumers, so /info raised AttributeError. All are None for
+# self-hosted deployments; the envs are only set by LangSmith control planes.
+REVISION = os.getenv("LANGSMITH_LANGGRAPH_API_REVISION")
+HOST_REVISION_ID = os.getenv("LANGSMITH_HOST_REVISION_ID")
+DEPLOYMENT_TYPE = os.getenv("LANGSMITH_HOST_DEPLOYMENT_TYPE")
+TENANT_ID = os.getenv("LANGSMITH_TENANT_ID")
 # NextRole runs without license machinery (open source); upstream derived this
 # from langgraph_license.validation.plus_features_enabled(), a stub that always
 # returned True, so the constant is behavior-identical.
