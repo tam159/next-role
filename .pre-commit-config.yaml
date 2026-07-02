@@ -32,7 +32,9 @@ repos:
     hooks:
       - id: backend-typecheck
         name: Backend Type Check
-        entry: uv run ty check
+        # cd so ty discovers backend/pyproject.toml ([tool.ty.src] excludes the
+        # vendored server dirs); from the repo root it would find no config.
+        entry: bash -c 'cd backend && uv run ty check'
         language: system
         files: ^backend/
         types_or: [python, pyi, jupyter, pyproject]

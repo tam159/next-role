@@ -122,7 +122,10 @@ exclude = [
   "dist",
   "node_modules",
   "notebooks",
-  "venv"
+  "venv",
+  # Generated protobuf/gRPC stubs (see .gitattributes linguist-generated).
+  # Regenerate with grpcio-tools==1.80.0; never hand-edit or lint.
+  "langgraph_grpc_common/proto"
 ]
 
 [tool.ruff.lint.mccabe]
@@ -130,6 +133,50 @@ max-complexity = 10
 
 [tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["F401"]
+# Vendored langgraph-api 0.10.0 server reimplementation (see backend/ARCHITECTURE.md).
+# Stylistic families upstream never satisfied are off wholesale to keep the tree
+# diffable against upstream; real-bug classes (F, E, W, B, I, DTZ, RUF, ...) stay on.
+# S (security) reviewed once at vendoring: S608 trusted SQL templates, S104 server
+# binds, S311 retry jitter — all by design. RUF100 off because upstream noqa
+# comments reference rules this config ignores.
+"{langgraph_api,langgraph_runtime,langgraph_runtime_postgres,langgraph_grpc_common,core_server}/**" = [
+  "A",
+  "ANN",
+  "ARG",
+  "ASYNC",
+  "B008",
+  "C4",
+  "C901",
+  "D",
+  "E402",
+  "E501",
+  "EM",
+  "ERA",
+  "FBT",
+  "FIX",
+  "FURB",
+  "G",
+  "INP",
+  "N",
+  "PERF",
+  "PIE",
+  "PLC",
+  "PLR",
+  "PLW",
+  "PTH",
+  "PYI",
+  "RET",
+  "RSE",
+  "RUF100",
+  "S",
+  "SIM",
+  "SLF",
+  "T100",
+  "TC",
+  "TD",
+  "TRY",
+  "UP"
+]
 "tests/**/*.py" = [
   "S101",
   "D100",
@@ -147,3 +194,20 @@ max-complexity = 10
   "PLR2004"
 ]
 "**/notebooks/**/*.ipynb" = ["D100"]
+
+[tool.ty.environment]
+# Repo root first so the repo-root-anchored `backend.agents.*` namespace imports
+# resolve (mirrors pytest's `pythonpath = [".."]`); "." keeps the vendored
+# top-level packages (langgraph_api, ...) resolvable as first-party modules.
+root = ["..", "."]
+
+[tool.ty.src]
+# Vendored server code is upstream's typing debt (~1k diagnostics); exclude it
+# path-level so first-party agents/ and tests/ keep full type checking.
+exclude = [
+  "langgraph_api/",
+  "langgraph_runtime/",
+  "langgraph_runtime_postgres/",
+  "langgraph_grpc_common/",
+  "core_server/"
+]
