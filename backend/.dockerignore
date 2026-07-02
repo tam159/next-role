@@ -26,3 +26,17 @@ htmlcov
 .DS_Store
 .vscode
 .idea
+
+# User-uploaded and agent-generated content — personal data, never bake into
+# image layers. Mirrors backend/.gitignore; `**/` because the dirs live under
+# agents/career_agent/ (the build context is backend/, so bare names would
+# only match at the context root).
+**/upload
+**/processed
+**/research
+**/tailored_resume
+**/render_intermediate
+**/interview_coach
+**/interview_battlecard
+**/conversation_history
+local_experiments
