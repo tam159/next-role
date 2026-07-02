@@ -98,7 +98,7 @@ services:
       LANGSMITH_LANGGRAPH_DESKTOP: "true"
       LANGSERVE_GRAPHS: >-
         {
-          "career_agent": "/deps/next-role/backend/app/career_agent/agents.py:career_agent"
+          "career_agent": "/deps/next-role/backend/agents/career_agent/agents.py:career_agent"
         }
     env_file: .env
     healthcheck:

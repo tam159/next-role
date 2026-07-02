@@ -31,7 +31,7 @@ Suppress one line at a time. Don't blanket-disable a rule in `pyproject.toml` to
 
 > **Current phase: unit tests + integration tests against the local DB.** LLM evals are deferred (slow + costly). When you create or modify code, write or update **unit tests** by default, and add **integration tests** when the code's value lives in real DB/Redis/HTTP behavior (e.g., pgvector queries, transaction semantics, connection pooling). Do **not** create `@pytest.mark.eval` tests — that marker exists for future use only.
 
-- **Layout**: `backend/tests/` mirrors `backend/app/`. A source file `app/<pkg>/<module>.py` has its tests at `tests/<pkg>/test_<module>.py` (e.g., `app/career_agent/tools.py` → `tests/career_agent/test_tools.py`). **No `__init__.py` needed** — pytest runs in `--import-mode=importlib`, so test subdirectories are plain folders.
+- **Layout**: `backend/tests/` mirrors `backend/agents/`. A source file `agents/<pkg>/<module>.py` has its tests at `tests/<pkg>/test_<module>.py` (e.g., `agents/career_agent/tools.py` → `tests/career_agent/test_tools.py`). **No `__init__.py` needed** — pytest runs in `--import-mode=importlib`, so test subdirectories are plain folders.
 - **One source module → can have multiple test files** when concerns are unrelated: split as `test_<module>_<concern>.py` (e.g., `test_tools_parsing.py`, `test_tools_search.py`). Don't pile everything into one giant test file.
 - **Run** (from `backend/` — `testpaths = ["tests"]` is relative):
   - Default (fast unit tests only): `cd backend && uv run pytest`

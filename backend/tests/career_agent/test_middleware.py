@@ -11,7 +11,7 @@ from langchain_core.messages import SystemMessage
 
 @pytest.fixture
 def middleware():
-    from backend.app.career_agent.middleware import UtcDatetimeMiddleware
+    from backend.agents.career_agent.middleware import UtcDatetimeMiddleware
 
     return UtcDatetimeMiddleware()
 
@@ -70,7 +70,7 @@ async def test_middleware_async_path_also_injects(middleware):
 
 def test_middleware_uses_same_date_for_different_times_on_same_day(middleware, monkeypatch):
     """Two same-day calls should keep the injected prompt line cacheable."""
-    from backend.app.career_agent import middleware as middleware_module
+    from backend.agents.career_agent import middleware as middleware_module
 
     class _Datetime(datetime):
         calls = 0
@@ -121,7 +121,7 @@ class _RecordingBackend:
 
 
 def test_ensure_preferences_seeds_scaffold_when_missing():
-    from backend.app.career_agent.middleware import (
+    from backend.agents.career_agent.middleware import (
         PREFERENCES_PATH,
         EnsurePreferencesFileMiddleware,
     )
@@ -137,7 +137,7 @@ def test_ensure_preferences_seeds_scaffold_when_missing():
 
 
 def test_ensure_preferences_swallows_backend_errors():
-    from backend.app.career_agent.middleware import EnsurePreferencesFileMiddleware
+    from backend.agents.career_agent.middleware import EnsurePreferencesFileMiddleware
 
     # A failing store write must never crash the agent run.
     EnsurePreferencesFileMiddleware(_RecordingBackend(fail=True)).before_agent(
@@ -148,7 +148,7 @@ def test_ensure_preferences_swallows_backend_errors():
 
 @pytest.mark.asyncio
 async def test_ensure_preferences_async_path_seeds():
-    from backend.app.career_agent.middleware import (
+    from backend.agents.career_agent.middleware import (
         PREFERENCES_PATH,
         EnsurePreferencesFileMiddleware,
     )

@@ -48,7 +48,7 @@ def _seed_templates_and_anchor(tmp_path: Path, monkeypatch) -> None:
     `CAREER_AGENT_DIR`. Pointing that at `tmp_path` keeps writes inside the
     test sandbox; copying templates over makes the template lookup succeed.
     """
-    from backend.app.career_agent import tools
+    from backend.agents.career_agent import tools
 
     real_dir = Path(tools.__file__).parent
     shutil.copytree(real_dir / "templates", tmp_path / "templates")
@@ -92,7 +92,7 @@ def test_render_battlecard_pdf_rejects_path_outside_interview_battlecard(
     monkeypatch,
     backend,
 ):
-    from backend.app.career_agent.tools import make_render_battlecard_pdf
+    from backend.agents.career_agent.tools import make_render_battlecard_pdf
 
     _seed_templates_and_anchor(tmp_path, monkeypatch)
 
@@ -104,7 +104,7 @@ def test_render_battlecard_pdf_rejects_path_outside_interview_battlecard(
 
 
 def test_render_battlecard_pdf_rejects_non_json_extension(tmp_path, monkeypatch, backend):
-    from backend.app.career_agent.tools import make_render_battlecard_pdf
+    from backend.agents.career_agent.tools import make_render_battlecard_pdf
 
     _seed_templates_and_anchor(tmp_path, monkeypatch)
 
@@ -116,7 +116,7 @@ def test_render_battlecard_pdf_rejects_non_json_extension(tmp_path, monkeypatch,
 
 
 def test_render_battlecard_pdf_errors_on_missing_file(tmp_path, monkeypatch, backend):
-    from backend.app.career_agent.tools import make_render_battlecard_pdf
+    from backend.agents.career_agent.tools import make_render_battlecard_pdf
 
     _seed_templates_and_anchor(tmp_path, monkeypatch)
     path = _seed_json(tmp_path, content=None)
@@ -126,7 +126,7 @@ def test_render_battlecard_pdf_errors_on_missing_file(tmp_path, monkeypatch, bac
 
 
 def test_render_battlecard_pdf_errors_on_malformed_json(tmp_path, monkeypatch, backend):
-    from backend.app.career_agent.tools import make_render_battlecard_pdf
+    from backend.agents.career_agent.tools import make_render_battlecard_pdf
 
     _seed_templates_and_anchor(tmp_path, monkeypatch)
     path = _seed_json(tmp_path, content="{not valid json")
@@ -138,7 +138,7 @@ def test_render_battlecard_pdf_errors_on_malformed_json(tmp_path, monkeypatch, b
 @_render_only
 def test_render_battlecard_pdf_writes_pdf_to_disk(tmp_path, monkeypatch, backend):
     """Happy path: write JSON, run tool, assert a non-empty PDF lands beside the JSON."""
-    from backend.app.career_agent.tools import make_render_battlecard_pdf
+    from backend.agents.career_agent.tools import make_render_battlecard_pdf
 
     _seed_templates_and_anchor(tmp_path, monkeypatch)
     path = _seed_json(tmp_path, content=json.dumps(_MINIMAL_JSON))
@@ -156,7 +156,7 @@ def test_render_battlecard_pdf_writes_pdf_to_disk(tmp_path, monkeypatch, backend
 @_render_only
 def test_render_battlecard_pdf_overwrites_existing_pdf(tmp_path, monkeypatch, backend):
     """Re-rendering replaces the previous PDF — supports user edits + re-run."""
-    from backend.app.career_agent.tools import make_render_battlecard_pdf
+    from backend.agents.career_agent.tools import make_render_battlecard_pdf
 
     _seed_templates_and_anchor(tmp_path, monkeypatch)
     path = _seed_json(tmp_path, content=json.dumps(_MINIMAL_JSON))

@@ -28,7 +28,7 @@ def backend(tmp_path: Path) -> CompositeBackend:
 
 
 def test_list_files_sorts_by_mtime_desc(tmp_path, backend):
-    from backend.app.career_agent.tools import make_list_files
+    from backend.agents.career_agent.tools import make_list_files
 
     upload = tmp_path / "upload"
     upload.mkdir(parents=True)
@@ -63,7 +63,7 @@ def test_list_files_returns_empty_for_nonexistent_dir(tmp_path, backend):
 
 def test_list_files_handles_backend_exception(tmp_path):
     """If the backend raises, we surface it as a single-element error list."""
-    from backend.app.career_agent.tools import make_list_files
+    from backend.agents.career_agent.tools import make_list_files
 
     class _Boom:
         def ls(self, path: str):
@@ -75,7 +75,7 @@ def test_list_files_handles_backend_exception(tmp_path):
 
 
 def make_list_files_then_invoke(backend, path: str):
-    from backend.app.career_agent.tools import make_list_files
+    from backend.agents.career_agent.tools import make_list_files
 
     return make_list_files(backend).invoke({"path": path})
 
@@ -100,7 +100,7 @@ def _seed_upload(tmp_path: Path, monkeypatch, filename: str, content: bytes = b"
     that at the test's tmp_path lets us seed `/upload/<name>` (and any other
     backend path) as a real on-disk file.
     """
-    from backend.app.career_agent import tools
+    from backend.agents.career_agent import tools
 
     monkeypatch.setattr(tools, "CAREER_AGENT_DIR", tmp_path)
     upload = tmp_path / "upload"
@@ -111,7 +111,7 @@ def _seed_upload(tmp_path: Path, monkeypatch, filename: str, content: bytes = b"
 
 
 def test_parse_document_writes_markdown_to_backend(tmp_path, monkeypatch, backend):
-    from backend.app.career_agent import tools
+    from backend.agents.career_agent import tools
 
     _seed_upload(tmp_path, monkeypatch, "resume.pdf", b"%PDF-fake")
 
@@ -128,7 +128,7 @@ def test_parse_document_writes_markdown_to_backend(tmp_path, monkeypatch, backen
 
 def test_parse_document_passes_expected_args_to_llamacloud(tmp_path, monkeypatch, backend):
     """Lock in the LlamaParse call shape so we notice if it drifts."""
-    from backend.app.career_agent import tools
+    from backend.agents.career_agent import tools
 
     _seed_upload(tmp_path, monkeypatch, "x.pdf")
 
@@ -161,7 +161,7 @@ def test_parse_document_passes_expected_args_to_llamacloud(tmp_path, monkeypatch
 
 
 def test_parse_document_rejects_path_traversal(tmp_path, monkeypatch, backend):
-    from backend.app.career_agent import tools
+    from backend.agents.career_agent import tools
 
     monkeypatch.setattr(tools, "CAREER_AGENT_DIR", tmp_path)
     result = tools.make_parse_document(backend).invoke(
@@ -172,7 +172,7 @@ def test_parse_document_rejects_path_traversal(tmp_path, monkeypatch, backend):
 
 
 def test_parse_document_rejects_relative_source_path(tmp_path, monkeypatch, backend):
-    from backend.app.career_agent import tools
+    from backend.agents.career_agent import tools
 
     monkeypatch.setattr(tools, "CAREER_AGENT_DIR", tmp_path)
     result = tools.make_parse_document(backend).invoke(
@@ -183,7 +183,7 @@ def test_parse_document_rejects_relative_source_path(tmp_path, monkeypatch, back
 
 
 def test_parse_document_rejects_non_md_output(tmp_path, monkeypatch, backend):
-    from backend.app.career_agent import tools
+    from backend.agents.career_agent import tools
 
     _seed_upload(tmp_path, monkeypatch, "r.pdf")
     result = tools.make_parse_document(backend).invoke(
@@ -193,7 +193,7 @@ def test_parse_document_rejects_non_md_output(tmp_path, monkeypatch, backend):
 
 
 def test_parse_document_handles_missing_file(tmp_path, monkeypatch, backend):
-    from backend.app.career_agent import tools
+    from backend.agents.career_agent import tools
 
     monkeypatch.setattr(tools, "CAREER_AGENT_DIR", tmp_path)
     (tmp_path / "upload").mkdir(parents=True, exist_ok=True)
@@ -205,7 +205,7 @@ def test_parse_document_handles_missing_file(tmp_path, monkeypatch, backend):
 
 
 def test_parse_document_surfaces_parse_failure(tmp_path, monkeypatch, backend):
-    from backend.app.career_agent import tools
+    from backend.agents.career_agent import tools
 
     _seed_upload(tmp_path, monkeypatch, "r.pdf")
 
@@ -227,7 +227,7 @@ def test_parse_document_surfaces_parse_failure(tmp_path, monkeypatch, backend):
 
 
 def test_parse_document_overwrites_existing_output_file(tmp_path, monkeypatch, backend):
-    from backend.app.career_agent import tools
+    from backend.agents.career_agent import tools
 
     _seed_upload(tmp_path, monkeypatch, "r.pdf")
 
@@ -246,7 +246,7 @@ def test_parse_document_overwrites_existing_output_file(tmp_path, monkeypatch, b
 
 
 def test_parse_document_noop_when_content_identical(tmp_path, monkeypatch, backend):
-    from backend.app.career_agent import tools
+    from backend.agents.career_agent import tools
 
     _seed_upload(tmp_path, monkeypatch, "r.pdf")
 
@@ -265,7 +265,7 @@ def test_parse_document_noop_when_content_identical(tmp_path, monkeypatch, backe
 
 def test_parse_document_accepts_arbitrary_output_path(tmp_path, monkeypatch, backend):
     """Output can land outside `/processed/` — the tool is generic."""
-    from backend.app.career_agent import tools
+    from backend.agents.career_agent import tools
 
     _seed_upload(tmp_path, monkeypatch, "spec.docx")
 
@@ -280,7 +280,7 @@ def test_parse_document_accepts_arbitrary_output_path(tmp_path, monkeypatch, bac
 
 def test_parse_document_strips_image_filename_refs(tmp_path, monkeypatch, backend):
     """LlamaParse emits `![alt](page_X_image_Y.jpg)`; we strip the `(filename)` part."""
-    from backend.app.career_agent import tools
+    from backend.agents.career_agent import tools
 
     _seed_upload(tmp_path, monkeypatch, "r.pdf")
 
@@ -307,7 +307,7 @@ def test_parse_document_strips_image_filename_refs(tmp_path, monkeypatch, backen
 
 def test_parse_document_passes_images_to_save_empty(tmp_path, monkeypatch, backend):
     """Verify we tell LlamaParse not to save any images (no extraction cost)."""
-    from backend.app.career_agent import tools
+    from backend.agents.career_agent import tools
 
     _seed_upload(tmp_path, monkeypatch, "x.pdf")
 
@@ -330,7 +330,7 @@ def test_parse_document_passes_images_to_save_empty(tmp_path, monkeypatch, backe
 
 
 def test_parse_document_handles_empty_markdown(tmp_path, monkeypatch, backend):
-    from backend.app.career_agent import tools
+    from backend.agents.career_agent import tools
 
     _seed_upload(tmp_path, monkeypatch, "r.pdf")
 
@@ -371,7 +371,7 @@ def _fake_tavily_empty():
 
 
 def test_extract_jd_writes_markdown_with_header(tmp_path, backend):
-    from backend.app.career_agent import tools
+    from backend.agents.career_agent import tools
 
     fake = _fake_tavily_returning(title="Senior AI SA", raw_content="Body here.")
     with patch("tavily.TavilyClient", return_value=fake):
@@ -388,7 +388,7 @@ def test_extract_jd_writes_markdown_with_header(tmp_path, backend):
 
 
 def test_extract_jd_omits_header_when_title_empty(tmp_path, backend):
-    from backend.app.career_agent import tools
+    from backend.agents.career_agent import tools
 
     fake = _fake_tavily_returning(title="", raw_content="Just body.")
     with patch("tavily.TavilyClient", return_value=fake):
@@ -402,7 +402,7 @@ def test_extract_jd_omits_header_when_title_empty(tmp_path, backend):
 
 
 def test_extract_jd_strips_image_filename_refs(tmp_path, backend):
-    from backend.app.career_agent import tools
+    from backend.agents.career_agent import tools
 
     raw = "Job summary\n\n![logo](https://cdn.example.com/logo.png) Apply now."
     fake = _fake_tavily_returning(title="JD", raw_content=raw)
@@ -427,7 +427,7 @@ def test_extract_jd_strips_image_filename_refs(tmp_path, backend):
     ],
 )
 def test_extract_jd_rejects_invalid_urls(backend, url):
-    from backend.app.career_agent.tools import make_extract_jd
+    from backend.agents.career_agent.tools import make_extract_jd
 
     result = make_extract_jd(backend).invoke({"url": url, "save_as": "x"})
     assert result.startswith("Error: invalid url")
@@ -444,14 +444,14 @@ def test_extract_jd_rejects_invalid_urls(backend, url):
     ],
 )
 def test_extract_jd_rejects_invalid_save_as(backend, save_as):
-    from backend.app.career_agent.tools import make_extract_jd
+    from backend.agents.career_agent.tools import make_extract_jd
 
     result = make_extract_jd(backend).invoke({"url": "https://example.com/jd", "save_as": save_as})
     assert result.startswith("Error: invalid save_as")
 
 
 def test_extract_jd_handles_empty_tavily_results(tmp_path, backend):
-    from backend.app.career_agent import tools
+    from backend.agents.career_agent import tools
 
     with patch("tavily.TavilyClient", return_value=_fake_tavily_empty()):
         result = tools.make_extract_jd(backend).invoke(
@@ -464,7 +464,7 @@ def test_extract_jd_handles_empty_tavily_results(tmp_path, backend):
 
 
 def test_extract_jd_surfaces_tavily_exception(tmp_path, backend):
-    from backend.app.career_agent import tools
+    from backend.agents.career_agent import tools
 
     class _Boom:
         def extract(self, **_kwargs):
@@ -482,7 +482,7 @@ def test_extract_jd_surfaces_tavily_exception(tmp_path, backend):
 
 
 def test_extract_jd_overwrites_existing_processed_file(tmp_path, backend):
-    from backend.app.career_agent import tools
+    from backend.agents.career_agent import tools
 
     tool = tools.make_extract_jd(backend)
 
@@ -511,7 +511,7 @@ def test_extract_jd_overwrites_existing_processed_file(tmp_path, backend):
 
 
 def test_overwrite_file_writes_new_file(tmp_path, backend):
-    from backend.app.career_agent.tools import make_overwrite_file
+    from backend.agents.career_agent.tools import make_overwrite_file
 
     result = make_overwrite_file(backend).invoke(
         {"file_path": "/processed/fresh.md", "new_content": "# Fresh\nbody"},
@@ -523,7 +523,7 @@ def test_overwrite_file_writes_new_file(tmp_path, backend):
 
 
 def test_overwrite_file_replaces_existing_content(tmp_path, backend):
-    from backend.app.career_agent.tools import make_overwrite_file
+    from backend.agents.career_agent.tools import make_overwrite_file
 
     processed = tmp_path / "processed"
     processed.mkdir(parents=True)
@@ -546,7 +546,7 @@ def test_overwrite_file_replaces_existing_content(tmp_path, backend):
 
 def test_overwrite_file_surfaces_upsert_error(backend):
     """Pass-through: if `_upsert` returns an error, the tool reports it."""
-    from backend.app.career_agent import tools
+    from backend.agents.career_agent import tools
     from deepagents.backends.protocol import WriteResult
 
     def _fake_upsert(_backend, _path, _content):
@@ -584,7 +584,7 @@ locale:
 
 def _seed_yaml(tmp_path: Path, monkeypatch, *, relative: str, content: str) -> Path:
     """Anchor `CAREER_AGENT_DIR` at tmp_path and drop a YAML under /tailored_resume/."""
-    from backend.app.career_agent import tools
+    from backend.agents.career_agent import tools
 
     monkeypatch.setattr(tools, "CAREER_AGENT_DIR", tmp_path)
     target = tmp_path / relative.lstrip("/")
@@ -594,7 +594,7 @@ def _seed_yaml(tmp_path: Path, monkeypatch, *, relative: str, content: str) -> P
 
 
 def test_prepare_render_settings_appends_block(tmp_path, monkeypatch, backend):
-    from backend.app.career_agent.tools import make_prepare_render_settings
+    from backend.agents.career_agent.tools import make_prepare_render_settings
 
     yaml_path = "/tailored_resume/tam-resume/aitomatic-jd.yaml"
     on_disk = _seed_yaml(tmp_path, monkeypatch, relative=yaml_path, content=_MINIMAL_CV_YAML)
@@ -630,7 +630,7 @@ def test_prepare_render_settings_appends_block(tmp_path, monkeypatch, backend):
 
 def test_prepare_render_settings_is_idempotent(tmp_path, monkeypatch, backend):
     """Re-running the tool replaces the existing settings block instead of stacking."""
-    from backend.app.career_agent.tools import make_prepare_render_settings
+    from backend.agents.career_agent.tools import make_prepare_render_settings
 
     yaml_path = "/tailored_resume/tam-resume/aitomatic-jd.yaml"
     on_disk = _seed_yaml(tmp_path, monkeypatch, relative=yaml_path, content=_MINIMAL_CV_YAML)
@@ -648,7 +648,7 @@ def test_prepare_render_settings_is_idempotent(tmp_path, monkeypatch, backend):
 
 def test_prepare_render_settings_derives_paths_from_stem(tmp_path, monkeypatch, backend):
     """The injected pdf/typ filenames track the YAML stem and resume sub-dir."""
-    from backend.app.career_agent.tools import make_prepare_render_settings
+    from backend.agents.career_agent.tools import make_prepare_render_settings
 
     yaml_path = "/tailored_resume/jane-doe-resume/google-staff-swe-jd.yaml"
     on_disk = _seed_yaml(tmp_path, monkeypatch, relative=yaml_path, content=_MINIMAL_CV_YAML)
@@ -671,14 +671,14 @@ def test_prepare_render_settings_derives_paths_from_stem(tmp_path, monkeypatch, 
     ],
 )
 def test_prepare_render_settings_rejects_bad_paths(backend, bad_path):
-    from backend.app.career_agent.tools import make_prepare_render_settings
+    from backend.agents.career_agent.tools import make_prepare_render_settings
 
     result = make_prepare_render_settings(backend).invoke({"yaml_path": bad_path})
     assert result.startswith("Error: invalid yaml_path")
 
 
 def test_prepare_render_settings_rejects_missing_file(tmp_path, monkeypatch, backend):
-    from backend.app.career_agent import tools
+    from backend.agents.career_agent import tools
 
     monkeypatch.setattr(tools, "CAREER_AGENT_DIR", tmp_path)
     result = tools.make_prepare_render_settings(backend).invoke(
@@ -688,7 +688,7 @@ def test_prepare_render_settings_rejects_missing_file(tmp_path, monkeypatch, bac
 
 
 def test_prepare_render_settings_accepts_yml_extension(tmp_path, monkeypatch, backend):
-    from backend.app.career_agent.tools import make_prepare_render_settings
+    from backend.agents.career_agent.tools import make_prepare_render_settings
 
     yaml_path = "/tailored_resume/r/j.yml"
     on_disk = _seed_yaml(tmp_path, monkeypatch, relative=yaml_path, content=_MINIMAL_CV_YAML)

@@ -88,7 +88,7 @@ Both surfaces POST `multipart/form-data` to the Next.js route
 `/api/files/upload`, which validates the path against the
 `AGENT_FILE_SOURCES.career_agent.disk` allowlist
 (`frontend/src/app/config/agentFiles.ts`) and writes bytes directly to
-`backend/app/career_agent/upload/<filename>` via the shared `.:/deps/next-role`
+`backend/agents/career_agent/upload/<filename>` via the shared `.:/deps/next-role`
 volume mount in `docker-compose.yml`. The agent's `FilesystemBackend(root_dir=CAREER_AGENT_DIR)`
 picks files up on the next tool call — no Python-side endpoint is involved.
 

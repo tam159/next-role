@@ -6,14 +6,14 @@ import deepagents.middleware.memory as _mem_mw
 import deepagents.middleware.skills as _skills_mw
 import deepagents.middleware.subagents as _sub_mw
 import langchain.agents.middleware.todo as _todo_mw
-from backend.app.career_agent import prompts as _prompts
-from backend.app.career_agent.middleware import (
+from backend.agents.career_agent import prompts as _prompts
+from backend.agents.career_agent.middleware import (
     EnsurePreferencesFileMiddleware,
     ModelOverrideMiddleware,
     UtcDatetimeMiddleware,
 )
-from backend.app.career_agent.shell_backend import VirtualPathShellBackend
-from backend.app.career_agent.tools import (
+from backend.agents.career_agent.shell_backend import VirtualPathShellBackend
+from backend.agents.career_agent.tools import (
     CAREER_AGENT_DIR,
     make_extract_jd,
     make_list_files,
@@ -24,7 +24,7 @@ from backend.app.career_agent.tools import (
     web_extract,
     web_search,
 )
-from backend.app.career_agent.utils import load_subagents
+from backend.agents.career_agent.utils import load_subagents
 from deepagents import create_deep_agent
 from deepagents.backends import CompositeBackend, StoreBackend
 

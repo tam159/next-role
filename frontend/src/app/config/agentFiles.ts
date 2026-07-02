@@ -16,7 +16,7 @@ export const AGENT_FILE_SOURCES: Record<string, AgentFileSources> = {
       pathPrefixes: ["/memory/", "/processed/", "/research/", "/interview_coach/", "/workspace/"],
     },
     disk: {
-      root: "backend/app/career_agent",
+      root: "backend/agents/career_agent",
       includeDirs: ["upload", "tailored_resume", "interview_battlecard"],
     },
   },

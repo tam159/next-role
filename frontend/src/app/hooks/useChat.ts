@@ -72,7 +72,7 @@ export function useChat({
   //   - assistant-level config (from the LangGraph API)
   //   - per-invocation user model overrides from Settings (configurable.*)
   //   - any caller-supplied overrides (e.g. recursion_limit)
-  // The middleware in backend/app/career_agent/middleware.py reads
+  // The middleware in backend/agents/career_agent/middleware.py reads
   // `configurable.main_agent_model` / `configurable.subagent_model`.
   const buildSubmitConfig = useCallback(
     (extra?: Record<string, unknown>) => {

@@ -158,7 +158,7 @@ A five-stage pipeline. Stage 4 runs the resume tailor and interview coach **in p
 5. **Battlecard** — the main agent assembles a one-page-per-round JSON and renders it to a day-of PDF via WeasyPrint.
 6. **Multi-turn updates** — ask for changes in chat; the owning agent reads the existing file, preserves everything you didn't name, and re-renders.
 
-The full procedure (file layout, update routing, source-of-truth conventions) lives in **[`backend/app/career_agent/README.md`](backend/app/career_agent/README.md)**. Per-feature design docs are in **[`docs/prd/`](docs/prd/)**.
+The full procedure (file layout, update routing, source-of-truth conventions) lives in **[`backend/agents/career_agent/README.md`](backend/agents/career_agent/README.md)**. Per-feature design docs are in **[`docs/prd/`](docs/prd/)**.
 
 </details>
 
