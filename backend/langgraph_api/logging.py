@@ -43,14 +43,17 @@ else:
 del logger
 
 worker_config = contextvars.ContextVar[dict[str, typing.Any] | None](
-    "worker_config", default=None
+    "worker_config",
+    default=None,
 )
 
 # custom processors
 
 
 def add_thread_name(
-    logger: logging.Logger, method_name: str, event_dict: EventDict
+    logger: logging.Logger,
+    method_name: str,
+    event_dict: EventDict,
 ) -> EventDict:
     event_dict["thread_name"] = threading.current_thread().name
     return event_dict
@@ -74,7 +77,10 @@ class AddPrefixedEnvVars:
         }
 
     def __call__(
-        self, logger: logging.Logger, method_name: str, event_dict: EventDict
+        self,
+        logger: logging.Logger,
+        method_name: str,
+        event_dict: EventDict,
     ) -> EventDict:
         event_dict.update(self.kv)
         return event_dict
@@ -85,7 +91,10 @@ class AddStaticMetadata:
         self._has_deepagents = os.getenv("DEEPAGENTS_VERSION", "") != ""
 
     def __call__(
-        self, logger: logging.Logger, method_name: str, event_dict: EventDict
+        self,
+        logger: logging.Logger,
+        method_name: str,
+        event_dict: EventDict,
     ) -> EventDict:
         try:
             from langgraph_api import __version__  # noqa: PLC0415
@@ -106,14 +115,15 @@ class AddLoggingContext:
                 var_child_runnable_config,
             )
 
-            self.cvar: contextvars.ContextVar[RunnableConfig | None] = (
-                var_child_runnable_config
-            )
+            self.cvar: contextvars.ContextVar[RunnableConfig | None] = var_child_runnable_config
         except Exception:
             self.cvar = False
 
     def __call__(
-        self, logger: logging.Logger, method_name: str, event_dict: EventDict
+        self,
+        logger: logging.Logger,
+        method_name: str,
+        event_dict: EventDict,
     ) -> EventDict:
         if (ctx := worker_config.get()) is not None:
             event_dict.update(ctx)
@@ -130,7 +140,10 @@ class AddLoggingContext:
 
 class JSONRenderer:
     def __call__(
-        self, logger: logging.Logger, method_name: str, event_dict: EventDict
+        self,
+        logger: logging.Logger,
+        method_name: str,
+        event_dict: EventDict,
     ) -> str:
         """
         The return type of this depends on the return type of self._dumps.
@@ -151,7 +164,7 @@ class OTLPFormatter(structlog.stdlib.ProcessorFormatter):
         else:
             raise RuntimeError(
                 f"OTLPFormatter expected 3 positional arguments (fmt, datefmt, style), "
-                f"but got {len(args)} arguments."
+                f"but got {len(args)} arguments.",
             )
         super().__init__(
             processors=[
@@ -187,9 +200,7 @@ shared_processors = [
 
 # configure logging, used by logging.json, applied by uvicorn
 
-renderer = (
-    JSONRenderer() if LOG_JSON else structlog.dev.ConsoleRenderer(colors=LOG_COLOR)
-)
+renderer = JSONRenderer() if LOG_JSON else structlog.dev.ConsoleRenderer(colors=LOG_COLOR)
 
 
 class Formatter(structlog.stdlib.ProcessorFormatter):

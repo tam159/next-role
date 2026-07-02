@@ -12,7 +12,8 @@ from typing import Any
 # Set by API middleware when X-Encryption-Context header is present
 # Accessed by serializers during checkpoint encryption/decryption
 encryption_context: ContextVar[dict[str, Any] | None] = ContextVar(
-    "encryption_context", default=None
+    "encryption_context",
+    default=None,
 )
 
 

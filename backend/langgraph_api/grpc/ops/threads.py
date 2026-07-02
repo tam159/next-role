@@ -18,12 +18,6 @@ from google.protobuf import field_mask_pb2
 from grpc.aio import AioRpcError
 from langgraph.checkpoint.serde.jsonplus import _msgpack_ext_hook_to_json
 from langgraph.types import StateSnapshot, StateUpdate
-from langgraph_grpc_common.proto import checkpointer_pb2
-from langgraph_grpc_common.proto import core_api_pb2 as pb
-from langgraph_grpc_common.proto import enum_thread_status_pb2 as enum_thread_status
-from langgraph_grpc_common.proto import (
-    enum_thread_stream_mode_pb2 as enum_thread_stream_mode,
-)
 from langgraph_sdk import Auth
 from starlette.exceptions import HTTPException
 
@@ -49,6 +43,12 @@ from langgraph_api.schema import ThreadUpdateResponse
 from langgraph_api.serde import json_dumpb, json_dumpb_optional, json_loads
 from langgraph_api.state import patch_interrupt, state_snapshot_to_thread_state
 from langgraph_api.utils import fetchone
+from langgraph_grpc_common.proto import checkpointer_pb2
+from langgraph_grpc_common.proto import core_api_pb2 as pb
+from langgraph_grpc_common.proto import enum_thread_status_pb2 as enum_thread_status
+from langgraph_grpc_common.proto import (
+    enum_thread_stream_mode_pb2 as enum_thread_stream_mode,
+)
 
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator
@@ -141,7 +141,8 @@ def _map_threads_sort_by(sort_by: str | None) -> pb.ThreadsSortBy:
     if not sort_by or sort_by.lower() == "unspecified":
         return pb.ThreadsSortBy.THREADS_SORT_BY_CREATED_AT
     return THREAD_SORT_BY_MAP.get(
-        sort_by.lower(), pb.ThreadsSortBy.THREADS_SORT_BY_CREATED_AT
+        sort_by.lower(),
+        pb.ThreadsSortBy.THREADS_SORT_BY_CREATED_AT,
     )
 
 
@@ -208,11 +209,7 @@ def _proto_interrupts_to_dict(
 
 def proto_to_thread(proto_thread: pb.Thread) -> Thread:
     """Convert protobuf Thread to API dictionary format."""
-    thread_id = (
-        UUID(proto_thread.thread_id.value)
-        if proto_thread.HasField("thread_id")
-        else None
-    )
+    thread_id = UUID(proto_thread.thread_id.value) if proto_thread.HasField("thread_id") else None
     if thread_id is None:
         raise HTTPException(
             status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
@@ -269,7 +266,8 @@ def proto_to_thread(proto_thread: pb.Thread) -> Thread:
 
 
 def _filter_thread_fields(
-    thread: Thread, select: list[ThreadSelectField] | None
+    thread: Thread,
+    select: list[ThreadSelectField] | None,
 ) -> dict[str, Any]:
     if not select:
         return dict(thread)
@@ -298,7 +296,8 @@ def _serialize_for_encryption(
 
 
 async def _encrypt_thread_field(
-    data: BaseException | dict[str, Any] | None, field_name: str
+    data: BaseException | dict[str, Any] | None,
+    field_name: str,
 ) -> dict[str, Any] | None:
     """Apply encryption to a thread field (AES mode only)
 
@@ -317,7 +316,10 @@ async def _encrypt_thread_field(
         return data
 
     return await encrypt_json_if_needed(
-        _serialize_for_encryption(data), enc, "thread", field=field_name
+        _serialize_for_encryption(data),
+        enc,
+        "thread",
+        field=field_name,
     )
 
 
@@ -408,16 +410,14 @@ class Threads(Authenticated):
             request_kwargs["select"] = select
 
         if ids:
-            request_kwargs["ids"] = [
-                pb.UUID(value=_normalize_uuid(thread_id)) for thread_id in ids
-            ]
+            request_kwargs["ids"] = [pb.UUID(value=_normalize_uuid(thread_id)) for thread_id in ids]
 
         if extract:
             request_kwargs["extract"] = extract
 
         client = await get_shared_client()
         response = await client.threads.Search(
-            pb.SearchThreadsRequest(**request_kwargs)
+            pb.SearchThreadsRequest(**request_kwargs),
         )
 
         threads = [proto_to_thread(thread) for thread in response.threads]
@@ -496,7 +496,9 @@ class Threads(Authenticated):
                 [] for an auth/existence check that discards the thread body.
         """
         auth_filters = await Threads.handle_event(
-            ctx, "read", {"thread_id": str(thread_id)}
+            ctx,
+            "read",
+            {"thread_id": str(thread_id)},
         )
         # Merge auth filters with any additional parent filters provided.
         # (Parent filters take precedence.)
@@ -509,9 +511,7 @@ class Threads(Authenticated):
                 auth_filters = (auth_filters or []) + _filters_to_proto(filters)
 
         read_mask = (
-            field_mask_pb2.FieldMask(paths=read_mask_paths)
-            if read_mask_paths is not None
-            else None
+            field_mask_pb2.FieldMask(paths=read_mask_paths) if read_mask_paths is not None else None
         )
         request = pb.GetThreadRequest(
             thread_id=pb.UUID(value=_normalize_uuid(thread_id)),
@@ -701,9 +701,7 @@ class Threads(Authenticated):
             # threads.Delete() handles Go-side checkpoint cleanup, but custom
             # checkpointers store data elsewhere. Clean that up too.
             checkpointer = (
-                await api_checkpointer.get_checkpointer()
-                if USE_CUSTOM_CHECKPOINTER
-                else None
+                await api_checkpointer.get_checkpointer() if USE_CUSTOM_CHECKPOINTER else None
             )
 
             async def _delete_thread(tid: str) -> bool:
@@ -712,7 +710,7 @@ class Threads(Authenticated):
                         pb.DeleteThreadRequest(
                             thread_id=pb.UUID(value=_normalize_uuid(tid)),
                             filters=auth_filters,
-                        )
+                        ),
                     )
                 except Exception:
                     await logger.aexception("Failed to delete thread.", thread_id=tid)
@@ -893,7 +891,7 @@ class Threads(Authenticated):
 
         client = await get_shared_client()
         await client.threads.SetJointStatus(
-            pb.SetThreadJointStatusRequest(**request_kwargs)
+            pb.SetThreadJointStatusRequest(**request_kwargs),
         )
 
     @staticmethod
@@ -979,9 +977,7 @@ class Threads(Authenticated):
                     event_bytes = event.event_type.encode("utf-8")
                     message_bytes = event.message
                     stream_id_bytes = (
-                        event.stream_id.encode("utf-8")
-                        if event.HasField("stream_id")
-                        else None
+                        event.stream_id.encode("utf-8") if event.HasField("stream_id") else None
                     )
                     run_id = event.run_id if event.HasField("run_id") else None
 
@@ -1008,7 +1004,8 @@ class Threads(Authenticated):
         ) -> StateSnapshot:
             """Get state snapshot for a thread (*internal only*, no auth)."""
             checkpointer = await api_checkpointer.get_checkpointer(
-                conn=conn, unpack_hook=_msgpack_ext_hook_to_json
+                conn=conn,
+                unpack_hook=_msgpack_ext_hook_to_json,
             )
 
             thread_id = config["configurable"]["thread_id"]
@@ -1078,7 +1075,8 @@ class Threads(Authenticated):
             )
 
             checkpointer = await api_checkpointer.get_checkpointer(
-                conn=conn, use_direct_connection=True
+                conn=conn,
+                use_direct_connection=True,
             )
 
             async with conn.pipeline():
@@ -1119,15 +1117,20 @@ class Threads(Authenticated):
                             checkpointer=checkpointer,
                             store=(await api_store.get_store()),
                             access_context="threads.update",
-                        )
+                        ),
                     )
                     await stack.enter_async_context(conn.transaction())
                     next_config = await graph.aupdate_state(
-                        config, values, as_node=as_node
+                        config,
+                        values,
+                        as_node=as_node,
                     )
                     # update thread values
                     state = await Threads.State.get(
-                        conn, config, subgraphs=False, ctx=ctx
+                        conn,
+                        config,
+                        subgraphs=False,
+                        ctx=ctx,
                     )
                     await Threads.set_status(
                         conn,
@@ -1209,7 +1212,7 @@ class Threads(Authenticated):
                             checkpointer=checkpointer,
                             store=(await api_store.get_store()),
                             access_context="threads.update",
-                        )
+                        ),
                     )
 
                     await stack.enter_async_context(conn.transaction())
@@ -1233,7 +1236,10 @@ class Threads(Authenticated):
 
                     # update thread values
                     state = await Threads.State.get(
-                        conn, config, subgraphs=False, ctx=ctx
+                        conn,
+                        config,
+                        subgraphs=False,
+                        ctx=ctx,
                     )
 
                     await Threads.set_status(
@@ -1301,7 +1307,8 @@ class Threads(Authenticated):
                     graph_id,
                     thread_config,
                     checkpointer=await api_checkpointer.get_checkpointer(
-                        conn=conn, unpack_hook=_msgpack_ext_hook_to_json
+                        conn=conn,
+                        unpack_hook=_msgpack_ext_hook_to_json,
                     ),
                     store=(await api_store.get_store()),
                     access_context="threads.read",

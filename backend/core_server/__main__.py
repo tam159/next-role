@@ -11,31 +11,73 @@ import asyncio
 import logging
 import signal
 
-import grpc
 from grpc import aio
 from grpc_health.v1 import health, health_pb2, health_pb2_grpc
-from langgraph_grpc_common.proto import checkpointer_pb2, core_api_pb2
-from langgraph_grpc_common.proto import checkpointer_pb2_grpc as ckpg
-from langgraph_grpc_common.proto import core_api_pb2_grpc as capg
 
 from core_server import db, settings
 from core_server._forward import install_fallback
 from core_server.redis_db import close_redis
+from langgraph_grpc_common.proto import checkpointer_pb2, core_api_pb2
+from langgraph_grpc_common.proto import checkpointer_pb2_grpc as ckpg
+from langgraph_grpc_common.proto import core_api_pb2_grpc as capg
 
 logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s %(levelname)-5s %(name)s: %(message)s"
+    level=logging.INFO,
+    format="%(asctime)s %(levelname)-5s %(name)s: %(message)s",
 )
 log = logging.getLogger("core_server")
 
 # service name -> (base servicer cls, add-to-server fn, stub ctor, pb module, full name)
 SERVICES = {
-    "Assistants": (capg.AssistantsServicer, capg.add_AssistantsServicer_to_server, capg.AssistantsStub, core_api_pb2, "coreApi.Assistants"),
-    "Threads": (capg.ThreadsServicer, capg.add_ThreadsServicer_to_server, capg.ThreadsStub, core_api_pb2, "coreApi.Threads"),
-    "Runs": (capg.RunsServicer, capg.add_RunsServicer_to_server, capg.RunsStub, core_api_pb2, "coreApi.Runs"),
-    "Crons": (capg.CronsServicer, capg.add_CronsServicer_to_server, capg.CronsStub, core_api_pb2, "coreApi.Crons"),
-    "Admin": (capg.AdminServicer, capg.add_AdminServicer_to_server, capg.AdminStub, core_api_pb2, "coreApi.Admin"),
-    "Cache": (capg.CacheServicer, capg.add_CacheServicer_to_server, capg.CacheStub, core_api_pb2, "coreApi.Cache"),
-    "Checkpointer": (ckpg.CheckpointerServicer, ckpg.add_CheckpointerServicer_to_server, ckpg.CheckpointerStub, checkpointer_pb2, "checkpointer.Checkpointer"),
+    "Assistants": (
+        capg.AssistantsServicer,
+        capg.add_AssistantsServicer_to_server,
+        capg.AssistantsStub,
+        core_api_pb2,
+        "coreApi.Assistants",
+    ),
+    "Threads": (
+        capg.ThreadsServicer,
+        capg.add_ThreadsServicer_to_server,
+        capg.ThreadsStub,
+        core_api_pb2,
+        "coreApi.Threads",
+    ),
+    "Runs": (
+        capg.RunsServicer,
+        capg.add_RunsServicer_to_server,
+        capg.RunsStub,
+        core_api_pb2,
+        "coreApi.Runs",
+    ),
+    "Crons": (
+        capg.CronsServicer,
+        capg.add_CronsServicer_to_server,
+        capg.CronsStub,
+        core_api_pb2,
+        "coreApi.Crons",
+    ),
+    "Admin": (
+        capg.AdminServicer,
+        capg.add_AdminServicer_to_server,
+        capg.AdminStub,
+        core_api_pb2,
+        "coreApi.Admin",
+    ),
+    "Cache": (
+        capg.CacheServicer,
+        capg.add_CacheServicer_to_server,
+        capg.CacheStub,
+        core_api_pb2,
+        "coreApi.Cache",
+    ),
+    "Checkpointer": (
+        ckpg.CheckpointerServicer,
+        ckpg.add_CheckpointerServicer_to_server,
+        ckpg.CheckpointerStub,
+        checkpointer_pb2,
+        "checkpointer.Checkpointer",
+    ),
 }
 
 
@@ -107,7 +149,7 @@ async def build_server() -> tuple[aio.Server, aio.Channel | None]:
             ("grpc.http2.max_ping_strikes", 2),
             ("grpc.max_receive_message_length", settings.MAX_MSG_BYTES),
             ("grpc.max_send_message_length", settings.MAX_MSG_BYTES),
-        ]
+        ],
     )
     go = _go_channel()
     native = _load_native()
@@ -146,7 +188,9 @@ async def main() -> None:
         await db.open_pool()
         log.info("postgres pool opened: %s", settings.POSTGRES_URI)
     except Exception:
-        log.exception("postgres pool open failed (native services will error; forwarding still works)")
+        log.exception(
+            "postgres pool open failed (native services will error; forwarding still works)",
+        )
 
     server, go = await build_server()
     log.info(

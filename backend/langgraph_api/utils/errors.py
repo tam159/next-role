@@ -16,7 +16,8 @@ class GraphLoadError(RuntimeError):
         self.location = spec.module or spec.path or "<unknown>"
         self.notes = tuple(getattr(cause, "__notes__", ()) or ())
         self._traceback = traceback.TracebackException.from_exception(
-            cause, capture_locals=False
+            cause,
+            capture_locals=False,
         )
         self._exception_only = list(self._traceback.format_exception_only())
         message = f"Failed to load graph '{spec.id}' from {self.location}: {cause}"
@@ -64,9 +65,7 @@ class HealthServerStartupError(RuntimeError):
         self.host = host
         self.port = port
         self.cause = cause
-        port_desc = (
-            f"{host}:{port}" if host not in {"0.0.0.0", "::"} else f"port {port}"
-        )
+        port_desc = f"{host}:{port}" if host not in {"0.0.0.0", "::"} else f"port {port}"
         if isinstance(cause, OSError) and cause.errno in {48, 98}:
             message = (
                 f"Health/metrics server could not bind to {port_desc}: "

@@ -124,7 +124,8 @@ def _should_skip_encryption(key: str, path: str) -> bool:
 
 
 def _extract_skip_fields(
-    data: Mapping[str, Any], path: str
+    data: Mapping[str, Any],
+    path: str,
 ) -> tuple[dict[str, Any], dict[str, Any]]:
     """Extract fields that should be skipped from encryption.
 
@@ -200,15 +201,19 @@ class EncryptionContextMiddleware(BaseHTTPMiddleware):
             user = request.scope.get("user")
             if user:
                 initial_ctx = EncryptionContext(
-                    model=None, field=None, metadata=context_dict
+                    model=None,
+                    field=None,
+                    metadata=context_dict,
                 )
                 try:
                     context_dict = await encryption_instance._context_handler(
-                        user, initial_ctx
+                        user,
+                        initial_ctx,
                     )
                 except Exception as e:
                     await logger.aexception(
-                        "Error in encryption context handler", exc_info=e
+                        "Error in encryption context handler",
+                        exc_info=e,
                     )
 
         set_encryption_context(context_dict)
@@ -272,7 +277,7 @@ async def encrypt_json_if_needed(
             f"Attempted to encrypt data that is already encrypted (has {ENCRYPTION_CONTEXT_KEY}). "
             f"model_type={model_type}, field={field}. "
             f"This indicates a bug where encrypted data is being re-encrypted. "
-            f"Ensure data is decrypted before re-encrypting."
+            f"Ensure data is decrypted before re-encrypting.",
         )
 
     # Get encryptor from the instance (works for both custom wrapper and AES)
@@ -295,7 +300,9 @@ async def encrypt_json_if_needed(
         context_dict = get_encryption_context()
         if LANGGRAPH_ENCRYPTION:
             ctx = EncryptionContext(
-                model=model_type, field=field, metadata=context_dict
+                model=model_type,
+                field=field,
+                metadata=context_dict,
             )
         else:
             ctx = None  # AES doesn't need the EncryptionContext
@@ -393,11 +400,11 @@ async def decrypt_json_if_needed(
             if is_aes_encryption_context(context_dict):
                 raise DecryptorMissingError(
                     f"Data has AES encryption marker but LANGGRAPH_AES_KEY is not configured "
-                    f"for {model_type}.{field}"
+                    f"for {model_type}.{field}",
                 )
             raise DecryptorMissingError(
                 f"Data contains custom encryption marker but no encryption instance is configured "
-                f"for {model_type}.{field}"
+                f"for {model_type}.{field}",
             )
         return strip_encryption_metadata(data)
 
@@ -452,11 +459,14 @@ async def _decrypt_field(
     else:
         raise TypeError(
             f"Cannot decrypt field '{field_name}': expected dict or JSON-serialized "
-            f"bytes/str, got {type(value).__name__}"
+            f"bytes/str, got {type(value).__name__}",
         )
 
     decrypted = await decrypt_json_if_needed(
-        value, encryption_instance, model_type, field=field_name
+        value,
+        encryption_instance,
+        model_type,
+        field=field_name,
     )
 
     # Recursively decrypt subfields defined in NESTED_ENCRYPTED_SUBFIELDS.
@@ -469,7 +479,7 @@ async def _decrypt_field(
                 _decrypt_field(decrypted, sf, encryption_instance, model_type)
                 for sf in NESTED_ENCRYPTED_SUBFIELDS[nested_key]
                 if sf in decrypted
-            ]
+            ],
         )
         for sf_name, sf_value in results:
             decrypted[sf_name] = sf_value
@@ -488,11 +498,7 @@ async def _decrypt_object(
     Only processes fields that exist in the object to avoid adding new fields.
     """
     results = await asyncio.gather(
-        *[
-            _decrypt_field(obj, f, encryption_instance, model_type)
-            for f in fields
-            if f in obj
-        ]
+        *[_decrypt_field(obj, f, encryption_instance, model_type) for f in fields if f in obj],
     )
     for field_name, value in results:
         obj[field_name] = value
@@ -579,8 +585,7 @@ async def decrypt_responses(
         # Even without encryption, the error field is stored as bytes (bytea column)
         # and must be parsed to return as a dict in the API response.
         needs_error_parsing = any(
-            isinstance(obj.get("error"), bytes | memoryview | Fragment)
-            for obj in objects
+            isinstance(obj.get("error"), bytes | memoryview | Fragment) for obj in objects
         )
         if needs_error_parsing:
             results = []
@@ -601,10 +606,7 @@ async def decrypt_responses(
 
     results = [dict(obj) for obj in objects]
     await asyncio.gather(
-        *[
-            _decrypt_object(result, model_type, fields, encryption_instance)
-            for result in results
-        ]
+        *[_decrypt_object(result, model_type, fields, encryption_instance) for result in results],
     )
     return results
 
@@ -646,23 +648,21 @@ async def _encrypt_field(
     if nested_key in NESTED_ENCRYPTED_SUBFIELDS:
         if not isinstance(field_data, dict):
             raise TypeError(
-                f"'{field_name}' must be a dict for encryption, got {type(field_data).__name__}"
+                f"'{field_name}' must be a dict for encryption, got {type(field_data).__name__}",
             )
         for subfield in NESTED_ENCRYPTED_SUBFIELDS[nested_key]:
             subfield_value = field_data.get(subfield)
             if subfield_value is not None and not isinstance(subfield_value, dict):
                 raise TypeError(
                     f"'{subfield}' in '{field_name}' must be a dict for encryption, "
-                    f"got {type(subfield_value).__name__}"
+                    f"got {type(subfield_value).__name__}",
                 )
             if subfield_value:
                 subfields_to_extract[subfield] = subfield_value
 
         if subfields_to_extract:
             # Create a copy without subfields for the first encryption pass
-            field_data = {
-                k: v for k, v in field_data.items() if k not in subfields_to_extract
-            }
+            field_data = {k: v for k, v in field_data.items() if k not in subfields_to_extract}
 
     encrypted = await encrypt_json_if_needed(
         field_data,
@@ -684,7 +684,7 @@ async def _encrypt_field(
                     path=current_path,
                 )
                 for sf_name, sf_value in subfields_to_extract.items()
-            ]
+            ],
         )
         for sf_name, sf_encrypted in subfield_results:
             encrypted[sf_name] = sf_encrypted
@@ -732,11 +732,7 @@ async def encrypt_request(
 
     result = dict(data)
     encrypted_fields = await asyncio.gather(
-        *[
-            _encrypt_field(data, f, encryption_instance, model_type)
-            for f in fields
-            if f in data
-        ]
+        *[_encrypt_field(data, f, encryption_instance, model_type) for f in fields if f in data],
     )
     for field_name, value in encrypted_fields:
         result[field_name] = value

@@ -17,10 +17,7 @@ _client: "JsonHttpClient"
 def is_retriable_error(exception: BaseException) -> bool:
     if isinstance(exception, httpx.TransportError):
         return True
-    return (
-        isinstance(exception, httpx.HTTPStatusError)
-        and exception.response.status_code > 499
-    )
+    return isinstance(exception, httpx.HTTPStatusError) and exception.response.status_code > 499
 
 
 retry_httpx = retry(
@@ -67,7 +64,11 @@ class JsonHttpClient:
         headers: HeaderTypes | None = None,
     ) -> httpx.Response:
         return await self.client.post(
-            path, data=data, json=json, params=params, headers=headers
+            path,
+            data=data,
+            json=json,
+            params=params,
+            headers=headers,
         )
 
     @retry_httpx
@@ -81,7 +82,11 @@ class JsonHttpClient:
         headers: HeaderTypes | None = None,
     ) -> httpx.Response:
         return await self.client.post(
-            path, data=data, json=json, params=params, headers=headers
+            path,
+            data=data,
+            json=json,
+            params=params,
+            headers=headers,
         )
 
 
@@ -100,7 +105,7 @@ def create_client(base_url: str | None = None) -> JsonHttpClient:
             ),
             timeout=httpx.Timeout(2.0),
             base_url=url,
-        )
+        ),
     )
 
 

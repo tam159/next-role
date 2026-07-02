@@ -17,15 +17,15 @@ import croniter
 import grpc
 import orjson
 from google.protobuf.empty_pb2 import Empty
+from psycopg.types.json import Jsonb
+
+from core_server import db
+from core_server._convert import json_bytes, loads, ts
 from langgraph_grpc_common.conversion.config import config_from_proto, config_to_proto
 from langgraph_grpc_common.proto import core_api_pb2 as pb
 from langgraph_grpc_common.proto import enum_cron_on_run_completed_pb2 as cron_orc_pb2
 from langgraph_grpc_common.proto import enum_multitask_strategy_pb2 as ms_pb2
 from langgraph_grpc_common.proto.core_api_pb2_grpc import CronsServicer
-from psycopg.types.json import Jsonb
-
-from core_server import db
-from core_server._convert import json_bytes, loads, ts
 
 _SORT = {
     pb.CronsSortBy.CRONS_SORT_BY_CRON_ID: "cron_id",
@@ -69,7 +69,7 @@ def _payload_proto_to_dict(p: pb.CronPayload) -> dict:
         result["interrupt_after"] = _interrupt_from_proto(p.interrupt_after)
     if p.HasField("multitask_strategy"):
         result["multitask_strategy"] = ms_pb2.MultitaskStrategy.Name(
-            p.multitask_strategy
+            p.multitask_strategy,
         )
     for key, val in p.extra_json.items():
         result[key] = orjson.loads(val)
@@ -112,7 +112,7 @@ def cron_to_proto(row: dict) -> pb.Cron:
         c.thread_id.CopyFrom(pb.UUID(value=str(row["thread_id"])))
     if row.get("on_run_completed"):
         c.on_run_completed = cron_orc_pb2.CronOnRunCompleted.Value(
-            row["on_run_completed"]
+            row["on_run_completed"],
         )
     if row.get("end_time"):
         c.end_time.CopyFrom(ts(row["end_time"]))
@@ -152,7 +152,8 @@ class CronsServicerImpl(CronsServicer):
             next_run_date = _compute_next_run_date(schedule, now)
         except Exception:
             await context.abort(
-                grpc.StatusCode.INVALID_ARGUMENT, f"Invalid cron schedule: {schedule}"
+                grpc.StatusCode.INVALID_ARGUMENT,
+                f"Invalid cron schedule: {schedule}",
             )
 
         orc = (
@@ -197,12 +198,14 @@ class CronsServicerImpl(CronsServicer):
     async def Get(self, request: pb.GetCronRequest, context) -> pb.Cron:
         async with db.pool().connection() as conn, conn.cursor() as cur:
             await cur.execute(
-                "SELECT * FROM cron WHERE cron_id = %s", (request.cron_id.value,)
+                "SELECT * FROM cron WHERE cron_id = %s",
+                (request.cron_id.value,),
             )
             row = await cur.fetchone()
         if row is None:
             await context.abort(
-                grpc.StatusCode.NOT_FOUND, f"Cron {request.cron_id.value} not found"
+                grpc.StatusCode.NOT_FOUND,
+                f"Cron {request.cron_id.value} not found",
             )
         return cron_to_proto(row)
 
@@ -220,7 +223,7 @@ class CronsServicerImpl(CronsServicer):
         if request.HasField("on_run_completed"):
             sets.append("on_run_completed = %(orc)s")
             params["orc"] = cron_orc_pb2.CronOnRunCompleted.Name(
-                request.on_run_completed
+                request.on_run_completed,
             )
         if request.HasField("timezone"):
             sets.append("timezone = %(timezone)s")
@@ -246,19 +249,23 @@ class CronsServicerImpl(CronsServicer):
             row = await cur.fetchone()
         if row is None:
             await context.abort(
-                grpc.StatusCode.NOT_FOUND, f"Cron {request.cron_id.value} not found"
+                grpc.StatusCode.NOT_FOUND,
+                f"Cron {request.cron_id.value} not found",
             )
         return cron_to_proto(row)
 
     async def Delete(self, request: pb.DeleteCronRequest, context) -> Empty:
         async with db.pool().connection() as conn, conn.cursor() as cur:
             await cur.execute(
-                "DELETE FROM cron WHERE cron_id = %s", (request.cron_id.value,)
+                "DELETE FROM cron WHERE cron_id = %s",
+                (request.cron_id.value,),
             )
         return Empty()
 
     async def Search(
-        self, request: pb.SearchCronsRequest, context
+        self,
+        request: pb.SearchCronsRequest,
+        context,
     ) -> pb.SearchCronsResponse:
         where, params = [], {}
         if request.HasField("assistant_id") and request.assistant_id.value:
@@ -318,7 +325,7 @@ class CronsServicerImpl(CronsServicer):
                   AND next_run_date <= now()
                   AND (end_time IS NULL OR end_time > now())
                 ORDER BY next_run_date
-                """
+                """,
             )
             rows = await cur.fetchall()
         resp = pb.NextCronsResponse()
@@ -329,7 +336,9 @@ class CronsServicerImpl(CronsServicer):
         return resp
 
     async def SetNextRunDate(
-        self, request: pb.SetNextRunDateRequest, context
+        self,
+        request: pb.SetNextRunDateRequest,
+        context,
     ) -> Empty:
         next_run_date = (
             request.next_run_date.ToDatetime(tzinfo=UTC)

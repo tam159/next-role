@@ -3,20 +3,24 @@
 isort:skip_file
 """
 
+import builtins as _builtins
+import sys
+import typing as _typing
 from collections import abc as _abc
+
 from google.protobuf import descriptor as _descriptor
 from google.protobuf import message as _message
 from google.protobuf.internal import containers as _containers
 from google.protobuf.internal import enum_type_wrapper as _enum_type_wrapper
-import builtins as _builtins
+
 from . import engine_common_pb2 as _engine_common_pb2
-import sys
-import typing as _typing
 
 if sys.version_info >= (3, 11):
-    from typing import TypeAlias as _TypeAlias, Never as _Never
+    from typing import Never as _Never
+    from typing import TypeAlias as _TypeAlias
 else:
-    from typing_extensions import TypeAlias as _TypeAlias, Never as _Never
+    from typing_extensions import Never as _Never
+    from typing_extensions import TypeAlias as _TypeAlias
 
 DESCRIPTOR: _descriptor.FileDescriptor
 
@@ -38,9 +42,9 @@ class PutRequest(_message.Message):
             key: _builtins.str = ...,
             value: _builtins.str = ...,
         ) -> None: ...
-        _HasFieldArgType: _TypeAlias = _Never  # noqa: Y015
+        _HasFieldArgType: _TypeAlias = _Never
         def HasField(self, field_name: _HasFieldArgType) -> _builtins.bool: ...
-        _ClearFieldArgType: _TypeAlias = _typing.Literal["key", b"key", "value", b"value"]  # noqa: Y015
+        _ClearFieldArgType: _TypeAlias = _typing.Literal["key", b"key", "value", b"value"]
         def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
         def WhichOneof(self, oneof_group: _Never) -> None: ...
 
@@ -64,13 +68,29 @@ class PutRequest(_message.Message):
         metadata: _engine_common_pb2.CheckpointMetadata | None = ...,
         new_versions: _abc.Mapping[_builtins.str, _builtins.str] | None = ...,
     ) -> None: ...
-    _HasFieldArgType: _TypeAlias = _typing.Literal["checkpoint", b"checkpoint", "config", b"config", "metadata", b"metadata"]  # noqa: Y015
+    _HasFieldArgType: _TypeAlias = _typing.Literal[
+        "checkpoint",
+        b"checkpoint",
+        "config",
+        b"config",
+        "metadata",
+        b"metadata",
+    ]
     def HasField(self, field_name: _HasFieldArgType) -> _builtins.bool: ...
-    _ClearFieldArgType: _TypeAlias = _typing.Literal["checkpoint", b"checkpoint", "config", b"config", "metadata", b"metadata", "new_versions", b"new_versions"]  # noqa: Y015
+    _ClearFieldArgType: _TypeAlias = _typing.Literal[
+        "checkpoint",
+        b"checkpoint",
+        "config",
+        b"config",
+        "metadata",
+        b"metadata",
+        "new_versions",
+        b"new_versions",
+    ]
     def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
     def WhichOneof(self, oneof_group: _Never) -> None: ...
 
-Global___PutRequest: _TypeAlias = PutRequest  # noqa: Y015
+Global___PutRequest: _TypeAlias = PutRequest
 
 @_typing.final
 class PutWritesRequest(_message.Message):
@@ -94,13 +114,22 @@ class PutWritesRequest(_message.Message):
         task_id: _builtins.str = ...,
         task_path: _builtins.str = ...,
     ) -> None: ...
-    _HasFieldArgType: _TypeAlias = _typing.Literal["config", b"config"]  # noqa: Y015
+    _HasFieldArgType: _TypeAlias = _typing.Literal["config", b"config"]
     def HasField(self, field_name: _HasFieldArgType) -> _builtins.bool: ...
-    _ClearFieldArgType: _TypeAlias = _typing.Literal["config", b"config", "task_id", b"task_id", "task_path", b"task_path", "writes", b"writes"]  # noqa: Y015
+    _ClearFieldArgType: _TypeAlias = _typing.Literal[
+        "config",
+        b"config",
+        "task_id",
+        b"task_id",
+        "task_path",
+        b"task_path",
+        "writes",
+        b"writes",
+    ]
     def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
     def WhichOneof(self, oneof_group: _Never) -> None: ...
 
-Global___PutWritesRequest: _TypeAlias = PutWritesRequest  # noqa: Y015
+Global___PutWritesRequest: _TypeAlias = PutWritesRequest
 
 @_typing.final
 class Capabilities(_message.Message):
@@ -128,13 +157,22 @@ class Capabilities(_message.Message):
         supports_delete_for_runs: _builtins.bool = ...,
         supports_copy_thread: _builtins.bool = ...,
     ) -> None: ...
-    _HasFieldArgType: _TypeAlias = _Never  # noqa: Y015
+    _HasFieldArgType: _TypeAlias = _Never
     def HasField(self, field_name: _HasFieldArgType) -> _builtins.bool: ...
-    _ClearFieldArgType: _TypeAlias = _typing.Literal["supports_copy_thread", b"supports_copy_thread", "supports_delete_for_runs", b"supports_delete_for_runs", "supports_delete_thread", b"supports_delete_thread", "supports_prune", b"supports_prune"]  # noqa: Y015
+    _ClearFieldArgType: _TypeAlias = _typing.Literal[
+        "supports_copy_thread",
+        b"supports_copy_thread",
+        "supports_delete_for_runs",
+        b"supports_delete_for_runs",
+        "supports_delete_thread",
+        b"supports_delete_thread",
+        "supports_prune",
+        b"supports_prune",
+    ]
     def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
     def WhichOneof(self, oneof_group: _Never) -> None: ...
 
-Global___Capabilities: _TypeAlias = Capabilities  # noqa: Y015
+Global___Capabilities: _TypeAlias = Capabilities
 
 @_typing.final
 class ListRequest(_message.Message):
@@ -158,15 +196,38 @@ class ListRequest(_message.Message):
         before: _engine_common_pb2.EngineRunnableConfig | None = ...,
         limit: _builtins.int | None = ...,
     ) -> None: ...
-    _HasFieldArgType: _TypeAlias = _typing.Literal["_limit", b"_limit", "before", b"before", "config", b"config", "limit", b"limit"]  # noqa: Y015
+    _HasFieldArgType: _TypeAlias = _typing.Literal[
+        "_limit",
+        b"_limit",
+        "before",
+        b"before",
+        "config",
+        b"config",
+        "limit",
+        b"limit",
+    ]
     def HasField(self, field_name: _HasFieldArgType) -> _builtins.bool: ...
-    _ClearFieldArgType: _TypeAlias = _typing.Literal["_limit", b"_limit", "before", b"before", "config", b"config", "filter_json", b"filter_json", "limit", b"limit"]  # noqa: Y015
+    _ClearFieldArgType: _TypeAlias = _typing.Literal[
+        "_limit",
+        b"_limit",
+        "before",
+        b"before",
+        "config",
+        b"config",
+        "filter_json",
+        b"filter_json",
+        "limit",
+        b"limit",
+    ]
     def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
-    _WhichOneofReturnType__limit: _TypeAlias = _typing.Literal["limit"]  # noqa: Y015
-    _WhichOneofArgType__limit: _TypeAlias = _typing.Literal["_limit", b"_limit"]  # noqa: Y015
-    def WhichOneof(self, oneof_group: _WhichOneofArgType__limit) -> _WhichOneofReturnType__limit | None: ...
+    _WhichOneofReturnType__limit: _TypeAlias = _typing.Literal["limit"]
+    _WhichOneofArgType__limit: _TypeAlias = _typing.Literal["_limit", b"_limit"]
+    def WhichOneof(
+        self,
+        oneof_group: _WhichOneofArgType__limit,
+    ) -> _WhichOneofReturnType__limit | None: ...
 
-Global___ListRequest: _TypeAlias = ListRequest  # noqa: Y015
+Global___ListRequest: _TypeAlias = ListRequest
 
 @_typing.final
 class DeleteThreadRequest(_message.Message):
@@ -180,13 +241,13 @@ class DeleteThreadRequest(_message.Message):
         *,
         thread_id: _builtins.str = ...,
     ) -> None: ...
-    _HasFieldArgType: _TypeAlias = _Never  # noqa: Y015
+    _HasFieldArgType: _TypeAlias = _Never
     def HasField(self, field_name: _HasFieldArgType) -> _builtins.bool: ...
-    _ClearFieldArgType: _TypeAlias = _typing.Literal["thread_id", b"thread_id"]  # noqa: Y015
+    _ClearFieldArgType: _TypeAlias = _typing.Literal["thread_id", b"thread_id"]
     def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
     def WhichOneof(self, oneof_group: _Never) -> None: ...
 
-Global___DeleteThreadRequest: _TypeAlias = DeleteThreadRequest  # noqa: Y015
+Global___DeleteThreadRequest: _TypeAlias = DeleteThreadRequest
 
 @_typing.final
 class DeleteForRunsRequest(_message.Message):
@@ -202,13 +263,13 @@ class DeleteForRunsRequest(_message.Message):
         *,
         run_ids: _abc.Iterable[_builtins.str] | None = ...,
     ) -> None: ...
-    _HasFieldArgType: _TypeAlias = _Never  # noqa: Y015
+    _HasFieldArgType: _TypeAlias = _Never
     def HasField(self, field_name: _HasFieldArgType) -> _builtins.bool: ...
-    _ClearFieldArgType: _TypeAlias = _typing.Literal["run_ids", b"run_ids"]  # noqa: Y015
+    _ClearFieldArgType: _TypeAlias = _typing.Literal["run_ids", b"run_ids"]
     def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
     def WhichOneof(self, oneof_group: _Never) -> None: ...
 
-Global___DeleteForRunsRequest: _TypeAlias = DeleteForRunsRequest  # noqa: Y015
+Global___DeleteForRunsRequest: _TypeAlias = DeleteForRunsRequest
 
 @_typing.final
 class CopyThreadRequest(_message.Message):
@@ -226,13 +287,18 @@ class CopyThreadRequest(_message.Message):
         from_thread_id: _builtins.str = ...,
         to_thread_id: _builtins.str = ...,
     ) -> None: ...
-    _HasFieldArgType: _TypeAlias = _Never  # noqa: Y015
+    _HasFieldArgType: _TypeAlias = _Never
     def HasField(self, field_name: _HasFieldArgType) -> _builtins.bool: ...
-    _ClearFieldArgType: _TypeAlias = _typing.Literal["from_thread_id", b"from_thread_id", "to_thread_id", b"to_thread_id"]  # noqa: Y015
+    _ClearFieldArgType: _TypeAlias = _typing.Literal[
+        "from_thread_id",
+        b"from_thread_id",
+        "to_thread_id",
+        b"to_thread_id",
+    ]
     def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
     def WhichOneof(self, oneof_group: _Never) -> None: ...
 
-Global___CopyThreadRequest: _TypeAlias = CopyThreadRequest  # noqa: Y015
+Global___CopyThreadRequest: _TypeAlias = CopyThreadRequest
 
 @_typing.final
 class PruneRequest(_message.Message):
@@ -240,9 +306,12 @@ class PruneRequest(_message.Message):
 
     class _PruneStrategy:
         ValueType = _typing.NewType("ValueType", _builtins.int)
-        V: _TypeAlias = ValueType  # noqa: Y015
+        V: _TypeAlias = ValueType
 
-    class _PruneStrategyEnumTypeWrapper(_enum_type_wrapper._EnumTypeWrapper[PruneRequest._PruneStrategy.ValueType], _builtins.type):
+    class _PruneStrategyEnumTypeWrapper(
+        _enum_type_wrapper._EnumTypeWrapper[PruneRequest._PruneStrategy.ValueType],
+        _builtins.type,
+    ):
         DESCRIPTOR: _descriptor.EnumDescriptor
         UNSPECIFIED: PruneRequest._PruneStrategy.ValueType  # 0
         KEEP_LATEST: PruneRequest._PruneStrategy.ValueType  # 1
@@ -264,13 +333,18 @@ class PruneRequest(_message.Message):
         thread_ids: _abc.Iterable[_builtins.str] | None = ...,
         strategy: Global___PruneRequest.PruneStrategy.ValueType = ...,
     ) -> None: ...
-    _HasFieldArgType: _TypeAlias = _Never  # noqa: Y015
+    _HasFieldArgType: _TypeAlias = _Never
     def HasField(self, field_name: _HasFieldArgType) -> _builtins.bool: ...
-    _ClearFieldArgType: _TypeAlias = _typing.Literal["strategy", b"strategy", "thread_ids", b"thread_ids"]  # noqa: Y015
+    _ClearFieldArgType: _TypeAlias = _typing.Literal[
+        "strategy",
+        b"strategy",
+        "thread_ids",
+        b"thread_ids",
+    ]
     def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
     def WhichOneof(self, oneof_group: _Never) -> None: ...
 
-Global___PruneRequest: _TypeAlias = PruneRequest  # noqa: Y015
+Global___PruneRequest: _TypeAlias = PruneRequest
 
 @_typing.final
 class GetTupleRequest(_message.Message):
@@ -284,13 +358,13 @@ class GetTupleRequest(_message.Message):
         *,
         config: _engine_common_pb2.EngineRunnableConfig | None = ...,
     ) -> None: ...
-    _HasFieldArgType: _TypeAlias = _typing.Literal["config", b"config"]  # noqa: Y015
+    _HasFieldArgType: _TypeAlias = _typing.Literal["config", b"config"]
     def HasField(self, field_name: _HasFieldArgType) -> _builtins.bool: ...
-    _ClearFieldArgType: _TypeAlias = _typing.Literal["config", b"config"]  # noqa: Y015
+    _ClearFieldArgType: _TypeAlias = _typing.Literal["config", b"config"]
     def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
     def WhichOneof(self, oneof_group: _Never) -> None: ...
 
-Global___GetTupleRequest: _TypeAlias = GetTupleRequest  # noqa: Y015
+Global___GetTupleRequest: _TypeAlias = GetTupleRequest
 
 @_typing.final
 class PutResponse(_message.Message):
@@ -304,13 +378,13 @@ class PutResponse(_message.Message):
         *,
         next_config: _engine_common_pb2.EngineRunnableConfig | None = ...,
     ) -> None: ...
-    _HasFieldArgType: _TypeAlias = _typing.Literal["next_config", b"next_config"]  # noqa: Y015
+    _HasFieldArgType: _TypeAlias = _typing.Literal["next_config", b"next_config"]
     def HasField(self, field_name: _HasFieldArgType) -> _builtins.bool: ...
-    _ClearFieldArgType: _TypeAlias = _typing.Literal["next_config", b"next_config"]  # noqa: Y015
+    _ClearFieldArgType: _TypeAlias = _typing.Literal["next_config", b"next_config"]
     def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
     def WhichOneof(self, oneof_group: _Never) -> None: ...
 
-Global___PutResponse: _TypeAlias = PutResponse  # noqa: Y015
+Global___PutResponse: _TypeAlias = PutResponse
 
 @_typing.final
 class ListResponse(_message.Message):
@@ -318,19 +392,21 @@ class ListResponse(_message.Message):
 
     CHECKPOINT_TUPLES_FIELD_NUMBER: _builtins.int
     @_builtins.property
-    def checkpoint_tuples(self) -> _containers.RepeatedCompositeFieldContainer[_engine_common_pb2.CheckpointTuple]: ...
+    def checkpoint_tuples(
+        self,
+    ) -> _containers.RepeatedCompositeFieldContainer[_engine_common_pb2.CheckpointTuple]: ...
     def __init__(
         self,
         *,
         checkpoint_tuples: _abc.Iterable[_engine_common_pb2.CheckpointTuple] | None = ...,
     ) -> None: ...
-    _HasFieldArgType: _TypeAlias = _Never  # noqa: Y015
+    _HasFieldArgType: _TypeAlias = _Never
     def HasField(self, field_name: _HasFieldArgType) -> _builtins.bool: ...
-    _ClearFieldArgType: _TypeAlias = _typing.Literal["checkpoint_tuples", b"checkpoint_tuples"]  # noqa: Y015
+    _ClearFieldArgType: _TypeAlias = _typing.Literal["checkpoint_tuples", b"checkpoint_tuples"]
     def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
     def WhichOneof(self, oneof_group: _Never) -> None: ...
 
-Global___ListResponse: _TypeAlias = ListResponse  # noqa: Y015
+Global___ListResponse: _TypeAlias = ListResponse
 
 @_typing.final
 class GetTupleResponse(_message.Message):
@@ -344,12 +420,28 @@ class GetTupleResponse(_message.Message):
         *,
         checkpoint_tuple: _engine_common_pb2.CheckpointTuple | None = ...,
     ) -> None: ...
-    _HasFieldArgType: _TypeAlias = _typing.Literal["_checkpoint_tuple", b"_checkpoint_tuple", "checkpoint_tuple", b"checkpoint_tuple"]  # noqa: Y015
+    _HasFieldArgType: _TypeAlias = _typing.Literal[
+        "_checkpoint_tuple",
+        b"_checkpoint_tuple",
+        "checkpoint_tuple",
+        b"checkpoint_tuple",
+    ]
     def HasField(self, field_name: _HasFieldArgType) -> _builtins.bool: ...
-    _ClearFieldArgType: _TypeAlias = _typing.Literal["_checkpoint_tuple", b"_checkpoint_tuple", "checkpoint_tuple", b"checkpoint_tuple"]  # noqa: Y015
+    _ClearFieldArgType: _TypeAlias = _typing.Literal[
+        "_checkpoint_tuple",
+        b"_checkpoint_tuple",
+        "checkpoint_tuple",
+        b"checkpoint_tuple",
+    ]
     def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
-    _WhichOneofReturnType__checkpoint_tuple: _TypeAlias = _typing.Literal["checkpoint_tuple"]  # noqa: Y015
-    _WhichOneofArgType__checkpoint_tuple: _TypeAlias = _typing.Literal["_checkpoint_tuple", b"_checkpoint_tuple"]  # noqa: Y015
-    def WhichOneof(self, oneof_group: _WhichOneofArgType__checkpoint_tuple) -> _WhichOneofReturnType__checkpoint_tuple | None: ...
+    _WhichOneofReturnType__checkpoint_tuple: _TypeAlias = _typing.Literal["checkpoint_tuple"]
+    _WhichOneofArgType__checkpoint_tuple: _TypeAlias = _typing.Literal[
+        "_checkpoint_tuple",
+        b"_checkpoint_tuple",
+    ]
+    def WhichOneof(
+        self,
+        oneof_group: _WhichOneofArgType__checkpoint_tuple,
+    ) -> _WhichOneofReturnType__checkpoint_tuple | None: ...
 
-Global___GetTupleResponse: _TypeAlias = GetTupleResponse  # noqa: Y015
+Global___GetTupleResponse: _TypeAlias = GetTupleResponse

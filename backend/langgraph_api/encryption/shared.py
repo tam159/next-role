@@ -26,7 +26,7 @@ BLOB_ENCRYPTION_CONTEXT_KEY = "__blob_encryption_context__"
 
 # Reserved keys that should never appear in user-facing responses
 RESERVED_ENCRYPTION_KEYS = frozenset(
-    {ENCRYPTION_CONTEXT_KEY, BLOB_ENCRYPTION_CONTEXT_KEY}
+    {ENCRYPTION_CONTEXT_KEY, BLOB_ENCRYPTION_CONTEXT_KEY},
 )
 
 
@@ -82,10 +82,7 @@ def using_custom_encryption() -> bool:
     """
     from langgraph_api.encryption.custom import JsonEncryptionWrapper  # noqa: PLC0415
 
-    return (
-        isinstance(get_encryption(), JsonEncryptionWrapper)
-        and get_encryption().has_custom
-    )
+    return isinstance(get_encryption(), JsonEncryptionWrapper) and get_encryption().has_custom
 
 
 @functools.lru_cache(maxsize=1)

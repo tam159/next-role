@@ -108,7 +108,7 @@ def _configurable_from_proto(
 
     if config_proto.HasField("durability"):
         if durability := conversion.durability.durability_from_proto(
-            config_proto.durability
+            config_proto.durability,
         ):
             configurable[CONFIG_KEY_DURABILITY] = durability
 
@@ -117,8 +117,7 @@ def _configurable_from_proto(
 
     if len(config_proto.root_stream_modes) > 0:
         root_modes: set[str] = {
-            enum_stream_mode_pb2.StreamMode.Name(mode)
-            for mode in config_proto.root_stream_modes
+            enum_stream_mode_pb2.StreamMode.Name(mode) for mode in config_proto.root_stream_modes
         }
         # required for OSS custom event emission which checks CONFIG_KEY_STREAM.modes
         configurable[CONFIG_KEY_STREAM] = StreamProtocol(
@@ -151,8 +150,7 @@ def _configurable_from_proto(
     if len(config_proto.resume_map) > 0:
         resume_map_proto = dict(config_proto.resume_map)
         configurable[CONFIG_KEY_RESUME_MAP] = {
-            k: conversion.value.serialized_value_from_proto(v)
-            for k, v in resume_map_proto.items()
+            k: conversion.value.serialized_value_from_proto(v) for k, v in resume_map_proto.items()
         }
 
     if len(config_proto.extra_configurable_json) > 0:
@@ -197,7 +195,8 @@ def config_to_proto(
         else:
             try:
                 pb_config.metadata_json[k] = orjson.dumps(
-                    v, default=_default_serializer
+                    v,
+                    default=_default_serializer,
                 )
             except Exception:
                 logger.warning(
@@ -211,9 +210,7 @@ def config_to_proto(
     if run_name := config.get("run_name"):
         pb_config.run_name = run_name
 
-    if (run_id := config.get("run_id")) or (
-        run_id := config.get("configurable", {}).get("run_id")
-    ):
+    if (run_id := config.get("run_id")) or (run_id := config.get("configurable", {}).get("run_id")):
         pb_config.run_id = str(run_id)
 
     if max_concurrency := config.get("max_concurrency"):
@@ -265,7 +262,8 @@ RESTRICTED_RESERVED_CONFIGURABLE_KEYS = {
 
 
 def _inject_configurable_into_proto(
-    configurable: dict[str, Any], proto: engine_common_pb2.EngineRunnableConfig
+    configurable: dict[str, Any],
+    proto: engine_common_pb2.EngineRunnableConfig,
 ) -> None:
     extra = {}
     for key, value in configurable.items():
@@ -291,7 +289,7 @@ def _inject_configurable_into_proto(
             if value is not None:
                 for k, v in cast("dict[str, Any]", value).items():
                     proto.resume_map[k].CopyFrom(
-                        conversion.value.any_to_serialized_value(v)
+                        conversion.value.any_to_serialized_value(v),
                     )
         elif key == CONFIG_KEY_RUNTIME:
             if value is not None:
@@ -301,9 +299,7 @@ def _inject_configurable_into_proto(
                 proto.durability = conversion.durability.durability_to_proto(value)
         elif key == CONFIG_KEY_ROOT_STREAM_MODES:
             if value is not None:
-                converted = [
-                    enum_stream_mode_pb2.StreamMode.Value(mode) for mode in value
-                ]
+                converted = [enum_stream_mode_pb2.StreamMode.Value(mode) for mode in value]
                 proto.root_stream_modes.extend(converted)
         elif key == CONFIG_KEY_TRACING_PROJECT:
             if value is not None:
@@ -318,7 +314,8 @@ def _inject_configurable_into_proto(
         for k, v in extra.items():
             try:
                 extra_configurable_json[k] = orjson.dumps(
-                    v, default=_default_serializer
+                    v,
+                    default=_default_serializer,
                 )
             except Exception:
                 logger.warning(

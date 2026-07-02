@@ -93,9 +93,7 @@ def compute_python_publish_tags(
 
     suf = _python_suffix(distro)
     pyfrag = f"py{py_version}"
-    runtime_alias = (
-        f"{py_version}{suf}" if channel == "stable" else f"{channel}-{pyfrag}{suf}"
-    )
+    runtime_alias = f"{py_version}{suf}" if channel == "stable" else f"{channel}-{pyfrag}{suf}"
     is_stable_channel = channel == "stable"
     channel_pinned_alias = (
         f"{runtime_alias}-{sha}" if is_stable_channel else f"{ver_patch}-{pyfrag}{suf}"
@@ -207,9 +205,7 @@ def compute_js_publish_tags(
     )
     is_stable_channel = channel == "stable"
     channel_pinned_alias = (
-        f"{runtime_alias}-{sha}"
-        if is_stable_channel
-        else f"{ver_patch}-node{node_version}{suffix}"
+        f"{runtime_alias}-{sha}" if is_stable_channel else f"{ver_patch}-node{node_version}{suffix}"
     )
     secondary_tag = _stable_or_channel_tag(
         is_stable_channel=is_stable_channel,

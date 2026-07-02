@@ -50,7 +50,9 @@ def _get_org_id() -> str | None:
     client = Client()
     try:
         response = client.request_with_retries(
-            "GET", "/api/v1/sessions", params={"limit": 1}
+            "GET",
+            "/api/v1/sessions",
+            params={"limit": 1},
         )
         result = response.json()
         if result:
@@ -109,7 +111,11 @@ def _find_open_port(host: str) -> int:
 
 
 def _resolve_server_url(
-    host: str, port: int, *, mount_prefix: str | None, tunnel: bool
+    host: str,
+    port: int,
+    *,
+    mount_prefix: str | None,
+    tunnel: bool,
 ) -> str:
     """Return the public-facing base URL for the server.
 
@@ -217,7 +223,7 @@ def run_server(
 
         except ImportError:
             logger.warning(
-                "python_dotenv is not installed. Environment variables will not be available."
+                "python_dotenv is not installed. Environment variables will not be available.",
             )
 
     if debug_port is not None:
@@ -229,12 +235,12 @@ def run_server(
             return
         debugpy.listen((host, debug_port))
         logger.info(
-            f"🐛 Debugger listening on port {debug_port}. Waiting for client to attach..."
+            f"🐛 Debugger listening on port {debug_port}. Waiting for client to attach...",
         )
         logger.info("To attach the debugger:")
         logger.info("1. Open your python debugger client (e.g., Visual Studio Code).")
         logger.info(
-            "2. Use the 'Remote Attach' configuration with the following settings:"
+            "2. Use the 'Remote Attach' configuration with the following settings:",
         )
         logger.info("   - Host: 0.0.0.0")
         logger.info(f"   - Port: {debug_port}")
@@ -253,7 +259,7 @@ def run_server(
         DATABASE_URI=__database_uri__,
         REDIS_URI=__redis_uri__,
         N_JOBS_PER_WORKER=str(
-            n_jobs_per_worker if n_jobs_per_worker is not None else 1
+            n_jobs_per_worker if n_jobs_per_worker is not None else 1,
         ),
         LANGGRAPH_STORE=json.dumps(store) if store else None,
         LANGSERVE_GRAPHS=json.dumps(graphs) if graphs else None,
@@ -283,7 +289,10 @@ def run_server(
 
     with patch_environment(**to_patch):
         local_url = _resolve_server_url(
-            host, port, mount_prefix=mount_prefix, tunnel=tunnel
+            host,
+            port,
+            mount_prefix=mount_prefix,
+            tunnel=tunnel,
         )
         os.environ["LANGGRAPH_API_URL"] = local_url
 
@@ -313,14 +322,14 @@ def run_server(
                                         full_studio_url = f"{studio_origin}/studio/?baseUrl={local_url}&organizationId={org_id}"
                                 except TimeoutError as e:
                                     thread_logger.debug(
-                                        f"Failed to get organization ID: {e!s}"
+                                        f"Failed to get organization ID: {e!s}",
                                     )
                                     pass
                                 thread_logger.info(
-                                    f"Server started in {time.time() - start_time:.2f}s"
+                                    f"Server started in {time.time() - start_time:.2f}s",
                                 )
                                 thread_logger.info(
-                                    "🎨 Opening Studio in your browser..."
+                                    "🎨 Opening Studio in your browser...",
                                 )
                                 thread_logger.info("URL: " + full_studio_url)
                                 webbrowser.open(full_studio_url)
@@ -359,9 +368,7 @@ For production use, please use LangSmith Deployment.
                 daemon=True,
             ).start()
         supported_kwargs = {
-            k: v
-            for k, v in kwargs.items()
-            if k in inspect.signature(uvicorn.run).parameters
+            k: v for k, v in kwargs.items() if k in inspect.signature(uvicorn.run).parameters
         }
         server_level = server_level.upper()
         uvicorn.run(
@@ -380,14 +387,14 @@ For production use, please use LangSmith Deployment.
                 "formatters": {
                     "simple": {
                         "class": "langgraph_api.logging.Formatter",
-                    }
+                    },
                 },
                 "handlers": {
                     "console": {
                         "class": "logging.StreamHandler",
                         "formatter": "simple",
                         "stream": "ext://sys.stdout",
-                    }
+                    },
                 },
                 "loggers": {
                     "uvicorn": {"level": server_level},
@@ -402,10 +409,12 @@ For production use, please use LangSmith Deployment.
 
 def main():
     parser = argparse.ArgumentParser(
-        description="CLI entrypoint for running the LangGraph API server."
+        description="CLI entrypoint for running the LangGraph API server.",
     )
     parser.add_argument(
-        "--host", default="127.0.0.1", help="Host to bind the server to"
+        "--host",
+        default="127.0.0.1",
+        help="Host to bind the server to",
     )
     parser.add_argument(
         "--port",
@@ -415,7 +424,9 @@ def main():
     )
     parser.add_argument("--no-reload", action="store_true", help="Disable auto-reload")
     parser.add_argument(
-        "--config", default="langgraph.json", help="Path to configuration file"
+        "--config",
+        default="langgraph.json",
+        help="Path to configuration file",
     )
     parser.add_argument(
         "--n-jobs-per-worker",
@@ -423,10 +434,14 @@ def main():
         help="Number of jobs per worker. Default is None (meaning 10)",
     )
     parser.add_argument(
-        "--open-browser", action="store_true", help="Open browser automatically"
+        "--open-browser",
+        action="store_true",
+        help="Open browser automatically",
     )
     parser.add_argument(
-        "--debug-port", type=int, help="Port for debugger to listen on (default: none)"
+        "--debug-port",
+        type=int,
+        help="Port for debugger to listen on (default: none)",
     )
     parser.add_argument(
         "--wait-for-client",
@@ -508,13 +523,14 @@ def _check_newer_version(pkg: str, current_version: str, timeout: float = 0.5) -
         current = Version(current_version)
     except InvalidVersion:
         log.info(
-            f"[version] Could not parse installed version {current_version!r}. Skipping support check."
+            f"[version] Could not parse installed version {current_version!r}. Skipping support check.",
         )
         return
 
     try:
         with urllib.request.urlopen(
-            f"https://pypi.org/pypi/{pkg}/json", timeout=timeout
+            f"https://pypi.org/pypi/{pkg}/json",
+            timeout=timeout,
         ) as resp:
             payload = json.load(resp)
         latest_str = payload["info"]["version"]
@@ -533,7 +549,8 @@ def _check_newer_version(pkg: str, current_version: str, timeout: float = 0.5) -
         ]
         if prev_major_versions:
             prev_major_latest_minor = max(
-                prev_major_versions, key=lambda v: (v.major, v.minor, v.micro)
+                prev_major_versions,
+                key=lambda v: (v.major, v.minor, v.micro),
             )
 
     if latest > current and not current.is_prerelease:
@@ -546,9 +563,7 @@ def _check_newer_version(pkg: str, current_version: str, timeout: float = 0.5) -
         )
 
     level = _support_level(current, latest, prev_major_latest_minor)
-    changelog = (
-        "https://docs.langchain.com/langgraph-platform/langgraph-server-changelog"
-    )
+    changelog = "https://docs.langchain.com/langgraph-platform/langgraph-server-changelog"
 
     if level == "critical":
         # Distinguish same-major vs cross-major grace in the wording
@@ -582,7 +597,9 @@ def _check_newer_version(pkg: str, current_version: str, timeout: float = 0.5) -
 
 
 def _support_level(
-    cur: "Version", lat: "Version", prev_major_latest_minor: "Version | None"
+    cur: "Version",
+    lat: "Version",
+    prev_major_latest_minor: "Version | None",
 ) -> SUPPORT_STATUS:
     if cur.major > lat.major:
         return "active"
@@ -596,10 +613,7 @@ def _support_level(
         return "active"
 
     if cur.major == lat.major - 1 and lat.minor == 0:
-        if (
-            prev_major_latest_minor is not None
-            and cur.minor == prev_major_latest_minor.minor
-        ):
+        if prev_major_latest_minor is not None and cur.minor == prev_major_latest_minor.minor:
             return "critical"
         return "eol"
 

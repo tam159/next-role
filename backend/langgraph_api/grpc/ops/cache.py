@@ -8,9 +8,9 @@ if TYPE_CHECKING:
     from datetime import timedelta
 
 from google.protobuf.duration_pb2 import Duration  # type: ignore[import]
-from langgraph_grpc_common.proto import core_api_pb2 as pb
 
 from langgraph_api.grpc.client import get_shared_client
+from langgraph_grpc_common.proto import core_api_pb2 as pb
 
 
 async def cache_get(key: str) -> bytes | None:

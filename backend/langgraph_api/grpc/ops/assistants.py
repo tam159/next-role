@@ -6,9 +6,6 @@ from datetime import UTC
 from typing import TYPE_CHECKING, Any
 from uuid import UUID
 
-from langgraph_grpc_common.conversion import config as config_conversion
-from langgraph_grpc_common.proto import core_api_pb2 as pb
-
 from langgraph_api.grpc.client import get_shared_client
 from langgraph_api.grpc.ops import (
     Authenticated,
@@ -27,6 +24,8 @@ from langgraph_api.schema import (
     OnConflictBehavior,
 )
 from langgraph_api.serde import json_dumpb_optional, json_loads_optional
+from langgraph_grpc_common.conversion import config as config_conversion
+from langgraph_grpc_common.proto import core_api_pb2 as pb
 
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator
@@ -35,9 +34,7 @@ if TYPE_CHECKING:
 def proto_to_assistant(proto_assistant: pb.Assistant) -> Assistant:
     """Convert protobuf Assistant to dictionary format."""
     # Preserve None for optional scalar fields by checking presence via HasField
-    description = (
-        proto_assistant.description if proto_assistant.HasField("description") else None
-    )
+    description = proto_assistant.description if proto_assistant.HasField("description") else None
     return {
         "assistant_id": proto_assistant.assistant_id,
         "graph_id": proto_assistant.graph_id,
@@ -118,9 +115,7 @@ class Assistants(Authenticated):
         response = await client.assistants.Search(request)
 
         # Convert response to expected format
-        assistants = [
-            proto_to_assistant(assistant) for assistant in response.assistants
-        ]
+        assistants = [proto_to_assistant(assistant) for assistant in response.assistants]
 
         # Determine if there are more results
         # Note: gRPC doesn't return cursor info, so we estimate based on result count
@@ -128,9 +123,7 @@ class Assistants(Authenticated):
 
         async def generate_results():
             for assistant in assistants:
-                yield {
-                    k: v for k, v in assistant.items() if select is None or k in select
-                }
+                yield {k: v for k, v in assistant.items() if select is None or k in select}
 
         return generate_results(), cursor
 
@@ -143,7 +136,9 @@ class Assistants(Authenticated):
         """Get assistant by ID via gRPC."""
         # Handle auth filters
         auth_filters = await Assistants.handle_event(
-            ctx, "read", {"assistant_id": str(assistant_id)}
+            ctx,
+            "read",
+            {"assistant_id": str(assistant_id)},
         )
 
         # Build the gRPC request
@@ -299,7 +294,9 @@ class Assistants(Authenticated):
         """Delete assistant via gRPC."""
         # Handle auth filters
         auth_filters = await Assistants.handle_event(
-            ctx, "delete", {"assistant_id": str(assistant_id)}
+            ctx,
+            "delete",
+            {"assistant_id": str(assistant_id)},
         )
 
         # Build the gRPC request
@@ -416,7 +413,9 @@ class Assistants(Authenticated):
         """Count assistants via gRPC."""
         # Handle auth filters
         auth_filters = await Assistants.handle_event(
-            ctx, "search", {"graph_id": graph_id, "metadata": metadata}
+            ctx,
+            "search",
+            {"graph_id": graph_id, "metadata": metadata},
         )
 
         # Build the gRPC request

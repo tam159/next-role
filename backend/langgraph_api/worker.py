@@ -53,9 +53,7 @@ if IS_POSTGRES_OR_GRPC_BACKEND:
     from langgraph_api.grpc.ops import Runs, Threads
     from langgraph_api.grpc.ops.runs import GrpcRetryableException
 
-    GRPC_RETRIABLE_EXCEPTIONS: tuple[type[BaseException], ...] = (
-        GrpcRetryableException,
-    )
+    GRPC_RETRIABLE_EXCEPTIONS: tuple[type[BaseException], ...] = (GrpcRetryableException,)
 else:
     from langgraph_runtime.ops import Runs, Threads
 
@@ -82,13 +80,12 @@ class WorkerResult(TypedDict):
 
 @asynccontextmanager
 async def set_auth_ctx_for_run(
-    run_kwargs: dict, user_id: str | None = None
+    run_kwargs: dict,
+    user_id: str | None = None,
 ) -> AsyncGenerator[None, None]:
     # user_id is a fallback.
     try:
-        permissions = (
-            run_kwargs["config"]["configurable"].get("langgraph_auth_permissions") or []
-        )
+        permissions = run_kwargs["config"]["configurable"].get("langgraph_auth_permissions") or []
         user = run_kwargs["config"]["configurable"].get("langgraph_auth_user")
         if not user:
             user = SimpleUser(user_id) if user_id is not None else None
@@ -122,14 +119,16 @@ async def worker(
     # Extract and set encryption context BEFORE decryption (decrypt_response strips this key)
     if encryption_context is None:
         encryption_context = extract_blob_encryption_context(
-            run["kwargs"].get("config")
+            run["kwargs"].get("config"),
         )
     if encryption_context:
         set_encryption_context(encryption_context)
 
     # Decrypt kwargs fields FIRST, before any access to run["kwargs"]
     run["kwargs"] = await decrypt_response(
-        run["kwargs"], "run", RUN_KWARGS_ENCRYPTION_SUBFIELDS
+        run["kwargs"],
+        "run",
+        RUN_KWARGS_ENCRYPTION_SUBFIELDS,
     )
 
     checkpoint: CheckpointPayload | None = None
@@ -137,7 +136,7 @@ async def worker(
     status: str | None = None
     webhook = run["kwargs"].get("webhook", None)
     request_created_at: int | None = run["kwargs"]["config"]["configurable"].get(
-        "__request_start_time_ms__"
+        "__request_start_time_ms__",
     )
     after_seconds = run["kwargs"]["config"]["configurable"].get("__after_seconds__", 0)
     run_started_at_dt = datetime.now(UTC)
@@ -148,8 +147,7 @@ async def worker(
     # Note that "created_at" is inclusive of the `after_seconds`
     run_creation_ms = (
         int(
-            ((run["created_at"].timestamp() - after_seconds) * 1_000)
-            - request_created_at
+            ((run["created_at"].timestamp() - after_seconds) * 1_000) - request_created_at,
         )
         if request_created_at is not None
         else None
@@ -170,7 +168,7 @@ async def worker(
             "assistant_id": str(run.get("assistant_id")),
             "graph_id": str(_get_graph_id(run)),
             "request_id": str(_get_request_id(run)),
-        }
+        },
     )
     run_stream_started_at_dt = datetime.now(UTC)
     await logger.ainfo(
@@ -205,7 +203,11 @@ async def worker(
     ):
         try:
             await consume(
-                stream, run_id, resumable, stream_modes, thread_id=run["thread_id"]
+                stream,
+                run_id,
+                resumable,
+                stream_modes,
+                thread_id=run["thread_id"],
             )
         except Exception as e:
             if not isinstance(e, UserRollback | UserInterrupt):
@@ -247,10 +249,14 @@ async def worker(
             async with set_auth_ctx_for_run(run["kwargs"]):
                 with (
                     restore_otel_trace_context(
-                        configurable, run_id=str(run_id), thread_id=str(thread_id)
+                        configurable,
+                        run_id=str(run_id),
+                        thread_id=str(thread_id),
                     ),
                     restore_dd_trace_context(
-                        configurable, run_id=str(run_id), thread_id=str(thread_id)
+                        configurable,
+                        run_id=str(run_id),
+                        thread_id=str(thread_id),
                     ),
                 ):
                     if temporary:
@@ -264,7 +270,7 @@ async def worker(
                             on_task_result=on_task_result,
                         )
                     stream_modes: set[StreamMode] = set(
-                        run["kwargs"].get("stream_mode", [])
+                        run["kwargs"].get("stream_mode", []),
                     )
                     await asyncio.wait_for(
                         wrap_user_errors(stream, run_id, resumable, stream_modes),
@@ -323,7 +329,9 @@ async def worker(
                         # This only doubles up connections for inmem which is fine
                         async with connect(supports_core_api=False) as conn:
                             state_snapshot = await Threads.State.get(
-                                conn, run["kwargs"]["config"], subgraphs=False
+                                conn,
+                                run["kwargs"]["config"],
+                                subgraphs=False,
                             )
                             checkpoint = state_snapshot_to_thread_state(state_snapshot)
                     except Exception:

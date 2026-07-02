@@ -27,7 +27,7 @@ _TRANSPORT_KWARGS = frozenset(
         "http2",
         "retries",
         "limits",
-    }
+    },
 )
 
 
@@ -114,7 +114,9 @@ class SSRFSafeTransport(httpx.AsyncBaseTransport):
             )
         except socket.gaierror as exc:
             logger.warning(
-                "ssrf_blocked", hostname=hostname, reason="DNS resolution failed"
+                "ssrf_blocked",
+                hostname=hostname,
+                reason="DNS resolution failed",
             )
             raise SSRFBlockedError("DNS resolution failed") from exc
 

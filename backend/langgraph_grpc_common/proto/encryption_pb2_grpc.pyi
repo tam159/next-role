@@ -3,13 +3,15 @@
 isort:skip_file
 """
 
-from collections import abc as _abc
-from grpc import aio as _aio
 import abc as _abc_1
-from . import encryption_pb2 as _encryption_pb2
-import grpc as _grpc
 import sys
 import typing as _typing
+from collections import abc as _abc
+
+import grpc as _grpc
+from grpc import aio as _aio
+
+from . import encryption_pb2 as _encryption_pb2
 
 if sys.version_info >= (3, 11):
     from typing import Self as _Self
@@ -19,7 +21,6 @@ else:
 _T = _typing.TypeVar("_T")
 
 class _MaybeAsyncIterator(_abc.AsyncIterator[_T], _abc.Iterator[_T], metaclass=_abc_1.ABCMeta): ...
-
 class _ServicerContext(_grpc.ServicerContext, _aio.ServicerContext):  # type: ignore[misc, type-arg]
     ...
 
@@ -33,9 +34,15 @@ class EncryptionStub:
     def __new__(cls, channel: _grpc.Channel) -> _Self: ...
     @_typing.overload
     def __new__(cls, channel: _aio.Channel) -> EncryptionAsyncStub: ...
-    EncryptJSON: _grpc.UnaryUnaryMultiCallable[_encryption_pb2.EncryptJSONRequest, _encryption_pb2.EncryptResponse]
+    EncryptJSON: _grpc.UnaryUnaryMultiCallable[
+        _encryption_pb2.EncryptJSONRequest,
+        _encryption_pb2.EncryptResponse,
+    ]
     """Encrypt JSON data (e.g., thread metadata, run kwargs)."""
-    DecryptJSON: _grpc.UnaryUnaryMultiCallable[_encryption_pb2.DecryptJSONRequest, _encryption_pb2.DecryptResponse]
+    DecryptJSON: _grpc.UnaryUnaryMultiCallable[
+        _encryption_pb2.DecryptJSONRequest,
+        _encryption_pb2.DecryptResponse,
+    ]
     """Decrypt JSON data. Context is extracted from __encryption_context__ in the data."""
 
 @_typing.type_check_only
@@ -43,9 +50,15 @@ class EncryptionAsyncStub(EncryptionStub):
     """Encryption service for custom encryption implementations."""
 
     def __init__(self, channel: _aio.Channel) -> None: ...
-    EncryptJSON: _aio.UnaryUnaryMultiCallable[_encryption_pb2.EncryptJSONRequest, _encryption_pb2.EncryptResponse]  # type: ignore[assignment]
+    EncryptJSON: _aio.UnaryUnaryMultiCallable[
+        _encryption_pb2.EncryptJSONRequest,
+        _encryption_pb2.EncryptResponse,
+    ]  # type: ignore[assignment]
     """Encrypt JSON data (e.g., thread metadata, run kwargs)."""
-    DecryptJSON: _aio.UnaryUnaryMultiCallable[_encryption_pb2.DecryptJSONRequest, _encryption_pb2.DecryptResponse]  # type: ignore[assignment]
+    DecryptJSON: _aio.UnaryUnaryMultiCallable[
+        _encryption_pb2.DecryptJSONRequest,
+        _encryption_pb2.DecryptResponse,
+    ]  # type: ignore[assignment]
     """Decrypt JSON data. Context is extracted from __encryption_context__ in the data."""
 
 class EncryptionServicer(metaclass=_abc_1.ABCMeta):
@@ -56,7 +69,10 @@ class EncryptionServicer(metaclass=_abc_1.ABCMeta):
         self,
         request: _encryption_pb2.EncryptJSONRequest,
         context: _ServicerContext,
-    ) -> _typing.Union[_encryption_pb2.EncryptResponse, _abc.Awaitable[_encryption_pb2.EncryptResponse]]:
+    ) -> _typing.Union[
+        _encryption_pb2.EncryptResponse,
+        _abc.Awaitable[_encryption_pb2.EncryptResponse],
+    ]:
         """Encrypt JSON data (e.g., thread metadata, run kwargs)."""
 
     @_abc_1.abstractmethod
@@ -64,7 +80,13 @@ class EncryptionServicer(metaclass=_abc_1.ABCMeta):
         self,
         request: _encryption_pb2.DecryptJSONRequest,
         context: _ServicerContext,
-    ) -> _typing.Union[_encryption_pb2.DecryptResponse, _abc.Awaitable[_encryption_pb2.DecryptResponse]]:
+    ) -> _typing.Union[
+        _encryption_pb2.DecryptResponse,
+        _abc.Awaitable[_encryption_pb2.DecryptResponse],
+    ]:
         """Decrypt JSON data. Context is extracted from __encryption_context__ in the data."""
 
-def add_EncryptionServicer_to_server(servicer: EncryptionServicer, server: _typing.Union[_grpc.Server, _aio.Server]) -> None: ...
+def add_EncryptionServicer_to_server(
+    servicer: EncryptionServicer,
+    server: _typing.Union[_grpc.Server, _aio.Server],
+) -> None: ...

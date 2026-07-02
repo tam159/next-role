@@ -19,13 +19,13 @@ from langgraph.checkpoint.base import (
 )
 from langgraph.graph import StateGraph
 from langgraph.pregel import Pregel
-from langgraph_grpc_common.checkpointer import GrpcCheckpointer
 
 from langgraph_api import config, timing
 from langgraph_api.asyncio import as_asynccontextmanager
 from langgraph_api.grpc.client import get_shared_client
 from langgraph_api.timing import profiled_import
 from langgraph_api.utils.config import run_in_executor
+from langgraph_grpc_common.checkpointer import GrpcCheckpointer
 
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator, Callable, Iterable, Sequence
@@ -37,18 +37,16 @@ if TYPE_CHECKING:
         CheckpointMetadata,
         CheckpointTuple,
     )
-    from langgraph_grpc_common.proto.checkpointer_pb2_grpc import CheckpointerStub
 
     from langgraph_api._checkpointer.protocol import (
         CheckpointerProtocol,
         FullCheckpointerProtocol,
     )
+    from langgraph_grpc_common.proto.checkpointer_pb2_grpc import CheckpointerStub
 
 logger = structlog.stdlib.get_logger(__name__)
 
-CUSTOM_CHECKPOINTER: BaseCheckpointSaver | Callable[[], BaseCheckpointSaver] | None = (
-    None
-)
+CUSTOM_CHECKPOINTER: BaseCheckpointSaver | Callable[[], BaseCheckpointSaver] | None = None
 # Capabilities singleton - computed once when the first adapter is created
 _CHECKPOINTER_CAPABILITIES: CheckpointerCapabilities | None = None
 # Connection pools, futures, etc. are commonly scoped to a single event loop, so we
@@ -93,7 +91,9 @@ class CheckpointerCapabilities:
 
 class _CustomCheckpointerAdapter(BaseCheckpointSaver):
     def __init__(
-        self, inner: BaseCheckpointSaver, capabilities: CheckpointerCapabilities
+        self,
+        inner: BaseCheckpointSaver,
+        capabilities: CheckpointerCapabilities,
     ) -> None:
         _validate_required_methods(inner)
         self._inner = inner
@@ -168,7 +168,7 @@ class _CustomCheckpointerAdapter(BaseCheckpointSaver):
             await self._inner.adelete_thread(thread_id)
             return
         raise RuntimeError(
-            "Please implement adelete_thread in your custom checkpointer to support thread deletion."
+            "Please implement adelete_thread in your custom checkpointer to support thread deletion.",
         )
 
     async def adelete_for_runs(self, run_ids: Iterable[str]) -> None:
@@ -179,7 +179,7 @@ class _CustomCheckpointerAdapter(BaseCheckpointSaver):
             "adelete_for_runs is not implemented by your custom checkpointer. "
             "This method is required for multitask_strategy='rollback' to clean "
             "up checkpoints from cancelled runs. Please implement adelete_for_runs "
-            "on your checkpointer class."
+            "on your checkpointer class.",
         )
 
     async def acopy_thread(self, source_thread_id: str, target_thread_id: str) -> None:
@@ -196,7 +196,7 @@ class _CustomCheckpointerAdapter(BaseCheckpointSaver):
                 "configurable": {
                     "thread_id": target_thread_id,
                     "checkpoint_ns": ns,
-                }
+                },
             }
             parent_config = cp.parent_config
             if parent_config and parent_config.get("configurable"):
@@ -220,7 +220,10 @@ class _CustomCheckpointerAdapter(BaseCheckpointSaver):
                     await self._inner.aput_writes(stored_config, writes, task_id)
 
     async def aprune(
-        self, thread_ids: Sequence[str], *, strategy: str = "keep_latest"
+        self,
+        thread_ids: Sequence[str],
+        *,
+        strategy: str = "keep_latest",
     ) -> None:
         if self._capabilities.has_aprune:
             await self._inner.aprune(thread_ids, strategy=strategy)
@@ -236,7 +239,7 @@ class _CustomCheckpointerAdapter(BaseCheckpointSaver):
                     "checkpointer. This method is required for thread history "
                     "pruning. Without it, old checkpoints accumulate and storage "
                     "grows without bound. Please implement aprune on your "
-                    "checkpointer class."
+                    "checkpointer class.",
                 )
 
     async def aget_tuple(self, config: RunnableConfig) -> CheckpointTuple | None:
@@ -267,13 +270,13 @@ async def get_checkpointer(
             stack = AsyncExitStack()
             CHECKPOINTER_STACK.stack = stack
             inner = await stack.enter_async_context(
-                _yield_checkpointer(CUSTOM_CHECKPOINTER)
+                _yield_checkpointer(CUSTOM_CHECKPOINTER),
             )
             CHECKPOINTER_STACK.inner = inner
             # Detect capabilities once for the server lifetime
             if _CHECKPOINTER_CAPABILITIES is None:
                 _CHECKPOINTER_CAPABILITIES = CheckpointerCapabilities.from_type(
-                    type(inner)
+                    type(inner),
                 )
             caps = _CHECKPOINTER_CAPABILITIES
             await logger.ainfo(
@@ -284,40 +287,38 @@ async def get_checkpointer(
                 await logger.awarning(
                     "Custom checkpointer missing adelete_thread: "
                     "DELETE /threads/<id> will fail. "
-                    "Thread deletion and delete_all pruning are not supported."
+                    "Thread deletion and delete_all pruning are not supported.",
                 )
             if not caps.has_adelete_for_runs:
                 await logger.awarning(
                     "Custom checkpointer missing adelete_for_runs: "
                     "multitask_strategy='rollback' will not clean up "
                     "checkpoints from cancelled runs. Thread state may "
-                    "reflect the rolled-back run until a new run completes."
+                    "reflect the rolled-back run until a new run completes.",
                 )
             if not caps.has_acopy_thread:
                 await logger.ainfo(
                     "Custom checkpointer missing acopy_thread: "
                     "using generic fallback (functional but slower). "
                     "POST /threads/<id>/copy will re-insert checkpoints "
-                    "one-by-one via aput/aput_writes."
+                    "one-by-one via aput/aput_writes.",
                 )
             if not caps.has_aprune:
                 await logger.awarning(
                     "Custom checkpointer missing aprune: "
                     "thread history pruning (keep_latest) is not supported. "
                     "Old checkpoints will accumulate and storage usage will "
-                    "grow without bound for long-lived threads."
+                    "grow without bound for long-lived threads.",
                 )
         # Create a fresh adapter each time (not cached) - each gets own latest_iter
         if _CHECKPOINTER_CAPABILITIES is None:
             raise RuntimeError("Capabilities not initialized")
         return _CustomCheckpointerAdapter(
-            inner=CHECKPOINTER_STACK.inner, capabilities=_CHECKPOINTER_CAPABILITIES
+            inner=CHECKPOINTER_STACK.inner,
+            capabilities=_CHECKPOINTER_CAPABILITIES,
         )
 
-    if (
-        config.CHECKPOINTER_CONFIG
-        and config.CHECKPOINTER_CONFIG.get("backend") == "mongo"
-    ):
+    if config.CHECKPOINTER_CONFIG and config.CHECKPOINTER_CONFIG.get("backend") == "mongo":
         return cast(
             "FullCheckpointerProtocol",
             GrpcCheckpointer(get_stub=_get_shared_checkpointer_stub),
@@ -326,7 +327,9 @@ async def get_checkpointer(
     from langgraph_runtime.checkpoint import Checkpointer  # noqa: PLC0415
 
     return Checkpointer(
-        conn, unpack_hook=unpack_hook, use_direct_connection=use_direct_connection
+        conn,
+        unpack_hook=unpack_hook,
+        use_direct_connection=use_direct_connection,
     )
 
 
@@ -357,7 +360,7 @@ async def collect_checkpointer_from_env() -> None:
         "This replaces the default persistence backend.\n"
         "Required methods: aget, aget_tuple, aput, aput_writes, alist.\n"
         "Recommended methods: adelete_thread, adelete_for_runs, acopy_thread, aprune.\n"
-        "Missing methods will degrade functionality — see startup logs for details."
+        "Missing methods will degrade functionality — see startup logs for details.",
     )
 
     value = await run_in_executor(None, _load_checkpointer, checkpointer_path)
@@ -367,7 +370,7 @@ async def collect_checkpointer_from_env() -> None:
         hasattr(value, "__aenter__") or hasattr(value, "__enter__") or callable(value)
     ):
         raise ValueError(
-            "Custom checkpointer must be a BaseCheckpointSaver or a callable/context manager that returns one."
+            "Custom checkpointer must be a BaseCheckpointSaver or a callable/context manager that returns one.",
         )
     CUSTOM_CHECKPOINTER = value
 
@@ -383,7 +386,7 @@ async def _yield_checkpointer(value: Any):
         result = await value
         if not isinstance(result, BaseCheckpointSaver):
             raise ValueError(
-                "Custom checkpointer must resolve to a BaseCheckpointSaver instance."
+                "Custom checkpointer must resolve to a BaseCheckpointSaver instance.",
             )
         yield result
     elif callable(value):
@@ -392,7 +395,7 @@ async def _yield_checkpointer(value: Any):
     else:
         raise ValueError(
             f"Unsupported checkpointer type: {type(value)}. Expected an instance of BaseCheckpointSaver "
-            "or a function/coroutine that returns one."
+            "or a function/coroutine that returns one.",
         )
 
 
@@ -411,10 +414,7 @@ def _load_checkpointer(checkpointer_path: str) -> Any:
             module_name = path_name.rstrip(":")
             # Use deterministic module name based on path so shared modules are reused
             modname = (
-                module_name.replace("/", "__")
-                .replace(".py", "")
-                .replace(" ", "_")
-                .lstrip(".")
+                module_name.replace("/", "__").replace(".py", "").replace(" ", "_").lstrip(".")
             )
             # Check if module already loaded (e.g., shared with graph loading)
             if modname in sys.modules:
@@ -432,21 +432,16 @@ def _load_checkpointer(checkpointer_path: str) -> Any:
 
     try:
         checkpointer: (
-            BaseCheckpointSaver
-            | Callable[[config.CheckpointerConfig], BaseCheckpointSaver]
+            BaseCheckpointSaver | Callable[[config.CheckpointerConfig], BaseCheckpointSaver]
         ) = module.__dict__[function]
     except KeyError as e:
         available = [k for k in module.__dict__ if not k.startswith("__")]
         suggestion = ""
         if available:
-            likely = [
-                k
-                for k in available
-                if isinstance(module.__dict__[k], StateGraph | Pregel)
-            ]
+            likely = [k for k in available if isinstance(module.__dict__[k], StateGraph | Pregel)]
             if likely:
                 likely_ = "\n".join(
-                    [f"\t- {path_name}:{k}" if path_name else k for k in likely]
+                    [f"\t- {path_name}:{k}" if path_name else k for k in likely],
                 )
                 suggestion = f"\nDid you mean to use one of the following?\n{likely_}"
             elif available:
@@ -456,7 +451,7 @@ def _load_checkpointer(checkpointer_path: str) -> Any:
             f"Could not find checkpointer '{checkpointer_path}'. "
             f"Please check that:\n"
             f"1. The file exports a variable named '{function}'\n"
-            f"2. The variable name in your config matches the export name{suggestion}"
+            f"2. The variable name in your config matches the export name{suggestion}",
         ) from e
     return checkpointer
 
@@ -470,12 +465,13 @@ _TRANSIENT_CONFIGURABLE_KEYS = frozenset(
         "langgraph_auth_user",
         "langgraph_auth_user_id",
         "langgraph_auth_permissions",
-    }
+    },
 )
 
 
 def _enrich_metadata(
-    metadata: CheckpointMetadata, config: RunnableConfig
+    metadata: CheckpointMetadata,
+    config: RunnableConfig,
 ) -> CheckpointMetadata:
     """Enrich checkpoint metadata with config fields.
 
@@ -495,21 +491,13 @@ def _enrich_metadata(
             and k not in _TRANSIENT_CONFIGURABLE_KEYS
         },
         # 2. Config metadata (assistant_id, model_name, etc.)
-        **{
-            k: v
-            for k, v in config_metadata.items()
-            if k not in _TRANSIENT_CONFIGURABLE_KEYS
-        },
+        **{k: v for k, v in config_metadata.items() if k not in _TRANSIENT_CONFIGURABLE_KEYS},
         # 3. Original metadata on top (source, step, parents, etc.)
         **{k: v for k, v in metadata.items() if k not in _TRANSIENT_CONFIGURABLE_KEYS},
     }
     # Ensure run_id is present when available (not always set, e.g. state updates)
     if not enriched.get("run_id"):
-        run_id = (
-            config.get("run_id")
-            or config_metadata.get("run_id")
-            or configurable.get("run_id")
-        )
+        run_id = config.get("run_id") or config_metadata.get("run_id") or configurable.get("run_id")
         if run_id:
             enriched["run_id"] = run_id
     return enriched
@@ -524,7 +512,7 @@ def _validate_required_methods(inner: BaseCheckpointSaver):
             not_implemented.add(method_name)
     if not_implemented:
         raise ValueError(
-            f"Custom checkpointer must implement {sorted(not_implemented)}"
+            f"Custom checkpointer must implement {sorted(not_implemented)}",
         )
 
 

@@ -30,7 +30,8 @@ SLEEP_TIME = config.CRON_SCHEDULER_SLEEP_TIME
 
 
 def get_metadata_from_payload(
-    cron: Cron, run_payload: dict[str, Any]
+    cron: Cron,
+    run_payload: dict[str, Any],
 ) -> dict[str, Any]:
     cron_metadata = cron.get("metadata", {}) or {}
     if not isinstance(cron_metadata, dict):
@@ -38,7 +39,7 @@ def get_metadata_from_payload(
             cron_metadata = json_loads(cron_metadata)
             if not isinstance(cron_metadata, dict):
                 logger.warning(
-                    f"Parsed cron metadata is not a dict: {type(cron_metadata)}. Will ignore."
+                    f"Parsed cron metadata is not a dict: {type(cron_metadata)}. Will ignore.",
                 )
                 cron_metadata = {}
         except (json.JSONDecodeError, TypeError, AttributeError) as e:
@@ -83,27 +84,29 @@ async def cron_scheduler():
                     set_encryption_context(enc_ctx or {})
 
                     run_payload = await decrypt_response(
-                        run_payload, "cron", ["metadata", "context", "input", "config"]
+                        run_payload,
+                        "cron",
+                        ["metadata", "context", "input", "config"],
                     )
 
                     if on_run_completed == "keep":
                         run_payload.setdefault("on_completion", "keep")
 
                     run_payload["metadata"] = get_metadata_from_payload(
-                        cron, run_payload
+                        cron,
+                        run_payload,
                     )
 
                     async with set_auth_ctx_for_run(
-                        run_payload, user_id=cron["user_id"]
+                        run_payload,
+                        user_id=cron["user_id"],
                     ):
                         logger.debug(f"Scheduling cron run {cron}")
                         try:
                             run = await create_valid_run(
                                 conn,
                                 thread_id=(
-                                    str(cron.get("thread_id"))
-                                    if cron.get("thread_id")
-                                    else None
+                                    str(cron.get("thread_id")) if cron.get("thread_id") else None
                                 ),
                                 payload=run_payload,
                                 headers={},
@@ -112,13 +115,13 @@ async def cron_scheduler():
                                 logger.error(
                                     "Run not created for cron_id={} payload".format(
                                         cron["cron_id"],
-                                    )
+                                    ),
                                 )
                         except Exception:
                             logger.exception(
                                 "Error scheduling cron run cron_id={}".format(
-                                    cron["cron_id"]
-                                )
+                                    cron["cron_id"],
+                                ),
                             )
                         # gRPC/Postgres path: next_run_date is advanced
                         # atomically in Go's Crons.Next() to prevent
@@ -132,7 +135,9 @@ async def cron_scheduler():
                                 cron.get("timezone"),
                             )
                             await Crons.set_next_run_date(
-                                conn, cron["cron_id"], next_run_date
+                                conn,
+                                cron["cron_id"],
+                                next_run_date,
                             )
 
             await asyncio.sleep(SLEEP_TIME)

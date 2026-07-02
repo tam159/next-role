@@ -9,4 +9,3 @@ CREATE TABLE IF NOT EXISTS checkpoint_delete_queue (
 -- Dedup: one entry per (thread, ns, checkpoint).
 CREATE UNIQUE INDEX IF NOT EXISTS idx_cdq_dedup
     ON checkpoint_delete_queue (thread_id, checkpoint_ns, checkpoint_id);
-

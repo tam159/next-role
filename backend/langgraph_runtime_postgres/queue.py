@@ -10,6 +10,7 @@ from datetime import UTC, datetime
 from typing import cast
 
 import structlog
+
 from langgraph_api import config
 from langgraph_api import store as api_store
 from langgraph_api.grpc.client import close_shared_client
@@ -54,7 +55,8 @@ class BgLoopRunner(asyncio.Runner):
 
     def __enter__(self):
         self.executor = concurrent.futures.ThreadPoolExecutor(
-            1, thread_name_prefix=f"bg-loop-{self.idx}"
+            1,
+            thread_name_prefix=f"bg-loop-{self.idx}",
         )
         self.executor.submit(self.get_loop).result()
         return self
@@ -68,11 +70,11 @@ class BgLoopRunner(asyncio.Runner):
         try:
             if not loop.is_running():
                 self.executor.submit(self.run, stop_pool()).result(
-                    SHUTDOWN_GRACE_PERIOD_SECS / 2
+                    SHUTDOWN_GRACE_PERIOD_SECS / 2,
                 )
             else:
                 asyncio.run_coroutine_threadsafe(stop_pool(), loop).result(
-                    SHUTDOWN_GRACE_PERIOD_SECS / 2
+                    SHUTDOWN_GRACE_PERIOD_SECS / 2,
                 )
         except TimeoutError:
             pass
@@ -80,11 +82,11 @@ class BgLoopRunner(asyncio.Runner):
         try:
             if not loop.is_running():
                 self.executor.submit(self.run, api_store.exit_store()).result(
-                    SHUTDOWN_GRACE_PERIOD_SECS / 2
+                    SHUTDOWN_GRACE_PERIOD_SECS / 2,
                 )
             else:
                 asyncio.run_coroutine_threadsafe(api_store.exit_store(), loop).result(
-                    SHUTDOWN_GRACE_PERIOD_SECS / 2
+                    SHUTDOWN_GRACE_PERIOD_SECS / 2,
                 )
         except TimeoutError:
             pass
@@ -92,11 +94,11 @@ class BgLoopRunner(asyncio.Runner):
         try:
             if not loop.is_running():
                 self.executor.submit(self.run, close_shared_client()).result(
-                    SHUTDOWN_GRACE_PERIOD_SECS / 2
+                    SHUTDOWN_GRACE_PERIOD_SECS / 2,
                 )
             else:
                 asyncio.run_coroutine_threadsafe(close_shared_client(), loop).result(
-                    SHUTDOWN_GRACE_PERIOD_SECS / 2
+                    SHUTDOWN_GRACE_PERIOD_SECS / 2,
                 )
         except TimeoutError:
             pass
@@ -129,7 +131,7 @@ class BgLoopRunner(asyncio.Runner):
         """
         if asyncio.events._get_running_loop() is not None:
             raise RuntimeError(
-                "Runner.run() cannot be called from a running event loop"
+                "Runner.run() cannot be called from a running event loop",
             )
         self._lazy_init()
         task = self._loop.create_task(coro, name=name)
@@ -171,7 +173,7 @@ async def shutdown_queue(
                     lg_future.chain_future(f, loop.create_future()),
                 )
                 for f in WORKERS
-            ]
+            ],
         )
     else:
         futs.extend([cast(asyncio.Future, f) for f in WORKERS])
@@ -183,7 +185,7 @@ async def shutdown_queue(
                 lg_future.chain_future(w, loop.create_future()),
             )
             for w in WEBHOOKS
-        ]
+        ],
     )
 
     await asyncio.wait_for(
@@ -206,9 +208,7 @@ async def queue():
         if config.BG_JOB_ISOLATED_LOOPS:
             await logger.ainfo("Starting queue with isolated loops")
             executor = stack.enter_context(concurrent.futures.ThreadPoolExecutor())
-            RUNNERS = {
-                stack.enter_context(BgLoopRunner(idx)) for idx in range(concurrency)
-            }
+            RUNNERS = {stack.enter_context(BgLoopRunner(idx)) for idx in range(concurrency)}
             for r in RUNNERS:
                 runners.put_nowait(r)
                 r.get_loop().set_default_executor(executor)
@@ -266,7 +266,8 @@ async def queue():
                 result: worker.WorkerResult | None = task.result()
                 if result and result["webhook"]:
                     hook_fut = asyncio.run_coroutine_threadsafe(
-                        webhook.call_webhook(result), loop
+                        webhook.call_webhook(result),
+                        loop,
                     )
                     WEBHOOKS.add(hook_fut)
                     hook_fut.add_done_callback(WEBHOOKS.remove)
@@ -290,11 +291,11 @@ async def queue():
                 try:
                     run = None
                     async for run, attempt, encryption_context in Runs.next(
-                        wait=True, limit=runners.qsize()
+                        wait=True,
+                        limit=runners.qsize(),
                     ):
                         wait_ms = int(
-                            (datetime.now(UTC) - run["created_at"]).total_seconds()
-                            * 1000
+                            (datetime.now(UTC) - run["created_at"]).total_seconds() * 1000,
                         )
                         await logger.ainfo(
                             "Dequeued run for background worker",
@@ -332,7 +333,7 @@ async def queue():
                                 name=f"run-{run['run_id']}-attempt-{attempt}",
                             )
                             task.add_done_callback(
-                                functools.partial(cleanup, runner=runner)
+                                functools.partial(cleanup, runner=runner),
                             )
                             runner = None
                             WORKERS.add(task)
@@ -351,7 +352,8 @@ async def queue():
                 except Exception as exc:
                     reporter.inc_counter(COUNTER_FAILED_TO_FETCH_RUNS)
                     logger.exception(
-                        "Background worker scheduler failed", exc_info=exc
+                        "Background worker scheduler failed",
+                        exc_info=exc,
                     )
                     if runner is not None:
                         release_runner(runner)
@@ -370,7 +372,8 @@ async def queue():
                 **log_kwargs,
             )
             reporter.inc_counter(
-                COUNTER_RUN_ABANDONED_BY_SHUTDOWN, value=len(WORKERS)
+                COUNTER_RUN_ABANDONED_BY_SHUTDOWN,
+                value=len(WORKERS),
             )
             start = time.perf_counter()
             await shutdown_queue(loop, config.BG_JOB_SHUTDOWN_GRACE_PERIOD_SECS)
@@ -380,9 +383,7 @@ async def queue():
             stats_task.cancel("Shutting down background workers")
             remaining_shutdown_time = 0
             with suppress(UnboundLocalError):
-                remaining_shutdown_time = (
-                    config.BG_JOB_SHUTDOWN_GRACE_PERIOD_SECS - elapsed
-                )
+                remaining_shutdown_time = config.BG_JOB_SHUTDOWN_GRACE_PERIOD_SECS - elapsed
             cleanup_tasks = [stats_task]
             await shutdown_queue(
                 loop,

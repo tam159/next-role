@@ -3,11 +3,12 @@
 isort:skip_file
 """
 
-from google.protobuf import descriptor as _descriptor
-from google.protobuf.internal import enum_type_wrapper as _enum_type_wrapper
 import builtins as _builtins
 import sys
 import typing as _typing
+
+from google.protobuf import descriptor as _descriptor
+from google.protobuf.internal import enum_type_wrapper as _enum_type_wrapper
 
 if sys.version_info >= (3, 10):
     from typing import TypeAlias as _TypeAlias
@@ -18,9 +19,12 @@ DESCRIPTOR: _descriptor.FileDescriptor
 
 class _CronOnRunCompleted:
     ValueType = _typing.NewType("ValueType", _builtins.int)
-    V: _TypeAlias = ValueType  # noqa: Y015
+    V: _TypeAlias = ValueType
 
-class _CronOnRunCompletedEnumTypeWrapper(_enum_type_wrapper._EnumTypeWrapper[_CronOnRunCompleted.ValueType], _builtins.type):
+class _CronOnRunCompletedEnumTypeWrapper(
+    _enum_type_wrapper._EnumTypeWrapper[_CronOnRunCompleted.ValueType],
+    _builtins.type,
+):
     DESCRIPTOR: _descriptor.EnumDescriptor
     delete: _CronOnRunCompleted.ValueType  # 0
     keep: _CronOnRunCompleted.ValueType  # 1
@@ -29,4 +33,4 @@ class CronOnRunCompleted(_CronOnRunCompleted, metaclass=_CronOnRunCompletedEnumT
 
 delete: CronOnRunCompleted.ValueType  # 0
 keep: CronOnRunCompleted.ValueType  # 1
-Global___CronOnRunCompleted: _TypeAlias = CronOnRunCompleted  # noqa: Y015
+Global___CronOnRunCompleted: _TypeAlias = CronOnRunCompleted

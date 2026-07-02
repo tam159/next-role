@@ -62,7 +62,8 @@ def normalize_v2_messages_data(data: Any) -> Any | None:
 
 
 def coerce_stream_transformer_factory(
-    item: Any, transformer_base: type
+    item: Any,
+    transformer_base: type,
 ) -> Callable[[tuple[str, ...]], Any]:
     """Normalize a user ``stream_transformers`` list entry into a factory.
 
@@ -83,7 +84,7 @@ def coerce_stream_transformer_factory(
         return item
     raise TypeError(
         f"stream_transformers must yield StreamTransformer instances or "
-        f"factories; got {type(item).__name__}"
+        f"factories; got {type(item).__name__}",
     )
 
 
@@ -214,8 +215,7 @@ async def astream_state_v2(
             # stable across the whole run instead of fragmenting into a
             # fresh channel per subgraph.
             user_transformers = [
-                coerce_stream_transformer_factory(item, StreamTransformer)
-                for item in produced
+                coerce_stream_transformer_factory(item, StreamTransformer) for item in produced
             ]
 
     if USE_RUNTIME_CONTEXT_API:

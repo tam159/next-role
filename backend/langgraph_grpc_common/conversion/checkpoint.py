@@ -36,7 +36,7 @@ def checkpoint_from_proto(
     request_checkpoint: engine_common_pb2.Checkpoint,
 ) -> Checkpoint:
     channel_versions: dict[str, str | int | float] = dict(
-        request_checkpoint.channel_versions
+        request_checkpoint.channel_versions,
     )
     versions_seen: dict[str, dict[str, str | int | float]] = {
         k: dict(v.channel_versions) for k, v in request_checkpoint.versions_seen.items()
@@ -68,11 +68,11 @@ def checkpoint_to_proto(checkpoint: Checkpoint) -> engine_common_pb2.Checkpoint:
     checkpoint_proto.ts = checkpoint["ts"]
     # Convert int values to strings for protobuf map<string, string>
     checkpoint_proto.channel_versions.update(
-        {k: str(v) for k, v in checkpoint["channel_versions"].items()}
+        {k: str(v) for k, v in checkpoint["channel_versions"].items()},
     )
     for node, versions_dict in checkpoint["versions_seen"].items():
         checkpoint_proto.versions_seen[node].channel_versions.update(
-            {k: str(v) for k, v in versions_dict.items()}
+            {k: str(v) for k, v in versions_dict.items()},
         )
     # Checkpoint.updated_channels is `list[str] | None` and NotRequired in some
     # langgraph versions. update_state(values=..., as_node=None) on a thread
@@ -82,14 +82,14 @@ def checkpoint_to_proto(checkpoint: Checkpoint) -> engine_common_pb2.Checkpoint:
         if isinstance(v, Send):
             checkpoint_proto.channel_values[k].CopyFrom(
                 engine_common_pb2.ChannelValue(
-                    sends=engine_common_pb2.Sends(sends=[send_to_proto(v)])
-                )
+                    sends=engine_common_pb2.Sends(sends=[send_to_proto(v)]),
+                ),
             )
         else:
             checkpoint_proto.channel_values[k].CopyFrom(
                 engine_common_pb2.ChannelValue(
-                    serialized_value=any_to_serialized_value(v)
-                )
+                    serialized_value=any_to_serialized_value(v),
+                ),
             )
 
     return checkpoint_proto
@@ -132,7 +132,7 @@ def checkpoint_tuple_to_proto(
                     task_id=str(task_id),
                     channel=str(channel),
                     value=value_to_proto(channel, value),
-                )
+                ),
             )
     return proto
 

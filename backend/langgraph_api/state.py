@@ -76,9 +76,7 @@ def patch_interrupt(
             interrupt = Interrupt(**interrupt)
 
         return {
-            "id": interrupt.interrupt_id
-            if hasattr(interrupt, "interrupt_id")
-            else None,
+            "id": interrupt.interrupt_id if hasattr(interrupt, "interrupt_id") else None,
             "value": interrupt.value,
             "resumable": interrupt.resumable,
             "ns": interrupt.ns,

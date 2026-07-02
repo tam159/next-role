@@ -9,8 +9,7 @@ import sys
 import typing
 
 if not (
-    (disable_truststore := os.getenv("DISABLE_TRUSTSTORE"))
-    and disable_truststore.lower() == "true"
+    (disable_truststore := os.getenv("DISABLE_TRUSTSTORE")) and disable_truststore.lower() == "true"
 ):
     import truststore
 
@@ -63,9 +62,7 @@ if config.ALLOW_PRIVATE_NETWORK:
     global_middleware.append(Middleware(PrivateNetworkMiddleware))
 
 JS_PROXY_MIDDLEWARE_ENABLED = (
-    config.HTTP_CONFIG
-    and (app := config.HTTP_CONFIG.get("app"))
-    and is_js_path(app.split(":")[0])
+    config.HTTP_CONFIG and (app := config.HTTP_CONFIG.get("app")) and is_js_path(app.split(":")[0])
 )
 
 if JS_PROXY_MIDDLEWARE_ENABLED:
@@ -96,7 +93,7 @@ global_middleware.extend(
         ),
         Middleware(AccessLoggerMiddleware, logger=logger),
         Middleware(RequestIdMiddleware, mount_prefix=config.MOUNT_PREFIX),
-    ]
+    ],
 )
 exception_handlers = {
     HTTPException: http_exception_handler,
@@ -123,7 +120,7 @@ def update_openapi_spec(app):
             {
                 "openapi": "3.1.0",
                 "info": {"title": "LangSmith Deployment", "version": "0.1.0"},
-            }
+            },
         )
         spec = schemas.get_schema(routes=app.routes)
 
@@ -132,7 +129,8 @@ def update_openapi_spec(app):
 
 
 def apply_middleware(
-    routes: list[BaseRoute], middleware: list[Middleware]
+    routes: list[BaseRoute],
+    middleware: list[Middleware],
 ) -> list[BaseRoute]:
     """Applies middleware to a list of routes.
 
@@ -155,8 +153,7 @@ def validate_router_lifespan_hooks(router: typing.Any) -> None:
     on_shutdown = getattr(router, "on_shutdown", None)
     if on_startup or on_shutdown:
         raise ValueError(
-            "Cannot merge lifespans with on_startup or on_shutdown: "
-            f"{on_startup} {on_shutdown}"
+            f"Cannot merge lifespans with on_startup or on_shutdown: {on_startup} {on_shutdown}",
         )
 
 
@@ -167,12 +164,10 @@ auth_before_custom_middleware = (
     config.HTTP_CONFIG and config.HTTP_CONFIG.get("middleware_order") == "auth_first"
 )
 enable_auth_on_custom_routes = config.HTTP_CONFIG and config.HTTP_CONFIG.get(
-    "enable_custom_route_auth"
+    "enable_custom_route_auth",
 )
 # Custom middleware to be applied at the route/mount level, not globally (app level).
-route_level_custom_middleware = (
-    custom_middleware if auth_before_custom_middleware else []
-)
+route_level_custom_middleware = custom_middleware if auth_before_custom_middleware else []
 
 protected_mount = Mount(
     "",
@@ -205,9 +200,7 @@ if user_router:
         #      depending on the `middleware_order` config.
         user_app = apply_middleware(
             routes=app.routes,
-            middleware=(
-                middleware_for_protected_routes if enable_auth_on_custom_routes else []
-            )
+            middleware=(middleware_for_protected_routes if enable_auth_on_custom_routes else [])
             + route_level_custom_middleware,
         )
         app.user_middleware = global_middleware + _store_access_middleware
@@ -220,9 +213,7 @@ if user_router:
             if enable_auth_on_custom_routes
             else app.routes
         )
-        app.user_middleware = (
-            custom_middleware + global_middleware + _store_access_middleware
-        )
+        app.user_middleware = custom_middleware + global_middleware + _store_access_middleware
 
     app.router.routes = (
         apply_middleware(unshadowable_meta_routes, route_level_custom_middleware)
@@ -272,7 +263,7 @@ if config.MOUNT_PREFIX:
     if not prefix.startswith("/") or prefix.endswith("/"):
         raise ValueError(
             f"Invalid mount_prefix '{prefix}': Must start with '/' and must not end with '/'. "
-            f"Valid examples: '/my-api', '/v1', '/api/v1'.\nInvalid examples: 'api/', '/api/'"
+            f"Valid examples: '/my-api', '/v1', '/api/v1'.\nInvalid examples: 'api/', '/api/'",
         )
     logger.info(f"Mounting routes at prefix: {prefix}")
 
@@ -281,7 +272,10 @@ if config.MOUNT_PREFIX:
             self.app = app
 
         async def __call__(
-            self, scope: Scope, receive: Receive, send: Send
+            self,
+            scope: Scope,
+            receive: Receive,
+            send: Send,
         ) -> typing.Any:
             if (root_path := scope.get("root_path")) and root_path == "/noauth":
                 # The SDK initialized with None is trying to connect via

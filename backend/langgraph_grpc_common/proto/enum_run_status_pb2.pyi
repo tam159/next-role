@@ -3,11 +3,12 @@
 isort:skip_file
 """
 
-from google.protobuf import descriptor as _descriptor
-from google.protobuf.internal import enum_type_wrapper as _enum_type_wrapper
 import builtins as _builtins
 import sys
 import typing as _typing
+
+from google.protobuf import descriptor as _descriptor
+from google.protobuf.internal import enum_type_wrapper as _enum_type_wrapper
 
 if sys.version_info >= (3, 10):
     from typing import TypeAlias as _TypeAlias
@@ -18,9 +19,12 @@ DESCRIPTOR: _descriptor.FileDescriptor
 
 class _RunStatus:
     ValueType = _typing.NewType("ValueType", _builtins.int)
-    V: _TypeAlias = ValueType  # noqa: Y015
+    V: _TypeAlias = ValueType
 
-class _RunStatusEnumTypeWrapper(_enum_type_wrapper._EnumTypeWrapper[_RunStatus.ValueType], _builtins.type):
+class _RunStatusEnumTypeWrapper(
+    _enum_type_wrapper._EnumTypeWrapper[_RunStatus.ValueType],
+    _builtins.type,
+):
     DESCRIPTOR: _descriptor.EnumDescriptor
     pending: _RunStatus.ValueType  # 0
     running: _RunStatus.ValueType  # 1
@@ -39,4 +43,4 @@ success: RunStatus.ValueType  # 3
 timeout: RunStatus.ValueType  # 4
 interrupted: RunStatus.ValueType  # 5
 rollback: RunStatus.ValueType  # 6
-Global___RunStatus: _TypeAlias = RunStatus  # noqa: Y015
+Global___RunStatus: _TypeAlias = RunStatus

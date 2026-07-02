@@ -180,7 +180,8 @@ async def swr(
     resolved_fresh_for = min(fresh_for, MAX_CACHE_TTL)
     resolved_max_age = _resolve_swr_max_age(max_age)
     fresh_for_ms, max_age_ms, resolved_max_age = _validate_swr_windows(
-        resolved_fresh_for, resolved_max_age
+        resolved_fresh_for,
+        resolved_max_age,
     )
     cache_key = _swr_cache_key(key)
 
@@ -253,7 +254,8 @@ def _swr_cache_key(key: str) -> str:
 
 
 def _validate_swr_windows(
-    fresh_for: timedelta, max_age: timedelta
+    fresh_for: timedelta,
+    max_age: timedelta,
 ) -> tuple[int, int, timedelta]:
     if fresh_for < _DELTA_ZERO:
         raise ValueError("fresh_for must be >= 0")
@@ -335,7 +337,11 @@ async def _write_swr_value(cache_key: str, value: Any, ttl: timedelta) -> None:
 
 
 async def _store_loaded_swr_value(
-    cache_key: str, value: Any, ttl: timedelta, *, start_epoch: int
+    cache_key: str,
+    value: Any,
+    ttl: timedelta,
+    *,
+    start_epoch: int,
 ) -> bool:
     state = _acquire_swr_state(cache_key)
     try:
@@ -380,8 +386,11 @@ def _ensure_swr_load_task(
 
         task = asyncio.create_task(
             _load_and_store_swr_value(
-                cache_key, loader, ttl, start_epoch=state.write_epoch
-            )
+                cache_key,
+                loader,
+                ttl,
+                start_epoch=state.write_epoch,
+            ),
         )
         state.task = task
 
@@ -407,12 +416,16 @@ def _ensure_swr_load_task(
 
 
 async def _await_swr_load(
-    cache_key: str, loader: Callable[[], Awaitable[T]], ttl: timedelta
+    cache_key: str,
+    loader: Callable[[], Awaitable[T]],
+    ttl: timedelta,
 ) -> T:
     return await _ensure_swr_load_task(cache_key, loader, ttl, log_errors=False)
 
 
 def _start_swr_refresh(
-    cache_key: str, loader: Callable[[], Awaitable[Any]], ttl: timedelta
+    cache_key: str,
+    loader: Callable[[], Awaitable[Any]],
+    ttl: timedelta,
 ) -> None:
     _ensure_swr_load_task(cache_key, loader, ttl, log_errors=True)

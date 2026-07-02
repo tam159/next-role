@@ -14,19 +14,18 @@ import uuid
 import grpc
 import orjson
 from google.protobuf.empty_pb2 import Empty
-from langgraph_grpc_common.proto import core_api_pb2 as pb
-from langgraph_grpc_common.proto import enum_thread_stream_mode_pb2 as etsm
-from langgraph_grpc_common.proto.core_api_pb2_grpc import ThreadsServicer
 from psycopg.types.json import Jsonb
 
 from core_server import db
 from core_server._convert import (
     THREAD_STATUS_FROM_PB,
-    THREAD_STATUS_TO_PB,
     loads,
     thread_to_proto,
 )
 from core_server.redis_db import channel_run_stream, get_redis
+from langgraph_grpc_common.proto import core_api_pb2 as pb
+from langgraph_grpc_common.proto import enum_thread_stream_mode_pb2 as etsm
+from langgraph_grpc_common.proto.core_api_pb2_grpc import ThreadsServicer
 
 _SORT = {
     pb.ThreadsSortBy.THREADS_SORT_BY_THREAD_ID: "thread_id",
@@ -119,17 +118,21 @@ class ThreadsServicerImpl(ThreadsServicer):
             ):
                 await cur.execute(f"DELETE FROM {table} WHERE thread_id = %s", (tid,))
             await cur.execute(
-                "DELETE FROM thread WHERE thread_id = %s RETURNING thread_id", (tid,)
+                "DELETE FROM thread WHERE thread_id = %s RETURNING thread_id",
+                (tid,),
             )
             row = await cur.fetchone()
         if row is None:
             await context.abort(
-                grpc.StatusCode.NOT_FOUND, f"Thread {tid} not found"
+                grpc.StatusCode.NOT_FOUND,
+                f"Thread {tid} not found",
             )
         return pb.UUID(value=str(row["thread_id"]))
 
     async def Search(
-        self, request: pb.SearchThreadsRequest, context
+        self,
+        request: pb.SearchThreadsRequest,
+        context,
     ) -> pb.SearchThreadsResponse:
         where, params = [], {}
         if request.HasField("metadata_json"):
@@ -184,7 +187,9 @@ class ThreadsServicerImpl(ThreadsServicer):
         return pb.CountResponse(count=n)
 
     async def GetGraphID(
-        self, request: pb.GetGraphIDRequest, context
+        self,
+        request: pb.GetGraphIDRequest,
+        context,
     ) -> pb.GetGraphIDResponse:
         async with db.pool().connection() as conn, conn.cursor() as cur:
             await cur.execute(
@@ -228,21 +233,22 @@ class ThreadsServicerImpl(ThreadsServicer):
             params["values"] = Jsonb(loads(cp.values_json)) if cp.values_json else None
         where = "thread_id = %(tid)s"
         if request.expected_status:
-            expected = [
-                THREAD_STATUS_FROM_PB.get(s) for s in request.expected_status
-            ]
+            expected = [THREAD_STATUS_FROM_PB.get(s) for s in request.expected_status]
             expected = [s for s in expected if s]
             if expected:
                 where += " AND status = ANY(%(expected)s)"
                 params["expected"] = expected
         async with db.pool().connection() as conn, conn.cursor() as cur:
             await cur.execute(
-                f"UPDATE thread SET {', '.join(sets)} WHERE {where}", params
+                f"UPDATE thread SET {', '.join(sets)} WHERE {where}",
+                params,
             )
         return Empty()
 
     async def SetJointStatus(
-        self, request: pb.SetThreadJointStatusRequest, context
+        self,
+        request: pb.SetThreadJointStatusRequest,
+        context,
     ) -> Empty:
         tid, rid = request.thread_id.value, request.run_id.value
         run_status = request.run_status
@@ -294,7 +300,8 @@ class ThreadsServicerImpl(ThreadsServicer):
                 sets.append("values = %(values)s")
                 params["values"] = Jsonb(loads(cp.values_json)) if cp.values_json else None
             await cur.execute(
-                f"UPDATE thread SET {', '.join(sets)} WHERE thread_id = %(tid)s", params
+                f"UPDATE thread SET {', '.join(sets)} WHERE thread_id = %(tid)s",
+                params,
             )
         return Empty()
 
@@ -351,9 +358,7 @@ class ThreadsServicerImpl(ThreadsServicer):
         thread has no active runs.
         """
         tid = request.thread_id.value
-        modes = {
-            etsm.ThreadStreamMode.Name(m) for m in request.stream_modes
-        }
+        modes = {etsm.ThreadStreamMode.Name(m) for m in request.stream_modes}
 
         def should_filter(event_name: str, message: bytes) -> bool:
             if not modes:

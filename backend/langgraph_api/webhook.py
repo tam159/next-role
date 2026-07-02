@@ -153,13 +153,15 @@ async def validate_webhook_url_or_raise(url: str) -> None:
             port = 443 if parsed.scheme == "https" else 80
         if port not in wh.allowed_ports:
             raise HTTPException(
-                status_code=422, detail=f"Webhook port {port} not allowed"
+                status_code=422,
+                detail=f"Webhook port {port} not allowed",
             )
 
     host = parsed.hostname or ""
     if not host:
         raise HTTPException(
-            status_code=422, detail=f"Invalid webhook hostname '{host}'"
+            status_code=422,
+            detail=f"Invalid webhook hostname '{host}'",
         )
 
     # Domain allowlist check (kept separate from SSRF — this is a business rule)
@@ -187,14 +189,16 @@ async def validate_webhook_url_or_raise(url: str) -> None:
         await validate_url(url, ssrf_policy)
     except SSRFBlockedError as exc:
         raise HTTPException(
-            status_code=422, detail=f"Webhook host blocked: {exc.reason}"
+            status_code=422,
+            detail=f"Webhook host blocked: {exc.reason}",
         ) from exc
 
 
 async def call_webhook(result: "WorkerResult") -> None:
     if HTTP_CONFIG and HTTP_CONFIG.get("disable_webhooks"):
         logger.info(
-            "Webhooks disabled, skipping webhook call", webhook=result["webhook"]
+            "Webhooks disabled, skipping webhook call",
+            webhook=result["webhook"],
         )
         return
 

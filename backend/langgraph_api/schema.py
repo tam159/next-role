@@ -463,7 +463,7 @@ NEVER_ENCRYPT_FIELDS_GLOBAL: frozenset[str] = frozenset(
         "langgraph_request_id",
         "langgraph_auth_user_id",
         "langgraph_auth_permissions",
-    }
+    },
 )
 
 # Path-based skip rules for encryption.
@@ -487,5 +487,5 @@ NEVER_ENCRYPT_PATHS: frozenset[str] = frozenset(
         "checkpoint_metadata.step",
         "checkpoint_metadata.parents",
         "checkpoint_metadata.run_attempt",
-    }
+    },
 )

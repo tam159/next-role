@@ -1,4 +1,4 @@
-ALTER TABLE assistant_versions 
+ALTER TABLE assistant_versions
 ADD COLUMN IF NOT EXISTS name TEXT;
 
 UPDATE assistant_versions

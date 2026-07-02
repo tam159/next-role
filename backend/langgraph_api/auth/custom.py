@@ -53,7 +53,7 @@ def get_custom_auth_middleware() -> AuthenticationBackend:
     if not LANGGRAPH_AUTH:
         raise ValueError(
             "LANGGRAPH_AUTH must be set to a Python file path or a config dict"
-            " to use custom authentication."
+            " to use custom authentication.",
         )
     logger.info("Using custom authentication", langgraph_auth=LANGGRAPH_AUTH)
     return _get_custom_auth_middleware(LANGGRAPH_AUTH)
@@ -62,7 +62,8 @@ def get_custom_auth_middleware() -> AuthenticationBackend:
 @functools.lru_cache(maxsize=1)
 def get_auth_instance() -> Auth | Literal["js"] | None:
     logger.info(
-        f"Getting auth instance: {LANGGRAPH_AUTH}", langgraph_auth=str(LANGGRAPH_AUTH)
+        f"Getting auth instance: {LANGGRAPH_AUTH}",
+        langgraph_auth=str(LANGGRAPH_AUTH),
     )
     if not LANGGRAPH_AUTH:
         return None
@@ -144,9 +145,7 @@ class CustomAuthBackend(AuthenticationBackend):
         else:
             self.fn = fn
         self._param_names = (
-            _get_named_arguments(fn, supported_params=SUPPORTED_PARAMETERS)
-            if fn
-            else None
+            _get_named_arguments(fn, supported_params=SUPPORTED_PARAMETERS) if fn else None
         )
         self.ls_auth = None
         if not disable_studio_auth:
@@ -168,11 +167,11 @@ class CustomAuthBackend(AuthenticationBackend):
         )
 
     async def authenticate(
-        self, conn: HTTPConnection
+        self,
+        conn: HTTPConnection,
     ) -> tuple[AuthCredentials, BaseUser] | None:
         if self.ls_auth is not None and (
-            (auth_scheme := conn.headers.get("x-auth-scheme"))
-            and auth_scheme == "langsmith"
+            (auth_scheme := conn.headers.get("x-auth-scheme")) and auth_scheme == "langsmith"
         ):
             return await self.ls_auth.authenticate(conn)
         if self.fn is None:
@@ -197,7 +196,9 @@ class CustomAuthBackend(AuthenticationBackend):
                         status_code=403,
                     )
             args = _extract_arguments_from_scope(
-                conn.scope, self._param_names, request=request_obj
+                conn.scope,
+                self._param_names,
+                request=request_obj,
             )
             response = await self.fn(**args)
             return _normalize_auth_response(response)
@@ -231,7 +232,7 @@ def _get_custom_auth_middleware(
             "Check that the path is correct and the file is available."
             "Auth objects are created like:\n"
             "from langgraph_sdk import Auth\n"
-            "auth = Auth()"
+            "auth = Auth()",
         )
 
     if auth_instance == "js":
@@ -247,7 +248,7 @@ def _get_custom_auth_middleware(
             "auth = Auth()\n"
             "@auth.authenticate\n"
             "async def authenticate(request):\n"
-            '    return "my-user-id"'
+            '    return "my-user-id"',
         )
 
     # We are wiring custom auth into the server middleware stack — emit the
@@ -461,7 +462,8 @@ def _get_dependencies(fn: Callable | None) -> dict[str, Any] | None:
 
 
 def _solve_fastapi_dependencies(
-    fn: Callable[..., Any], deps: Mapping[str, Any]
+    fn: Callable[..., Any],
+    deps: Mapping[str, Any],
 ) -> Callable:
     """Solve FastAPI dependencies for a given function."""
     logger.info("Solving FastAPI dependencies", fn=str(fn), deps=str(deps))
@@ -471,13 +473,12 @@ def _solve_fastapi_dependencies(
     )
 
     dependents = {
-        name: get_parameterless_sub_dependant(depends=dep, path="")
-        for name, dep in deps.items()
+        name: get_parameterless_sub_dependant(depends=dep, path="") for name, dep in deps.items()
     }
     for name, dependent in dependents.items():
         if dependent.call is None:
             raise ValueError(
-                f"FastAPI-defined dependencies must have a callable dependency. No dependency found for {name} in {fn}."
+                f"FastAPI-defined dependencies must have a callable dependency. No dependency found for {name} in {fn}.",
             )
 
     is_async = inspect.iscoroutinefunction(fn)
@@ -485,7 +486,8 @@ def _solve_fastapi_dependencies(
     _param_names = {
         k
         for k in _get_named_arguments(
-            fn, supported_params=SUPPORTED_PARAMETERS | dict(deps)
+            fn,
+            supported_params=SUPPORTED_PARAMETERS | dict(deps),
         )
         if k not in dependents
     }
@@ -504,24 +506,30 @@ def _solve_fastapi_dependencies(
                             embed_body_fields=False,
                         )
                         for dependent in dependents.values()
-                    )
+                    ),
                 )
                 all_injected = await asyncio.gather(
                     *(
                         _run_async(dependent.call, solved.values, is_async)
                         for dependent, solved in zip(
-                            dependents.values(), all_solved, strict=False
+                            dependents.values(),
+                            all_solved,
+                            strict=False,
                         )
-                    )
+                    ),
                 )
                 kwargs = {
                     name: value
                     for name, value in zip(
-                        dependents.keys(), all_injected, strict=False
+                        dependents.keys(),
+                        all_injected,
+                        strict=False,
                     )
                 }
                 other_params = _extract_arguments_from_scope(
-                    scope, _param_names, request=request
+                    scope,
+                    _param_names,
+                    request=request,
                 )
                 return await fn(**(kwargs | other_params))
 
@@ -638,11 +646,7 @@ class ProxyUser(BaseUser):
         return self.dict()
 
     def dict(self):
-        d = (
-            self._user.dict()
-            if hasattr(self._user, "dict") and callable(self._user.dict)
-            else {}
-        )
+        d = self._user.dict() if hasattr(self._user, "dict") and callable(self._user.dict) else {}
         return {
             "identity": self.identity,
             "is_authenticated": self.is_authenticated,
@@ -700,7 +704,7 @@ def _normalize_auth_response(
     if isinstance(response, tuple):
         if len(response) != 2:
             raise ValueError(
-                f"Expected a tuple with two elements (permissions, user), got {len(response)}"
+                f"Expected a tuple with two elements (permissions, user), got {len(response)}",
             )
         permissions, user = response
     elif hasattr(response, "permissions"):
@@ -729,7 +733,7 @@ def normalize_user(user: Any) -> BaseUser:
     raise ValueError(
         f"Expected a BaseUser instance with required property: identity (str). "
         f"Optional properties are: is_authenticated (bool, defaults to True) and "
-        f"display_name (str, defaults to identity). Got {type(user)} instead"
+        f"display_name (str, defaults to identity). Got {type(user)} instead",
     )
 
 
@@ -745,7 +749,7 @@ def _load_auth_obj(path: str) -> Auth | Literal["js"]:
     if ":" not in path:
         raise ValueError(
             f"Invalid auth path format: {path}. "
-            "Must be in format: './path/to/file.py:name' or 'module:name'"
+            "Must be in format: './path/to/file.py:name' or 'module:name'",
         )
 
     module_name, callable_name = path.rsplit(":", 1)
@@ -772,7 +776,7 @@ def _load_auth_obj(path: str) -> Auth | Literal["js"]:
         loaded_auth = getattr(module, callable_name, None)
         if loaded_auth is None:
             raise ValueError(
-                f"Could not find auth '{callable_name}' in module: {module_name}"
+                f"Could not find auth '{callable_name}' in module: {module_name}",
             )
         if not isinstance(loaded_auth, Auth):
             raise ValueError(f"Expected an Auth instance, got {type(loaded_auth)}")
@@ -785,7 +789,7 @@ def _load_auth_obj(path: str) -> Auth | Literal["js"]:
                 "If you're in development mode, make sure you've installed your project "
                 "and its dependencies:\n"
                 "- For requirements.txt: pip install -r requirements.txt\n"
-                "- For pyproject.toml: pip install -e .\n"
+                "- For pyproject.toml: pip install -e .\n",
             )
         raise
     except FileNotFoundError as e:
@@ -793,7 +797,9 @@ def _load_auth_obj(path: str) -> Auth | Literal["js"]:
 
 
 async def _run_async(
-    dep_call: Callable[..., Any], values: dict[str, Any], is_coroutine: bool
+    dep_call: Callable[..., Any],
+    values: dict[str, Any],
+    is_coroutine: bool,
 ) -> Any:
     """Run a dependency call either in threadpool or directly if async."""
     if is_coroutine:
@@ -826,7 +832,8 @@ def _get_handler(auth: Auth, ctx: Auth.types.AuthContext) -> Auth.types.Handler 
 
 class StudioNoopAuthBackend(AuthenticationBackend):
     async def authenticate(
-        self, conn: HTTPConnection
+        self,
+        conn: HTTPConnection,
     ) -> tuple[AuthCredentials, BaseUser] | None:
         return AuthCredentials(), StudioUser("langgraph-studio-user")
 
@@ -847,7 +854,7 @@ def _get_named_arguments(fn: Callable, supported_params: dict) -> set[str]:
         )
         raise ValueError(
             f"Handler has unsupported required parameters: {', '.join(unsupported)}.\n"
-            f"Supported parameters are:\n{supported_str}"
+            f"Supported parameters are:\n{supported_str}",
         )
 
     return {p for p in sig.parameters if p in supported_params}

@@ -15,7 +15,7 @@ except KeyError:
         " Expected LANGGRAPH_RUNTIME_EDITION to be set to one of:\n"
         " - inmem\n"
         " - postgres\n"
-        " - community\n"
+        " - community\n",
     ) from None
 if importlib.util.find_spec(RUNTIME_PACKAGE):
     backend = importlib.import_module(RUNTIME_PACKAGE)
@@ -23,7 +23,7 @@ if importlib.util.find_spec(RUNTIME_PACKAGE):
 else:
     raise ImportError(
         "Langgraph runtime backend not found. Please install with "
-        f'`pip install "langgraph-runtime-{RUNTIME_EDITION}"`'
+        f'`pip install "langgraph-runtime-{RUNTIME_EDITION}"`',
     ) from None
 
 # All runtime backends share the same API

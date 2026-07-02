@@ -60,7 +60,7 @@ class EventSourceResponse(sse_starlette.EventSourceResponse):
                 "type": "http.response.start",
                 "status": self.status_code,
                 "headers": self.raw_headers,
-            }
+            },
         )
         async with (
             SimpleTaskGroup(sse_heartbeat(send), cancel=True, wait=False),
@@ -72,13 +72,9 @@ class EventSourceResponse(sse_starlette.EventSourceResponse):
                         await send(
                             {
                                 "type": "http.response.body",
-                                "body": (
-                                    json_to_sse(*data)
-                                    if isinstance(data, tuple)
-                                    else data
-                                ),
+                                "body": (json_to_sse(*data) if isinstance(data, tuple) else data),
                                 "more_body": True,
-                            }
+                            },
                         )
                     if timeout.cancel_called:
                         raise sse_starlette.sse.SendTimeoutError()
@@ -91,7 +87,7 @@ class EventSourceResponse(sse_starlette.EventSourceResponse):
                         "type": "http.response.body",
                         "body": json_to_sse(b"error", exc),
                         "more_body": True,
-                    }
+                    },
                 )
 
         async with self._send_lock:
@@ -126,7 +122,7 @@ def json_to_sse(event: bytes, data: Any | bytes, id: bytes | None = None) -> byt
             DATA,
             data if isinstance(data, BYTES_LIKE) else json_dumpb(data),
             SEP,
-        )
+        ),
     )
 
     if id is not None:

@@ -11,6 +11,18 @@ from typing import cast
 import google.auth.transport.requests
 import structlog
 from google.oauth2 import service_account
+from redis.asyncio import Redis, RedisCluster
+from redis.asyncio.client import PubSub
+from redis.asyncio.cluster import ClusterNode, NodesManager
+from redis.asyncio.retry import Retry
+from redis.backoff import ExponentialWithJitterBackoff
+from redis.commands.core import AsyncPubSubCommands
+from redis.credentials import CredentialProvider
+from redis.event import (
+    AfterPubSubConnectionInstantiationEvent,
+    ClientType,
+    EventDispatcher,
+)
 
 from langgraph_api.config import (
     REDIS_CLUSTER,
@@ -26,23 +38,11 @@ from langgraph_api.config import (
     REDIS_KEY_PREFIX as _REDIS_KEY_PREFIX,
 )
 from langgraph_api.schema import RedisPoolStats
-from redis.asyncio import Redis, RedisCluster
-from redis.asyncio.client import PubSub
-from redis.asyncio.cluster import ClusterNode, NodesManager
-from redis.asyncio.retry import Retry
-from redis.backoff import ExponentialWithJitterBackoff
-from redis.commands.core import AsyncPubSubCommands
-from redis.credentials import CredentialProvider
-from redis.event import (
-    AfterPubSubConnectionInstantiationEvent,
-    ClientType,
-    EventDispatcher,
-)
 
 logger = structlog.stdlib.get_logger(__name__)
 
-class LanggraphRedisCluster(RedisCluster, AsyncPubSubCommands):
 
+class LanggraphRedisCluster(RedisCluster, AsyncPubSubCommands):
     pass
 
 
@@ -128,7 +128,7 @@ class ClusterPubSub(PubSub):
                 self.cluster_node,
                 ClientType.ASYNC,
                 self._lock,
-            )
+            ),
         )
 
 
@@ -164,9 +164,7 @@ def _decode_base64_env(env_name: str, value: str) -> str:
 
 # Decode the optional TLS CA certificate once at import time.
 _tls_ca_cert_pem: str = (
-    _decode_base64_env("REDIS_TLS_CA_CERT", REDIS_TLS_CA_CERT)
-    if REDIS_TLS_CA_CERT
-    else ""
+    _decode_base64_env("REDIS_TLS_CA_CERT", REDIS_TLS_CA_CERT) if REDIS_TLS_CA_CERT else ""
 )
 
 
@@ -182,10 +180,11 @@ class _GCPIAMCredentialProvider(CredentialProvider):
 
     def __init__(self, service_account_json: str) -> None:
         info = json.loads(
-            _decode_base64_env("REDIS_GCP_SERVICE_ACCOUNT_JSON", service_account_json)
+            _decode_base64_env("REDIS_GCP_SERVICE_ACCOUNT_JSON", service_account_json),
         )
         self._creds = service_account.Credentials.from_service_account_info(
-            info, scopes=[self._SCOPE]
+            info,
+            scopes=[self._SCOPE],
         )
         self._lock = threading.Lock()
 
@@ -265,7 +264,8 @@ def redis_stats() -> RedisPoolStats:
         max_connections = 0
         max_connections_per_node = REDIS_MAX_CONNECTIONS
         for node in cast(
-            LanggraphRedisCluster, _aredis
+            LanggraphRedisCluster,
+            _aredis,
         ).nodes_manager.nodes_cache.values():
             idle_connections += len(node._free)
             in_use_connections += len(node._connections) - len(node._free)
@@ -337,11 +337,12 @@ async def get_pubsub(
         message = await pubsub.get_message(timeout=0.5)
         if message is None:
             await logger.awarning(
-                "Timed out waiting for acknowledgement of subscription, continuing anyway"
+                "Timed out waiting for acknowledgement of subscription, continuing anyway",
             )
             continue
         await logger.adebug(
-            "Received acknowledgement of subscription", message=message
+            "Received acknowledgement of subscription",
+            message=message,
         )
 
     return pubsub
@@ -370,10 +371,14 @@ CHANNEL_RUN_STREAM_OLD = f"{REDIS_KEY_PREFIX}run:{RUN_ID_SEGMENT}:stream"
 
 STREAM_THREAD_CACHE = f"{REDIS_KEY_PREFIX}thread:{THREAD_ID_SEGMENT}:cache"
 
-CHANNEL_RUN_CONTROL = f"{REDIS_KEY_PREFIX}thread:{THREAD_ID_SEGMENT}:run:{RUN_ID_SEGMENT_NON_HASH}:control"
+CHANNEL_RUN_CONTROL = (
+    f"{REDIS_KEY_PREFIX}thread:{THREAD_ID_SEGMENT}:run:{RUN_ID_SEGMENT_NON_HASH}:control"
+)
 CHANNEL_RUN_CONTROL_OLD = f"{REDIS_KEY_PREFIX}run:{RUN_ID_SEGMENT}:control"
 
-RUN_STATUS_STRING = f"{REDIS_KEY_PREFIX}thread:{THREAD_ID_SEGMENT}:run:{RUN_ID_SEGMENT_NON_HASH}:control"
+RUN_STATUS_STRING = (
+    f"{REDIS_KEY_PREFIX}thread:{THREAD_ID_SEGMENT}:run:{RUN_ID_SEGMENT_NON_HASH}:control"
+)
 STRING_RUN_ATTEMPT = f"{REDIS_KEY_PREFIX}run:{RUN_ID_SEGMENT}:attempt"
 STRING_RUN_RUNNING = f"{REDIS_KEY_PREFIX}run:{RUN_ID_SEGMENT}:running"
 
@@ -383,17 +388,11 @@ QUEUE_THREADS_ZSET = f"{REDIS_KEY_PREFIX}run:" + (
     "{queue}:threads" if REDIS_CLUSTER else "queue:threads"
 )
 
-LOCK_RUN_SWEEP = f"{REDIS_KEY_PREFIX}run:" + (
-    "{sweep_v2}" if REDIS_CLUSTER else "sweep:v2"
-)
+LOCK_RUN_SWEEP = f"{REDIS_KEY_PREFIX}run:" + ("{sweep_v2}" if REDIS_CLUSTER else "sweep:v2")
 
-LOCK_THREAD_SWEEP = f"{REDIS_KEY_PREFIX}thread:" + (
-    "{sweep}" if REDIS_CLUSTER else "sweep"
-)
+LOCK_THREAD_SWEEP = f"{REDIS_KEY_PREFIX}thread:" + ("{sweep}" if REDIS_CLUSTER else "sweep")
 
-LOCK_STORE_SWEEP = f"{REDIS_KEY_PREFIX}store:" + (
-    "{sweep}" if REDIS_CLUSTER else "sweep"
-)
+LOCK_STORE_SWEEP = f"{REDIS_KEY_PREFIX}store:" + ("{sweep}" if REDIS_CLUSTER else "sweep")
 
 STRING_THREAD_LAST_SWEEP = f"{REDIS_KEY_PREFIX}thread:" + (
     "{last_sweep}" if REDIS_CLUSTER else "last_sweep"
@@ -403,9 +402,7 @@ STRING_STORE_LAST_SWEEP = f"{REDIS_KEY_PREFIX}store:" + (
     "{last_sweep}" if REDIS_CLUSTER else "last_sweep"
 )
 
-LOCK_RUN_STATS = f"{REDIS_KEY_PREFIX}run:" + (
-    "{stats_lock}" if REDIS_CLUSTER else "stats_lock"
-)
+LOCK_RUN_STATS = f"{REDIS_KEY_PREFIX}run:" + ("{stats_lock}" if REDIS_CLUSTER else "stats_lock")
 
 STRING_RUN_STATS_CACHE = f"{REDIS_KEY_PREFIX}run:" + (
     "{stats_cache}" if REDIS_CLUSTER else "stats_cache"

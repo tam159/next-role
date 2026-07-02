@@ -20,10 +20,7 @@ def map_cmd(cmd: RunCommand) -> Command:
     return Command(
         update=update,
         goto=(
-            [
-                it if isinstance(it, str) else Send(it["node"], it["input"])
-                for it in goto
-            ]
+            [it if isinstance(it, str) else Send(it["node"], it["input"]) for it in goto]
             if goto
             else None
         ),

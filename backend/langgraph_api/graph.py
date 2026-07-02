@@ -97,13 +97,9 @@ async def register_graph(
     @retry_db
     async def register_graph_db():
         async with connect() as conn:
-            graph_name = (
-                getattr(graph, "name", None) if isinstance(graph, Pregel) else None
-            )
+            graph_name = getattr(graph, "name", None) if isinstance(graph, Pregel) else None
             assistant_name = (
-                graph_name
-                if graph_name is not None and graph_name != "LangGraph"
-                else graph_id
+                graph_name if graph_name is not None and graph_name != "LangGraph" else graph_id
             )
             result = Assistants.put(
                 conn,
@@ -379,18 +375,21 @@ async def get_graph(
             config["configurable"].setdefault(CONFIG_KEY_STORE, store)
 
         if checkpointer is not None and not config["configurable"].get(
-            CONFIG_KEY_CHECKPOINTER
+            CONFIG_KEY_CHECKPOINTER,
         ):
             config["configurable"][CONFIG_KEY_CHECKPOINTER] = checkpointer
         config["configurable"]["__is_for_execution__"] = is_for_execution(
-            access_context
+            access_context,
         )
         var_child_runnable_config.set(config)
 
         value = invoke_factory(value, graph_id, config, server_runtime)
     try:
         async with _generate_graph(
-            value, graph_id, run_id=run_id, access_context=access_context
+            value,
+            graph_id,
+            run_id=run_id,
+            access_context=access_context,
         ) as graph_obj:
             if isinstance(graph_obj, StateGraph):
                 graph_obj = graph_obj.compile()
@@ -476,13 +475,13 @@ def _load_graph_config_from_env() -> dict | None:
     except orjson.JSONDecodeError as e:
         raise ValueError(
             "Provided environment variable LANGGRAPH_CONFIG must be a valid JSON object"
-            f"\nFound: {config_str}"
+            f"\nFound: {config_str}",
         ) from e
 
     if not isinstance(config_per_id, dict):
         raise ValueError(
             "Provided environment variable LANGGRAPH_CONFIG must be a JSON object"
-            f"\nFound: {config_str}"
+            f"\nFound: {config_str}",
         )
 
     return config_per_id
@@ -506,7 +505,7 @@ async def collect_graphs_from_env(register: bool = False) -> None:
                 "LANGSERVE_GRAPHS must be a valid JSON object."
                 f"\nFound: {paths_str}"
                 "\n The LANGSERVE_GRAPHS environment variable is typically set"
-                'from the "graphs" field in your configuration (langgraph.json) file.'
+                'from the "graphs" field in your configuration (langgraph.json) file.',
             ) from e
 
         for key, value in graphs_config.items():
@@ -537,13 +536,11 @@ async def collect_graphs_from_env(register: bool = False) -> None:
                     f"Invalid path '{value}' for graph '{key}'."
                     " Did you miss a variable name?\n"
                     " Expected one of the following formats:"
-                    " 'my.module:variable_name' or '/path/to/file.py:variable_name'"
+                    " 'my.module:variable_name' or '/path/to/file.py:variable_name'",
                 ) from e
 
             graph_config = config_per_graph.get(key, {})
-            description = (
-                value.get("description", None) if isinstance(value, dict) else None
-            )
+            description = value.get("description", None) if isinstance(value, dict) else None
 
             # Module syntax uses `.` instead of `/` to separate directories
             if "/" in path_or_module:
@@ -561,7 +558,7 @@ async def collect_graphs_from_env(register: bool = False) -> None:
                     variable=variable,
                     config=graph_config,
                     description=description,
-                )
+                ),
             )
     else:
         specs = [
@@ -569,7 +566,7 @@ async def collect_graphs_from_env(register: bool = False) -> None:
                 id=graph_path.split("/")[-1].replace(".py", ""),
                 path=graph_path,
                 config=config_per_graph.get(
-                    graph_path.split("/")[-1].replace(".py", "")
+                    graph_path.split("/")[-1].replace(".py", ""),
                 ),
             )
             for graph_path in glob.glob("/graphs/*.py")
@@ -586,7 +583,7 @@ async def collect_graphs_from_env(register: bool = False) -> None:
             raise NotImplementedError(
                 "LangGraph.JS graphs are not yet supported in local development mode. "
                 "To run your JS graphs, either use the LangGraph Studio application "
-                "or run `langgraph up` to start the server in a Docker container."
+                "or run `langgraph up` to start the server in a Docker container.",
             )
         from langgraph_api.js.remote import (  # noqa: PLC0415
             RemotePregel,
@@ -600,13 +597,13 @@ async def collect_graphs_from_env(register: bool = False) -> None:
             asyncio.create_task(
                 run_remote_checkpointer(),
                 name="remote-socket-poller",
-            )
+            ),
         )
         js_bg_tasks.add(
             asyncio.create_task(
                 run_js_process(paths_str, watch="--reload" in sys.argv[1:]),
                 name="remote-graphs",
-            )
+            ),
         )
 
         if (
@@ -621,7 +618,7 @@ async def collect_graphs_from_env(register: bool = False) -> None:
                         lg_api_config.HTTP_CONFIG or {},
                         watch="--reload" in sys.argv[1:],
                     ),
-                )
+                ),
             )
 
         for task in js_bg_tasks:
@@ -633,7 +630,10 @@ async def collect_graphs_from_env(register: bool = False) -> None:
             graph = RemotePregel(graph_id=spec.id)
             if register:
                 await register_graph(
-                    spec.id, graph, spec.config, description=spec.description
+                    spec.id,
+                    graph,
+                    spec.config,
+                    description=spec.description,
                 )
 
     for spec in py_specs:
@@ -643,7 +643,10 @@ async def collect_graphs_from_env(register: bool = False) -> None:
             raise GraphLoadError(spec, exc) from exc
         if register:
             await register_graph(
-                spec.id, graph, spec.config, description=spec.description
+                spec.id,
+                graph,
+                spec.config,
+                description=spec.description,
             )
 
 
@@ -731,10 +734,7 @@ def _graph_from_spec(spec: GraphSpec) -> GraphValue:
         elif spec.path:
             try:
                 modname = (
-                    spec.path.replace("/", "__")
-                    .replace(".py", "")
-                    .replace(" ", "_")
-                    .lstrip(".")
+                    spec.path.replace("/", "__").replace(".py", "").replace(" ", "_").lstrip(".")
                 )
                 modspec = importlib.util.spec_from_file_location(modname, spec.path)
                 if modspec is None:
@@ -751,7 +751,7 @@ def _graph_from_spec(spec: GraphSpec) -> GraphValue:
                         "python -m pip install -r requirements.txt\n\n"
                         "If you are using pyproject.toml or setuptools:\n"
                         "python -m pip install -e .\n\n"
-                        "Make sure to run this command from your project's root directory (where your setup.py or pyproject.toml is located)"
+                        "Make sure to run this command from your project's root directory (where your setup.py or pyproject.toml is located)",
                     )
                 raise
             except FileNotFoundError as e:
@@ -768,28 +768,22 @@ def _graph_from_spec(spec: GraphSpec) -> GraphValue:
             suggestion = ""
             if available:
                 likely = [
-                    k
-                    for k in available
-                    if isinstance(module.__dict__[k], StateGraph | Pregel)
+                    k for k in available if isinstance(module.__dict__[k], StateGraph | Pregel)
                 ]
                 if likely:
                     prefix = spec.module or spec.path
                     likely_ = "\n".join(
-                        [f"\t- {prefix}:{k}" if prefix else k for k in likely]
+                        [f"\t- {prefix}:{k}" if prefix else k for k in likely],
                     )
-                    suggestion = (
-                        f"\nDid you mean to use one of the following?\n{likely_}"
-                    )
+                    suggestion = f"\nDid you mean to use one of the following?\n{likely_}"
                 elif available:
-                    suggestion = (
-                        f"\nFound the following exports: {', '.join(available)}"
-                    )
+                    suggestion = f"\nFound the following exports: {', '.join(available)}"
 
             raise ValueError(
                 f"Could not find graph '{spec.variable}' in '{spec.path}'. "
                 f"Please check that:\n"
                 f"1. The file exports a variable named '{spec.variable}'\n"
-                f"2. The variable name in your config matches the export name{suggestion}"
+                f"2. The variable name in your config matches the export name{suggestion}",
             ) from e
         if callable(graph):
             classify_factory(graph, spec.id)
@@ -805,7 +799,7 @@ def _graph_from_spec(spec: GraphSpec) -> GraphValue:
                     components = []
                     if has_checkpointer:
                         components.append(
-                            f"checkpointer (type {type(graph.checkpointer)})"
+                            f"checkpointer (type {type(graph.checkpointer)})",
                         )
                     if has_store:
                         components.append(f"store (type {type(graph.store)})")
@@ -818,12 +812,12 @@ def _graph_from_spec(spec: GraphSpec) -> GraphValue:
                         f"To simplify your setup and use the built-in persistence, please remove the custom {component_list} "
                         f"from your graph definition. If you are looking to customize which postgres database to connect to,"
                         " please set the `POSTGRES_URI` environment variable."
-                        " See https://langchain-ai.github.io/langgraph/cloud/reference/env_var/#postgres_uri_custom for more details."
+                        " See https://langchain-ai.github.io/langgraph/cloud/reference/env_var/#postgres_uri_custom for more details.",
                     )
 
         else:
             raise ValueError(
-                f"Variable '{spec.variable}' in module '{spec.path}' is not a Graph or Graph factory function"
+                f"Variable '{spec.variable}' in module '{spec.path}' is not a Graph or Graph factory function",
             )
     else:
         # find the graph in the module
@@ -840,7 +834,7 @@ def _graph_from_spec(spec: GraphSpec) -> GraphValue:
                     break
             else:
                 raise ValueError(
-                    f"Could not find a Graph in module at path: {spec.path}"
+                    f"Could not find a Graph in module at path: {spec.path}",
                 )
 
     _register_stream_transformers_from_module(spec.id, module)
@@ -927,7 +921,7 @@ def resolve_embeddings(index_config: dict) -> "Embeddings":
         return ensure_embeddings(embed)
     if not isinstance(embed, str):
         raise ValueError(
-            f"Embeddings config must be a string or callable, got: {type(embed).__name__}"
+            f"Embeddings config must be a string or callable, got: {type(embed).__name__}",
         )
     if ".py:" in embed:
         module_name, function = embed.rsplit(":", 1)
@@ -937,17 +931,14 @@ def resolve_embeddings(index_config: dict) -> "Embeddings":
             with profiled_import(embed):
                 if "/" in module_name:
                     # Load from file path
-                    modname = (
-                        module_name.replace("/", "__")
-                        .replace(".py", "")
-                        .replace(" ", "_")
-                    )
+                    modname = module_name.replace("/", "__").replace(".py", "").replace(" ", "_")
                     modspec = importlib.util.spec_from_file_location(
-                        modname, module_name
+                        modname,
+                        module_name,
                     )
                     if modspec is None:
                         raise ValueError(
-                            f"Could not find embeddings file: {module_name}"
+                            f"Could not find embeddings file: {module_name}",
                         )
                     module = importlib.util.module_from_spec(modspec)
                     sys.modules[modname] = module
@@ -959,14 +950,14 @@ def resolve_embeddings(index_config: dict) -> "Embeddings":
             embedding_fn = getattr(module, function, None)
             if embedding_fn is None:
                 raise ValueError(
-                    f"Could not find embeddings function '{function}' in module: {module_name}"
+                    f"Could not find embeddings function '{function}' in module: {module_name}",
                 )
 
             if isinstance(embedding_fn, Embeddings):
                 return embedding_fn
             elif not callable(embedding_fn):
                 raise ValueError(
-                    f"Embeddings function '{function}' in module: {module_name} is not callable"
+                    f"Embeddings function '{function}' in module: {module_name} is not callable",
                 )
 
             return ensure_embeddings(embedding_fn)
@@ -978,7 +969,7 @@ def resolve_embeddings(index_config: dict) -> "Embeddings":
                     "If you're in development mode, make sure you've installed your project "
                     "and its dependencies:\n"
                     "- For requirements.txt: pip install -r requirements.txt\n"
-                    "- For pyproject.toml: pip install -e .\n"
+                    "- For pyproject.toml: pip install -e .\n",
                 )
             raise
         except FileNotFoundError as e:
@@ -993,7 +984,7 @@ def resolve_embeddings(index_config: dict) -> "Embeddings":
                 "Loading embeddings by provider:identifier requires the langchain package (>=0.3.9). "
                 "Install it with: pip install 'langchain>=0.3.9'"
                 " or specify 'embed' as a path to a "
-                "variable in a Python file instead."
+                "variable in a Python file instead.",
             )
         # Capture warnings
         with warnings.catch_warnings():

@@ -69,7 +69,8 @@ def _get_tracer() -> Tracer:
         from opentelemetry import trace  # noqa: PLC0415
 
         _tracer = trace.get_tracer(
-            OTEL_TRACER_NAME, instrumenting_library_version=__version__
+            OTEL_TRACER_NAME,
+            instrumenting_library_version=__version__,
         )
     return _tracer
 
@@ -172,7 +173,7 @@ def restore_otel_trace_context(
                 "worker.stream_run",
                 context=ctx,
                 kind=trace.SpanKind.CONSUMER,
-            )
+            ),
         )
         if run_id:
             span.set_attribute(OTEL_RUN_ID_ATTR_NAME, run_id)

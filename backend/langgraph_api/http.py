@@ -81,7 +81,8 @@ async def start_http_client() -> JsonHttpClient:
             transport=httpx.AsyncHTTPTransport(
                 retries=2,  # this applies only to ConnectError, ConnectTimeout
                 limits=httpx.Limits(
-                    max_keepalive_connections=10, keepalive_expiry=60.0
+                    max_keepalive_connections=10,
+                    keepalive_expiry=60.0,
                 ),
             ),
         ),
@@ -162,9 +163,7 @@ def is_retriable_error(exception: BaseException) -> bool:
     # Seems to just apply to HttpStatusError but doesn't hurt to check all
     if isinstance(exception, httpx.HTTPError):
         response = getattr(exception, "response", None)
-        return response is not None and (
-            response.status_code >= 500 or response.status_code == 429
-        )
+        return response is not None and (response.status_code >= 500 or response.status_code == 429)
     return False
 
 

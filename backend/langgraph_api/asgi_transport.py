@@ -84,11 +84,7 @@ class ASGITransport(ASGITransportBase):
     A custom AsyncTransport that handles sending requests directly to an ASGI app.
 
     ```python
-    transport = httpx.ASGITransport(
-        app=app,
-        root_path="/submount",
-        client=("1.2.3.4", 123)
-    )
+    transport = httpx.ASGITransport(app=app, root_path="/submount", client=("1.2.3.4", 123))
     client = httpx.AsyncClient(transport=transport)
     ```
 
@@ -262,7 +258,7 @@ class ASGITransport(ASGITransportBase):
                 if not response_started_event.done():
                     # 1. App exited without ever sending response.start.
                     response_started_event.set_exception(
-                        RuntimeError("Response not complete")
+                        RuntimeError("Response not complete"),
                     )
                     if not app_complete.done():
                         app_complete.set_result(None)
@@ -275,7 +271,7 @@ class ASGITransport(ASGITransportBase):
                     # gated on raise_app_exceptions.
                     if not app_complete.done():
                         app_complete.set_exception(
-                            RuntimeError("Response not complete")
+                            RuntimeError("Response not complete"),
                         )
                 else:
                     # 3. Clean completion (send saw more_body=False).

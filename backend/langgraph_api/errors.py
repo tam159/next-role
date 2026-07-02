@@ -31,35 +31,41 @@ async def http_exception_handler(request: Request, exc: HTTPException) -> Respon
         detail = "unknown error"
 
     return JSONResponse(
-        {"detail": detail}, status_code=exc.status_code, headers=headers
+        {"detail": detail},
+        status_code=exc.status_code,
+        headers=headers,
     )
 
 
 async def validation_error_handler(request, exc: jsonschema_rs.ValidationError):
     request.scope["error_detail"] = str(exc)
     return await http_exception_handler(
-        request, HTTPException(status_code=422, detail=str(exc))
+        request,
+        HTTPException(status_code=422, detail=str(exc)),
     )
 
 
 async def value_error_handler(request, exc: ValueError):
     logger.exception("Bad Request Error", exc_info=exc)
     return await http_exception_handler(
-        request, HTTPException(status_code=400, detail=str(exc))
+        request,
+        HTTPException(status_code=400, detail=str(exc)),
     )
 
 
 async def remote_exception_handler(request, exc: RemoteException):
     logger.exception("Remote Exception", exc_info=exc)
     return await http_exception_handler(
-        request, HTTPException(status_code=500, detail=str(exc))
+        request,
+        HTTPException(status_code=500, detail=str(exc)),
     )
 
 
 async def overloaded_error_handler(request, exc: ValueError):
     logger.exception("Overloaded Error", exc_info=exc)
     return await http_exception_handler(
-        request, HTTPException(status_code=503, detail=str(exc))
+        request,
+        HTTPException(status_code=503, detail=str(exc)),
     )
 
 

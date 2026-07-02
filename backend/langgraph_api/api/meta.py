@@ -37,10 +37,8 @@ def _merge_pool_stats(local: PoolStats, remote: PoolStats) -> PoolStats:
         lr = local.get("redis") or {}
         rr = remote.get("redis") or {}
         merged["redis"] = RedisPoolStats(
-            idle_connections=lr.get("idle_connections", 0)
-            + rr.get("idle_connections", 0),
-            in_use_connections=lr.get("in_use_connections", 0)
-            + rr.get("in_use_connections", 0),
+            idle_connections=lr.get("idle_connections", 0) + rr.get("idle_connections", 0),
+            in_use_connections=lr.get("in_use_connections", 0) + rr.get("in_use_connections", 0),
             max_connections=lr.get("max_connections", 0) + rr.get("max_connections", 0),
         )
     return merged
@@ -74,7 +72,7 @@ def _pool_stats_to_prometheus_lines(
                 "# HELP lg_api_pg_pool_requests_errors Number of postgres connection requests resulting in an error (timeouts, queue full...)",
                 "# TYPE lg_api_pg_pool_requests_errors counter",
                 f"lg_api_pg_pool_requests_errors{{{labels}}} {pg.get('requests_errors', 0)}",
-            ]
+            ],
         )
     if "redis" in stats:
         rd = stats["redis"]
@@ -89,7 +87,7 @@ def _pool_stats_to_prometheus_lines(
                 "# HELP lg_api_redis_pool_max The maximum size of the redis connection pool.",
                 "# TYPE lg_api_redis_pool_max gauge",
                 f"lg_api_redis_pool_max{{{labels}}} {rd.get('max_connections', 0)}",
-            ]
+            ],
         )
     return lines
 
@@ -102,7 +100,8 @@ async def _grpc_pool_stats() -> PoolStats:
         return await Runs.pool_stats()
     except Exception as e:
         await logger.awarning(
-            "Failed to fetch Core API pool stats for aggregation", exc_info=e
+            "Failed to fetch Core API pool stats for aggregation",
+            exc_info=e,
         )
         return {}
 
@@ -132,8 +131,7 @@ async def meta_info(request: ApiRequest):
             "flags": {
                 "assistants": True,
                 "crons": True,
-                "langsmith": bool(config.LANGSMITH_CONTROL_PLANE_API_KEY)
-                and bool(config.TRACING),
+                "langsmith": bool(config.LANGSMITH_CONTROL_PLANE_API_KEY) and bool(config.TRACING),
                 "langsmith_tracing_replicas": True,
             },
             "host": {
@@ -143,7 +141,7 @@ async def meta_info(request: ApiRequest):
                 "revision_id": metadata.REVISION,
                 "tenant_id": metadata.TENANT_ID,
             },
-        }
+        },
     )
 
 
@@ -203,11 +201,12 @@ async def meta_metrics(request: ApiRequest):
                         "# HELP lg_api_pending_unblocked_runs_wait_time_max The maximum time a run has been pending excluding runs blocked by another run on the same thread, in seconds.",
                         "# TYPE lg_api_pending_unblocked_runs_wait_time_max gauge",
                         f"lg_api_pending_unblocked_runs_wait_time_max{{{labels}}} {queue_stats.get('pending_unblocked_runs_wait_time_max_secs') or 0}",
-                    ]
+                    ],
                 )
         except Exception as e:
             await logger.awarning(
-                "Ignoring error while getting run stats for /metrics", exc_info=e
+                "Ignoring error while getting run stats for /metrics",
+                exc_info=e,
             )
 
         if config.N_JOBS_PER_WORKER > 0:
@@ -223,7 +222,7 @@ async def meta_metrics(request: ApiRequest):
                     "# HELP lg_api_workers_available The number of available (idle) workers.",
                     "# TYPE lg_api_workers_available gauge",
                     f"lg_api_workers_available{{{worker_labels}}} {workers_available}",
-                ]
+                ],
             )
 
         metrics.extend(http_metrics)

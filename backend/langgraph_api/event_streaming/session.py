@@ -69,10 +69,12 @@ SourceEvent = tuple[bytes, bytes, bytes | None]
 # Both sessions replaying the same upstream tape will emit the same envelopes in
 # the same order and therefore mint identical ``event_id``s.
 _CURRENT_STREAM_ID: ContextVar[str | None] = ContextVar(
-    "_CURRENT_STREAM_ID", default=None
+    "_CURRENT_STREAM_ID",
+    default=None,
 )
 _CURRENT_SOURCE_COUNTER: ContextVar[list[int] | None] = ContextVar(
-    "_CURRENT_SOURCE_COUNTER", default=None
+    "_CURRENT_SOURCE_COUNTER",
+    default=None,
 )
 
 
@@ -107,8 +109,7 @@ class ResumeGap(Exception):
 
     def __init__(self, since: int, min_available_seq: int) -> None:
         super().__init__(
-            f"resume gap: since={since} is older than min_available_seq="
-            f"{min_available_seq}"
+            f"resume gap: since={since} is older than min_available_seq={min_available_seq}",
         )
         self.since = since
         self.min_available_seq = min_available_seq
@@ -359,7 +360,7 @@ class EventStreamingSession:
                     to_namespace_key([]),
                     initial_status,
                 ),
-            )
+            ),
         )
 
         if self._source is not None:
@@ -390,7 +391,9 @@ class EventStreamingSession:
                 return await self._handle_unsubscribe_for_response(command, meta)
             if method == "agent.getTree":
                 return self._success(
-                    command["id"], {"tree": self._build_tree([])}, meta
+                    command["id"],
+                    {"tree": self._build_tree([])},
+                    meta,
                 )
             if method == "subscription.reconnect":
                 return await self._handle_reconnect_for_response(command, meta)
@@ -470,7 +473,7 @@ class EventStreamingSession:
             return
 
         status = await self._resolve_effective_status(
-            current_run.get("status", "pending")
+            current_run.get("status", "pending"),
         )
 
         if status == "running":
@@ -486,7 +489,9 @@ class EventStreamingSession:
         # where the JS reference produced 30.
         await self._complete_stale_namespaces([])
         await self._emit_namespace_lifecycle(
-            [], status, graph_name=self._root_graph_name
+            [],
+            status,
+            graph_name=self._root_graph_name,
         )
 
     # ------------------------------------------------------------------
@@ -511,7 +516,10 @@ class EventStreamingSession:
             except Exception:
                 error_msg = message_bytes.decode("utf-8", errors="replace")
             await self._emit_namespace_lifecycle(
-                [], "failed", graph_name=self._root_graph_name, error=error_msg
+                [],
+                "failed",
+                graph_name=self._root_graph_name,
+                error=error_msg,
             )
             return
 
@@ -532,7 +540,7 @@ class EventStreamingSession:
         )
         sid_token = _CURRENT_STREAM_ID.set(stream_id)
         cnt_token = _CURRENT_SOURCE_COUNTER.set(
-            [self._stream_id_counts.get(stream_id, 0)] if stream_id else [0]
+            [self._stream_id_counts.get(stream_id, 0)] if stream_id else [0],
         )
         try:
             await self._dispatch_source_event(method, namespace, data)
@@ -575,7 +583,7 @@ class EventStreamingSession:
             await self._emit_input_requested_events(namespace, input_requests)
             if self._has_state_payload(cleaned_values):
                 await self._push_event(
-                    self._create_event("values", namespace, cleaned_values)
+                    self._create_event("values", namespace, cleaned_values),
                 )
         elif method == "messages":
             if namespace:
@@ -587,11 +595,12 @@ class EventStreamingSession:
             node = normalized.get("node")
             if node == "__interrupt__":
                 await self._emit_input_requested_events(
-                    namespace, normalize_input_requested_data(data)
+                    namespace,
+                    normalize_input_requested_data(data),
                 )
                 return
             input_requests, cleaned_values = strip_interrupts_from_values(
-                normalized.get("values")
+                normalized.get("values"),
             )
             await self._emit_input_requested_events(namespace, input_requests)
             if self._has_state_payload(cleaned_values):
@@ -601,7 +610,7 @@ class EventStreamingSession:
                         namespace,
                         cleaned_values,
                         node=node,
-                    )
+                    ),
                 )
             # Close the matching child namespace: the task for ``node``
             # has completed at this level. See :meth:`_emit_child_node_completed`.
@@ -609,7 +618,7 @@ class EventStreamingSession:
                 await self._emit_child_node_completed(namespace, node)
         elif method == "custom":
             await self._push_event(
-                self._create_event("custom", namespace, {"payload": data})
+                self._create_event("custom", namespace, {"payload": data}),
             )
         elif method == "tasks":
             await self._push_event(self._create_event("tasks", namespace, data))
@@ -621,7 +630,8 @@ class EventStreamingSession:
             # session forwards them after duplicate-emit guarding.
             if _is_record(data) and isinstance(data.get("id"), str):
                 await self._emit_checkpoint_envelope(
-                    namespace, cast("dict[str, Any]", data)
+                    namespace,
+                    cast("dict[str, Any]", data),
                 )
             return
         elif method == "tools":
@@ -635,7 +645,7 @@ class EventStreamingSession:
                 if isinstance(raw_node, str) and raw_node:
                     node = raw_node
             await self._push_event(
-                self._create_event("tools", namespace, data, node=node)
+                self._create_event("tools", namespace, data, node=node),
             )
             await self._emit_tool_output_message(namespace, data)
 
@@ -663,9 +673,7 @@ class EventStreamingSession:
         """
         params = event.get("params") or {}
         raw_namespace = params.get("namespace")
-        if isinstance(raw_namespace, list) and all(
-            isinstance(s, str) for s in raw_namespace
-        ):
+        if isinstance(raw_namespace, list) and all(isinstance(s, str) for s in raw_namespace):
             namespace: Namespace = list(raw_namespace)
         else:
             namespace = namespace_from_name
@@ -682,7 +690,8 @@ class EventStreamingSession:
             data = params.get("data")
             if _is_record(data) and isinstance(data.get("id"), str):
                 await self._emit_checkpoint_envelope(
-                    namespace, cast("dict[str, Any]", data)
+                    namespace,
+                    cast("dict[str, Any]", data),
                 )
             return
 
@@ -724,7 +733,8 @@ class EventStreamingSession:
             if update_node == "__interrupt__":
                 interrupt_array = data.get("values") if _is_record(data) else None
                 await self._emit_input_requested_events(
-                    namespace, normalize_input_requested_data(interrupt_array)
+                    namespace,
+                    normalize_input_requested_data(interrupt_array),
                 )
                 # The ``__interrupt__`` update is purely the interrupt
                 # signal, not real state — it's consumed by the ``input``
@@ -742,7 +752,8 @@ class EventStreamingSession:
             interrupts = params.get("interrupts")
             if isinstance(interrupts, (list, tuple)) and interrupts:
                 await self._emit_input_requested_events(
-                    namespace, _coerce_interrupt_requests(interrupts)
+                    namespace,
+                    _coerce_interrupt_requests(interrupts),
                 )
             if input_requests:
                 await self._emit_input_requested_events(namespace, input_requests)
@@ -778,7 +789,7 @@ class EventStreamingSession:
                 data,
                 node=node,
                 timestamp=timestamp,
-            )
+            ),
         )
         if method == "tools" and _is_record(data):
             await self._emit_tool_output_message(namespace, data)
@@ -789,7 +800,9 @@ class EventStreamingSession:
             await self._emit_child_node_completed(namespace, node)
 
     async def _emit_tool_output_message(
-        self, namespace: Namespace, data: dict[str, Any]
+        self,
+        namespace: Namespace,
+        data: dict[str, Any],
     ) -> None:
         """Mirror completed tool outputs onto the ``messages`` channel.
 
@@ -807,9 +820,7 @@ class EventStreamingSession:
         tool_call_id = data.get("tool_call_id")
         if not isinstance(tool_call_id, str):
             raw_tool_call_id = output.get("tool_call_id")
-            tool_call_id = (
-                raw_tool_call_id if isinstance(raw_tool_call_id, str) else None
-            )
+            tool_call_id = raw_tool_call_id if isinstance(raw_tool_call_id, str) else None
 
         raw_message_id = output.get("id")
         message_id = (
@@ -832,9 +843,7 @@ class EventStreamingSession:
             start["tool_call_id"] = tool_call_id
 
         message_namespace = (
-            [*namespace, f"tools:{tool_call_id}"]
-            if tool_call_id is not None
-            else namespace
+            [*namespace, f"tools:{tool_call_id}"] if tool_call_id is not None else namespace
         )
 
         for event_data in (
@@ -857,7 +866,7 @@ class EventStreamingSession:
             {"event": "message-finish", "metadata": {}},
         ):
             await self._push_event(
-                self._create_event("messages", message_namespace, event_data)
+                self._create_event("messages", message_namespace, event_data),
             )
 
     # ------------------------------------------------------------------
@@ -924,16 +933,12 @@ class EventStreamingSession:
         )
         params: dict[str, Any] = {
             "namespace": namespace,
-            "timestamp": (
-                timestamp if isinstance(timestamp, int) else int(time.time() * 1000)
-            ),
+            "timestamp": (timestamp if isinstance(timestamp, int) else int(time.time() * 1000)),
             "data": normalized_data,
         }
         if node is not None:
             params["node"] = node
-        resolved_event_id = (
-            event_id if event_id is not None else self._assign_event_id()
-        )
+        resolved_event_id = event_id if event_id is not None else self._assign_event_id()
         return {
             "type": "event",
             "event_id": resolved_event_id,
@@ -1059,7 +1064,7 @@ class EventStreamingSession:
             if isinstance(min_available_seq, int) and since + 1 < min_available_seq:
                 try:
                     get_datadog_metrics_reporter().inc_counter(
-                        COUNTER_PROTOCOL_V2_RESUME_GAP
+                        COUNTER_PROTOCOL_V2_RESUME_GAP,
                     )
                 except Exception:
                     logger.debug("Failed to record resume gap metric", exc_info=True)
@@ -1102,7 +1107,9 @@ class EventStreamingSession:
         return replayed
 
     def _matches_subscription(
-        self, subscription: Subscription, event: dict[str, Any]
+        self,
+        subscription: Subscription,
+        event: dict[str, Any],
     ) -> bool:
         raw_method = event.get("method", "")
         channel = "input" if raw_method == "input.requested" else raw_method
@@ -1124,10 +1131,7 @@ class EventStreamingSession:
             return True
         return any(
             is_prefix_match(ns, prefix)
-            and (
-                subscription.depth is None
-                or len(ns) - len(prefix) <= subscription.depth
-            )
+            and (subscription.depth is None or len(ns) - len(prefix) <= subscription.depth)
             for prefix in subscription.namespaces
         )
 
@@ -1185,7 +1189,7 @@ class EventStreamingSession:
         message: str,
     ) -> None:
         await self._send_json(
-            {"type": "error", "id": cmd_id, "error": error, "message": message}
+            {"type": "error", "id": cmd_id, "error": error, "message": message},
         )
 
     # ------------------------------------------------------------------
@@ -1228,7 +1232,7 @@ class EventStreamingSession:
                 namespace,
                 envelope,
                 event_id=_synth_event_id(self._run_id, "checkpoint", ns_key, cp_id),
-            )
+            ),
         )
 
     # ------------------------------------------------------------------
@@ -1313,13 +1317,13 @@ class EventStreamingSession:
             info = self._namespaces.get(key)
             if info is not None and info.status == "started":
                 continue
-            graph_name = (
-                info.graph_name if info is not None else guess_graph_name(partial)
-            )
+            graph_name = info.graph_name if info is not None else guess_graph_name(partial)
             self._set_namespace_info(partial, "started", graph_name=graph_name)
 
     async def _emit_namespace_started(
-        self, namespace: Namespace, data: dict[str, Any]
+        self,
+        namespace: Namespace,
+        data: dict[str, Any],
     ) -> None:
         """Forward an upstream ``lifecycle.started`` to the wire.
 
@@ -1347,14 +1351,14 @@ class EventStreamingSession:
         self._set_namespace_info(
             namespace,
             "started",
-            graph_name=upstream_graph_name
-            if isinstance(upstream_graph_name, str)
-            else None,
+            graph_name=upstream_graph_name if isinstance(upstream_graph_name, str) else None,
         )
         await self._push_event(self._create_event("lifecycle", namespace, data))
 
     async def _emit_child_node_completed(
-        self, parent_namespace: Namespace, node_name: str
+        self,
+        parent_namespace: Namespace,
+        node_name: str,
     ) -> None:
         """Close the child namespace that corresponds to ``node_name``.
 
@@ -1394,7 +1398,9 @@ class EventStreamingSession:
             if last != node_name and not last.startswith(prefix):
                 continue
             await self._emit_namespace_lifecycle(
-                ns, "completed", graph_name=info.graph_name
+                ns,
+                "completed",
+                graph_name=info.graph_name,
             )
             return
 
@@ -1432,7 +1438,9 @@ class EventStreamingSession:
             if current_info is None or current_info.status != "started":
                 continue
             await self._emit_namespace_lifecycle(
-                info.namespace, "completed", graph_name=info.graph_name
+                info.namespace,
+                "completed",
+                graph_name=info.graph_name,
             )
 
     def _set_namespace_info(
@@ -1450,11 +1458,7 @@ class EventStreamingSession:
             graph_name=(
                 graph_name
                 or (existing.graph_name if existing else None)
-                or (
-                    self._root_graph_name
-                    if not namespace
-                    else guess_graph_name(namespace)
-                )
+                or (self._root_graph_name if not namespace else guess_graph_name(namespace))
             ),
         )
 
@@ -1510,7 +1514,7 @@ class EventStreamingSession:
                 namespace,
                 lifecycle_data,
                 event_id=_synth_event_id(self._run_id, "lc", key, status),
-            )
+            ),
         )
 
     # ------------------------------------------------------------------
@@ -1518,7 +1522,9 @@ class EventStreamingSession:
     # ------------------------------------------------------------------
 
     async def _emit_input_requested_events(
-        self, namespace: Namespace, requests: list[dict[str, Any]]
+        self,
+        namespace: Namespace,
+        requests: list[dict[str, Any]],
     ) -> None:
         emitted_any = False
         ns_key = to_namespace_key(namespace)
@@ -1533,9 +1539,12 @@ class EventStreamingSession:
                     namespace,
                     request,
                     event_id=_synth_event_id(
-                        self._run_id, "input", ns_key, interrupt_id
+                        self._run_id,
+                        "input",
+                        ns_key,
+                        interrupt_id,
                     ),
-                )
+                ),
             )
             emitted_any = True
 
@@ -1547,7 +1556,9 @@ class EventStreamingSession:
         # the run's success status write and otherwise arrive never).
         if emitted_any:
             await self._emit_namespace_lifecycle(
-                [], "interrupted", graph_name=self._root_graph_name
+                [],
+                "interrupted",
+                graph_name=self._root_graph_name,
             )
             # Latch so the eventual ``_emit_terminal_lifecycle`` doesn't
             # re-emit the same event — dedupe on namespace status would
@@ -1575,7 +1586,9 @@ class EventStreamingSession:
     # ------------------------------------------------------------------
 
     async def _handle_subscribe_for_response(
-        self, command: dict[str, Any], meta: dict[str, Any] | None
+        self,
+        command: dict[str, Any],
+        meta: dict[str, Any] | None,
     ) -> dict[str, Any]:
         params = command.get("params", {}) if _is_record(command.get("params")) else {}
         raw_channels = params.get("channels")
@@ -1587,9 +1600,7 @@ class EventStreamingSession:
                 meta,
             )
 
-        channels = [
-            c for c in raw_channels if isinstance(c, str) and _is_supported_channel(c)
-        ]
+        channels = [c for c in raw_channels if isinstance(c, str) and _is_supported_channel(c)]
         if len(channels) != len(raw_channels):
             return self._error(
                 command["id"],
@@ -1601,8 +1612,7 @@ class EventStreamingSession:
         namespaces = None
         raw_ns = params.get("namespaces")
         if isinstance(raw_ns, list) and all(
-            isinstance(ns, list) and all(isinstance(s, str) for s in ns)
-            for ns in raw_ns
+            isinstance(ns, list) and all(isinstance(s, str) for s in ns) for ns in raw_ns
         ):
             namespaces = raw_ns
 
@@ -1610,11 +1620,7 @@ class EventStreamingSession:
         raw_depth = params.get("depth")
         # Reject bool explicitly — ``isinstance(False, int)`` is ``True``
         # and would silently coerce to ``depth=0`` (root-only).
-        if (
-            isinstance(raw_depth, int)
-            and not isinstance(raw_depth, bool)
-            and raw_depth >= 0
-        ):
+        if isinstance(raw_depth, int) and not isinstance(raw_depth, bool) and raw_depth >= 0:
             depth = raw_depth
 
         sub = Subscription(
@@ -1655,9 +1661,7 @@ class EventStreamingSession:
                 "subscription.reconnect requires a non-empty channels array.",
                 meta,
             )
-        channels = [
-            c for c in raw_channels if isinstance(c, str) and _is_supported_channel(c)
-        ]
+        channels = [c for c in raw_channels if isinstance(c, str) and _is_supported_channel(c)]
         if len(channels) != len(raw_channels):
             return self._error(
                 command["id"],
@@ -1670,11 +1674,7 @@ class EventStreamingSession:
         # Reject ``bool`` explicitly — ``isinstance(True, int)`` is
         # ``True`` so a JSON ``"since": true`` would otherwise pass as
         # ``since=1`` and silently skip the first buffered event.
-        if (
-            not isinstance(raw_since, int)
-            or isinstance(raw_since, bool)
-            or raw_since < 0
-        ):
+        if not isinstance(raw_since, int) or isinstance(raw_since, bool) or raw_since < 0:
             return self._error(
                 command["id"],
                 "invalid_argument",
@@ -1685,8 +1685,7 @@ class EventStreamingSession:
         namespaces = None
         raw_ns = params.get("namespaces")
         if isinstance(raw_ns, list) and all(
-            isinstance(ns, list) and all(isinstance(s, str) for s in ns)
-            for ns in raw_ns
+            isinstance(ns, list) and all(isinstance(s, str) for s in ns) for ns in raw_ns
         ):
             namespaces = raw_ns
 
@@ -1694,17 +1693,11 @@ class EventStreamingSession:
         raw_depth = params.get("depth")
         # Reject bool explicitly — ``isinstance(False, int)`` is ``True``
         # and would silently coerce to ``depth=0`` (root-only).
-        if (
-            isinstance(raw_depth, int)
-            and not isinstance(raw_depth, bool)
-            and raw_depth >= 0
-        ):
+        if isinstance(raw_depth, int) and not isinstance(raw_depth, bool) and raw_depth >= 0:
             depth = raw_depth
 
         raw_sub_id = params.get("subscription_id")
-        sub_id = (
-            raw_sub_id if isinstance(raw_sub_id, str) and raw_sub_id else str(uuid4())
-        )
+        sub_id = raw_sub_id if isinstance(raw_sub_id, str) and raw_sub_id else str(uuid4())
 
         sub = Subscription(
             id=sub_id,
@@ -1736,7 +1729,9 @@ class EventStreamingSession:
         )
 
     async def _handle_unsubscribe_for_response(
-        self, command: dict[str, Any], meta: dict[str, Any] | None
+        self,
+        command: dict[str, Any],
+        meta: dict[str, Any] | None,
     ) -> dict[str, Any]:
         params = command.get("params", {}) if _is_record(command.get("params")) else {}
         sub_id = params.get("subscription_id")
@@ -1766,9 +1761,7 @@ class EventStreamingSession:
         current = self._namespaces.get(key) or NamespaceInfo(
             namespace=namespace,
             status="started",
-            graph_name=(
-                self._root_graph_name if not namespace else guess_graph_name(namespace)
-            ),
+            graph_name=(self._root_graph_name if not namespace else guess_graph_name(namespace)),
         )
         children = sorted(
             [

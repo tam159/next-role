@@ -203,31 +203,31 @@ _validation_openapi = copy.deepcopy(openapi)
 _apply_validator_only_security_guards(_validation_openapi)
 
 ConfigValidator = jsonschema_rs.validator_for(
-    _validation_openapi["components"]["schemas"]["Config"]
+    _validation_openapi["components"]["schemas"]["Config"],
 )
 AssistantVersionsSearchRequest = jsonschema_rs.validator_for(
-    _validation_openapi["components"]["schemas"]["AssistantVersionsSearchRequest"]
+    _validation_openapi["components"]["schemas"]["AssistantVersionsSearchRequest"],
 )
 AssistantSearchRequest = jsonschema_rs.validator_for(
-    _validation_openapi["components"]["schemas"]["AssistantSearchRequest"]
+    _validation_openapi["components"]["schemas"]["AssistantSearchRequest"],
 )
 AssistantCountRequest = jsonschema_rs.validator_for(
-    _validation_openapi["components"]["schemas"]["AssistantCountRequest"]
+    _validation_openapi["components"]["schemas"]["AssistantCountRequest"],
 )
 ThreadSearchRequest = jsonschema_rs.validator_for(
-    _validation_openapi["components"]["schemas"]["ThreadSearchRequest"]
+    _validation_openapi["components"]["schemas"]["ThreadSearchRequest"],
 )
 ThreadCountRequest = jsonschema_rs.validator_for(
-    _validation_openapi["components"]["schemas"]["ThreadCountRequest"]
+    _validation_openapi["components"]["schemas"]["ThreadCountRequest"],
 )
 AssistantCreate = jsonschema_rs.validator_for(
-    _validation_openapi["components"]["schemas"]["AssistantCreate"]
+    _validation_openapi["components"]["schemas"]["AssistantCreate"],
 )
 AssistantPatch = jsonschema_rs.validator_for(
-    _validation_openapi["components"]["schemas"]["AssistantPatch"]
+    _validation_openapi["components"]["schemas"]["AssistantPatch"],
 )
 AssistantVersionChange = jsonschema_rs.validator_for(
-    _validation_openapi["components"]["schemas"]["AssistantVersionChange"]
+    _validation_openapi["components"]["schemas"]["AssistantVersionChange"],
 )
 ThreadCreate = jsonschema_rs.validator_for(
     {
@@ -239,15 +239,15 @@ ThreadCreate = jsonschema_rs.validator_for(
                 ],
                 "Command": _validation_openapi["components"]["schemas"]["Command"],
                 "Send": _validation_openapi["components"]["schemas"]["Send"],
-            }
+            },
         },
-    }
+    },
 )
 ThreadPatch = jsonschema_rs.validator_for(
-    _validation_openapi["components"]["schemas"]["ThreadPatch"]
+    _validation_openapi["components"]["schemas"]["ThreadPatch"],
 )
 ThreadPruneRequest = jsonschema_rs.validator_for(
-    _validation_openapi["components"]["schemas"]["ThreadPruneRequest"]
+    _validation_openapi["components"]["schemas"]["ThreadPruneRequest"],
 )
 ThreadStateUpdate = jsonschema_rs.validator_for(
     {
@@ -256,10 +256,10 @@ ThreadStateUpdate = jsonschema_rs.validator_for(
             "schemas": {
                 "CheckpointConfig": _validation_openapi["components"]["schemas"][
                     "CheckpointConfig"
-                ]
-            }
+                ],
+            },
         },
-    }
+    },
 )
 
 ThreadStateCheckpointRequest = jsonschema_rs.validator_for(
@@ -269,10 +269,10 @@ ThreadStateCheckpointRequest = jsonschema_rs.validator_for(
             "schemas": {
                 "CheckpointConfig": _validation_openapi["components"]["schemas"][
                     "CheckpointConfig"
-                ]
-            }
+                ],
+            },
         },
-    }
+    },
 )
 ThreadStateSearch = jsonschema_rs.validator_for(
     {
@@ -281,10 +281,10 @@ ThreadStateSearch = jsonschema_rs.validator_for(
             "schemas": {
                 "CheckpointConfig": _validation_openapi["components"]["schemas"][
                     "CheckpointConfig"
-                ]
-            }
+                ],
+            },
         },
-    }
+    },
 )
 RunCreateStateless = jsonschema_rs.validator_for(
     {
@@ -293,9 +293,9 @@ RunCreateStateless = jsonschema_rs.validator_for(
             "schemas": {
                 "Command": _validation_openapi["components"]["schemas"]["Command"],
                 "Send": _validation_openapi["components"]["schemas"]["Send"],
-            }
+            },
         },
-    }
+    },
 )
 RunBatchCreate = jsonschema_rs.validator_for(
     {
@@ -307,9 +307,9 @@ RunBatchCreate = jsonschema_rs.validator_for(
                 ],
                 "Command": _validation_openapi["components"]["schemas"]["Command"],
                 "Send": _validation_openapi["components"]["schemas"]["Send"],
-            }
+            },
         },
-    }
+    },
 )
 RunCreateStateful = jsonschema_rs.validator_for(
     {
@@ -321,9 +321,9 @@ RunCreateStateful = jsonschema_rs.validator_for(
                 ],
                 "Command": _validation_openapi["components"]["schemas"]["Command"],
                 "Send": _validation_openapi["components"]["schemas"]["Send"],
-            }
+            },
         },
-    }
+    },
 )
 RunCreateStreamingStateless = jsonschema_rs.validator_for(
     {
@@ -335,9 +335,9 @@ RunCreateStreamingStateless = jsonschema_rs.validator_for(
                 ],
                 "Command": _validation_openapi["components"]["schemas"]["Command"],
                 "Send": _validation_openapi["components"]["schemas"]["Send"],
-            }
+            },
         },
-    }
+    },
 )
 RunCreateStreamingStateful = jsonschema_rs.validator_for(
     {
@@ -352,27 +352,27 @@ RunCreateStreamingStateful = jsonschema_rs.validator_for(
                 ],
                 "Command": _validation_openapi["components"]["schemas"]["Command"],
                 "Send": _validation_openapi["components"]["schemas"]["Send"],
-            }
+            },
         },
-    }
+    },
 )
 RunsCancel = jsonschema_rs.validator_for(
-    _validation_openapi["components"]["schemas"]["RunsCancel"]
+    _validation_openapi["components"]["schemas"]["RunsCancel"],
 )
 CronCreate = jsonschema_rs.validator_for(
-    _validation_openapi["components"]["schemas"]["CronCreate"]
+    _validation_openapi["components"]["schemas"]["CronCreate"],
 )
 ThreadCronCreate = jsonschema_rs.validator_for(
-    _validation_openapi["components"]["schemas"]["ThreadCronCreate"]
+    _validation_openapi["components"]["schemas"]["ThreadCronCreate"],
 )
 CronPatch = jsonschema_rs.validator_for(
-    _validation_openapi["components"]["schemas"]["CronPatch"]
+    _validation_openapi["components"]["schemas"]["CronPatch"],
 )
 CronSearch = jsonschema_rs.validator_for(
-    _validation_openapi["components"]["schemas"]["CronSearch"]
+    _validation_openapi["components"]["schemas"]["CronSearch"],
 )
 CronCountRequest = jsonschema_rs.validator_for(
-    _validation_openapi["components"]["schemas"]["CronCountRequest"]
+    _validation_openapi["components"]["schemas"]["CronCountRequest"],
 )
 
 _WRITE_SCHEMAS_WITH_METADATA_SET = frozenset(
@@ -382,16 +382,16 @@ _WRITE_SCHEMAS_WITH_METADATA_SET = frozenset(
 
 # Stuff around storage/BaseStore API
 StorePutRequest = jsonschema_rs.validator_for(
-    _validation_openapi["components"]["schemas"]["StorePutRequest"]
+    _validation_openapi["components"]["schemas"]["StorePutRequest"],
 )
 StoreSearchRequest = jsonschema_rs.validator_for(
-    _validation_openapi["components"]["schemas"]["StoreSearchRequest"]
+    _validation_openapi["components"]["schemas"]["StoreSearchRequest"],
 )
 StoreDeleteRequest = jsonschema_rs.validator_for(
-    _validation_openapi["components"]["schemas"]["StoreDeleteRequest"]
+    _validation_openapi["components"]["schemas"]["StoreDeleteRequest"],
 )
 StoreListNamespacesRequest = jsonschema_rs.validator_for(
-    _validation_openapi["components"]["schemas"]["StoreListNamespacesRequest"]
+    _validation_openapi["components"]["schemas"]["StoreListNamespacesRequest"],
 )
 
 
@@ -426,7 +426,5 @@ def render_docs_html(openapi_spec: bytes) -> str:
     # the browser's HTML parser can treat it as markup and prematurely end the script tag. That can break the
     # page and can create an injection/XSS risk. Replacing < with \u003c keeps the JSON semantically identical
     # for JavaScript, but prevents the HTML parser from seeing real tag delimiters.
-    configuration_json = (
-        orjson.dumps(configuration).decode("utf-8").replace("<", "\\u003c")
-    )
+    configuration_json = orjson.dumps(configuration).decode("utf-8").replace("<", "\\u003c")
     return DOCS_HTML.replace("__SCALAR_CONFIGURATION_JSON__", configuration_json)

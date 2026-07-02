@@ -59,7 +59,7 @@ def _checkpoint_id_from_run_start_config(params: dict[str, Any]) -> str | None:
 
         {
             "input": null,
-            "config": { "configurable": { "checkpoint_id": "<uuid>" } },
+            "config": {"configurable": {"checkpoint_id": "<uuid>"}},
         }
 
     Returns the checkpoint id (validated as a non-empty string) or ``None``
@@ -76,7 +76,7 @@ def _checkpoint_id_from_run_start_config(params: dict[str, Any]) -> str | None:
         return None
     if not isinstance(checkpoint_id, str) or not checkpoint_id.strip():
         raise ValueError(
-            "config.configurable.checkpoint_id must be a non-empty string."
+            "config.configurable.checkpoint_id must be a non-empty string.",
         )
     return checkpoint_id
 
@@ -138,7 +138,7 @@ _KNOWN_COMMANDS: frozenset[str] = frozenset(
         "subscription.subscribe",
         "subscription.unsubscribe",
         "subscription.reconnect",
-    }
+    },
 )
 
 
@@ -253,7 +253,7 @@ class ThreadRunManager:
         if self._thread_source_task is not None:
             return
         self._thread_source_task = asyncio.create_task(
-            self._consume_thread_stream(last_event_id="-")
+            self._consume_thread_stream(last_event_id="-"),
         )
 
     async def _consume_thread_stream(self, *, last_event_id: str | None) -> None:
@@ -308,7 +308,8 @@ class ThreadRunManager:
         await self._thread_stream_done.wait()
 
     async def _ensure_run_session_for_id(
-        self, run_id: str
+        self,
+        run_id: str,
     ) -> EventStreamingSession | None:
         if self._session is not None and self._current_run_id == run_id:
             return self._session
@@ -327,9 +328,7 @@ class ThreadRunManager:
         except Exception:
             return False
         return (
-            _is_record(data)
-            and data.get("status") == "run_done"
-            and data.get("run_id") == run_id
+            _is_record(data) and data.get("status") == "run_done" and data.get("run_id") == run_id
         )
 
     async def handle_command(self, command: dict[str, Any]) -> dict[str, Any]:
@@ -382,9 +381,7 @@ class ThreadRunManager:
                 "invalid_argument",
                 "subscription.subscribe requires a non-empty channels array.",
             )
-        channels = [
-            c for c in raw_channels if isinstance(c, str) and _is_supported_channel(c)
-        ]
+        channels = [c for c in raw_channels if isinstance(c, str) and _is_supported_channel(c)]
         if len(channels) != len(raw_channels):
             return self._error(
                 command.get("id"),
@@ -395,8 +392,7 @@ class ThreadRunManager:
         namespaces: list[list[str]] | None = None
         raw_ns = params.get("namespaces")
         if isinstance(raw_ns, list) and all(
-            isinstance(ns, list) and all(isinstance(s, str) for s in ns)
-            for ns in raw_ns
+            isinstance(ns, list) and all(isinstance(s, str) for s in ns) for ns in raw_ns
         ):
             namespaces = raw_ns
 
@@ -404,11 +400,7 @@ class ThreadRunManager:
         raw_depth = params.get("depth")
         # Reject bool explicitly — ``isinstance(False, int)`` is ``True``
         # and would silently coerce to ``depth=0`` (root-only).
-        if (
-            isinstance(raw_depth, int)
-            and not isinstance(raw_depth, bool)
-            and raw_depth >= 0
-        ):
+        if isinstance(raw_depth, int) and not isinstance(raw_depth, bool) and raw_depth >= 0:
             depth = raw_depth
 
         sub = Subscription(
@@ -506,7 +498,9 @@ class ThreadRunManager:
         return list(raw)
 
     def _normalize_respond_entries(
-        self, cmd_id: int | None, params: dict[str, Any]
+        self,
+        cmd_id: int | None,
+        params: dict[str, Any],
     ) -> tuple[list[tuple[str, list[str], Any]] | None, dict[str, Any] | None]:
         """Normalize ``input.respond`` params into resume entries.
 
@@ -578,13 +572,16 @@ class ThreadRunManager:
         params = command.get("params", {}) if _is_record(command.get("params")) else {}
 
         entries, normalize_error = self._normalize_respond_entries(
-            command.get("id"), params
+            command.get("id"),
+            params,
         )
         if normalize_error is not None:
             return normalize_error
         if entries is None:  # narrowed by the error branch above
             return self._error(
-                command.get("id"), "unknown_error", "No entries to respond to."
+                command.get("id"),
+                "unknown_error",
+                "No entries to respond to.",
             )
 
         # Cross-check every targeted interrupt against the session's pending
@@ -683,7 +680,9 @@ class ThreadRunManager:
         }
 
     async def _create_or_resume_run(
-        self, assistant_id: str, params: dict[str, Any]
+        self,
+        assistant_id: str,
+        params: dict[str, Any],
     ) -> Any:
         from langgraph_api.models.run import create_valid_run  # noqa: PLC0415
         from langgraph_api.utils import uuid7 as make_uuid7  # noqa: PLC0415
@@ -723,8 +722,7 @@ class ThreadRunManager:
             has_interrupts = await self._has_pending_interrupts()
 
         is_resume = params.get("input") is not None and (
-            (current_run is not None and current_status == "interrupted")
-            or has_interrupts
+            (current_run is not None and current_status == "interrupted") or has_interrupts
         )
 
         run_config: dict[str, Any] = {
@@ -802,9 +800,7 @@ class ThreadRunManager:
         # fields. ``self._current_run_id`` is always a ``str``, so the
         # short-circuit guard below would silently fail if we kept the
         # ``UUID`` here. Coerce both run_id / thread_id at the boundary.
-        run_id = (
-            str(run["run_id"]) if _is_record(run) else str(getattr(run, "run_id", ""))
-        )
+        run_id = str(run["run_id"]) if _is_record(run) else str(getattr(run, "run_id", ""))
         thread_id = (
             str(run["thread_id"])
             if _is_record(run)
@@ -815,9 +811,7 @@ class ThreadRunManager:
             return
 
         old_subscriptions = (
-            list(self._session.subscriptions.values())
-            if self._session is not None
-            else []
+            list(self._session.subscriptions.values()) if self._session is not None else []
         )
         # Preserve the prior session's seq cursor so events on the new
         # run keep climbing monotonically. SSE deduplicates by
@@ -892,7 +886,9 @@ class ThreadRunManager:
         return send
 
     def _make_get_run(
-        self, run_id: str, thread_id: str
+        self,
+        run_id: str,
+        thread_id: str,
     ) -> Callable[[], Awaitable[dict[str, Any] | None]]:
         """Build a closure that fetches the bound run on demand.
 
@@ -917,7 +913,8 @@ class ThreadRunManager:
         return get_run
 
     def _make_get_thread_state(
-        self, thread_id: str
+        self,
+        thread_id: str,
     ) -> Callable[[], Awaitable[dict[str, Any] | None]]:
         async def get_thread_state() -> dict[str, Any] | None:
             from langgraph_runtime.database import connect  # noqa: PLC0415
@@ -1014,7 +1011,8 @@ class ThreadRunManager:
     # ------------------------------------------------------------------
 
     async def _lookup_interrupt_in_thread_state(
-        self, interrupt_id: str
+        self,
+        interrupt_id: str,
     ) -> list[str] | None:
         """Existence check for ``interrupt_id`` in persisted thread state.
 
@@ -1075,22 +1073,16 @@ class ThreadRunManager:
             )
             return None
 
-        tasks = (
-            state.get("tasks") if _is_record(state) else getattr(state, "tasks", None)
-        ) or ()
+        tasks = (state.get("tasks") if _is_record(state) else getattr(state, "tasks", None)) or ()
         found: set[str] = set()
         for task in tasks:
             interrupts = (
-                task.get("interrupts")
-                if _is_record(task)
-                else getattr(task, "interrupts", None)
+                task.get("interrupts") if _is_record(task) else getattr(task, "interrupts", None)
             )
             if not isinstance(interrupts, (list, tuple)):
                 continue
             for entry in interrupts:
-                entry_id = (
-                    entry.get("id") if _is_record(entry) else getattr(entry, "id", None)
-                )
+                entry_id = entry.get("id") if _is_record(entry) else getattr(entry, "id", None)
                 if isinstance(entry_id, str):
                     found.add(entry_id)
         return found
@@ -1121,15 +1113,11 @@ class ThreadRunManager:
             # whether the caller went through REST → dict or gRPC →
             # StateSnapshot.
             tasks = (
-                state.get("tasks")
-                if _is_record(state)
-                else getattr(state, "tasks", None)
+                state.get("tasks") if _is_record(state) else getattr(state, "tasks", None)
             ) or ()
             for t in tasks:
                 interrupts = (
-                    t.get("interrupts")
-                    if _is_record(t)
-                    else getattr(t, "interrupts", None)
+                    t.get("interrupts") if _is_record(t) else getattr(t, "interrupts", None)
                 )
                 if isinstance(interrupts, (list, tuple)) and len(interrupts) > 0:
                     return True

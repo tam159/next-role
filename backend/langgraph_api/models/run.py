@@ -134,7 +134,7 @@ def ensure_ids(
 ) -> tuple[uuid.UUID, uuid.UUID | None, uuid.UUID | None]:
     try:
         results = [
-            assistant_id if isinstance(assistant_id, UUID) else UUID(assistant_id)
+            assistant_id if isinstance(assistant_id, UUID) else UUID(assistant_id),
         ]
     except ValueError:
         keys = ", ".join(GRAPHS.keys())
@@ -147,7 +147,7 @@ def ensure_ids(
     if thread_id:
         try:
             results.append(
-                thread_id if isinstance(thread_id, UUID) else UUID(thread_id)
+                thread_id if isinstance(thread_id, UUID) else UUID(thread_id),
             )
         except ValueError:
             raise HTTPException(status_code=422, detail="Invalid thread ID") from None
@@ -156,13 +156,12 @@ def ensure_ids(
     if checkpoint_id := payload.get("checkpoint_id"):
         try:
             results.append(
-                checkpoint_id
-                if isinstance(checkpoint_id, UUID)
-                else UUID(checkpoint_id)
+                checkpoint_id if isinstance(checkpoint_id, UUID) else UUID(checkpoint_id),
             )
         except ValueError:
             raise HTTPException(
-                status_code=422, detail="Invalid checkpoint ID"
+                status_code=422,
+                detail="Invalid checkpoint ID",
             ) from None
     else:
         results.append(None)
@@ -216,11 +215,12 @@ async def create_valid_run(
             detail="You must provide a thread_id when resuming.",
         )
     temporary = (temporary or thread_id_ is None) and payload.get(
-        "on_completion", "delete"
+        "on_completion",
+        "delete",
     ) == "delete"
     stream_resumable = payload.get("stream_resumable", False)
     stream_mode, multitask_strategy, prevent_insert_if_inflight = assign_defaults(
-        payload
+        payload,
     )
     # assign custom headers and checkpoint to config
     config = payload.get("config") or {}
@@ -357,7 +357,8 @@ async def create_valid_run(
         first = await anext(run_)
     except StopAsyncIteration:
         raise HTTPException(
-            status_code=404, detail="Thread or assistant not found."
+            status_code=404,
+            detail="Thread or assistant not found.",
         ) from None
 
     # handle multitask strategy
@@ -375,9 +376,7 @@ async def create_valid_run(
             if_not_exists=if_not_exists,
             stream_resumable=stream_resumable,
             run_create_ms=(
-                int(time.time() * 1_000) - request_start_time
-                if request_start_time
-                else None
+                int(time.time() * 1_000) - request_start_time if request_start_time else None
             ),
             run_put_ms=int((time.time() - put_time_start) * 1_000),
             checkpoint_id=str(checkpoint_id),
@@ -419,7 +418,9 @@ def _get_ids(
 
     # ensure UUID validity defaults
     assistant_id, thread_id_, checkpoint_id = ensure_ids(
-        assistant_id, thread_id, payload
+        assistant_id,
+        thread_id,
+        payload,
     )
 
     run_id = run_id or uuid7()

@@ -89,7 +89,9 @@ def _get_configurable_jsonschema(graph: Pregel) -> dict:
     # TODO: Remove this when we no longer support langgraph < 0.6
     config_schema = graph.config_schema()  # type: ignore[deprecated]
     model_fields = getattr(config_schema, "model_fields", None) or getattr(
-        config_schema, "__fields__", None
+        config_schema,
+        "__fields__",
+        None,
     )
 
     if model_fields is not None and "configurable" in model_fields:
@@ -128,21 +130,21 @@ def _graph_schemas(graph: Pregel) -> dict:
         input_schema = graph.get_input_jsonschema()
     except Exception as e:
         logger.warning(
-            f"Failed to get input schema for graph {graph.name} with error: `{e!s}`"
+            f"Failed to get input schema for graph {graph.name} with error: `{e!s}`",
         )
         input_schema = None
     try:
         output_schema = graph.get_output_jsonschema()
     except Exception as e:
         logger.warning(
-            f"Failed to get output schema for graph {graph.name} with error: `{e!s}`"
+            f"Failed to get output schema for graph {graph.name} with error: `{e!s}`",
         )
         output_schema = None
     try:
         state_schema = _state_jsonschema(graph)
     except Exception as e:
         logger.warning(
-            f"Failed to get state schema for graph {graph.name} with error: `{e!s}`"
+            f"Failed to get state schema for graph {graph.name} with error: `{e!s}`",
         )
         state_schema = None
 
@@ -150,7 +152,7 @@ def _graph_schemas(graph: Pregel) -> dict:
         config_schema = _get_configurable_jsonschema(graph)
     except Exception as e:
         logger.warning(
-            f"Failed to get config schema for graph {graph.name} with error: `{e!s}`"
+            f"Failed to get config schema for graph {graph.name} with error: `{e!s}`",
         )
         config_schema = None
 
@@ -159,7 +161,7 @@ def _graph_schemas(graph: Pregel) -> dict:
             context_schema = graph.get_context_jsonschema()
         except Exception as e:
             logger.warning(
-                f"Failed to get context schema for graph {graph.name} with error: `{e!s}`"
+                f"Failed to get context schema for graph {graph.name} with error: `{e!s}`",
             )
             context_schema = graph.config_schema()  # type: ignore[deprecated]
     else:
@@ -246,7 +248,9 @@ async def search_assistants(
             select=select,
         )
     assistants, response_headers = await get_pagination_headers(
-        assistants_iter, next_offset, offset
+        assistants_iter,
+        next_offset,
+        offset,
     )
 
     if IS_POSTGRES_OR_GRPC_BACKEND and using_custom_encryption():
@@ -351,7 +355,8 @@ async def get_assistant_graph(
             return ApiResponse(json_graph)
         except NotImplementedError:
             raise HTTPException(
-                422, detail="The graph does not support visualization"
+                422,
+                detail="The graph does not support visualization",
             ) from None
 
 
@@ -382,9 +387,8 @@ async def get_assistant_subgraphs(
             return ApiResponse(
                 await graph.fetch_subgraphs(
                     namespace=namespace,
-                    recurse=request.query_params.get("recurse", "False")
-                    in ("true", "True"),
-                )
+                    recurse=request.query_params.get("recurse", "False") in ("true", "True"),
+                ),
             )
 
         try:
@@ -393,14 +397,14 @@ async def get_assistant_subgraphs(
                     ns: _graph_schemas(subgraph)
                     async for ns, subgraph in graph.aget_subgraphs(
                         namespace=namespace,
-                        recurse=request.query_params.get("recurse", "False")
-                        in ("true", "True"),
+                        recurse=request.query_params.get("recurse", "False") in ("true", "True"),
                     )
-                }
+                },
             )
         except NotImplementedError:
             raise HTTPException(
-                422, detail="The graph does not support visualization"
+                422,
+                detail="The graph does not support visualization",
             ) from None
 
 
@@ -435,7 +439,7 @@ async def get_assistant_schemas(
                     "state_schema": schemas.get("state"),
                     "config_schema": schemas.get("config"),
                     "context_schema": schemas.get("context"),
-                }
+                },
             )
 
         schemas = _graph_schemas(graph)
@@ -444,7 +448,7 @@ async def get_assistant_schemas(
             {
                 "graph_id": assistant["graph_id"],
                 **schemas,
-            }
+            },
         )
 
 
@@ -532,7 +536,8 @@ async def get_assistant_versions(request: ApiRequest) -> ApiResponse:
     assistants = [assistant async for assistant in assistants_iter]
     if not assistants:
         raise HTTPException(
-            status_code=404, detail=f"Assistant {assistant_id} not found"
+            status_code=404,
+            detail=f"Assistant {assistant_id} not found",
         )
 
     if IS_POSTGRES_OR_GRPC_BACKEND and not using_aes_encryption():
@@ -555,7 +560,9 @@ async def set_latest_assistant_version(request: ApiRequest) -> ApiResponse:
     validate_uuid(assistant_id, "Invalid assistant ID: must be a UUID")
     async with connect() as conn:
         assistant = await Assistants.set_latest(
-            conn, assistant_id, payload.get("version")
+            conn,
+            assistant_id,
+            payload.get("version"),
         )
 
     assistant_data = await fetchone(assistant, not_found_code=404)
@@ -578,15 +585,21 @@ assistants_routes: list[BaseRoute] = [
         methods=["POST"],
     ),
     ApiRoute(
-        "/assistants/{assistant_id}/versions", get_assistant_versions, methods=["POST"]
+        "/assistants/{assistant_id}/versions",
+        get_assistant_versions,
+        methods=["POST"],
     ),
     ApiRoute("/assistants/{assistant_id}", get_assistant, methods=["GET"]),
     ApiRoute("/assistants/{assistant_id}/graph", get_assistant_graph, methods=["GET"]),
     ApiRoute(
-        "/assistants/{assistant_id}/schemas", get_assistant_schemas, methods=["GET"]
+        "/assistants/{assistant_id}/schemas",
+        get_assistant_schemas,
+        methods=["GET"],
     ),
     ApiRoute(
-        "/assistants/{assistant_id}/subgraphs", get_assistant_subgraphs, methods=["GET"]
+        "/assistants/{assistant_id}/subgraphs",
+        get_assistant_subgraphs,
+        methods=["GET"],
     ),
     ApiRoute(
         "/assistants/{assistant_id}/subgraphs/{namespace}",

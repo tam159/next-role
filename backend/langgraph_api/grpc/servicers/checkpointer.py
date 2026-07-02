@@ -12,6 +12,8 @@ import grpc
 import orjson
 import structlog
 from google.protobuf.empty_pb2 import Empty  # ty: ignore[unresolved-import]
+
+from langgraph_api import _checkpointer as api_checkpointer
 from langgraph_grpc_common.conversion.checkpoint import (
     checkpoint_from_proto,
     checkpoint_metadata_from_proto,
@@ -26,8 +28,6 @@ from langgraph_grpc_common.conversion.config import (
 )
 from langgraph_grpc_common.proto import checkpointer_pb2
 from langgraph_grpc_common.proto.checkpointer_pb2_grpc import CheckpointerServicer
-
-from langgraph_api import _checkpointer as api_checkpointer
 
 if TYPE_CHECKING:
     from grpc import aio as grpc_aio
@@ -62,7 +62,10 @@ class CheckpointerServicerImpl(CheckpointerServicer):
             )
             new_versions = dict(request.new_versions)
             next_config = await checkpointer.aput(
-                config, checkpoint, metadata, new_versions
+                config,
+                checkpoint,
+                metadata,
+                new_versions,
             )
             next_config_pb = config_to_proto(next_config)
             if next_config_pb is None:
@@ -86,7 +89,10 @@ class CheckpointerServicerImpl(CheckpointerServicer):
             config = config_from_proto(request.config)
             writes = writes_from_proto(request.writes)
             await checkpointer.aput_writes(
-                config, writes, request.task_id, request.task_path
+                config,
+                writes,
+                request.task_id,
+                request.task_path,
             )
             return Empty()
         except Exception as e:
@@ -124,15 +130,16 @@ class CheckpointerServicerImpl(CheckpointerServicer):
         try:
             checkpointer = await api_checkpointer.get_checkpointer()
             config = config_from_proto(request.config)
-            filter_dict = (
-                orjson.loads(request.filter_json) if request.filter_json else None
-            )
+            filter_dict = orjson.loads(request.filter_json) if request.filter_json else None
             before = config_from_proto_optional(request.before)
             limit = request.limit if request.HasField("limit") else None
 
             tuples = []
             async for checkpoint_tuple in checkpointer.alist(
-                config, filter=filter_dict, before=before, limit=limit
+                config,
+                filter=filter_dict,
+                before=before,
+                limit=limit,
             ):
                 tuples.append(checkpoint_tuple_to_proto(checkpoint_tuple))
             return checkpointer_pb2.ListResponse(checkpoint_tuples=tuples)
@@ -156,7 +163,7 @@ class CheckpointerServicerImpl(CheckpointerServicer):
             if result is None:
                 return checkpointer_pb2.GetTupleResponse()
             return checkpointer_pb2.GetTupleResponse(
-                checkpoint_tuple=checkpoint_tuple_to_proto(result)
+                checkpoint_tuple=checkpoint_tuple_to_proto(result),
             )
         except Exception as e:
             await logger.aexception("Checkpointer.GetTuple failed")
@@ -176,7 +183,7 @@ class CheckpointerServicerImpl(CheckpointerServicer):
             if caps is None or not caps.has_adelete_thread:
                 context.set_code(grpc.StatusCode.UNIMPLEMENTED)
                 context.set_details(
-                    "Custom checkpointer does not implement adelete_thread"
+                    "Custom checkpointer does not implement adelete_thread",
                 )
                 raise NotImplementedError("adelete_thread not implemented")
             checkpointer = await api_checkpointer.get_checkpointer()
@@ -215,7 +222,8 @@ class CheckpointerServicerImpl(CheckpointerServicer):
         try:
             checkpointer = await api_checkpointer.get_checkpointer()
             await checkpointer.acopy_thread(
-                request.from_thread_id, request.to_thread_id
+                request.from_thread_id,
+                request.to_thread_id,
             )
             return Empty()
         except Exception as e:

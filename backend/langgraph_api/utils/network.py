@@ -42,8 +42,4 @@ def get_healthcheck_url_host(host: str) -> str:
     except ValueError:
         return host
 
-    return (
-        f"[{host_ip.compressed}]"
-        if isinstance(host_ip, IPv6Address)
-        else host_ip.compressed
-    )
+    return f"[{host_ip.compressed}]" if isinstance(host_ip, IPv6Address) else host_ip.compressed

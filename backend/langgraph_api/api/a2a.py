@@ -181,7 +181,8 @@ def _parse_task_id(task_id: str) -> tuple[str, str]:
 
 
 async def _get_assistant(
-    assistant_id: str, headers: Headers | dict[str, Any] | None
+    assistant_id: str,
+    headers: Headers | dict[str, Any] | None,
 ) -> dict[str, Any]:
     """Get assistant with proper 404 error handling.
 
@@ -236,12 +237,13 @@ async def _validate_supports_messages(
     else:
         try:
             schemas = await get_client().assistants.get_schemas(
-                assistant_id, headers=headers
+                assistant_id,
+                headers=headers,
             )
             _assistant_schemas_cache.set(assistant_id, schemas)
         except Exception as e:
             raise ValueError(
-                f"Failed to get schemas for assistant '{assistant_id}': {e}"
+                f"Failed to get schemas for assistant '{assistant_id}': {e}",
             ) from e
 
     # Validate messages field only if there are text parts
@@ -251,7 +253,7 @@ async def _validate_supports_messages(
         if not input_schema:
             raise ValueError(
                 f"Assistant '{assistant_id}' has no input schema defined. "
-                f"A2A conversational agents using text parts must have an input schema with a 'messages' field."
+                f"A2A conversational agents using text parts must have an input schema with a 'messages' field.",
             )
 
         properties = input_schema.get("properties", {})
@@ -260,7 +262,7 @@ async def _validate_supports_messages(
             raise ValueError(
                 f"Assistant '{assistant_id}' (graph '{graph_id}') does not support A2A conversational messages. "
                 f"Graph input schema must include a 'messages' field to accept text parts. "
-                f"Available input fields: {list(properties.keys())}"
+                f"Available input fields: {list(properties.keys())}",
             )
 
     return schemas
@@ -452,7 +454,7 @@ def _process_a2a_message_parts(
             # Map A2A role to LangGraph role
             langgraph_role = "human" if message_role == "ROLE_USER" else "assistant"
             messages.append(
-                {"role": langgraph_role, "content": part["text"], "id": message_id}
+                {"role": langgraph_role, "content": part["text"], "id": message_id},
             )
 
         elif "data" in part:
@@ -460,14 +462,13 @@ def _process_a2a_message_parts(
             part_data = part.get("data", {})
             if not isinstance(part_data, dict):
                 raise ValueError(
-                    "DataPart must contain a JSON object in the 'data' field"
+                    "DataPart must contain a JSON object in the 'data' field",
                 )
             additional_data.update(part_data)
 
         else:
             raise ValueError(
-                "Unsupported part type. "
-                "A2A agents support 'text' and 'data' parts only."
+                "Unsupported part type. A2A agents support 'text' and 'data' parts only.",
             )
 
     if not messages and not additional_data:
@@ -657,7 +658,10 @@ def _lc_items_to_status_update_event(
     and keeps message content within the status update per spec.
     """
     message = _lc_stream_items_to_a2a_message(
-        items, task_id=task_id, context_id=context_id, role="ROLE_AGENT"
+        items,
+        task_id=task_id,
+        context_id=context_id,
+        role="ROLE_AGENT",
     )
     return {
         "taskId": task_id,
@@ -673,7 +677,9 @@ def _lc_items_to_status_update_event(
 
 
 def _map_runs_create_error_to_rpc(
-    exception: Exception, assistant_id: str, thread_id: str | None = None
+    exception: Exception,
+    assistant_id: str,
+    thread_id: str | None = None,
 ) -> dict[str, Any]:
     """Map runs.create() exceptions to A2A JSON-RPC error responses.
 
@@ -700,47 +706,49 @@ def _map_runs_create_error_to_rpc(
                             "thread_id": thread_id,
                             "error_type": "thread_not_found",
                         },
-                    }
+                    },
                 }
             else:
                 return {
                     "error": {
                         "code": ERROR_CODE_INVALID_PARAMS,
                         "message": f"Assistant '{assistant_id}' not found",
-                    }
+                    },
                 }
         elif status_code == 400:
             return {
                 "error": {
                     "code": ERROR_CODE_INVALID_PARAMS,
                     "message": f"Invalid request: {error_text}",
-                }
+                },
             }
         elif status_code == 403:
             return {
                 "error": {
                     "code": ERROR_CODE_INVALID_PARAMS,
                     "message": "Access denied to assistant or thread",
-                }
+                },
             }
         else:
             return {
                 "error": {
                     "code": ERROR_CODE_INVALID_PARAMS,
                     "message": f"Failed to create run: {error_text}",
-                }
+                },
             }
 
     return {
         "error": {
             "code": ERROR_CODE_INTERNAL_ERROR,
             "message": "Internal server error",
-        }
+        },
     }
 
 
 def _map_runs_get_error_to_rpc(
-    exception: Exception, task_id: str, thread_id: str
+    exception: Exception,
+    task_id: str,
+    thread_id: str,
 ) -> dict[str, Any]:
     """Map runs.get() exceptions to A2A JSON-RPC error responses.
 
@@ -761,19 +769,19 @@ def _map_runs_get_error_to_rpc(
                 "error": {
                     "code": ERROR_CODE_TASK_NOT_FOUND,
                     "message": f"Task '{task_id}' not found in thread '{thread_id}'",
-                }
+                },
             },
             400: {
                 "error": {
                     "code": ERROR_CODE_INVALID_PARAMS,
                     "message": f"Invalid request: {error_text}",
-                }
+                },
             },
             403: {
                 "error": {
                     "code": ERROR_CODE_INVALID_PARAMS,
                     "message": "Access denied to task",
-                }
+                },
             },
         }
 
@@ -783,7 +791,7 @@ def _map_runs_get_error_to_rpc(
                 "error": {
                     "code": ERROR_CODE_INVALID_PARAMS,
                     "message": f"Failed to get task: {error_text}",
-                }
+                },
             },
         )
 
@@ -791,7 +799,7 @@ def _map_runs_get_error_to_rpc(
         "error": {
             "code": ERROR_CODE_INTERNAL_ERROR,
             "message": "Internal server error",
-        }
+        },
     }
 
 
@@ -822,11 +830,7 @@ def _convert_messages_to_a2a_format(
 
             # Support both LangChain style (type: "human"/"ai") and OpenAI style (role: "user"/"assistant")
             # Map to A2A roles: "human"/"user" -> "ROLE_USER", everything else -> "ROLE_AGENT"
-            a2a_role = (
-                "ROLE_USER"
-                if msg_type == "human" or msg_role == "user"
-                else "ROLE_AGENT"
-            )
+            a2a_role = "ROLE_USER" if msg_type == "human" or msg_role == "user" else "ROLE_AGENT"
 
             parts: list[dict[str, Any]] = [{"kind": "text", "text": str(content)}]
             extra_data: dict[str, Any] = {}
@@ -892,7 +896,7 @@ async def _create_task_response(
                     {
                         "kind": "text",
                         "text": f"Error executing assistant: {result['__error__']['error']}",
-                    }
+                    },
                 ],
                 "messageId": str(uuid.uuid4()),
                 "taskId": task_id,
@@ -916,9 +920,9 @@ async def _create_task_response(
                     {
                         "kind": "text",
                         "text": _extract_a2a_response(result),
-                    }
+                    },
                 ],
-            }
+            },
         ]
 
         base_task["status"] = {
@@ -970,13 +974,15 @@ async def handle_post_request(request: ApiRequest, assistant_id: str) -> Respons
     except orjson.JSONDecodeError:
         # JSON-RPC 2.0: Parse error (-32700) - Invalid JSON was received
         return create_jsonrpc_error_response(
-            ERROR_CODE_PARSE_ERROR, "Invalid JSON payload"
+            ERROR_CODE_PARSE_ERROR,
+            "Invalid JSON payload",
         )
 
     if not isinstance(message, dict):
         # JSON-RPC 2.0: Invalid Request (-32600) - Not a valid Request object
         return create_jsonrpc_error_response(
-            ERROR_CODE_INVALID_REQUEST, "Invalid message format: expected object"
+            ERROR_CODE_INVALID_REQUEST,
+            "Invalid message format: expected object",
         )
 
     if message.get("jsonrpc") != "2.0":
@@ -1061,18 +1067,22 @@ async def handle_post_request(request: ApiRequest, assistant_id: str) -> Respons
     if method == "SendStreamingMessage":
         if not _accepts_media_type(accept_header, "text/event-stream"):
             return create_error_response(
-                "Accept header must include text/event-stream for streaming", 400
+                "Accept header must include text/event-stream for streaming",
+                400,
             )
     else:
         if not _accepts_media_type(accept_header, "application/json"):
             return create_error_response(
-                "Accept header must include application/json", 400
+                "Accept header must include application/json",
+                400,
             )
 
     if id_ is not None and method:
         # JSON-RPC request: has id and method
         return await handle_jsonrpc_request(
-            request, cast("JsonRpcRequest", message), assistant_id
+            request,
+            cast("JsonRpcRequest", message),
+            assistant_id,
         )
     elif id_ is not None and ("result" in message or "error" in message):
         # JSON-RPC response: has id plus result or error (not expected in A2A server context)
@@ -1111,7 +1121,9 @@ def create_error_response(message: str, status_code: int) -> Response:
 
 
 def create_jsonrpc_error_response(
-    code: int, message: str, id: str | int | float | None = None
+    code: int,
+    message: str,
+    id: str | int | float | None = None,
 ) -> Response:
     """Create a JSON-RPC 2.0 error response.
 
@@ -1127,7 +1139,7 @@ def create_jsonrpc_error_response(
         JSON-RPC 2.0 compliant error response with HTTP 200 status
     """
     return JSONResponse(
-        {"jsonrpc": "2.0", "id": id, "error": {"code": code, "message": message}}
+        {"jsonrpc": "2.0", "id": id, "error": {"code": code, "message": message}},
     )
 
 
@@ -1157,7 +1169,9 @@ def _accepts_media_type(accept_header: str, media_type: str) -> bool:
 
 
 async def handle_jsonrpc_request(
-    request: ApiRequest, message: JsonRpcRequest, assistant_id: str
+    request: ApiRequest,
+    message: JsonRpcRequest,
+    assistant_id: str,
 ) -> Response:
     """Handle JSON-RPC requests with A2A methods.
 
@@ -1189,13 +1203,13 @@ async def handle_jsonrpc_request(
             "error": {
                 "code": ERROR_CODE_METHOD_NOT_FOUND,
                 "message": f"Method not found: {method}",
-            }
+            },
         }
 
     response_keys = set(result_or_error.keys())
     if not (response_keys == {"result"} or response_keys == {"error"}):
         raise AssertionError(
-            "Internal server error. Invalid response format in A2A implementation"
+            "Internal server error. Invalid response format in A2A implementation",
         )
 
     response_body: dict[str, Any] = {
@@ -1226,7 +1240,9 @@ def handle_jsonrpc_response() -> Response:
 
 
 async def handle_message_send(
-    request: ApiRequest, params: dict[str, Any], assistant_id: str
+    request: ApiRequest,
+    params: dict[str, Any],
+    assistant_id: str,
 ) -> dict[str, Any]:
     """Handle message/send requests to create or continue tasks.
 
@@ -1254,7 +1270,7 @@ async def handle_message_send(
                 "error": {
                     "code": ERROR_CODE_INVALID_PARAMS,
                     "message": "Missing 'message' in params",
-                }
+                },
             }
 
         message_id = message.get("messageId")
@@ -1263,7 +1279,7 @@ async def handle_message_send(
                 "error": {
                     "code": ERROR_CODE_INVALID_PARAMS,
                     "message": "Missing required 'messageId' in message",
-                }
+                },
             }
 
         role = message.get("role")
@@ -1272,7 +1288,7 @@ async def handle_message_send(
                 "error": {
                     "code": ERROR_CODE_INVALID_PARAMS,
                     "message": "Missing required 'role' in message",
-                }
+                },
             }
 
         parts = message.get("parts", [])
@@ -1281,14 +1297,14 @@ async def handle_message_send(
                 "error": {
                     "code": ERROR_CODE_INVALID_PARAMS,
                     "message": "Invalid params: 'parts' must be an array",
-                }
+                },
             }
         if not parts:
             return {
                 "error": {
                     "code": ERROR_CODE_INVALID_PARAMS,
                     "message": "Message must contain at least one part",
-                }
+                },
             }
 
         try:
@@ -1299,7 +1315,7 @@ async def handle_message_send(
                 "error": {
                     "code": ERROR_CODE_INVALID_PARAMS,
                     "message": str(e),
-                }
+                },
             }
 
         # Process A2A message parts into LangChain messages format
@@ -1311,7 +1327,7 @@ async def handle_message_send(
                 "error": {
                     "code": ERROR_CODE_CONTENT_TYPE_NOT_SUPPORTED,
                     "message": str(e),
-                }
+                },
             }
 
         context_id = message.get("contextId")
@@ -1327,7 +1343,7 @@ async def handle_message_send(
                 "error": {
                     "code": ERROR_CODE_INVALID_PARAMS,
                     "message": "taskId is required when resuming a task",
-                }
+                },
             }
         if command is None:
             (
@@ -1395,7 +1411,7 @@ async def handle_message_send(
             "error": {
                 "code": ERROR_CODE_INTERNAL_ERROR,
                 "message": "Internal server error",
-            }
+            },
         }
 
 
@@ -1416,7 +1432,8 @@ async def _get_historical_messages_for_task(
     if history:
         # Find the checkpoint with the highest step number (final state for this task)
         target_checkpoint = max(
-            history, key=lambda c: c.get("metadata", {}).get("step", 0)
+            history,
+            key=lambda c: c.get("metadata", {}).get("step", 0),
         )
         values = target_checkpoint["values"]
         messages = values.get("messages", [])
@@ -1431,7 +1448,8 @@ async def _get_historical_messages_for_task(
 
 
 async def handle_tasks_get(
-    request: ApiRequest, params: dict[str, Any]
+    request: ApiRequest,
+    params: dict[str, Any],
 ) -> dict[str, Any]:
     """Handle tasks/get requests to retrieve task status.
 
@@ -1459,7 +1477,7 @@ async def handle_tasks_get(
                 "error": {
                     "code": ERROR_CODE_INVALID_PARAMS,
                     "message": "Missing required parameter: id (task_id)",
-                }
+                },
             }
 
         # Parse composite task_id to extract context_id and run_id
@@ -1474,7 +1492,7 @@ async def handle_tasks_get(
                 "error": {
                     "code": ERROR_CODE_TASK_NOT_FOUND,
                     "message": f"Task not found: {task_id_raw}",
-                }
+                },
             }
 
         # Keep original task_id for A2A response (preserve what was sent/received)
@@ -1487,14 +1505,14 @@ async def handle_tasks_get(
                     "error": {
                         "code": ERROR_CODE_INVALID_PARAMS,
                         "message": "historyLength must be a non-negative integer",
-                    }
+                    },
                 }
             if history_length > MAX_HISTORY_LENGTH_REQUESTED:
                 return {
                     "error": {
                         "code": ERROR_CODE_INVALID_PARAMS,
                         "message": f"historyLength cannot exceed {MAX_HISTORY_LENGTH_REQUESTED}",
-                    }
+                    },
                 }
 
         try:
@@ -1543,10 +1561,15 @@ async def handle_tasks_get(
         try:
             task_run_id = run_info.get("run_id")
             messages = await _get_historical_messages_for_task(
-                context_id, task_run_id, request.headers, history_length
+                context_id,
+                task_run_id,
+                request.headers,
+                history_length,
             )
             thread_history = _convert_messages_to_a2a_format(
-                messages, task_id, context_id
+                messages,
+                task_id,
+                context_id,
             )
         except Exception as e:
             await logger.aexception(f"Failed to get thread state for tasks/get: {e}")
@@ -1577,7 +1600,7 @@ async def handle_tasks_get(
                 "kind": "message",
                 "role": "ROLE_AGENT",
                 "parts": [
-                    {"kind": "text", "text": f"Task failed with status: {lg_status}"}
+                    {"kind": "text", "text": f"Task failed with status: {lg_status}"},
                 ],
                 "messageId": str(uuid.uuid4()),
                 "taskId": task_id,
@@ -1587,18 +1610,20 @@ async def handle_tasks_get(
 
     except Exception as e:
         await logger.aexception(
-            f"Error in tasks/get for task {params.get('id')}: {e!s}", exc_info=True
+            f"Error in tasks/get for task {params.get('id')}: {e!s}",
+            exc_info=True,
         )
         return {
             "error": {
                 "code": ERROR_CODE_INTERNAL_ERROR,
                 "message": "Internal server error",
-            }
+            },
         }
 
 
 async def handle_tasks_cancel(
-    request: ApiRequest, params: dict[str, Any]
+    request: ApiRequest,
+    params: dict[str, Any],
 ) -> dict[str, Any]:
     """Handle tasks/cancel requests to cancel running tasks.
 
@@ -1625,7 +1650,7 @@ async def handle_tasks_cancel(
             "error": {
                 "code": ERROR_CODE_INVALID_PARAMS,
                 "message": "Missing required parameter: id (task_id)",
-            }
+            },
         }
 
     # Parse composite task_id to extract context_id and run_id
@@ -1638,7 +1663,7 @@ async def handle_tasks_cancel(
             "error": {
                 "code": ERROR_CODE_TASK_NOT_FOUND,
                 "message": f"Task not found: {task_id_raw}",
-            }
+            },
         }
 
     # Check if the task exists first
@@ -1659,14 +1684,14 @@ async def handle_tasks_cancel(
                 "error": {
                     "code": ERROR_CODE_TASK_NOT_FOUND,
                     "message": f"Task not found: {task_id_raw}",
-                }
+                },
             }
         # For other errors, return internal error
         return {
             "error": {
                 "code": ERROR_CODE_INTERNAL_ERROR,
                 "message": f"Failed to check task status: {e!s}",
-            }
+            },
         }
 
     # Check if the task is in a cancelable state
@@ -1688,7 +1713,7 @@ async def handle_tasks_cancel(
                         {
                             "kind": "text",
                             "text": f"Task cancel acknowledged (was: {lg_status})",
-                        }
+                        },
                     ],
                     "messageId": str(uuid.uuid4()),
                     "taskId": task_id_raw,
@@ -1712,7 +1737,7 @@ async def handle_tasks_cancel(
             "error": {
                 "code": ERROR_CODE_INTERNAL_ERROR,
                 "message": f"Failed to cancel task: {e!s}",
-            }
+            },
         }
 
     # Return the canceled task
@@ -1749,7 +1774,8 @@ def _lg_status_to_a2a_state(lg_status: str) -> str:
 
 
 async def handle_list_tasks(
-    request: ApiRequest, params: dict[str, Any]
+    request: ApiRequest,
+    params: dict[str, Any],
 ) -> dict[str, Any]:
     """Handle ListTasks requests to list tasks with filtering and pagination.
 
@@ -1777,7 +1803,7 @@ async def handle_list_tasks(
             "error": {
                 "code": ERROR_CODE_INVALID_PARAMS,
                 "message": "pageSize must be an integer between 1 and 100.",
-            }
+            },
         }
     requested_page_size: int = raw_page_size if raw_page_size is not None else 50
 
@@ -1789,7 +1815,7 @@ async def handle_list_tasks(
             "error": {
                 "code": ERROR_CODE_INVALID_PARAMS,
                 "message": "historyLength must be a non-negative integer.",
-            }
+            },
         }
     history_length: int = raw_history_length if raw_history_length is not None else 0
 
@@ -1812,7 +1838,7 @@ async def handle_list_tasks(
             "error": {
                 "code": ERROR_CODE_INVALID_PARAMS,
                 "message": f"Invalid status value: '{status_filter}'.",
-            }
+            },
         }
 
     status_timestamp_after = params.get("statusTimestampAfter")
@@ -1827,7 +1853,7 @@ async def handle_list_tasks(
                 "error": {
                     "code": ERROR_CODE_INVALID_PARAMS,
                     "message": "statusTimestampAfter must be a valid ISO 8601 timestamp.",
-                }
+                },
             }
 
     page_token = params.get("pageToken")
@@ -1837,7 +1863,7 @@ async def handle_list_tasks(
                 "error": {
                     "code": ERROR_CODE_INVALID_PARAMS,
                     "message": "pageToken must be a string.",
-                }
+                },
             }
         # Our page tokens are numeric offsets; reject non-numeric tokens
         if page_token != "":
@@ -1848,7 +1874,7 @@ async def handle_list_tasks(
                     "error": {
                         "code": ERROR_CODE_INVALID_PARAMS,
                         "message": "Invalid pageToken.",
-                    }
+                    },
                 }
 
     include_artifacts = params.get("includeArtifacts", False)
@@ -1910,10 +1936,15 @@ async def handle_list_tasks(
                 if history_length > 0:
                     try:
                         messages = await _get_historical_messages_for_task(
-                            tid, run["run_id"], request.headers, history_length
+                            tid,
+                            run["run_id"],
+                            request.headers,
+                            history_length,
                         )
                         task["history"] = _convert_messages_to_a2a_format(
-                            messages, task_id, tid
+                            messages,
+                            task_id,
+                            tid,
                         )
                     except Exception:
                         task["history"] = []
@@ -1944,7 +1975,7 @@ async def handle_list_tasks(
                 "totalSize": total_size,
                 "pageSize": len(page_tasks) if page_tasks else 0,
                 "nextPageToken": next_page_token,
-            }
+            },
         }
 
     except Exception:
@@ -1953,12 +1984,13 @@ async def handle_list_tasks(
             "error": {
                 "code": ERROR_CODE_INTERNAL_ERROR,
                 "message": "Internal server error",
-            }
+            },
         }
 
 
 async def handle_get_extended_card(
-    request: ApiRequest, assistant_id: str
+    request: ApiRequest,
+    assistant_id: str,
 ) -> dict[str, Any]:
     """Handle agent/getAuthenticatedExtendedCard requests.
 
@@ -1980,7 +2012,7 @@ async def handle_get_extended_card(
             "error": {
                 "code": ERROR_CODE_INVALID_PARAMS,
                 "message": str(e),
-            }
+            },
         }
     except Exception:
         logger.exception(f"Error generating extended agent card for {assistant_id}")
@@ -1988,7 +2020,7 @@ async def handle_get_extended_card(
             "error": {
                 "code": ERROR_CODE_INTERNAL_ERROR,
                 "message": "Internal server error",
-            }
+            },
         }
 
 
@@ -2021,9 +2053,7 @@ async def generate_agent_card(request: ApiRequest, assistant_id: str) -> dict[st
     required = input_schema.get("required", [])
 
     assistant_name = assistant["name"]
-    assistant_description = (
-        assistant.get("description") or f"{assistant_name} assistant"
-    )
+    assistant_description = assistant.get("description") or f"{assistant_name} assistant"
 
     # For now, each assistant has one main skill - itself
     skills = [
@@ -2040,9 +2070,9 @@ async def generate_agent_card(request: ApiRequest, assistant_id: str) -> dict[st
                     "required": required,
                     "properties": sorted(properties.keys()),
                     "supportsA2A": "messages" in properties,
-                }
+                },
             },
-        }
+        },
     ]
 
     if USER_API_URL:
@@ -2057,9 +2087,7 @@ async def generate_agent_card(request: ApiRequest, assistant_id: str) -> dict[st
             .removesuffix("/.well-known/agent.json")
             .removesuffix(f"/a2a/{assistant_id}")
         )
-        if port and (
-            (scheme == "http" and port != 80) or (scheme == "https" and port != 443)
-        ):
+        if port and ((scheme == "http" and port != 80) or (scheme == "https" and port != 443)):
             base_url = f"{scheme}://{host}:{port}{path}"
         else:
             base_url = f"{scheme}://{host}{path}"
@@ -2117,7 +2145,7 @@ async def handle_agent_card_endpoint(request: ApiRequest) -> Response:
                 "error": {
                     "code": ERROR_CODE_INVALID_PARAMS,
                     "message": "Missing required query parameter: assistant_id",
-                }
+                },
             }
             return Response(
                 content=orjson.dumps(error_response),
@@ -2134,7 +2162,7 @@ async def handle_agent_card_endpoint(request: ApiRequest) -> Response:
             "error": {
                 "code": ERROR_CODE_INVALID_PARAMS,
                 "message": str(e),
-            }
+            },
         }
         return Response(
             content=orjson.dumps(error_response),
@@ -2147,7 +2175,7 @@ async def handle_agent_card_endpoint(request: ApiRequest) -> Response:
             "error": {
                 "code": ERROR_CODE_INTERNAL_ERROR,
                 "message": "Internal server error",
-            }
+            },
         }
         return Response(
             content=orjson.dumps(error_response),
@@ -2261,7 +2289,9 @@ async def handle_message_stream(
             try:
                 message_role = _normalize_input_role(message.get("role", "ROLE_USER"))
                 input_content = _process_a2a_message_parts(
-                    parts, message_role, message_id
+                    parts,
+                    message_role,
+                    message_id,
                 )
             except ValueError as e:
                 yield (
@@ -2283,7 +2313,8 @@ async def handle_message_stream(
 
             # Extract and validate command (LangGraph extension for resuming interrupts)
             command, command_error = _extract_and_validate_command(
-                message, context_id_from_message
+                message,
+                context_id_from_message,
             )
             if command_error:
                 yield (
@@ -2295,11 +2326,7 @@ async def handle_message_stream(
                     },
                 )
                 return
-            if (
-                command is not None
-                and command.get("resume")
-                and existing_task_id is None
-            ):
+            if command is not None and command.get("resume") and existing_task_id is None:
                 yield (
                     b"message",
                     {
@@ -2376,7 +2403,7 @@ async def handle_message_stream(
                         **message,
                         "taskId": task_id,
                         "contextId": context_id,
-                    }
+                    },
                 ],
                 "status": {
                     "state": "TASK_STATE_SUBMITTED",
@@ -2425,8 +2452,7 @@ async def handle_message_stream(
                             # Check if result contains an interrupt
                             final_state = (
                                 "TASK_STATE_INPUT_REQUIRED"
-                                if isinstance(result, dict)
-                                and "__interrupt__" in result
+                                if isinstance(result, dict) and "__interrupt__" in result
                                 else "TASK_STATE_COMPLETED"
                             )
                             completed = {
@@ -2452,7 +2478,7 @@ async def handle_message_stream(
                                             "contextId": context_id,
                                             "kind": "artifact-update",
                                             "artifact": _create_interrupt_artifact(
-                                                result["__interrupt__"]
+                                                result["__interrupt__"],
                                             ),
                                         },
                                     },
@@ -2498,9 +2524,7 @@ async def handle_message_stream(
                             # (e.g. Anthropic metadata-only chunks).
                             msg = update.get("status", {}).get("message", {})
                             parts = msg.get("parts", [])
-                            has_content = any(
-                                (p.get("text") or p.get("data")) for p in parts
-                            )
+                            has_content = any((p.get("text") or p.get("data")) for p in parts)
                             if has_content:
                                 yield (
                                     b"message",
@@ -2512,7 +2536,7 @@ async def handle_message_stream(
                                 )
                     else:
                         await logger.awarning(
-                            "Ignoring unknown event type: " + chunk.event
+                            "Ignoring unknown event type: " + chunk.event,
                         )
 
                 except Exception as e:
@@ -2567,7 +2591,7 @@ async def handle_message_stream(
                             "contextId": context_id,
                             "kind": "artifact-update",
                             "artifact": _create_interrupt_artifact(
-                                result["__interrupt__"]
+                                result["__interrupt__"],
                             ),
                         },
                     },
@@ -2602,7 +2626,8 @@ async def handle_message_stream(
             yield chunk
 
     return EventSourceResponse(
-        consume_(), headers={"Content-Type": "text/event-stream"}
+        consume_(),
+        headers={"Content-Type": "text/event-stream"},
     )
 
 
@@ -2653,7 +2678,7 @@ async def handle_assistant_agent_card_endpoint(request: ApiRequest) -> Response:
                 "error": {
                     "code": ERROR_CODE_INVALID_PARAMS,
                     "message": "Missing assistant_id in path",
-                }
+                },
             }
             return Response(
                 content=orjson.dumps(error_response),
@@ -2669,7 +2694,7 @@ async def handle_assistant_agent_card_endpoint(request: ApiRequest) -> Response:
             "error": {
                 "code": ERROR_CODE_INVALID_PARAMS,
                 "message": str(e),
-            }
+            },
         }
         return Response(
             content=orjson.dumps(error_response),
@@ -2682,7 +2707,7 @@ async def handle_assistant_agent_card_endpoint(request: ApiRequest) -> Response:
             "error": {
                 "code": ERROR_CODE_INTERNAL_ERROR,
                 "message": "Internal server error",
-            }
+            },
         }
         return Response(
             content=orjson.dumps(error_response),
@@ -2711,6 +2736,8 @@ a2a_routes = [
     ),
     # Domain-root agent card (with query param or env var fallback)
     ApiRoute(
-        "/.well-known/agent-card.json", handle_agent_card_endpoint, methods=["GET"]
+        "/.well-known/agent-card.json",
+        handle_agent_card_endpoint,
+        methods=["GET"],
     ),
 ]

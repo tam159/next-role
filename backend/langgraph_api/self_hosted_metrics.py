@@ -23,6 +23,9 @@ def shutdown_self_hosted_metrics() -> None:
 
 
 def record_http_request(
-    method: str, route_path: str, status: int, latency_seconds: float
+    method: str,
+    route_path: str,
+    status: int,
+    latency_seconds: float,
 ) -> None:
     """No-op: self-hosted HTTP-request metrics export has been removed."""

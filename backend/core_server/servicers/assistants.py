@@ -15,9 +15,6 @@ import os
 
 import grpc
 import orjson
-from langgraph_grpc_common.conversion.config import config_from_proto
-from langgraph_grpc_common.proto import core_api_pb2 as pb
-from langgraph_grpc_common.proto.core_api_pb2_grpc import AssistantsServicer
 from psycopg.types.json import Jsonb
 
 from core_server import db
@@ -26,6 +23,9 @@ from core_server._convert import (
     assistant_version_to_proto,
     loads,
 )
+from langgraph_grpc_common.conversion.config import config_from_proto
+from langgraph_grpc_common.proto import core_api_pb2 as pb
+from langgraph_grpc_common.proto.core_api_pb2_grpc import AssistantsServicer
 
 _SORT_COLS = ("assistant_id", "graph_id", "name", "created_at", "updated_at")
 
@@ -212,7 +212,9 @@ class AssistantsServicerImpl(AssistantsServicer):
         return assistant_to_proto(row)
 
     async def Delete(
-        self, request: pb.DeleteAssistantRequest, context
+        self,
+        request: pb.DeleteAssistantRequest,
+        context,
     ) -> pb.DeleteAssistantsResponse:
         async with db.pool().connection() as conn, conn.transaction(), conn.cursor() as cur:
             if request.HasField("delete_threads") and request.delete_threads:
@@ -233,7 +235,9 @@ class AssistantsServicerImpl(AssistantsServicer):
         return pb.DeleteAssistantsResponse(assistant_ids=[str(row["assistant_id"])])
 
     async def Search(
-        self, request: pb.SearchAssistantsRequest, context
+        self,
+        request: pb.SearchAssistantsRequest,
+        context,
     ) -> pb.SearchAssistantsResponse:
         where, params = [], {}
         graphs = _registered_graphs()
@@ -264,11 +268,13 @@ class AssistantsServicerImpl(AssistantsServicer):
             await cur.execute(sql, params)
             rows = await cur.fetchall()
         return pb.SearchAssistantsResponse(
-            assistants=[assistant_to_proto(r) for r in rows]
+            assistants=[assistant_to_proto(r) for r in rows],
         )
 
     async def SetLatest(
-        self, request: pb.SetLatestAssistantRequest, context
+        self,
+        request: pb.SetLatestAssistantRequest,
+        context,
     ) -> pb.Assistant:
         async with db.pool().connection() as conn, conn.cursor() as cur:
             await cur.execute(
@@ -293,7 +299,9 @@ class AssistantsServicerImpl(AssistantsServicer):
         return assistant_to_proto(row)
 
     async def GetVersions(
-        self, request: pb.GetAssistantVersionsRequest, context
+        self,
+        request: pb.GetAssistantVersionsRequest,
+        context,
     ) -> pb.GetAssistantVersionsResponse:
         where = ["assistant_id = %(aid)s"]
         params = {
@@ -318,7 +326,7 @@ class AssistantsServicerImpl(AssistantsServicer):
             )
             rows = await cur.fetchall()
         return pb.GetAssistantVersionsResponse(
-            versions=[assistant_version_to_proto(r) for r in rows]
+            versions=[assistant_version_to_proto(r) for r in rows],
         )
 
     async def Count(self, request: pb.CountAssistantsRequest, context) -> pb.CountResponse:

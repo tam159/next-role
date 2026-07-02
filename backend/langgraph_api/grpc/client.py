@@ -8,6 +8,9 @@ import time
 import structlog
 from grpc import aio
 from grpc_health.v1 import health_pb2, health_pb2_grpc
+
+from langgraph_api import config
+from langgraph_api.logging import worker_config
 from langgraph_grpc_common.proto.checkpointer_pb2_grpc import CheckpointerStub
 from langgraph_grpc_common.proto.core_api_pb2_grpc import (
     AdminStub,
@@ -17,9 +20,6 @@ from langgraph_grpc_common.proto.core_api_pb2_grpc import (
     RunsStub,
     ThreadsStub,
 )
-
-from langgraph_api import config
-from langgraph_api.logging import worker_config
 
 logger = structlog.stdlib.get_logger(__name__)
 
@@ -44,7 +44,9 @@ class _RequestIdCallDetails:
     )
 
     def __init__(
-        self, original: aio.ClientCallDetails, metadata: list[tuple[str, str]]
+        self,
+        original: aio.ClientCallDetails,
+        metadata: list[tuple[str, str]],
     ) -> None:
         self.method = original.method
         self.timeout = original.timeout
@@ -62,7 +64,8 @@ class _RequestIdInterceptor(
     """Injects x-request-id from the current logging context into outgoing gRPC metadata."""
 
     def _inject(
-        self, client_call_details: aio.ClientCallDetails
+        self,
+        client_call_details: aio.ClientCallDetails,
     ) -> aio.ClientCallDetails:
         ctx = worker_config.get()
         request_id: str | None = ctx.get("request_id") if ctx else None
@@ -79,7 +82,10 @@ class _RequestIdInterceptor(
         return await continuation(self._inject(client_call_details), request)
 
     async def intercept_stream_stream(
-        self, continuation, client_call_details, request_iterator
+        self,
+        continuation,
+        client_call_details,
+        request_iterator,
     ):
         return await continuation(self._inject(client_call_details), request_iterator)
 
@@ -156,7 +162,8 @@ class GrpcClient:
         self._health_stub = health_pb2_grpc.HealthStub(self._channel)
 
         await logger.adebug(
-            "Connected to gRPC server", server_address=self.server_address
+            "Connected to gRPC server",
+            server_address=self.server_address,
         )
 
     async def close(self):
@@ -185,12 +192,13 @@ class GrpcClient:
         """
         if self._health_stub is None:
             raise RuntimeError(
-                "Client not connected. Use async context manager or call connect() first."
+                "Client not connected. Use async context manager or call connect() first.",
             )
 
         request = health_pb2.HealthCheckRequest(service="")
         response = await self._health_stub.Check(
-            request, timeout=GRPC_HEALTHCHECK_TIMEOUT
+            request,
+            timeout=GRPC_HEALTHCHECK_TIMEOUT,
         )
 
         if response.status != health_pb2.HealthCheckResponse.SERVING:
@@ -203,7 +211,7 @@ class GrpcClient:
         """Get the assistants service stub."""
         if self._assistants_stub is None:
             raise RuntimeError(
-                "Client not connected. Use async context manager or call connect() first."
+                "Client not connected. Use async context manager or call connect() first.",
             )
         return self._assistants_stub
 
@@ -212,7 +220,7 @@ class GrpcClient:
         """Get the crons service stub."""
         if self._crons_stub is None:
             raise RuntimeError(
-                "Client not connected. Use async context manager or call connect() first."
+                "Client not connected. Use async context manager or call connect() first.",
             )
         return self._crons_stub
 
@@ -221,7 +229,7 @@ class GrpcClient:
         """Get the threads service stub."""
         if self._threads_stub is None:
             raise RuntimeError(
-                "Client not connected. Use async context manager or call connect() first."
+                "Client not connected. Use async context manager or call connect() first.",
             )
         return self._threads_stub
 
@@ -230,7 +238,7 @@ class GrpcClient:
         """Get the runs service stub."""
         if self._runs_stub is None:
             raise RuntimeError(
-                "Client not connected. Use async context manager or call connect() first."
+                "Client not connected. Use async context manager or call connect() first.",
             )
         return self._runs_stub
 
@@ -239,7 +247,7 @@ class GrpcClient:
         """Get the admin service stub."""
         if self._admin_stub is None:
             raise RuntimeError(
-                "Client not connected. Use async context manager or call connect() first."
+                "Client not connected. Use async context manager or call connect() first.",
             )
         return self._admin_stub
 
@@ -248,7 +256,7 @@ class GrpcClient:
         """Get the cache service stub."""
         if self._cache_stub is None:
             raise RuntimeError(
-                "Client not connected. Use async context manager or call connect() first."
+                "Client not connected. Use async context manager or call connect() first.",
             )
         return self._cache_stub
 
@@ -257,7 +265,7 @@ class GrpcClient:
         """Get the checkpointer service stub."""
         if self._checkpointer_stub is None:
             raise RuntimeError(
-                "Client not connected. Use async context manager or call connect() first."
+                "Client not connected. Use async context manager or call connect() first.",
             )
         return self._checkpointer_stub
 
@@ -292,7 +300,7 @@ class GrpcClientPool:
 
             self._initialized = True
             await logger.ainfo(
-                f"gRPC client pool initialized with {self.pool_size} clients"
+                f"gRPC client pool initialized with {self.pool_size} clients",
             )
 
     async def get_client(self) -> GrpcClient:
@@ -378,9 +386,7 @@ def _get_go_core_exit_detail() -> str | None:
         os.kill(pid, 0)
         return None
     except ProcessLookupError:
-        return (
-            f"Go core server (PID {pid}) is no longer running (exit code unavailable)"
-        )
+        return f"Go core server (PID {pid}) is no longer running (exit code unavailable)"
     except PermissionError:
         return None
 
@@ -426,12 +432,12 @@ async def wait_until_grpc_ready(
                 )
                 raise RuntimeError(
                     f"gRPC server not ready: {proc_msg}. "
-                    f"Check Go core server logs above for errors."
+                    f"Check Go core server logs above for errors.",
                 ) from exc
 
             if attempt >= max_attempts - 1:
                 raise RuntimeError(
-                    f"gRPC server not ready after {timeout_seconds}s (reached max attempts: {max_attempts})"
+                    f"gRPC server not ready after {timeout_seconds}s (reached max attempts: {max_attempts})",
                 ) from exc
             else:
                 await logger.adebug(

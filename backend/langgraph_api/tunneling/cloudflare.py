@@ -17,12 +17,7 @@ logger = logging.getLogger(__name__)
 
 # Not in public docs: internal, controls cloudflared binary version for tunneling
 CLOUDFLARED_VERSION = os.environ.get("LANGGRAPH_CLOUDFLARED_VERSION", "2025.2.1")
-CACHE_DIR = (
-    Path(os.path.expanduser("~"))
-    / ".langgraph_api"
-    / "cloudflared"
-    / CLOUDFLARED_VERSION
-)
+CACHE_DIR = Path(os.path.expanduser("~")) / ".langgraph_api" / "cloudflared" / CLOUDFLARED_VERSION
 
 
 def get_platform_arch():
@@ -79,7 +74,7 @@ def ensure_cloudflared() -> Path:
                         member_path = os.path.normpath(os.path.join(tmpd, member.name))
                         if not member_path.startswith(str(tmpd) + os.sep):
                             raise ValueError(
-                                f"Tar member {member.name!r} escapes target directory"
+                                f"Tar member {member.name!r} escapes target directory",
                             )
                         safe_members.append(member)
                     tf.extractall(tmpd, members=safe_members)

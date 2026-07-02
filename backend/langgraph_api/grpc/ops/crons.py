@@ -6,14 +6,6 @@ from typing import TYPE_CHECKING, Any, Literal
 from uuid import UUID
 
 from google.protobuf.empty_pb2 import Empty  # ty: ignore[unresolved-import]
-from langgraph_grpc_common.conversion.config import config_from_proto, config_to_proto
-from langgraph_grpc_common.proto import core_api_pb2 as pb
-from langgraph_grpc_common.proto import (
-    enum_cron_on_run_completed_pb2 as cron_orc_pb2,
-)
-from langgraph_grpc_common.proto import (
-    enum_multitask_strategy_pb2 as ms_pb2,
-)
 from langgraph_sdk import Auth
 
 from langgraph_api.graph import SYSTEM_ASSISTANT_IDS, get_assistant_id
@@ -29,6 +21,14 @@ from langgraph_api.grpc.ops.assistants import Assistants
 from langgraph_api.grpc.ops.threads import Threads
 from langgraph_api.serde import json_dumpb_optional, json_loads_optional
 from langgraph_api.utils import get_auth_ctx
+from langgraph_grpc_common.conversion.config import config_from_proto, config_to_proto
+from langgraph_grpc_common.proto import core_api_pb2 as pb
+from langgraph_grpc_common.proto import (
+    enum_cron_on_run_completed_pb2 as cron_orc_pb2,
+)
+from langgraph_grpc_common.proto import (
+    enum_multitask_strategy_pb2 as ms_pb2,
+)
 
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator
@@ -111,15 +111,15 @@ def _payload_proto_to_dict(proto_payload: pb.CronPayload) -> dict:
         result["config"] = dict(config_from_proto(proto_payload.config))
     if proto_payload.HasField("interrupt_before"):
         result["interrupt_before"] = _static_interrupt_config_from_proto(
-            proto_payload.interrupt_before
+            proto_payload.interrupt_before,
         )
     if proto_payload.HasField("interrupt_after"):
         result["interrupt_after"] = _static_interrupt_config_from_proto(
-            proto_payload.interrupt_after
+            proto_payload.interrupt_after,
         )
     if proto_payload.HasField("multitask_strategy"):
         result["multitask_strategy"] = ms_pb2.MultitaskStrategy.Name(
-            proto_payload.multitask_strategy
+            proto_payload.multitask_strategy,
         )
     for key, val in proto_payload.extra_json.items():
         result[key] = json.loads(val)
@@ -128,13 +128,9 @@ def _payload_proto_to_dict(proto_payload: pb.CronPayload) -> dict:
 
 def proto_to_cron(proto_cron: pb.Cron) -> Cron:
     """Convert protobuf Cron to dictionary format."""
-    thread_id = (
-        UUID(proto_cron.thread_id.value) if proto_cron.HasField("thread_id") else None
-    )
+    thread_id = UUID(proto_cron.thread_id.value) if proto_cron.HasField("thread_id") else None
     end_time = (
-        proto_cron.end_time.ToDatetime(tzinfo=UTC)
-        if proto_cron.HasField("end_time")
-        else None
+        proto_cron.end_time.ToDatetime(tzinfo=UTC) if proto_cron.HasField("end_time") else None
     )
     user_id = proto_cron.user_id if proto_cron.HasField("user_id") else None
 
@@ -174,7 +170,8 @@ def _map_crons_sort_by(sort_by: str | None) -> pb.CronsSortBy:
 
     sort_by_lower = sort_by.lower()
     return _CRONS_SORT_BY_MAPPING.get(
-        sort_by_lower, pb.CronsSortBy.CRONS_SORT_BY_CREATED_AT
+        sort_by_lower,
+        pb.CronsSortBy.CRONS_SORT_BY_CREATED_AT,
     )
 
 
@@ -236,10 +233,12 @@ class Crons(Authenticated):
             # The handler is expected to return a filter that is matched
             # against the persisted assistant metadata server-side.
             assistant_request_data = Auth.types.AssistantsRead(
-                assistant_id=str(payload["assistant_id"])
+                assistant_id=str(payload["assistant_id"]),
             )
             assistant_filters = await Assistants.handle_event(
-                ctx, "read", assistant_request_data
+                ctx,
+                "read",
+                assistant_request_data,
             )
 
         # Thread-scoped auth filters (only when thread_id is provided)
@@ -248,7 +247,9 @@ class Crons(Authenticated):
             thread_request_data = Auth.types.ThreadsRead(thread_id=thread_id)
             thread_request_data["metadata"] = metadata
             thread_filters = await Threads.handle_event(
-                ctx, "read", thread_request_data
+                ctx,
+                "read",
+                thread_request_data,
             )
 
         request = pb.CreateCronRequest(
@@ -286,7 +287,9 @@ class Crons(Authenticated):
     ) -> AsyncIterator[Cron]:
         """Get cron by ID via gRPC."""
         auth_filters = await Crons.handle_event(
-            ctx, "read", Auth.types.CronsRead(cron_id=cron_id)
+            ctx,
+            "read",
+            Auth.types.CronsRead(cron_id=cron_id),
         )
 
         request = pb.GetCronRequest(
@@ -336,19 +339,21 @@ class Crons(Authenticated):
         if thread_id is not None:
             thread_request_data = Auth.types.ThreadsRead(thread_id=thread_id)
             thread_filters = await Threads.handle_event(
-                ctx, "read", thread_request_data
+                ctx,
+                "read",
+                thread_request_data,
             )
         else:
             thread_filters = await Threads.handle_event(
-                ctx, "search", Auth.types.ThreadsSearch()
+                ctx,
+                "search",
+                Auth.types.ThreadsSearch(),
             )
 
         request = pb.SearchCronsRequest(
             filters=auth_filters,
             thread_filters=thread_filters,
-            assistant_id=pb.UUID(value=str(assistant_id))
-            if assistant_id is not None
-            else None,
+            assistant_id=pb.UUID(value=str(assistant_id)) if assistant_id is not None else None,
             thread_id=pb.UUID(value=str(thread_id)) if thread_id is not None else None,
             enabled=enabled,
             limit=limit,
@@ -475,19 +480,21 @@ class Crons(Authenticated):
         if thread_id is not None:
             thread_request_data = Auth.types.ThreadsRead(thread_id=thread_id)
             thread_filters = await Threads.handle_event(
-                ctx, "read", thread_request_data
+                ctx,
+                "read",
+                thread_request_data,
             )
         else:
             thread_filters = await Threads.handle_event(
-                ctx, "search", Auth.types.ThreadsSearch()
+                ctx,
+                "search",
+                Auth.types.ThreadsSearch(),
             )
 
         request = pb.CountCronsRequest(
             filters=auth_filters,
             thread_filters=thread_filters,
-            assistant_id=pb.UUID(value=str(assistant_id))
-            if assistant_id is not None
-            else None,
+            assistant_id=pb.UUID(value=str(assistant_id)) if assistant_id is not None else None,
             thread_id=pb.UUID(value=str(thread_id)) if thread_id is not None else None,
             metadata_json=json_dumpb_optional(metadata),
         )
@@ -519,8 +526,7 @@ class Crons(Authenticated):
             enc_ctx: dict | None = None
             if cron_with_now.HasField("encryption_context"):
                 enc_ctx = {
-                    k: json.loads(v)
-                    for k, v in cron_with_now.encryption_context.metadata.items()
+                    k: json.loads(v) for k, v in cron_with_now.encryption_context.metadata.items()
                 }
             yield cron, enc_ctx
 

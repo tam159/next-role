@@ -13,8 +13,6 @@ from google.protobuf.json_format import MessageToDict
 from google.protobuf.struct_pb2 import Struct  # type: ignore[import]
 from grpc import StatusCode
 from grpc.aio import AioRpcError
-from langgraph_grpc_common.proto import core_api_pb2 as pb
-from langgraph_grpc_common.proto import encryption_pb2 as enc_pb
 from langgraph_sdk.schema import Config
 from starlette.exceptions import HTTPException
 
@@ -23,6 +21,8 @@ from langgraph_api.encryption.context import get_encryption_context
 from langgraph_api.encryption.shared import using_custom_encryption
 from langgraph_api.serde import json_dumpb
 from langgraph_api.utils import get_auth_ctx
+from langgraph_grpc_common.proto import core_api_pb2 as pb
+from langgraph_grpc_common.proto import encryption_pb2 as enc_pb
 
 _MAX_AUTH_FILTER_DEPTH = 2
 
@@ -53,18 +53,21 @@ def map_if_exists(if_exists: str) -> Any:
 
 @overload
 def consolidate_config_and_context(
-    config: Config | None, context: None
+    config: Config | None,
+    context: None,
 ) -> tuple[Config, None]: ...
 
 
 @overload
 def consolidate_config_and_context(
-    config: Config | None, context: Context
+    config: Config | None,
+    context: Context,
 ) -> tuple[Config, Context]: ...
 
 
 def consolidate_config_and_context(
-    config: Config | None, context: Context | None
+    config: Config | None,
+    context: Context | None,
 ) -> tuple[Config, Context | None]:
     """Return a new (config, context) with consistent configurable/context.
 
@@ -162,10 +165,7 @@ def extract_encryption_context(run_with_attempt: pb.RunWithAttempt) -> dict[str,
     """Extract the encryption context from a gRPC EncryptionContext proto message."""
     # Extract encryption context if present
     encryption_context = {}
-    if (
-        run_with_attempt.encryption_context
-        and run_with_attempt.encryption_context.metadata
-    ):
+    if run_with_attempt.encryption_context and run_with_attempt.encryption_context.metadata:
         for (
             key,
             value_bytes,
@@ -197,7 +197,8 @@ def _handle_grpc_error(error: AioRpcError) -> None:
 
     raise HTTPException(
         status_code=GRPC_STATUS_TO_HTTP_STATUS.get(
-            error.code(), HTTPStatus.INTERNAL_SERVER_ERROR
+            error.code(),
+            HTTPStatus.INTERNAL_SERVER_ERROR,
         ),
         detail=error_details,
     )
@@ -218,7 +219,7 @@ def transform_grpc_error_event(message_bytes: bytes | None) -> bytes | None:
                 HTTPException(
                     status_code=error_data["status_code"],
                     detail=error_data["message"],
-                )
+                ),
             )
     except Exception:
         pass  # Keep original message if transformation fails
@@ -244,7 +245,9 @@ def _serialize_filter_value(value: Any) -> str:
 
 
 def _filters_to_proto(
-    filters: dict[str, Any] | None, *, _depth: int = 0
+    filters: dict[str, Any] | None,
+    *,
+    _depth: int = 0,
 ) -> list[pb.AuthFilter]:
     """Convert Python auth filters to gRPC proto format.
 
@@ -292,7 +295,7 @@ def _filters_to_proto(
                 else:
                     and_filter = pb.AuthFilter()
                     and_filter.and_filter.CopyFrom(
-                        pb.AndAuthFilter(filters=branch_filters)
+                        pb.AndAuthFilter(filters=branch_filters),
                     )
                     nested_filters.append(and_filter)
             auth_filter.or_filter.CopyFrom(pb.OrAuthFilter(filters=nested_filters))
@@ -317,7 +320,7 @@ def _filters_to_proto(
             if isinstance(filter_value, dict):
                 if len(filter_value.keys()) != 1:
                     logger.error(
-                        "Error parsing filter: filter_value is not a dict with one key"
+                        "Error parsing filter: filter_value is not a dict with one key",
                     )
                     raise HTTPException(
                         status_code=500,
@@ -334,17 +337,17 @@ def _filters_to_proto(
                     if isinstance(value, list):
                         matches = [_serialize_filter_value(item) for item in value]
                         auth_filter.contains.CopyFrom(
-                            pb.ContainsAuthFilter(key=key, matches=matches)
+                            pb.ContainsAuthFilter(key=key, matches=matches),
                         )
                     else:
                         # If the value itself is not a list, wrap it as a single-item list
                         serialized = _serialize_filter_value(value)
                         auth_filter.contains.CopyFrom(
-                            pb.ContainsAuthFilter(key=key, matches=[serialized])
+                            pb.ContainsAuthFilter(key=key, matches=[serialized]),
                         )
                 else:
                     logger.error(
-                        "Error parsing filter: operator is not $eq or $contains"
+                        "Error parsing filter: operator is not $eq or $contains",
                     )
                     raise HTTPException(
                         status_code=500,
@@ -390,7 +393,10 @@ class Authenticated:
 
     @classmethod
     async def _event_filters(
-        cls, ctx: Any, action: str, value: Any
+        cls,
+        ctx: Any,
+        action: str,
+        value: Any,
     ) -> dict[str, Any] | None:
         """Handle authentication event; return filters as a raw dict (pre-proto conversion)."""
         # Get auth context if not provided

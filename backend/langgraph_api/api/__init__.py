@@ -193,7 +193,8 @@ def load_custom_app(app_import: str) -> Starlette | None:
             if os.path.isfile(path) or path.endswith(".py"):
                 # Import from file path using a unique module name.
                 spec = importlib.util.spec_from_file_location(
-                    "user_router_module", path
+                    "user_router_module",
+                    path,
                 )
                 if spec is None or spec.loader is None:
                     raise ImportError(f"Cannot load spec from {path}")
@@ -208,7 +209,7 @@ def load_custom_app(app_import: str) -> Starlette | None:
                 f"Object '{name}' in module '{path}' is not a Starlette or FastAPI application. "
                 "Please initialize your app by importing and using the appropriate class: "
                 "\nfrom starlette.applications import Starlette\n\napp = Starlette(...)\n\n"
-                "or\n\nfrom fastapi import FastAPI\n\napp = FastAPI(...)\n\n"
+                "or\n\nfrom fastapi import FastAPI\n\napp = FastAPI(...)\n\n",
             )
     except ImportError as e:
         raise ImportError(f"Failed to import app module '{path}'") from e
@@ -224,8 +225,11 @@ if HTTP_CONFIG:
     if HTTP_CONFIG.get("disable_meta"):
         shadowable_meta_routes = [
             Route(
-                "/ok", functools.partial(ok, disabled=True), methods=["GET"], name="ok"
-            )
+                "/ok",
+                functools.partial(ok, disabled=True),
+                methods=["GET"],
+                name="ok",
+            ),
         ]
         unshadowable_meta_routes = []
 

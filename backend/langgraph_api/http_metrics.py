@@ -19,8 +19,7 @@ class HTTPMetricsCollector:
 
         self._histogram_buckets = HTTP_LATENCY_BUCKETS
         self._histogram_bucket_labels = [
-            "+Inf" if value == float("inf") else str(value)
-            for value in self._histogram_buckets
+            "+Inf" if value == float("inf") else str(value) for value in self._histogram_buckets
         ]
 
         self._histogram_data: dict[tuple[str, str], dict] = defaultdict(
@@ -28,11 +27,15 @@ class HTTPMetricsCollector:
                 "bucket_counts": [0] * len(self._histogram_buckets),
                 "sum": 0.0,
                 "count": 0,
-            }
+            },
         )
 
     def record_request(
-        self, method: str, route: Any, status: int, latency_ms: float
+        self,
+        method: str,
+        route: Any,
+        status: int,
+        latency_ms: float,
     ) -> None:
         route_path = get_route(route)
         if route_path is None:
@@ -101,8 +104,8 @@ class HTTPMetricsCollector:
                             path,
                             status,
                         ), count in self._request_counts.items()
-                    ]
-                }
+                    ],
+                },
             }
 
         metrics = []
@@ -113,12 +116,12 @@ class HTTPMetricsCollector:
                 [
                     "# HELP lg_api_http_requests_total Total number of HTTP requests.",
                     "# TYPE lg_api_http_requests_total counter",
-                ]
+                ],
             )
 
             for (method, path, status), count in self._request_counts.items():
                 metrics.append(
-                    f'lg_api_http_requests_total{{project_id="{project_id}", revision_id="{revision_id}", deployment_type="{deployment_type}", method="{method}", path="{path}", status="{status}"}} {count}'
+                    f'lg_api_http_requests_total{{project_id="{project_id}", revision_id="{revision_id}", deployment_type="{deployment_type}", method="{method}", path="{path}", status="{status}"}} {count}',
                 )
 
         # Histogram metrics
@@ -127,7 +130,7 @@ class HTTPMetricsCollector:
                 [
                     "# HELP lg_api_http_requests_latency_seconds HTTP request latency in seconds.",
                     "# TYPE lg_api_http_requests_latency_seconds histogram",
-                ]
+                ],
             )
 
             for (method, path), hist_data in self._histogram_data.items():
@@ -136,14 +139,14 @@ class HTTPMetricsCollector:
                     acc += bucket_count
                     bucket_label = self._histogram_bucket_labels[i]
                     metrics.append(
-                        f'lg_api_http_requests_latency_seconds_bucket{{project_id="{project_id}", revision_id="{revision_id}", deployment_type="{deployment_type}", method="{method}", path="{path}", le="{bucket_label}"}} {acc}'
+                        f'lg_api_http_requests_latency_seconds_bucket{{project_id="{project_id}", revision_id="{revision_id}", deployment_type="{deployment_type}", method="{method}", path="{path}", le="{bucket_label}"}} {acc}',
                     )
 
                 metrics.extend(
                     [
                         f'lg_api_http_requests_latency_seconds_sum{{project_id="{project_id}", revision_id="{revision_id}", deployment_type="{deployment_type}", method="{method}", path="{path}"}} {hist_data["sum"]:.6f}',
                         f'lg_api_http_requests_latency_seconds_count{{project_id="{project_id}", revision_id="{revision_id}", deployment_type="{deployment_type}", method="{method}", path="{path}"}} {hist_data["count"]}',
-                    ]
+                    ],
                 )
 
         return metrics

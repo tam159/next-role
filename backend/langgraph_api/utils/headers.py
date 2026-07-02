@@ -52,16 +52,13 @@ def get_configurable_headers(headers: Mapping[str, str]) -> dict[str, str]:
                     if "=" not in item:
                         continue
                     baggage_key, baggage_value = item.split("=", 1)
-                    if (
-                        baggage_key == LANGSMITH_METADATA
-                        and baggage_key not in configurable
-                    ):
+                    if baggage_key == LANGSMITH_METADATA and baggage_key not in configurable:
                         configurable[baggage_key] = orjson.loads(
-                            urllib.parse.unquote(baggage_value)
+                            urllib.parse.unquote(baggage_value),
                         )
                     elif baggage_key == LANGSMITH_TAGS:
                         configurable[baggage_key] = urllib.parse.unquote(
-                            baggage_value
+                            baggage_value,
                         ).split(",")
                     elif baggage_key == LANGSMITH_PROJECT:
                         configurable[baggage_key] = urllib.parse.unquote(baggage_value)

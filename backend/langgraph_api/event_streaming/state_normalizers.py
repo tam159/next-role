@@ -4,7 +4,7 @@ import json
 from typing import Any
 
 _PROTOCOL_STATE_MESSAGE_TYPES = frozenset(
-    {"human", "user", "ai", "assistant", "system", "tool", "function", "remove"}
+    {"human", "user", "ai", "assistant", "system", "tool", "function", "remove"},
 )
 
 _MIME_TYPE_BY_AUDIO_FORMAT: dict[str, str] = {
@@ -32,7 +32,7 @@ _PROTOCOL_CONTENT_BLOCK_TYPES = frozenset(
         "video",
         "file",
         "non_standard",
-    }
+    },
 )
 
 
@@ -56,9 +56,7 @@ def _get_tool_call_identity(
             value["name"]
             if isinstance(value.get("name"), str)
             else (
-                nested_fn["name"]
-                if nested_fn and isinstance(nested_fn.get("name"), str)
-                else None
+                nested_fn["name"] if nested_fn and isinstance(nested_fn.get("name"), str) else None
             )
         ),
     }
@@ -141,9 +139,7 @@ def normalize_event_streaming_content_block(value: Any) -> dict[str, Any] | None
         return None
 
     if value["type"] == "input_audio":
-        raw_audio = (
-            value.get("input_audio") if _is_record(value.get("input_audio")) else None
-        )
+        raw_audio = value.get("input_audio") if _is_record(value.get("input_audio")) else None
         if raw_audio is None:
             return None
         result: dict[str, Any] = {"type": "audio"}
@@ -220,9 +216,7 @@ def _is_event_streaming_state_message(value: Any) -> bool:
     if not _is_record(value):
         return False
     normalized_type = _normalize_state_message_type(value.get("type"))
-    return (
-        normalized_type is not None and normalized_type in _PROTOCOL_STATE_MESSAGE_TYPES
-    )
+    return normalized_type is not None and normalized_type in _PROTOCOL_STATE_MESSAGE_TYPES
 
 
 def _normalize_state_invalid_tool_calls(value: Any) -> list[dict[str, Any]]:
@@ -240,9 +234,7 @@ def _normalize_state_invalid_tool_calls(value: Any) -> list[dict[str, Any]]:
             entry["name"] = identity["name"]
         if isinstance(raw.get("args"), str):
             entry["args"] = raw["args"]
-        entry["error"] = (
-            raw["error"] if isinstance(raw.get("error"), str) else "Malformed args."
-        )
+        entry["error"] = raw["error"] if isinstance(raw.get("error"), str) else "Malformed args."
         result.append(entry)
     return result
 
@@ -301,9 +293,7 @@ def _normalize_state_message(value: dict[str, Any]) -> dict[str, Any]:
         return value
 
     additional_kwargs = (
-        value["additional_kwargs"]
-        if _is_record(value.get("additional_kwargs"))
-        else None
+        value["additional_kwargs"] if _is_record(value.get("additional_kwargs")) else None
     )
 
     message: dict[str, Any] = {
@@ -334,16 +324,14 @@ def _normalize_state_message(value: dict[str, Any]) -> dict[str, Any]:
             if isinstance(value.get("tool_calls"), list) and value["tool_calls"]
             else (
                 additional_kwargs.get("tool_calls")
-                if additional_kwargs
-                and isinstance(additional_kwargs.get("tool_calls"), list)
+                if additional_kwargs and isinstance(additional_kwargs.get("tool_calls"), list)
                 else None
             )
         )
         tool_calls, invalid_from_valid = _normalize_state_tool_calls(raw_tool_calls)
         invalid_tool_calls = (
             _normalize_state_invalid_tool_calls(value["invalid_tool_calls"])
-            if isinstance(value.get("invalid_tool_calls"), list)
-            and value["invalid_tool_calls"]
+            if isinstance(value.get("invalid_tool_calls"), list) and value["invalid_tool_calls"]
             else invalid_from_valid
         )
         if tool_calls:
@@ -375,9 +363,7 @@ def normalize_event_streaming_state_payload(value: Any) -> Any:
             continue
         if key == "messages" and isinstance(entry, list):
             normalized[key] = [
-                _normalize_state_message(item)
-                if _is_event_streaming_state_message(item)
-                else item
+                _normalize_state_message(item) if _is_event_streaming_state_message(item) else item
                 for item in entry
             ]
             continue

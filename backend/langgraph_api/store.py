@@ -51,11 +51,7 @@ async def exit_store():
 async def _yield_store(value: Any):
     if isinstance(value, BaseStore):
         yield value
-    elif (
-        hasattr(value, "__aenter__")
-        or hasattr(value, "__enter__")
-        or asyncio.iscoroutine(value)
-    ):
+    elif hasattr(value, "__aenter__") or hasattr(value, "__enter__") or asyncio.iscoroutine(value):
         async with as_asynccontextmanager(value) as ctx_value:
             yield ctx_value
     elif callable(value):
@@ -64,7 +60,7 @@ async def _yield_store(value: Any):
     else:
         raise ValueError(
             f"Unsupported store type: {type(value)}. Expected an instance of BaseStore "
-            "or a function or async generator that returns one."
+            "or a function or async generator that returns one.",
         )
 
 
@@ -77,7 +73,7 @@ async def collect_store_from_env() -> None:
         f"Heads up! You are configuring a custom long-term memory store at {store_path}\n\n"
         "This store will be used IN STEAD OF the default postgres + pgvector store."
         "Some functionality, such as TTLs and vector search, may not be available."
-        "Search performance & other capabilities will depend on the quality of your implementation."
+        "Search performance & other capabilities will depend on the quality of your implementation.",
     )
     # Try to load. The loaded object can either be a BaseStore instance, a function that generates it, etc.
     value = await run_in_executor(None, _load_store, store_path)
@@ -110,21 +106,15 @@ def _load_store(store_path: str) -> Any:
             module = importlib.import_module(path_name)
 
     try:
-        store: BaseStore | Callable[[config.StoreConfig], BaseStore] = module.__dict__[
-            function
-        ]
+        store: BaseStore | Callable[[config.StoreConfig], BaseStore] = module.__dict__[function]
     except KeyError as e:
         available = [k for k in module.__dict__ if not k.startswith("__")]
         suggestion = ""
         if available:
-            likely = [
-                k
-                for k in available
-                if isinstance(module.__dict__[k], StateGraph | Pregel)
-            ]
+            likely = [k for k in available if isinstance(module.__dict__[k], StateGraph | Pregel)]
             if likely:
                 likely_ = "\n".join(
-                    [f"\t- {path_name}:{k}" if path_name else k for k in likely]
+                    [f"\t- {path_name}:{k}" if path_name else k for k in likely],
                 )
                 suggestion = f"\nDid you mean to use one of the following?\n{likely_}"
             elif available:
@@ -134,6 +124,6 @@ def _load_store(store_path: str) -> Any:
             f"Could not find store '{store_path}'. "
             f"Please check that:\n"
             f"1. The file exports a variable named '{store_path}'\n"
-            f"2. The variable name in your config matches the export name{suggestion}"
+            f"2. The variable name in your config matches the export name{suggestion}",
         ) from e
     return store

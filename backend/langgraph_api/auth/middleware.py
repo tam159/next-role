@@ -60,5 +60,7 @@ class ConditionalAuthenticationMiddleware(AuthenticationMiddleware):
 
 
 auth_middleware = Middleware(
-    ConditionalAuthenticationMiddleware, backend=get_auth_backend(), on_error=on_error
+    ConditionalAuthenticationMiddleware,
+    backend=get_auth_backend(),
+    on_error=on_error,
 )

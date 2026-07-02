@@ -69,7 +69,7 @@ def _load_custom_encryption(path: str) -> Encryption:
     """
     encryption_instance = _load_encryption_obj(path)
     logger.info(
-        f"Loaded custom encryption instance from path {path}: {encryption_instance}"
+        f"Loaded custom encryption instance from path {path}: {encryption_instance}",
     )
     return encryption_instance
 
@@ -98,7 +98,7 @@ def _load_encryption_obj(path: str) -> Encryption:
     if ":" not in path:
         raise ValueError(
             f"Invalid encryption path format: {path}. "
-            "Must be in format: './path/to/file.py:name' or 'module:name'"
+            "Must be in format: './path/to/file.py:name' or 'module:name'",
         )
 
     module_name, callable_name = path.rsplit(":", 1)
@@ -107,7 +107,7 @@ def _load_encryption_obj(path: str) -> Encryption:
     if module_name.endswith(".js") or module_name.endswith(".mjs"):
         raise ValueError(
             f"JavaScript encryption is not supported. "
-            f"Please use a Python module instead: {module_name}"
+            f"Please use a Python module instead: {module_name}",
         )
 
     try:
@@ -126,14 +126,14 @@ def _load_encryption_obj(path: str) -> Encryption:
         loaded_encrypt = getattr(module, callable_name, None)
         if loaded_encrypt is None:
             raise ValueError(
-                f"Could not find encrypt '{callable_name}' in module: {module_name}"
+                f"Could not find encrypt '{callable_name}' in module: {module_name}",
             )
         # Import Encryption at runtime only when needed (avoids requiring SDK 0.2.14)
         from langgraph_sdk import Encryption as EncryptionClass  # noqa: PLC0415
 
         if not isinstance(loaded_encrypt, EncryptionClass):
             raise ValueError(
-                f"Expected an Encryption instance, got {type(loaded_encrypt)}"
+                f"Expected an Encryption instance, got {type(loaded_encrypt)}",
             )
 
         return loaded_encrypt
@@ -204,7 +204,7 @@ class JsonEncryptionWrapper:
                     f"JSON encryptor must return a dict, got "
                     f"{type(encrypted).__name__}. Use per-key encryption "
                     f"(transform values, not keys) instead of envelope patterns "
-                    f"that return a single encrypted token."
+                    f"that return a single encrypted token.",
                 )
 
             # Validate key preservation for SQL JSONB merge compatibility
@@ -216,7 +216,7 @@ class JsonEncryptionWrapper:
                 raise EncryptionKeyError(
                     f"JSON encryptor must preserve key structure for SQL JSONB merge compatibility. "
                     f"Added keys: {added_keys or 'none'}, removed keys: {removed_keys or 'none'}. "
-                    f"Use per-key encryption (transform values, not keys) instead of envelope patterns."
+                    f"Use per-key encryption (transform values, not keys) instead of envelope patterns.",
                 )
 
             # Add encryption context marker with user's context
@@ -267,7 +267,7 @@ class JsonEncryptionWrapper:
                 if self._aes is None:
                     raise DecryptorMissingError(
                         f"Data has AES encryption marker but LANGGRAPH_AES_KEY is not configured "
-                        f"for {model_type}"
+                        f"for {model_type}",
                     )
                 aes_decryptor = self._aes.get_json_decryptor(model_type)
                 return await aes_decryptor(ctx, data)
@@ -275,14 +275,14 @@ class JsonEncryptionWrapper:
             # Custom marker → use custom decryptor
             if custom_decryptor is None:
                 raise DecryptorMissingError(
-                    f"Data contains custom encryption marker but no decryptor is configured for {model_type}"
+                    f"Data contains custom encryption marker but no decryptor is configured for {model_type}",
                 )
 
             # Defensive check: ensure custom decryptor doesn't receive AES-encrypted values
             if has_any_aes_encrypted_values(data):
                 raise EncryptionRoutingError(
                     f"Data has AES-encrypted values but is being routed to custom decryptor. "
-                    f"This indicates a bug in encryption routing for {model_type}."
+                    f"This indicates a bug in encryption routing for {model_type}.",
                 )
 
             # Strip marker and decrypt

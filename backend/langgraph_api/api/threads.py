@@ -94,7 +94,7 @@ async def create_thread(
                 "configurable": {
                     **get_configurable_headers(request.headers),
                     "thread_id": thread_id,
-                }
+                },
             }
             if supersteps:
                 try:
@@ -173,7 +173,9 @@ async def search_threads(
             extract=storage_extract,
         )
     threads, response_headers = await get_pagination_headers(
-        threads_iter, next_offset, offset
+        threads_iter,
+        next_offset,
+        offset,
     )
 
     if needs_python_decryption:
@@ -190,8 +192,7 @@ async def search_threads(
     if extract and needs_python_extract:
         for thread in decrypted_threads:
             thread["extracted"] = {
-                alias: extract_path_value(thread, path)
-                for alias, path in extract.items()
+                alias: extract_path_value(thread, path) for alias, path in extract.items()
             }
     # Strip columns that were added only for re-extraction.
     if extra_select_cols:
@@ -231,10 +232,10 @@ async def get_thread_state(
             "configurable": {
                 **get_configurable_headers(request.headers),
                 "thread_id": thread_id,
-            }
+            },
         }
         state = state_snapshot_to_thread_state(
-            await Threads.State.get(conn, config=config, subgraphs=subgraphs)
+            await Threads.State.get(conn, config=config, subgraphs=subgraphs),
         )
     return ApiResponse(state)
 
@@ -253,14 +254,14 @@ async def get_thread_state_at_checkpoint(
                 **get_configurable_headers(request.headers),
                 "thread_id": thread_id,
                 "checkpoint_id": checkpoint_id,
-            }
+            },
         }
         state = state_snapshot_to_thread_state(
             await Threads.State.get(
                 conn,
                 config=config,
                 subgraphs=request.query_params.get("subgraphs") in ("true", "True"),
-            )
+            ),
         )
     return ApiResponse(state)
 
@@ -279,14 +280,14 @@ async def get_thread_state_at_checkpoint_post(
                 **payload["checkpoint"],
                 **get_configurable_headers(request.headers),
                 "thread_id": thread_id,
-            }
+            },
         }
         state = state_snapshot_to_thread_state(
             await Threads.State.get(
                 conn,
                 config=config,
                 subgraphs=payload.get("subgraphs", False),
-            )
+            ),
         )
     return ApiResponse(state)
 
@@ -339,13 +340,16 @@ async def get_thread_history(
             "thread_id": thread_id,
             "checkpoint_ns": "",
             **get_configurable_headers(request.headers),
-        }
+        },
     }
     async with connect(supports_core_api=False) as conn:
         states = [
             state_snapshot_to_thread_state(c)
             for c in await Threads.State.list(
-                conn, config=config, limit=limit, before=before
+                conn,
+                config=config,
+                limit=limit,
+                before=before,
             )
         ]
     return ApiResponse(states)
@@ -510,7 +514,8 @@ async def join_thread_stream(request: ApiRequest):
     validate_uuid(thread_id, "Invalid thread ID: must be a UUID")
     last_event_id = request.headers.get("last-event-id") or None
     validate_stream_id(
-        last_event_id, "Invalid last-event-id: must be a valid Redis stream ID"
+        last_event_id,
+        "Invalid last-event-id: must be a valid Redis stream ID",
     )
 
     # Parse stream_modes parameter - can be single string or comma-separated list
@@ -526,7 +531,8 @@ async def join_thread_stream(request: ApiRequest):
         for mode in stream_modes:
             if mode not in get_args(ThreadStreamMode):
                 raise HTTPException(
-                    status_code=422, detail=f"Invalid stream mode: {mode}"
+                    status_code=422,
+                    detail=f"Invalid stream mode: {mode}",
                 )
     else:
         # Default to run_modes
@@ -551,10 +557,14 @@ threads_routes: list[BaseRoute] = [
     ApiRoute("/threads/{thread_id}", endpoint=delete_thread, methods=["DELETE"]),
     ApiRoute("/threads/{thread_id}/state", endpoint=get_thread_state, methods=["GET"]),
     ApiRoute(
-        "/threads/{thread_id}/state", endpoint=update_thread_state, methods=["POST"]
+        "/threads/{thread_id}/state",
+        endpoint=update_thread_state,
+        methods=["POST"],
     ),
     ApiRoute(
-        "/threads/{thread_id}/history", endpoint=get_thread_history, methods=["GET"]
+        "/threads/{thread_id}/history",
+        endpoint=get_thread_history,
+        methods=["GET"],
     ),
     ApiRoute("/threads/{thread_id}/copy", endpoint=copy_thread, methods=["POST"]),
     ApiRoute(

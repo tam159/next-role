@@ -67,7 +67,9 @@ def install_fallback(servicer, base_cls, go_stub, service_descriptor) -> list[st
             servicer,
             name,
             _make_forwarder(
-                stub_method, method.client_streaming, method.server_streaming
+                stub_method,
+                method.client_streaming,
+                method.server_streaming,
             ),
         )
         forwarded.append(name)

@@ -108,7 +108,8 @@ async def long_query_monitor_loop():
 
 
 async def _get_long_running_queries(
-    conn, threshold_minutes: int
+    conn,
+    threshold_minutes: int,
 ) -> list[dict[str, typing.Any]]:
     """Query PostgreSQL for long-running queries."""
     query = """

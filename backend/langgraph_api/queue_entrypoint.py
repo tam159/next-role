@@ -1,8 +1,7 @@
 import os
 
 if not (
-    (disable_truststore := os.getenv("DISABLE_TRUSTSTORE"))
-    and disable_truststore.lower() == "true"
+    (disable_truststore := os.getenv("DISABLE_TRUSTSTORE")) and disable_truststore.lower() == "true"
 ):
     import truststore
 
@@ -87,7 +86,7 @@ async def health_and_metrics_server():
         metrics_format = request.query_params.get("format", "prometheus")
         if metrics_format not in METRICS_FORMATS:
             await logger.awarning(
-                f"metrics format {metrics_format} not supported, falling back to prometheus"
+                f"metrics format {metrics_format} not supported, falling back to prometheus",
             )
             metrics_format = "prometheus"
 
@@ -162,7 +161,7 @@ async def health_and_metrics_server():
     server = uvicorn.Server(config)
 
     logger.info(
-        f"Health and metrics server started at http://{format_hostport(host, port)}"
+        f"Health and metrics server started at http://{format_hostport(host, port)}",
     )
     try:
         # Use the internal serve to skip capturing signals, otherwise there's a race condition
@@ -183,13 +182,19 @@ async def health_and_metrics_server():
             raise port_exc from None
         error = HealthServerStartupError(host, port, exc)
         await logger.aerror(
-            str(error), host=error.host, port=error.port, cause=str(error.cause)
+            str(error),
+            host=error.host,
+            port=error.port,
+            cause=str(error.cause),
         )
         raise error from None
     except OSError as exc:
         error = HealthServerStartupError(host, port, exc)
         await logger.aerror(
-            str(error), host=error.host, port=error.port, cause=str(error.cause)
+            str(error),
+            host=error.host,
+            port=error.port,
+            cause=str(error.cause),
         )
         raise error from exc
     except asyncio.CancelledError:
@@ -270,7 +275,7 @@ async def main(entrypoint_name: str = "python-queue"):
         entrypoint(
             entrypoint_name=entrypoint_name,
             cancel_event=cancel_event,
-        )
+        ),
     )
 
     # Handle the case where the entrypoint errors out

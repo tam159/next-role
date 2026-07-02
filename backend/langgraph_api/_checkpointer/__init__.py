@@ -39,7 +39,7 @@ async def start_checkpointer() -> None:
             "expected to be a subclass of BaseCheckpointSaver and export the proper "
             "async methods: aget_tuple/aput/aput_writes. "
             "Check your `checkpointer.path` target and ensure it returns a "
-            "BaseCheckpointSaver instance or equivalent."
+            "BaseCheckpointSaver instance or equivalent.",
         )
 
 

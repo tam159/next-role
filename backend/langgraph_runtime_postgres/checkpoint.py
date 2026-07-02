@@ -21,6 +21,7 @@ from langgraph.checkpoint.base import (
 from langgraph.checkpoint.serde.base import SerializerProtocol
 from langgraph.checkpoint.serde.encrypted import EncryptedSerializer
 from langgraph.constants import TASKS
+
 from langgraph_api import config as api_config
 from langgraph_api.asyncio import (
     AsyncQueue,
@@ -35,7 +36,6 @@ from langgraph_api.feature_flags import (
 if DELTA_CHANNEL_SUPPORT:
     from langgraph.checkpoint.base import (
         DeltaChannelHistory,
-        PendingWrite,
         get_checkpoint_id,
     )
     from langgraph.checkpoint.postgres.base import (
@@ -46,12 +46,12 @@ if DELTA_CHANNEL_SUPPORT:
 else:
     _DeltaSnapshot = type("_DeltaSnapshot", (), {})
 
-from langgraph_api.logging import LOG_LEVEL_DEBUG
-from langgraph_api.schema import MetadataInput
-from langgraph_api.serde import Fragment, Serializer, json_loads
 from psycopg import AsyncConnection
 from psycopg.types.json import Jsonb
 
+from langgraph_api.logging import LOG_LEVEL_DEBUG
+from langgraph_api.schema import MetadataInput
+from langgraph_api.serde import Fragment, Serializer, json_loads
 from langgraph_runtime_postgres.custom_encryption_serializer import (
     AsyncSerializerProtocol,
     ensure_async_serde,
@@ -80,7 +80,7 @@ TRANSIENT_CONFIGURABLE_KEYS = frozenset(
         "langgraph_request_id",
         "langgraph_auth_user_id",
         "langgraph_auth_permissions",
-    }
+    },
 )
 
 # When metadata source is "update", these keys are owned by the originating
@@ -90,7 +90,7 @@ UPDATE_CHECKPOINT_EXCLUDED_KEYS = frozenset(
         "run_id",
         "user_id",
         "assistant_id",
-    }
+    },
 )
 
 SELECT_SQL = f"""
@@ -197,7 +197,7 @@ def _build_delta_walk_sql(channels: Sequence[str]) -> str:
         # The suffix ``i`` keeps the output columns positional per channel.
         cols.append(
             f"checkpoint -> 'channel_versions' ->> %s AS ver_{i}"
-            f", (checkpoint -> 'channel_values' -> %s) IS NOT NULL AS hs_{i}"
+            f", (checkpoint -> 'channel_values' -> %s) IS NOT NULL AS hs_{i}",
         )
     return (
         "SELECT checkpoint_id::text, parent_checkpoint_id::text, "
@@ -238,7 +238,7 @@ def _build_delta_fetch_sql(
     # and bound to that channel's exact chain ids via ``checkpoint_id = ANY``.
     for _ in channels_with_chain:
         branches.append(
-            "SELECT 'w'::text AS _kind, checkpoint_id::text, channel, type, blob, task_id::text, idx, NULL::text AS version FROM checkpoint_writes WHERE thread_id = %s AND checkpoint_ns = %s AND channel = %s AND checkpoint_id = ANY(%s::uuid[])"
+            "SELECT 'w'::text AS _kind, checkpoint_id::text, channel, type, blob, task_id::text, idx, NULL::text AS version FROM checkpoint_writes WHERE thread_id = %s AND checkpoint_ns = %s AND channel = %s AND checkpoint_id = ANY(%s::uuid[])",
         )
     # One blob-reading branch per channel that discovered a seed snapshot. The
     # columns are kept positionally identical to the write branch (NULLs stand
@@ -247,7 +247,7 @@ def _build_delta_fetch_sql(
     # the caller can match the blob back to the right channel snapshot.
     for _ in channels_with_seed:
         branches.append(
-            "SELECT 'b'::text AS _kind, NULL::text AS checkpoint_id, channel, type, blob, NULL::text AS task_id, NULL::int AS idx, version FROM checkpoint_blobs WHERE thread_id = %s AND checkpoint_ns = %s AND channel = %s AND version = %s"
+            "SELECT 'b'::text AS _kind, NULL::text AS checkpoint_id, channel, type, blob, NULL::text AS task_id, NULL::int AS idx, version FROM checkpoint_blobs WHERE thread_id = %s AND checkpoint_ns = %s AND channel = %s AND version = %s",
         )
     # Empty when neither list contributed a branch; the caller treats an empty
     # string as "nothing to fetch" and skips the round trip entirely. Joining
@@ -331,7 +331,7 @@ class Checkpointer(BaseCheckpointSaver):
                             data,
                             ext_hook=_delta_aware_hook,
                             option=ormsgpack.OPT_NON_STR_KEYS,
-                        )
+                        ),
                     )
                 return _inner_hook(code, data)
 
@@ -345,7 +345,8 @@ class Checkpointer(BaseCheckpointSaver):
 
         if api_config.LANGGRAPH_AES_KEY:
             serde = EncryptedSerializer.from_pycryptodome_aes(
-                base_serde, key=api_config.LANGGRAPH_AES_KEY
+                base_serde,
+                key=api_config.LANGGRAPH_AES_KEY,
             )
             logger.info("AES encryption configured for checkpoints")
 
@@ -360,7 +361,9 @@ class Checkpointer(BaseCheckpointSaver):
 
                 aes_serializer = serde if api_config.LANGGRAPH_AES_KEY else None
                 serde = CustomEncryptionSerializer(
-                    base_serde, encryption_instance, aes_serializer
+                    base_serde,
+                    encryption_instance,
+                    aes_serializer,
                 )
                 logger.info("Using custom encryption for checkpoints")
 
@@ -372,7 +375,7 @@ class Checkpointer(BaseCheckpointSaver):
         self.use_direct_connection = use_direct_connection
         if conn is None and use_direct_connection:
             raise ValueError(
-                "use_direct_connection requires a connection to be provided."
+                "use_direct_connection requires a connection to be provided.",
             )
 
     @property
@@ -423,7 +426,7 @@ class Checkpointer(BaseCheckpointSaver):
                             "thread_id": value["thread_id"],
                             "checkpoint_ns": value["checkpoint_ns"],
                             "checkpoint_id": value["checkpoint_id"],
-                        }
+                        },
                     },
                     checkpoint,
                     metadata,
@@ -432,7 +435,7 @@ class Checkpointer(BaseCheckpointSaver):
                             "thread_id": value["thread_id"],
                             "checkpoint_ns": value["checkpoint_ns"],
                             "checkpoint_id": value["parent_checkpoint_id"],
-                        }
+                        },
                     }
                     if value["parent_checkpoint_id"]
                     else None,
@@ -448,7 +451,9 @@ class Checkpointer(BaseCheckpointSaver):
             where = "WHERE thread_id = %s AND checkpoint_ns = %s AND checkpoint_id = %s"
         else:
             args = (thread_id, checkpoint_ns)
-            where = "WHERE thread_id = %s AND checkpoint_ns = %s ORDER BY checkpoint_id DESC LIMIT 1"
+            where = (
+                "WHERE thread_id = %s AND checkpoint_ns = %s ORDER BY checkpoint_id DESC LIMIT 1"
+            )
         async with self._connect() as conn:
             cur = await conn.execute(SELECT_SQL + where, args, binary=True)
 
@@ -469,7 +474,7 @@ class Checkpointer(BaseCheckpointSaver):
                                 "thread_id": thread_id,
                                 "checkpoint_ns": value["checkpoint_ns"],
                                 "checkpoint_id": value["checkpoint_id"],
-                            }
+                            },
                         },
                         checkpoint,
                         metadata,
@@ -478,7 +483,7 @@ class Checkpointer(BaseCheckpointSaver):
                                 "thread_id": thread_id,
                                 "checkpoint_ns": value["checkpoint_ns"],
                                 "checkpoint_id": value["parent_checkpoint_id"],
-                            }
+                            },
                         }
                         if value["parent_checkpoint_id"]
                         else None,
@@ -493,11 +498,11 @@ class Checkpointer(BaseCheckpointSaver):
                 latest_tuple = await anext(self.latest_iter, None)
                 if not latest_tuple:
                     return None
-                if latest_tuple.config["configurable"][
+                if latest_tuple.config["configurable"]["thread_id"] == config["configurable"][
                     "thread_id"
-                ] == config["configurable"]["thread_id"] and latest_tuple.config[
+                ] and latest_tuple.config["configurable"]["checkpoint_ns"] == config[
                     "configurable"
-                ]["checkpoint_ns"] == config["configurable"].get("checkpoint_ns", ""):
+                ].get("checkpoint_ns", ""):
                     return latest_tuple
             finally:
                 self.latest_iter = None
@@ -510,10 +515,11 @@ class Checkpointer(BaseCheckpointSaver):
                 checkpoint_ns=ckpt_tuple.config["configurable"]["checkpoint_ns"],
                 checkpoint_id=ckpt_tuple.config["configurable"]["checkpoint_id"],
                 parent_checkpoint_id=parent_config.get("configurable", {}).get(
-                    "checkpoint_id"
+                    "checkpoint_id",
                 ),
                 requested_checkpoint_ns=config["configurable"].get(
-                    "checkpoint_ns", ""
+                    "checkpoint_ns",
+                    "",
                 ),
                 requested_checkpoint_id=config["configurable"].get("checkpoint_id"),
             )
@@ -539,7 +545,7 @@ class Checkpointer(BaseCheckpointSaver):
                 "thread_id": thread_id,
                 "checkpoint_ns": checkpoint_ns,
                 "checkpoint_id": checkpoint["id"],
-            }
+            },
         }
 
         blob_values = {}
@@ -552,9 +558,7 @@ class Checkpointer(BaseCheckpointSaver):
             else:
                 blob_values[k] = copy["channel_values"].pop(k)
 
-        if blob_versions := {
-            k: v for k, v in next_versions.items() if k in blob_values
-        }:
+        if blob_versions := {k: v for k, v in next_versions.items() if k in blob_values}:
             blobs = await self._dump_blobs(
                 thread_id,
                 checkpoint_ns,
@@ -575,25 +579,15 @@ class Checkpointer(BaseCheckpointSaver):
                 for k, v in configurable.items()
                 if not k.startswith("__")
                 and k not in TRANSIENT_CONFIGURABLE_KEYS
-                and (
-                    not is_update_source
-                    or k not in UPDATE_CHECKPOINT_EXCLUDED_KEYS
-                )
+                and (not is_update_source or k not in UPDATE_CHECKPOINT_EXCLUDED_KEYS)
             },
             **{
                 k: v
                 for k, v in config_metadata.items()
                 if k not in TRANSIENT_CONFIGURABLE_KEYS
-                and (
-                    not is_update_source
-                    or k not in UPDATE_CHECKPOINT_EXCLUDED_KEYS
-                )
+                and (not is_update_source or k not in UPDATE_CHECKPOINT_EXCLUDED_KEYS)
             },
-            **{
-                k: v
-                for k, v in metadata.items()
-                if k not in TRANSIENT_CONFIGURABLE_KEYS
-            },
+            **{k: v for k, v in metadata.items() if k not in TRANSIENT_CONFIGURABLE_KEYS},
         }
 
         encrypted_channel_values, encrypted_metadata = await asyncio.gather(
@@ -653,7 +647,10 @@ class Checkpointer(BaseCheckpointSaver):
         try:
             if self.use_direct_connection and self.conn is not None:
                 await self._execute_puts_direct(
-                    self.conn, [], [], checkpoint_writes
+                    self.conn,
+                    [],
+                    [],
+                    checkpoint_writes,
                 )
                 return
             fut = self.loop.create_future()
@@ -685,7 +682,9 @@ class Checkpointer(BaseCheckpointSaver):
         return f"{next_v:032}.{next_h:.16f}"
 
     async def _encrypt_json(
-        self, data: dict[str, Any], path: str | None = None
+        self,
+        data: dict[str, Any],
+        path: str | None = None,
     ) -> dict[str, Any]:
         """Encrypt a dict if encryption (AES or custom) is configured.
 
@@ -702,11 +701,14 @@ class Checkpointer(BaseCheckpointSaver):
         from langgraph_api.encryption.middleware import encrypt_json_if_needed
 
         result = await encrypt_json_if_needed(
-            data, encryption, "checkpoint", path=path
+            data,
+            encryption,
+            "checkpoint",
+            path=path,
         )
         if result is None:
             raise ValueError(
-                "encrypt_json_if_needed returned None for non-None input"
+                "encrypt_json_if_needed returned None for non-None input",
             )
         return result
 
@@ -722,7 +724,7 @@ class Checkpointer(BaseCheckpointSaver):
         result = await decrypt_json_if_needed(data, encryption, "checkpoint")
         if result is None:
             raise ValueError(
-                "decrypt_json_if_needed returned None for non-None input"
+                "decrypt_json_if_needed returned None for non-None input",
             )
         return result
 
@@ -735,12 +737,12 @@ class Checkpointer(BaseCheckpointSaver):
         checkpoint = json_loads(checkpoint_f)
         if "channel_values" in checkpoint:
             checkpoint["channel_values"] = await self._decrypt_json(
-                checkpoint["channel_values"]
+                checkpoint["channel_values"],
             )
         pending_sends_list = []
         for c, b in pending_sends or []:
             pending_sends_list.append(
-                await self.serde.aloads_typed((c.decode(), b))
+                await self.serde.aloads_typed((c.decode(), b)),
             )
         return {
             **checkpoint,
@@ -752,7 +754,8 @@ class Checkpointer(BaseCheckpointSaver):
         }
 
     async def _load_blobs(
-        self, blob_values: list[tuple[bytes, bytes, bytes]]
+        self,
+        blob_values: list[tuple[bytes, bytes, bytes]],
     ) -> dict[str, Any]:
         if not blob_values:
             return {}
@@ -778,7 +781,8 @@ class Checkpointer(BaseCheckpointSaver):
         return rows
 
     async def _load_writes(
-        self, writes: list[tuple[bytes, bytes, bytes, bytes]]
+        self,
+        writes: list[tuple[bytes, bytes, bytes, bytes]],
     ) -> list[tuple[str, str, Any]]:
         if not writes:
             return []
@@ -809,7 +813,7 @@ class Checkpointer(BaseCheckpointSaver):
                     channel,
                     t,
                     b,
-                )
+                ),
             )
         return result
 
@@ -852,12 +856,13 @@ class Checkpointer(BaseCheckpointSaver):
                     cast(
                         "tuple[str, bytes, str, int]",
                         (r["type"], r["blob"], r["task_id"], r["idx"]),
-                    )
+                    ),
                 )
             else:
                 ver = cast(str, r["version"])
                 seed_blob_by_ver[ch, ver] = cast(
-                    "tuple[str, bytes]", (r["type"], r["blob"])
+                    "tuple[str, bytes]",
+                    (r["type"], r["blob"]),
                 )
 
         for cid_map in writes_by_ch_by_cid.values():
@@ -887,7 +892,10 @@ class Checkpointer(BaseCheckpointSaver):
         return result
 
     async def aget_delta_channel_history(
-        self, config: RunnableConfig, *, channels: Sequence[str]
+        self,
+        config: RunnableConfig,
+        *,
+        channels: Sequence[str],
     ) -> "Mapping[str, DeltaChannelHistory]":
         """Reconstruct delta-channel history for one target checkpoint.
 
@@ -936,7 +944,7 @@ class Checkpointer(BaseCheckpointSaver):
             for ch in channels:
                 walk_params.extend([ch, ch])
             walk_params.extend(
-                [thread_id, checkpoint_ns, cursor, cursor, _DELTA_PAGE_SIZE]
+                [thread_id, checkpoint_ns, cursor, cursor, _DELTA_PAGE_SIZE],
             )
 
             async with self._connect() as conn:
@@ -972,9 +980,7 @@ class Checkpointer(BaseCheckpointSaver):
             cursor = oldest
 
         channels_with_chain = [ch for ch in channels if chain_by_ch[ch]]
-        channels_with_seed = [
-            ch for ch in channels if seed_ver_by_ch[ch] is not None
-        ]
+        channels_with_seed = [ch for ch in channels if seed_ver_by_ch[ch] is not None]
         fetch_sql = _build_delta_fetch_sql(
             channels_with_chain=channels_with_chain,
             channels_with_seed=channels_with_seed,
@@ -983,11 +989,11 @@ class Checkpointer(BaseCheckpointSaver):
             fetch_params = []
             for ch in channels_with_chain:
                 fetch_params.extend(
-                    [thread_id, checkpoint_ns, ch, chain_by_ch[ch]]
+                    [thread_id, checkpoint_ns, ch, chain_by_ch[ch]],
                 )
             for ch in channels_with_seed:
                 fetch_params.extend(
-                    [thread_id, checkpoint_ns, ch, seed_ver_by_ch[ch]]
+                    [thread_id, checkpoint_ns, ch, seed_ver_by_ch[ch]],
                 )
             async with self._connect() as conn:
                 async with conn.cursor() as cur:
@@ -1003,7 +1009,10 @@ class Checkpointer(BaseCheckpointSaver):
         )
 
     def get_delta_channel_history(
-        self, config: RunnableConfig, *, channels: Sequence[str]
+        self,
+        config: RunnableConfig,
+        *,
+        channels: Sequence[str],
     ) -> "Mapping[str, DeltaChannelHistory]":
         return asyncio.run_coroutine_threadsafe(
             self.aget_delta_channel_history(config=config, channels=channels),
@@ -1107,7 +1116,8 @@ class Checkpointer(BaseCheckpointSaver):
         try:
             while True:
                 yield asyncio.run_coroutine_threadsafe(
-                    anext(aiter_), self.loop
+                    anext(aiter_),
+                    self.loop,
                 ).result()
         except StopAsyncIteration:
             return
@@ -1127,7 +1137,8 @@ class Checkpointer(BaseCheckpointSaver):
             Optional[CheckpointTuple]: The retrieved checkpoint tuple, or None if no matching checkpoint was found.
         """
         return asyncio.run_coroutine_threadsafe(
-            self.aget_tuple(config), self.loop
+            self.aget_tuple(config),
+            self.loop,
         ).result()
 
     def put(
@@ -1152,7 +1163,8 @@ class Checkpointer(BaseCheckpointSaver):
             RunnableConfig: Updated configuration after storing the checkpoint.
         """
         return asyncio.run_coroutine_threadsafe(
-            self.aput(config, checkpoint, metadata, new_versions), self.loop
+            self.aput(config, checkpoint, metadata, new_versions),
+            self.loop,
         ).result()
 
     def put_writes(
@@ -1171,7 +1183,8 @@ class Checkpointer(BaseCheckpointSaver):
             task_id (str): Identifier for the task creating the writes.
         """
         return asyncio.run_coroutine_threadsafe(
-            self.aput_writes(config, writes, task_id), self.loop
+            self.aput_writes(config, writes, task_id),
+            self.loop,
         ).result()
 
 
@@ -1198,7 +1211,7 @@ async def stop_checkpoint_ingestion_loop() -> None:
 async def checkpoint_ingestion_loop() -> None:
     if api_config.IS_EXECUTOR_ENTRYPOINT:
         await logger.adebug(
-            "Executor entrypoint, skipping checkpointer ingestion loop"
+            "Executor entrypoint, skipping checkpointer ingestion loop",
         )
         return
     await logger.ainfo("Starting checkpointer ingestion loop")
@@ -1210,25 +1223,28 @@ async def checkpoint_ingestion_loop() -> None:
             await _ingest_batch(max_batch_size, max_batch_window_s)
         except asyncio.CancelledError:
             await logger.ainfo(
-                "Checkpointer ingestion task cancelled. Draining queue."
+                "Checkpointer ingestion task cancelled. Draining queue.",
             )
             break
         except Exception as e:
             await logger.aexception(
-                "Checkpointer ingestion task failed", exc_info=e
+                "Checkpointer ingestion task failed",
+                exc_info=e,
             )
 
     try:
         await _ingest_batch(None, 0.0)
     except Exception as e:
         await logger.aexception(
-            "Final checkpointer ingestion batch failed", exc_info=e
+            "Final checkpointer ingestion batch failed",
+            exc_info=e,
         )
         raise
 
 
 async def _ingest_batch(
-    max_batch_size: int | None, max_batch_window_s: float
+    max_batch_size: int | None,
+    max_batch_window_s: float,
 ) -> None:
     from langgraph_runtime_postgres import database
 
@@ -1252,14 +1268,13 @@ async def _ingest_batch(
             except asyncio.QueueEmpty:
                 if batch_start is None or not futs:
                     break
-                remaining_s = max_batch_window_s - (
-                    time.monotonic() - batch_start
-                )
+                remaining_s = max_batch_window_s - (time.monotonic() - batch_start)
                 if remaining_s <= 0:
                     break
                 try:
                     queue_item = await asyncio.wait_for(
-                        PUTS_QUEUE.get(), timeout=remaining_s
+                        PUTS_QUEUE.get(),
+                        timeout=remaining_s,
                     )
                 except TimeoutError:
                     break
@@ -1278,10 +1293,7 @@ async def _ingest_batch(
             total_items += len(items)
             futs.append((loop, fut))
 
-            if (
-                batch_start is not None
-                and time.monotonic() - batch_start >= max_batch_window_s
-            ):
+            if batch_start is not None and time.monotonic() - batch_start >= max_batch_window_s:
                 break
 
         if not (futs or blobs or checkpoints or writes):
@@ -1325,7 +1337,7 @@ async def _ingest_batch(
                                         checkpoint_ns=str(row.checkpoint_ns),
                                         checkpoint_id=str(row.checkpoint_id),
                                         parent_checkpoint_id=str(
-                                            row.parent_checkpoint_id
+                                            row.parent_checkpoint_id,
                                         ),
                                     )
                     if writes:

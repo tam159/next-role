@@ -7,12 +7,7 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager, suppress
 from typing import Any, TypeAlias
 
-import langgraph_api.config as config
-
 import structlog
-from langgraph_api.feature_flags import IS_POSTGRES_OR_GRPC_BACKEND
-from langgraph_api.schema import PoolStats
-from langgraph_api.serde import fragment_loads, json_dumpb
 from psycopg import AsyncConnection
 from psycopg.conninfo import conninfo_to_dict
 from psycopg.rows import DictRow, dict_row
@@ -20,6 +15,10 @@ from psycopg.types.json import set_json_dumps, set_json_loads
 from psycopg_pool import AsyncConnectionPool
 from redis.exceptions import LockError, LockNotOwnedError
 
+import langgraph_api.config as config
+from langgraph_api.feature_flags import IS_POSTGRES_OR_GRPC_BACKEND
+from langgraph_api.schema import PoolStats
+from langgraph_api.serde import fragment_loads, json_dumpb
 from langgraph_runtime_postgres import redis
 from langgraph_runtime_postgres.redis import LOCK_MIGRATION
 
@@ -27,7 +26,7 @@ Row: TypeAlias = dict[str, Any]
 
 
 _CREATE_OR_DROP_INDEX_RE = re.compile(
-    r"(?i)(create\s+index\s+concurrently\s*|drop\s+index\s+(?:concurrently\s+)?(?:if\s+exists\s+)?\s*)"
+    r"(?i)(create\s+index\s+concurrently\s*|drop\s+index\s+(?:concurrently\s+)?(?:if\s+exists\s+)?\s*)",
 )
 
 
@@ -64,7 +63,9 @@ async def healthcheck(*, check_db: bool = True) -> None:
 
 @asynccontextmanager
 async def connect(
-    *, supports_core_api: bool = True, __test__: bool = False
+    *,
+    supports_core_api: bool = True,
+    __test__: bool = False,
 ) -> AsyncIterator[AsyncConnection[DictRow]]:
     if supports_core_api and IS_POSTGRES_OR_GRPC_BACKEND:
         yield None
@@ -101,7 +102,9 @@ async def _reset_connection(conn: AsyncConnection[DictRow]) -> None:
 
 
 def create_pool(
-    *, __test__: bool = False, thread_local: bool = False
+    *,
+    __test__: bool = False,
+    thread_local: bool = False,
 ) -> AsyncConnectionPool[AsyncConnection[DictRow]]:
     params = conninfo_to_dict(config.DATABASE_URI)
     params.setdefault("options", "")
@@ -168,11 +171,11 @@ async def migrate() -> None:
                 version BIGINT PRIMARY KEY,
                 dirty   BOOLEAN NOT NULL
             )
-        """
+        """,
         )
 
         await cur.execute(
-            "SELECT COALESCE(MAX(version), -1) AS v FROM schema_migrations"
+            "SELECT COALESCE(MAX(version), -1) AS v FROM schema_migrations",
         )
 
         current_version = (await cur.fetchone())["v"]
@@ -189,7 +192,7 @@ async def migrate() -> None:
                 raise ValueError(f"Unknown migration file: {migration_path}")
             if key in migration_paths[version]:
                 raise ValueError(
-                    f"Duplicate migration version {version} variant {key!r}: {migration_paths[version][key]} and {migration_path}"
+                    f"Duplicate migration version {version} variant {key!r}: {migration_paths[version][key]} and {migration_path}",
                 )
             migration_paths[version][key] = migration_path
 
@@ -208,7 +211,7 @@ async def migrate() -> None:
                     await cur.execute(one, prepare=False)
                 except Exception as e:
                     raise RuntimeError(
-                        f"Failed to apply database migration {version}\n\nStatement: {one}"
+                        f"Failed to apply database migration {version}\n\nStatement: {one}",
                     ) from e
 
             await cur.execute(
@@ -265,7 +268,7 @@ async def start_pool() -> None:
             await migrate_vector_index()
     except LockError:
         await logger.awarning(
-            "Failed to acquire migration lock - another server is already running migrations. Continuing."
+            "Failed to acquire migration lock - another server is already running migrations. Continuing.",
         )
     except LockNotOwnedError as e:
         await logger.awarning("Error releasing migration lock. %s Continuing.", e)
@@ -336,4 +339,4 @@ def _get_pool() -> AsyncConnectionPool[AsyncConnection[DictRow]]:
     return _pg_pool
 
 
-__all__ = ["start_pool", "stop_pool", "connect", "pool_stats"]
+__all__ = ["connect", "pool_stats", "start_pool", "stop_pool"]

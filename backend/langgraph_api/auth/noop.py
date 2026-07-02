@@ -48,6 +48,7 @@ class UnauthenticatedUser(StarletteUnauthenticatedUser):
 
 class NoopAuthBackend(AuthenticationBackend):
     async def authenticate(
-        self, conn: HTTPConnection
+        self,
+        conn: HTTPConnection,
     ) -> tuple[AuthCredentials, BaseUser] | None:
         return AuthCredentials(), UnauthenticatedUser()

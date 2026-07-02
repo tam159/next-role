@@ -48,15 +48,15 @@ def value_from_proto(value: engine_common_pb2.ChannelValue) -> Any:
 
 
 def value_to_proto(
-    channel_name: str | None, value: Any
+    channel_name: str | None,
+    value: Any,
 ) -> engine_common_pb2.ChannelValue:
     """Convert a Python value to a ChannelValue proto."""
     if channel_name == TASKS and value != MISSING:
         if not isinstance(value, list):
             if not isinstance(value, Send):
                 raise ValueError(
-                    "Task must be a Send object objects."
-                    f" Got type={type(value)} value={value}",
+                    f"Task must be a Send object objects. Got type={type(value)} value={value}",
                 )
             value = [value]
         else:
@@ -73,7 +73,7 @@ def value_to_proto(
         raise ValueError(
             "Command should not appear in task outputs. "
             "Commands are expanded by LangGraph before reaching the executor. "
-            "Use input_to_proto() for RunInput with Command."
+            "Use input_to_proto() for RunInput with Command.",
         )
     return base_value_to_proto(value)
 
@@ -107,22 +107,24 @@ def command_to_proto(cmd: Command) -> engine_common_pb2.Command:
                 encoding, ser_val = serde.get_serializer().dumps_typed(v)
                 cmd_pb.update[k].CopyFrom(
                     engine_common_pb2.SerializedValue(
-                        encoding=encoding, value=bytes(ser_val)
-                    )
+                        encoding=encoding,
+                        value=bytes(ser_val),
+                    ),
                 )
         else:
             encoding, ser_val = serde.get_serializer().dumps_typed(cmd.update)
             cmd_pb.update["__root__"].CopyFrom(
                 engine_common_pb2.SerializedValue(
-                    encoding=encoding, value=bytes(ser_val)
-                )
+                    encoding=encoding,
+                    value=bytes(ser_val),
+                ),
             )
     if cmd.resume:
         if isinstance(cmd.resume, dict):
             cmd_pb.resume.CopyFrom(resume_map_to_proto(cmd.resume))
         else:
             resume_val = engine_common_pb2.Resume(
-                value=any_to_serialized_value(cmd.resume)
+                value=any_to_serialized_value(cmd.resume),
             )
             cmd_pb.resume.CopyFrom(resume_val)
     if cmd.goto:
@@ -141,7 +143,7 @@ def command_to_proto(cmd: Command) -> engine_common_pb2.Command:
 def resume_map_to_proto(resume: dict[str, Any] | Any) -> engine_common_pb2.Resume:
     vals = {k: any_to_serialized_value(v) for k, v in resume.items()}
     return engine_common_pb2.Resume(
-        values=engine_common_pb2.InterruptValues(values=vals)
+        values=engine_common_pb2.InterruptValues(values=vals),
     )
 
 
@@ -163,8 +165,7 @@ def command_from_proto(cmd: engine_common_pb2.Command) -> Command:
             resume = serialized_value_from_proto(cmd.resume.value)
         elif resume_which == "values":
             resume = {
-                k: serialized_value_from_proto(v)
-                for k, v in cmd.resume.values.values.items()
+                k: serialized_value_from_proto(v) for k, v in cmd.resume.values.values.items()
             }
 
     goto = ()
@@ -179,7 +180,7 @@ def command_from_proto(cmd: engine_common_pb2.Command) -> Command:
                     Send(
                         goto_pb.send.node,
                         serialized_value_from_proto(goto_pb.send.arg),
-                    )
+                    ),
                 )
         goto = gotos[0] if len(gotos) == 1 else gotos
 
@@ -203,7 +204,8 @@ def missing_to_proto() -> engine_common_pb2.ChannelValue:
 def base_value_to_proto(value: Any) -> engine_common_pb2.ChannelValue:
     encoding, ser_val = serde.get_serializer().dumps_typed(value)
     serialize_value_proto = engine_common_pb2.SerializedValue(
-        encoding=encoding, value=bytes(ser_val)
+        encoding=encoding,
+        value=bytes(ser_val),
     )
 
     return engine_common_pb2.ChannelValue(serialized_value=serialize_value_proto)

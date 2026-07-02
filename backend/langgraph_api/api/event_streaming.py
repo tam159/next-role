@@ -153,7 +153,7 @@ async def _thread_events(request: Request) -> Response:
                     + ", ".join(bad[:5])
                     + ". Allowed: values, updates, messages, tools, custom, "
                     "lifecycle, input, tasks, or any `custom:<name>`."
-                )
+                ),
             },
             status_code=400,
         )
@@ -184,9 +184,7 @@ async def _thread_events(request: Request) -> Response:
     # and silently skip the first buffered event on reconnect.
     since: int | None = (
         raw_since
-        if isinstance(raw_since, int)
-        and not isinstance(raw_since, bool)
-        and raw_since >= 0
+        if isinstance(raw_since, int) and not isinstance(raw_since, bool) and raw_since >= 0
         else None
     )
 
@@ -387,7 +385,7 @@ async def _thread_websocket(websocket: WebSocket) -> None:
                         "id": None,
                         "error": "invalid_argument",
                         "message": "Protocol commands must be valid JSON.",
-                    }
+                    },
                 )
                 continue
 
@@ -402,7 +400,7 @@ async def _thread_websocket(websocket: WebSocket) -> None:
                         "id": payload.get("id") if isinstance(payload, dict) else None,
                         "error": "invalid_argument",
                         "message": "Protocol commands must include an integer id and string method.",
-                    }
+                    },
                 )
                 continue
 

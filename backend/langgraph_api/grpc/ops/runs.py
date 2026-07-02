@@ -16,25 +16,6 @@ import structlog
 from google.protobuf.empty_pb2 import Empty  # ty: ignore[unresolved-import]
 from grpc import StatusCode
 from grpc.aio import EOF, AioRpcError
-from langgraph_grpc_common.conversion.config import config_from_proto
-from langgraph_grpc_common.proto import (
-    core_api_pb2 as pb,
-)
-from langgraph_grpc_common.proto import (
-    enum_cancel_run_action_pb2 as enum_cancel_run_action,
-)
-from langgraph_grpc_common.proto import (
-    enum_control_signal_pb2 as enum_control_signal,
-)
-from langgraph_grpc_common.proto import (
-    enum_multitask_strategy_pb2 as enum_multitask_strategy,
-)
-from langgraph_grpc_common.proto import (
-    enum_run_status_pb2 as enum_run_status,
-)
-from langgraph_grpc_common.proto import (
-    enum_stream_mode_pb2 as enum_stream_mode,
-)
 from langgraph_sdk import Auth
 from starlette.exceptions import HTTPException
 
@@ -67,6 +48,25 @@ from langgraph_api.serde import (
     json_loads_optional,
 )
 from langgraph_api.utils import get_auth_ctx
+from langgraph_grpc_common.conversion.config import config_from_proto
+from langgraph_grpc_common.proto import (
+    core_api_pb2 as pb,
+)
+from langgraph_grpc_common.proto import (
+    enum_cancel_run_action_pb2 as enum_cancel_run_action,
+)
+from langgraph_grpc_common.proto import (
+    enum_control_signal_pb2 as enum_control_signal,
+)
+from langgraph_grpc_common.proto import (
+    enum_multitask_strategy_pb2 as enum_multitask_strategy,
+)
+from langgraph_grpc_common.proto import (
+    enum_run_status_pb2 as enum_run_status,
+)
+from langgraph_grpc_common.proto import (
+    enum_stream_mode_pb2 as enum_stream_mode,
+)
 
 if TYPE_CHECKING:
     from collections.abc import AsyncIterator, Sequence
@@ -175,7 +175,7 @@ PUBLISH_RETRIABLE_STATUS_CODES = frozenset(
         StatusCode.RESOURCE_EXHAUSTED,
         StatusCode.ABORTED,
         StatusCode.INTERNAL,
-    }
+    },
 )
 
 
@@ -212,7 +212,7 @@ class GrpcStreamHandler:
             subscribe=pb.SubscribeRunRequest(
                 thread_id=pb.UUID(value=str(self.thread_id)),
                 run_id=pb.UUID(value=str(self.run_id)),
-            )
+            ),
         )
         await self._stream.write(subscribe_msg)
 
@@ -358,12 +358,8 @@ def _map_stream_modes(
 def proto_to_run(proto_run: pb.Run) -> Run:
     """Convert protobuf Run to dictionary format."""
     return {
-        "run_id": UUID(proto_run.run_id.value)
-        if proto_run.HasField("run_id")
-        else None,
-        "thread_id": UUID(proto_run.thread_id.value)
-        if proto_run.HasField("thread_id")
-        else None,
+        "run_id": UUID(proto_run.run_id.value) if proto_run.HasField("run_id") else None,
+        "thread_id": UUID(proto_run.thread_id.value) if proto_run.HasField("thread_id") else None,
         "assistant_id": UUID(proto_run.assistant_id.value)
         if proto_run.HasField("assistant_id")
         else None,
@@ -377,11 +373,9 @@ def proto_to_run(proto_run: pb.Run) -> Run:
         "metadata": json_loads_optional(proto_run.metadata.value)
         if proto_run.HasField("metadata")
         else {},
-        "kwargs": _proto_kwargs_to_dict(proto_run.kwargs)
-        if proto_run.HasField("kwargs")
-        else {},
+        "kwargs": _proto_kwargs_to_dict(proto_run.kwargs) if proto_run.HasField("kwargs") else {},
         "multitask_strategy": MULTITASK_STRATEGY_FROM_PB.get(
-            proto_run.multitask_strategy
+            proto_run.multitask_strategy,
         ),
     }
 
@@ -389,12 +383,8 @@ def proto_to_run(proto_run: pb.Run) -> Run:
 def _proto_kwargs_to_dict(kwargs: pb.RunKwargs) -> dict:
     """Convert protobuf RunKwargs to dictionary format."""
     result: dict = {
-        "input": json_loads_optional(kwargs.input_json)
-        if kwargs.HasField("input_json")
-        else None,
-        "config": dict(config_from_proto(kwargs.config))
-        if kwargs.HasField("config")
-        else None,
+        "input": json_loads_optional(kwargs.input_json) if kwargs.HasField("input_json") else None,
+        "config": dict(config_from_proto(kwargs.config)) if kwargs.HasField("config") else None,
         "context": json_loads_optional(kwargs.context_json)
         if kwargs.HasField("context_json")
         else None,
@@ -727,7 +717,7 @@ class Runs(Authenticated):
 
         if status is not None:
             request_kwargs["status"] = pb.CancelStatusTarget(
-                status=CANCEL_STATUS_TO_PB[status]
+                status=CANCEL_STATUS_TO_PB[status],
             )
         else:
             request_kwargs["run_ids"] = pb.CancelRunIdsTarget(
@@ -833,7 +823,8 @@ class Runs(Authenticated):
 
     @staticmethod
     async def next(
-        wait: bool, limit: int = 1
+        wait: bool,
+        limit: int = 1,
     ) -> AsyncIterator[tuple[Run, int, dict[str, Any] | None]]:
         """Get the next run from the queue, the attempt number, and encryption context.
 
@@ -975,9 +966,7 @@ class Runs(Authenticated):
                 thread_id: The thread ID
                 resumable: If true, message will be cached with TTL for resumable streaming
             """
-            run_id_pb = (
-                None if run_id is None or run_id == "*" else pb.UUID(value=str(run_id))
-            )
+            run_id_pb = None if run_id is None or run_id == "*" else pb.UUID(value=str(run_id))
             client = await get_shared_client()
             request = pb.PublishStreamEventRequest(
                 run_id=run_id_pb,
@@ -988,10 +977,12 @@ class Runs(Authenticated):
             )
             max_duration_secs = max(0.0, STREAM_PUBLISH_RETRY_MAX_DURATION_SECS)
             initial_interval_secs = max(
-                0.001, STREAM_PUBLISH_RETRY_INITIAL_INTERVAL_SECS
+                0.001,
+                STREAM_PUBLISH_RETRY_INITIAL_INTERVAL_SECS,
             )
             max_interval_secs = max(
-                initial_interval_secs, STREAM_PUBLISH_RETRY_MAX_INTERVAL_SECS
+                initial_interval_secs,
+                STREAM_PUBLISH_RETRY_MAX_INTERVAL_SECS,
             )
             backoff_factor = max(1.0, STREAM_PUBLISH_RETRY_BACKOFF_FACTOR)
             jitter = min(1.0, max(0.0, STREAM_PUBLISH_RETRY_JITTER))
@@ -1101,8 +1092,8 @@ class Runs(Authenticated):
                     )
                     done.set(
                         GrpcRetryableException(
-                            f"listen_for_signals failed. \nError: {exc!r}"
-                        )
+                            f"listen_for_signals failed. \nError: {exc!r}",
+                        ),
                     )
                     raise
 
@@ -1112,7 +1103,9 @@ class Runs(Authenticated):
                 yield done
                 # Signal done via gRPC (stops heartbeat and cleanup on server)
                 await Runs.mark_done(
-                    run_id=run_id, thread_id=thread_id, resumable=resumable
+                    run_id=run_id,
+                    thread_id=thread_id,
+                    resumable=resumable,
                 )
             except GrpcRetryableException:
                 logger.info(

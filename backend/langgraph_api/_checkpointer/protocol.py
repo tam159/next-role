@@ -85,7 +85,8 @@ class CheckpointerProtocol(Protocol):
     async def adelete_thread(self, thread_id: str) -> None: ...
 
     async def aget_iter(
-        self, config: RunnableConfig
+        self,
+        config: RunnableConfig,
     ) -> AsyncIterator[CheckpointTuple]: ...
 
 
@@ -116,7 +117,9 @@ class FullCheckpointerProtocol(CheckpointerProtocol, Protocol):
     async def adelete_for_runs(self, run_ids: Sequence[str]) -> None: ...
 
     async def acopy_thread(
-        self, source_thread_id: str, target_thread_id: str
+        self,
+        source_thread_id: str,
+        target_thread_id: str,
     ) -> None: ...
 
     async def aprune(

@@ -40,7 +40,7 @@ _RETRYABLE_STATUS_CODES = frozenset(
         grpc.StatusCode.RESOURCE_EXHAUSTED,
         grpc.StatusCode.ABORTED,
         grpc.StatusCode.INTERNAL,
-    }
+    },
 )
 
 

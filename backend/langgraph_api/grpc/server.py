@@ -14,17 +14,17 @@ import grpc
 import grpc.aio
 import structlog
 from grpc_health.v1 import health, health_pb2, health_pb2_grpc
+
+from langgraph_api import config
+from langgraph_api.grpc.servicers.checkpointer import CheckpointerServicerImpl
+from langgraph_api.grpc.servicers.encryption import EncryptionServicerImpl
+from langgraph_api.utils.network import format_hostport, get_healthcheck_target_host
 from langgraph_grpc_common.proto.checkpointer_pb2_grpc import (
     add_CheckpointerServicer_to_server,
 )
 from langgraph_grpc_common.proto.encryption_pb2_grpc import (
     add_EncryptionServicer_to_server,
 )
-
-from langgraph_api import config
-from langgraph_api.grpc.servicers.checkpointer import CheckpointerServicerImpl
-from langgraph_api.grpc.servicers.encryption import EncryptionServicerImpl
-from langgraph_api.utils.network import format_hostport, get_healthcheck_target_host
 
 logger = structlog.stdlib.get_logger(__name__)
 
@@ -189,7 +189,8 @@ async def wait_until_python_grpc_ready(
             try:
                 request = health_pb2.HealthCheckRequest(service="")
                 response = await health_stub.Check(
-                    request, timeout=PYTHON_GRPC_HEALTHCHECK_TIMEOUT
+                    request,
+                    timeout=PYTHON_GRPC_HEALTHCHECK_TIMEOUT,
                 )
                 if response.status == health_pb2.HealthCheckResponse.SERVING:
                     await logger.ainfo(
@@ -202,7 +203,7 @@ async def wait_until_python_grpc_ready(
                 if attempt >= max_attempts - 1:
                     raise RuntimeError(
                         f"Python gRPC server not ready after {timeout_seconds}s "
-                        f"(reached max attempts: {max_attempts})"
+                        f"(reached max attempts: {max_attempts})",
                     ) from exc
                 else:
                     await logger.adebug(

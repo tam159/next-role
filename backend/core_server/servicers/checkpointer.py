@@ -16,10 +16,10 @@ from __future__ import annotations
 
 import grpc
 from google.protobuf.empty_pb2 import Empty
-from langgraph_grpc_common.proto import checkpointer_pb2 as cpb
-from langgraph_grpc_common.proto.checkpointer_pb2_grpc import CheckpointerServicer
 
 from core_server import db
+from langgraph_grpc_common.proto import checkpointer_pb2 as cpb
+from langgraph_grpc_common.proto.checkpointer_pb2_grpc import CheckpointerServicer
 
 _CKPT_TABLES = ("checkpoint_writes", "checkpoint_blobs", "checkpoints")
 
@@ -53,7 +53,9 @@ class CheckpointerServicerImpl(CheckpointerServicer):
         )
 
     async def DeleteThread(
-        self, request: cpb.DeleteThreadRequest, context
+        self,
+        request: cpb.DeleteThreadRequest,
+        context,
     ) -> Empty:
         async with db.pool().connection() as conn, conn.transaction(), conn.cursor() as cur:
             for table in _CKPT_TABLES:
@@ -64,7 +66,9 @@ class CheckpointerServicerImpl(CheckpointerServicer):
         return Empty()
 
     async def DeleteForRuns(
-        self, request: cpb.DeleteForRunsRequest, context
+        self,
+        request: cpb.DeleteForRunsRequest,
+        context,
     ) -> Empty:
         run_ids = list(request.run_ids)
         if run_ids:
@@ -80,7 +84,8 @@ class CheckpointerServicerImpl(CheckpointerServicer):
                     (run_ids,),
                 )
                 await cur.execute(
-                    "DELETE FROM checkpoints WHERE run_id = ANY(%s::uuid[])", (run_ids,)
+                    "DELETE FROM checkpoints WHERE run_id = ANY(%s::uuid[])",
+                    (run_ids,),
                 )
         return Empty()
 

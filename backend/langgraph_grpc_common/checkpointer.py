@@ -64,7 +64,7 @@ class GrpcCheckpointer(BaseCheckpointSaver):
     def loop(self) -> asyncio.AbstractEventLoop:
         if self._loop is None:
             raise RuntimeError(
-                "Sync checkpointer methods require initialization inside an event loop"
+                "Sync checkpointer methods require initialization inside an event loop",
             )
         return self._loop
 
@@ -182,8 +182,8 @@ class GrpcCheckpointer(BaseCheckpointSaver):
     ) -> Iterator[CheckpointTuple]:
         return iter(
             self._run_sync(
-                self._alist_to_list(config, filter=filter, before=before, limit=limit)
-            )
+                self._alist_to_list(config, filter=filter, before=before, limit=limit),
+            ),
         )
 
     async def _alist_to_list(

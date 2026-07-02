@@ -51,9 +51,7 @@ else:
 logger = structlog.stdlib.get_logger(__name__)
 
 SERVICE_NAME = "lsd_langgraph_api"
-DD_OTEL_METRIC_CONFIG = (
-    '{"resource_attributes_as_tags":true,"histograms":{"mode":"distributions"}}'
-)
+DD_OTEL_METRIC_CONFIG = '{"resource_attributes_as_tags":true,"histograms":{"mode":"distributions"}}'
 METRIC_NAME_PREFIX = config.METRIC_PREFIX
 
 METRIC_TIER_CRITICAL = 1
@@ -73,19 +71,25 @@ class MetricDef:
 
 def def_counter(name: str, tier: int) -> MetricDef:
     return MetricDef(
-        metric_type="counter", name=f"{METRIC_NAME_PREFIX}{name}", tier=tier
+        metric_type="counter",
+        name=f"{METRIC_NAME_PREFIX}{name}",
+        tier=tier,
     )
 
 
 def def_histogram(name: str, tier: int) -> MetricDef:
     return MetricDef(
-        metric_type="histogram", name=f"{METRIC_NAME_PREFIX}{name}", tier=tier
+        metric_type="histogram",
+        name=f"{METRIC_NAME_PREFIX}{name}",
+        tier=tier,
     )
 
 
 def def_latency(name: str, tier: int) -> MetricDef:
     return MetricDef(
-        metric_type="latency", name=f"{METRIC_NAME_PREFIX}{name}", tier=tier
+        metric_type="latency",
+        name=f"{METRIC_NAME_PREFIX}{name}",
+        tier=tier,
     )
 
 
@@ -95,61 +99,78 @@ def def_gauge(name: str, tier: int) -> MetricDef:
 
 # Pre-defined counter metrics.
 COUNTER_STREAMING_DATA_LOSS = def_counter(
-    "streaming_data_loss_counter", METRIC_TIER_CRITICAL
+    "streaming_data_loss_counter",
+    METRIC_TIER_CRITICAL,
 )
 COUNTER_RUN_ATTEMPT_STARTED = def_counter(
-    "run_attempt_started_counter", METRIC_TIER_CRITICAL
+    "run_attempt_started_counter",
+    METRIC_TIER_CRITICAL,
 )
 COUNTER_RUN_SUCCESS = def_counter("run_success_counter", METRIC_TIER_CRITICAL)
 COUNTER_RUN_CANCELED_BY_REQUEST = def_counter(
-    "run_canceled_by_request_counter", METRIC_TIER_CRITICAL
+    "run_canceled_by_request_counter",
+    METRIC_TIER_CRITICAL,
 )
 COUNTER_RUN_FAILED_RETRIABLE = def_counter(
-    "run_failed_retriable_counter", METRIC_TIER_CRITICAL
+    "run_failed_retriable_counter",
+    METRIC_TIER_CRITICAL,
 )
 COUNTER_RUN_FAILED_AFTER_RETRY = def_counter(
-    "run_failed_after_retry_counter", METRIC_TIER_CRITICAL
+    "run_failed_after_retry_counter",
+    METRIC_TIER_CRITICAL,
 )
 COUNTER_RUN_EXCEED_MAX_ATTEMPTS_AT_START = def_counter(
-    "run_exceed_max_attempts_at_start_counter", METRIC_TIER_CRITICAL
+    "run_exceed_max_attempts_at_start_counter",
+    METRIC_TIER_CRITICAL,
 )
 COUNTER_RUN_ABANDONED_BY_SHUTDOWN = def_counter(
-    "run_abandoned_by_shutdown_counter", METRIC_TIER_CRITICAL
+    "run_abandoned_by_shutdown_counter",
+    METRIC_TIER_CRITICAL,
 )
 COUNTER_RUN_SET_STATUS_ERROR = def_counter(
-    "run_set_status_error_counter", METRIC_TIER_CRITICAL
+    "run_set_status_error_counter",
+    METRIC_TIER_CRITICAL,
 )
 COUNTER_GRAPH_RECURSION_LIMIT_ERROR = def_counter(
-    "graph_recursion_limit_error_counter", METRIC_TIER_INFO
+    "graph_recursion_limit_error_counter",
+    METRIC_TIER_INFO,
 )
 COUNTER_FAILED_TO_FETCH_RUNS = def_counter(
-    "failed_to_fetch_runs_counter", METRIC_TIER_CRITICAL
+    "failed_to_fetch_runs_counter",
+    METRIC_TIER_CRITICAL,
 )
 COUNTER_SERVER_STARTED = def_counter("server_started_counter", METRIC_TIER_INFO)
 COUNTER_SERVER_REQUESTED_TO_STOP = def_counter(
-    "server_requested_to_stop_counter", METRIC_TIER_INFO
+    "server_requested_to_stop_counter",
+    METRIC_TIER_INFO,
 )
 COUNTER_SERVER_STOPPED = def_counter("server_stopped_counter", METRIC_TIER_INFO)
 COUNTER_PROTOCOL_V2_BUFFER_EVICTED = def_counter(
-    "protocol_v2_buffer_evicted_counter", METRIC_TIER_INFO
+    "protocol_v2_buffer_evicted_counter",
+    METRIC_TIER_INFO,
 )
 COUNTER_PROTOCOL_V2_EVENT_EMITTED = def_counter(
-    "protocol_v2_event_emitted_counter", METRIC_TIER_DEBUG
+    "protocol_v2_event_emitted_counter",
+    METRIC_TIER_DEBUG,
 )
 COUNTER_PROTOCOL_V2_RESUME_GAP = def_counter(
-    "protocol_v2_resume_gap_counter", METRIC_TIER_INFO
+    "protocol_v2_resume_gap_counter",
+    METRIC_TIER_INFO,
 )
 COUNTER_PROTOCOL_V2_TRANSPORT_SEND_FAILURE = def_counter(
-    "protocol_v2_transport_send_failure_counter", METRIC_TIER_INFO
+    "protocol_v2_transport_send_failure_counter",
+    METRIC_TIER_INFO,
 )
 
 # Pre-defined latency metrics.
 LATENCY_RUN_EXECUTION = def_latency("run_execution_latency", METRIC_TIER_INFO)
 LATENCY_RUN_QUEUE_WAIT_TIME_1ST_ATTEMPT = def_latency(
-    "run_queue_wait_time_1st_attempt", METRIC_TIER_INFO
+    "run_queue_wait_time_1st_attempt",
+    METRIC_TIER_INFO,
 )
 LATENCY_RUN_QUEUE_WAIT_TIME_RETRY_ATTEMPT = def_latency(
-    "run_queue_wait_time_retry_attempt", METRIC_TIER_INFO
+    "run_queue_wait_time_retry_attempt",
+    METRIC_TIER_INFO,
 )
 LATENCY_STREAM_PUBLISH = def_latency("stream_publish_latency", METRIC_TIER_INFO)
 
@@ -157,7 +178,8 @@ LATENCY_STREAM_PUBLISH = def_latency("stream_publish_latency", METRIC_TIER_INFO)
 GAUGE_WORKERS_ACTIVE = def_gauge("workers_active", METRIC_TIER_CRITICAL)
 GAUGE_WORKERS_AVAILABLE = def_gauge("workers_available", METRIC_TIER_CRITICAL)
 GAUGE_PUBLISH_QUEUE_AVAILABILITY = def_gauge(
-    "publish_queue_availability", METRIC_TIER_CRITICAL
+    "publish_queue_availability",
+    METRIC_TIER_CRITICAL,
 )
 # Protocol v2 sessions retain a bounded replay buffer per run. Track the
 # observed occupancy so operators can tune LSD_PROTOCOL_V2_BUFFER_SIZE before
@@ -168,7 +190,8 @@ GAUGE_PROTOCOL_V2_BUFFER_SIZE = def_gauge("protocol_v2_buffer_size", METRIC_TIER
 # Pre-defined histogram metrics.
 HISTOGRAM_STREAM_DATA_SIZE = def_histogram("stream_data_size_bytes", METRIC_TIER_DEBUG)
 HISTOGRAM_PROTOCOL_V2_REPLAYED_EVENTS = def_histogram(
-    "protocol_v2_replayed_events", METRIC_TIER_DEBUG
+    "protocol_v2_replayed_events",
+    METRIC_TIER_DEBUG,
 )
 
 
@@ -202,7 +225,9 @@ class _FilteringExporter(MetricExporter):
                 for scope_metric in resource_metric.scope_metrics:
                     if scope_metric.metrics:
                         return self._exporter.export(
-                            metrics_data, timeout_millis, **kwargs
+                            metrics_data,
+                            timeout_millis,
+                            **kwargs,
                         )
         return None
 
@@ -238,7 +263,7 @@ class DatadogMetricsReporter:
                 return
             if not OTEL_AVAILABLE:
                 logger.warning(
-                    "Datadog metrics disabled because OpenTelemetry dependencies are not installed"
+                    "Datadog metrics disabled because OpenTelemetry dependencies are not installed",
                 )
                 return
 
@@ -248,17 +273,17 @@ class DatadogMetricsReporter:
                         "service.name": SERVICE_NAME,
                         "host.id": os.getenv("HOSTNAME", ""),
                         # Not in public docs: these LANGSMITH_* vars are set by SaaS control plane
-                        "api_version": os.getenv("LANGSMITH_LANGGRAPH_API_VERSION")
-                        or __version__,
+                        "api_version": os.getenv("LANGSMITH_LANGGRAPH_API_VERSION") or __version__,
                         "project_id": os.getenv("LANGSMITH_HOST_PROJECT_ID", ""),
                         "k8s.deployment.name": os.getenv(
-                            "LANGSMITH_HOST_PROJECT_NAME", ""
+                            "LANGSMITH_HOST_PROJECT_NAME",
+                            "",
                         ),
                         "has_deepagents": "true"
                         if os.getenv("DEEPAGENTS_VERSION", "") != ""
                         else "false",
                         "deployment_type": os.getenv("LSD_DEPLOYMENT_TYPE", ""),
-                    }
+                    },
                 )
                 base_exporter = OTLPMetricExporter(
                     endpoint=f"https://{config.LSD_DD_ENDPOINT}/v1/metrics",
@@ -284,7 +309,8 @@ class DatadogMetricsReporter:
                     export_interval_millis=10_000,
                 )
                 self._meter_provider = MeterProvider(
-                    resource=resource, metric_readers=[reader]
+                    resource=resource,
+                    metric_readers=[reader],
                 )
                 self._meter = self._meter_provider.get_meter(SERVICE_NAME)
                 self._enabled = True
@@ -369,7 +395,8 @@ class DatadogMetricsReporter:
             instrument.record(value, attributes or {})
         except Exception:
             logger.warning(
-                "Failed to record Datadog histogram", metric_name=metric.name
+                "Failed to record Datadog histogram",
+                metric_name=metric.name,
             )
 
     def record_latency(

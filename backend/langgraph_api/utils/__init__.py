@@ -23,14 +23,16 @@ logger = structlog.stdlib.get_logger(__name__)
 T = TypeVar("T")
 Row: TypeAlias = dict[str, Any]
 AuthContext = contextvars.ContextVar[Auth.types.BaseAuthContext | None](
-    "AuthContext", default=None
+    "AuthContext",
+    default=None,
 )
 STREAM_ID_PATTERN = re.compile(r"^\d+(-(\d+|\*))?$")
 
 
 @asynccontextmanager
 async def with_user(
-    user: BaseUser | None = None, auth: AuthCredentials | list[str] | None = None
+    user: BaseUser | None = None,
+    auth: AuthCredentials | list[str] | None = None,
 ):
     current = get_auth_ctx()
     set_auth_ctx(user, auth)
@@ -38,23 +40,23 @@ async def with_user(
     if current is None:
         return
     set_auth_ctx(
-        cast("BaseUser", current.user), AuthCredentials(scopes=current.permissions)
+        cast("BaseUser", current.user),
+        AuthCredentials(scopes=current.permissions),
     )
 
 
 def set_auth_ctx(
-    user: BaseUser | None, auth: AuthCredentials | list[str] | None
+    user: BaseUser | None,
+    auth: AuthCredentials | list[str] | None,
 ) -> None:
     if user is None and auth is None:
         AuthContext.set(None)
     else:
         AuthContext.set(
             Auth.types.BaseAuthContext(
-                permissions=(
-                    auth.scopes if isinstance(auth, AuthCredentials) else (auth or [])
-                ),
+                permissions=(auth.scopes if isinstance(auth, AuthCredentials) else (auth or [])),
                 user=user or SimpleUser(""),
-            )
+            ),
         )
 
 
@@ -94,7 +96,7 @@ def merge_auth(
             "langgraph_auth_user": cast("BaseUser | None", ctx.user),
             "langgraph_auth_user_id": get_user_id(cast("BaseUser | None", ctx.user)),
             "langgraph_auth_permissions": ctx.permissions,
-        }
+        },
     }
 
 
@@ -130,7 +132,8 @@ async def fetchone(
         return await anext(it)
     except StopAsyncIteration:
         raise HTTPException(
-            status_code=not_found_code, detail=not_found_detail
+            status_code=not_found_code,
+            detail=not_found_detail,
         ) from None
 
 
@@ -159,7 +162,9 @@ def validate_stream_id(stream_id: str | None, invalid_stream_id_detail: str | No
 
 
 def next_cron_date(
-    schedule: str, base_time: datetime, timezone: str | None = None
+    schedule: str,
+    base_time: datetime,
+    timezone: str | None = None,
 ) -> datetime:
     import croniter  # noqa: PLC0415
 
@@ -233,7 +238,8 @@ async def get_pagination_headers(
 
 
 def validate_select_columns(
-    select: list[str] | None, allowed: set[str]
+    select: list[str] | None,
+    allowed: set[str],
 ) -> list[str] | None:
     """Validate select columns against an allowed set.
 

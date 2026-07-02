@@ -42,10 +42,7 @@ def _refs_langchain_messages(prop: dict) -> bool:
     items = prop.get("items", {})
     for candidate in items.get("oneOf") or items.get("anyOf") or []:
         ref = candidate.get("$ref", "")
-        if (
-            ref.startswith(_REF_PREFIX)
-            and ref[len(_REF_PREFIX) :] in LANGCHAIN_MESSAGE_TYPES
-        ):
+        if ref.startswith(_REF_PREFIX) and ref[len(_REF_PREFIX) :] in LANGCHAIN_MESSAGE_TYPES:
             return True
     return False
 

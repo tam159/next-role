@@ -91,11 +91,13 @@ def _chain_future(source: AnyFuture, destination: AnyFuture) -> None:
     Compatible with both asyncio.Future and concurrent.futures.Future.
     """
     if not asyncio.isfuture(source) and not isinstance(
-        source, concurrent.futures.Future
+        source,
+        concurrent.futures.Future,
     ):
         raise TypeError("A future is required for source argument")
     if not asyncio.isfuture(destination) and not isinstance(
-        destination, concurrent.futures.Future
+        destination,
+        concurrent.futures.Future,
     ):
         raise TypeError("A future is required for destination argument")
     source_loop = _get_loop(source) if asyncio.isfuture(source) else None
@@ -156,13 +158,14 @@ def _ensure_future(
     if not asyncio.iscoroutine(coro_or_future):
         if inspect.isawaitable(coro_or_future):
             coro_or_future = cast(
-                "Coroutine[None, None, T]", _wrap_awaitable(coro_or_future)
+                "Coroutine[None, None, T]",
+                _wrap_awaitable(coro_or_future),
             )
             called_wrap_awaitable = True
         else:
             raise TypeError(
                 "An asyncio.Future, a coroutine or an awaitable is required."
-                f" Got {type(coro_or_future).__name__} instead."
+                f" Got {type(coro_or_future).__name__} instead.",
             )
 
     try:
@@ -172,7 +175,10 @@ def _ensure_future(
             return loop.create_task(coro_or_future, name=name, context=context)
         else:
             return asyncio.eager_task_factory(
-                loop, coro_or_future, name=name, context=context
+                loop,
+                coro_or_future,
+                name=name,
+                context=context,
             )
     except RuntimeError:
         if not called_wrap_awaitable:

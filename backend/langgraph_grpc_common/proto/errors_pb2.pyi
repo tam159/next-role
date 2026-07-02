@@ -3,16 +3,19 @@
 isort:skip_file
 """
 
-from google.protobuf import descriptor as _descriptor
-from google.protobuf import message as _message
 import builtins as _builtins
 import sys
 import typing as _typing
 
+from google.protobuf import descriptor as _descriptor
+from google.protobuf import message as _message
+
 if sys.version_info >= (3, 11):
-    from typing import TypeAlias as _TypeAlias, Never as _Never
+    from typing import Never as _Never
+    from typing import TypeAlias as _TypeAlias
 else:
-    from typing_extensions import TypeAlias as _TypeAlias, Never as _Never
+    from typing_extensions import Never as _Never
+    from typing_extensions import TypeAlias as _TypeAlias
 
 DESCRIPTOR: _descriptor.FileDescriptor
 
@@ -33,13 +36,20 @@ class UserCodeExecutionError(_message.Message):
         error_message: _builtins.str = ...,
         traceback: _builtins.str = ...,
     ) -> None: ...
-    _HasFieldArgType: _TypeAlias = _Never  # noqa: Y015
+    _HasFieldArgType: _TypeAlias = _Never
     def HasField(self, field_name: _HasFieldArgType) -> _builtins.bool: ...
-    _ClearFieldArgType: _TypeAlias = _typing.Literal["error_message", b"error_message", "error_type", b"error_type", "traceback", b"traceback"]  # noqa: Y015
+    _ClearFieldArgType: _TypeAlias = _typing.Literal[
+        "error_message",
+        b"error_message",
+        "error_type",
+        b"error_type",
+        "traceback",
+        b"traceback",
+    ]
     def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
     def WhichOneof(self, oneof_group: _Never) -> None: ...
 
-Global___UserCodeExecutionError: _TypeAlias = UserCodeExecutionError  # noqa: Y015
+Global___UserCodeExecutionError: _TypeAlias = UserCodeExecutionError
 
 @_typing.final
 class GraphRecursionLimitError(_message.Message):
@@ -52,10 +62,10 @@ class GraphRecursionLimitError(_message.Message):
         *,
         limit: _builtins.int = ...,
     ) -> None: ...
-    _HasFieldArgType: _TypeAlias = _Never  # noqa: Y015
+    _HasFieldArgType: _TypeAlias = _Never
     def HasField(self, field_name: _HasFieldArgType) -> _builtins.bool: ...
-    _ClearFieldArgType: _TypeAlias = _typing.Literal["limit", b"limit"]  # noqa: Y015
+    _ClearFieldArgType: _TypeAlias = _typing.Literal["limit", b"limit"]
     def ClearField(self, field_name: _ClearFieldArgType) -> None: ...
     def WhichOneof(self, oneof_group: _Never) -> None: ...
 
-Global___GraphRecursionLimitError: _TypeAlias = GraphRecursionLimitError  # noqa: Y015
+Global___GraphRecursionLimitError: _TypeAlias = GraphRecursionLimitError

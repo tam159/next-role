@@ -73,7 +73,8 @@ logger = structlog.stdlib.get_logger(__name__)
 
 
 async def _filter_context_by_schema(
-    context: dict[str, Any], context_schema: dict | None
+    context: dict[str, Any],
+    context_schema: dict | None,
 ) -> dict[str, Any]:
     """Filter context parameters based on the context schema.
 
@@ -137,7 +138,7 @@ def _preprocess_debug_checkpoint(
         **payload,
         "checkpoint": runnable_config_to_checkpoint(payload["config"]),
         "parent_checkpoint": runnable_config_to_checkpoint(
-            payload.get("parent_config", None)
+            payload.get("parent_config", None),
         ),
         "tasks": [_preproces_debug_checkpoint_task(t) for t in payload["tasks"]],
     }
@@ -182,12 +183,10 @@ async def astream_state(
             configurable["graph_id"],
             config,
             store=(await api_store.get_store()),
-            checkpointer=None
-            if temporary
-            else await api_checkpointer.get_checkpointer(),
+            checkpointer=None if temporary else await api_checkpointer.get_checkpointer(),
             access_context="threads.create_run",
             run_id=run_id,
-        )
+        ),
     )
 
     # Filter context parameters based on context schema if available
@@ -197,7 +196,8 @@ async def astream_state(
             context = await _filter_context_by_schema(context, context_schema)
         except Exception as e:
             await logger.adebug(
-                f"Failed to get context schema for filtering: {e}", exc_info=e
+                f"Failed to get context schema for filtering: {e}",
+                exc_info=e,
             )
 
     input = kwargs.pop("input")
@@ -268,13 +268,9 @@ async def astream_state(
     # reconstruction. ``hasattr`` keeps any other ``BaseRemotePregel`` impl on
     # the legacy path. Legacy stream endpoints keep ``version="v2"``.
     use_remote_v3 = (
-        event_streaming_v2_run
-        and is_remote_pregel
-        and hasattr(graph, "astream_protocol_events")
+        event_streaming_v2_run and is_remote_pregel and hasattr(graph, "astream_protocol_events")
     )
-    use_astream_events = (
-        "events" in stream_mode or is_remote_pregel
-    ) and not use_remote_v3
+    use_astream_events = ("events" in stream_mode or is_remote_pregel) and not use_remote_v3
     use_stream_events_v3 = (
         event_streaming_v2_run and not use_astream_events and not is_remote_pregel
     )
@@ -298,8 +294,8 @@ async def astream_state(
                         "project_name": get_tracer_project(),
                         "updates": None,
                     },
-                ]
-            )
+                ],
+            ),
         )
 
     # stream run
@@ -315,7 +311,7 @@ async def astream_state(
                     version="v2",
                     stream_mode=list(stream_modes_set),
                     **kwargs,
-                )
+                ),
             ) as stream,
         ):
             sentinel = object()
@@ -360,17 +356,15 @@ async def astream_state(
                                 yield f"messages|{'|'.join(ns)}", event_dict
                             else:
                                 yield "messages", event_dict
-                        elif (
-                            not event_streaming_v2_run
-                            and "messages-tuple" in stream_mode
-                        ):
+                        elif not event_streaming_v2_run and "messages-tuple" in stream_mode:
                             if subgraphs and ns:
                                 yield f"messages|{'|'.join(ns)}", chunk
                             else:
                                 yield "messages", chunk
                         elif not event_streaming_v2_run:
                             msg_, meta = cast(
-                                "tuple[BaseMessage | dict, dict[str, Any]]", chunk
+                                "tuple[BaseMessage | dict, dict[str, Any]]",
+                                chunk,
                             )
                             is_chunk = False
                             if isinstance(msg_, dict):
@@ -405,7 +399,7 @@ async def astream_state(
                                         message_chunk_to_message(messages[msg.id])
                                         if not is_chunk
                                         else messages[msg.id]
-                                    )
+                                    ),
                                 ],
                             )
                     elif mode in stream_mode or (
@@ -465,7 +459,7 @@ async def astream_state(
                     config,
                     stream_mode=list(stream_modes_set),
                     **kwargs,
-                )
+                ),
             ) as stream,
         ):
             sentinel = object()
@@ -493,7 +487,7 @@ async def astream_state(
                     stream_mode=list(stream_modes_set),
                     output_keys=output_keys,
                     **kwargs,
-                )
+                ),
             ) as stream,
         ):
             sentinel = object()
@@ -528,7 +522,8 @@ async def astream_state(
                             yield "messages", chunk
                     elif not event_streaming_v2_run:
                         msg_, meta = cast(
-                            "tuple[BaseMessage | dict, dict[str, Any]]", chunk
+                            "tuple[BaseMessage | dict, dict[str, Any]]",
+                            chunk,
                         )
                         is_chunk = False
                         if isinstance(msg_, dict):
@@ -563,12 +558,10 @@ async def astream_state(
                                     message_chunk_to_message(messages[msg.id])
                                     if not is_chunk
                                     else messages[msg.id]
-                                )
+                                ),
                             ],
                         )
-                elif mode in stream_mode or (
-                    event_streaming_v2_run and mode in stream_modes_set
-                ):
+                elif mode in stream_mode or (event_streaming_v2_run and mode in stream_modes_set):
                     # Forward natively-emitted ``tools`` / ``lifecycle``
                     # events for protocol v2 runs even when the client
                     # didn't explicitly request them.
@@ -603,7 +596,10 @@ async def astream_state(
     # Get feedback URLs
     if feedback_keys:
         feedback_urls = await run_in_executor(
-            None, get_feedback_urls, run_id, feedback_keys
+            None,
+            get_feedback_urls,
+            run_id,
+            feedback_keys,
         )
         yield "feedback", feedback_urls
 
@@ -720,7 +716,7 @@ async def _consume_async_queue(
     block graph execution. Enable with FF_ASYNC_PUBLISH_QUEUE=true.
     """
     publish_queue: asyncio.Queue[tuple[str, bytes, str, bool] | object] = asyncio.Queue(
-        maxsize=LSD_PUBLISH_QUEUE_SIZE
+        maxsize=LSD_PUBLISH_QUEUE_SIZE,
     )
     publish_sentinel = object()
 
@@ -732,7 +728,8 @@ async def _consume_async_queue(
                 if item is publish_sentinel:
                     return
                 mode, payload_bytes, event_type, is_resumable = cast(
-                    "tuple[str, bytes, str, bool]", item
+                    "tuple[str, bytes, str, bool]",
+                    item,
                 )
                 with reporter.track_latency_ms(
                     LATENCY_STREAM_PUBLISH,

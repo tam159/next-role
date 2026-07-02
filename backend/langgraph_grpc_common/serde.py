@@ -63,17 +63,11 @@ def default(obj):
     # https://github.com/ijl/orjson#serialize
     if isinstance(obj, Fragment):
         return orjson.Fragment(obj.buf)
-    if (
-        hasattr(obj, "model_dump")
-        and callable(obj.model_dump)
-        and not isinstance(obj, type)
-    ):
+    if hasattr(obj, "model_dump") and callable(obj.model_dump) and not isinstance(obj, type):
         return obj.model_dump()
     elif hasattr(obj, "dict") and callable(obj.dict) and not isinstance(obj, type):
         return obj.dict()
-    elif (
-        hasattr(obj, "_asdict") and callable(obj._asdict) and not isinstance(obj, type)
-    ):
+    elif hasattr(obj, "_asdict") and callable(obj._asdict) and not isinstance(obj, type):
         return obj._asdict()
     elif isinstance(obj, BaseException):
         return {"error": type(obj).__name__, "message": str(obj)}

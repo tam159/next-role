@@ -72,7 +72,8 @@ async def handle_post_request(request: ApiRequest) -> Response:
     # Validate Accept header
     if not is_valid_accept_header(request):
         return create_error_response(
-            "Accept header must include application/json or text/event-stream", 400
+            "Accept header must include application/json or text/event-stream",
+            400,
         )
 
     # Validate message format
@@ -86,7 +87,8 @@ async def handle_post_request(request: ApiRequest) -> Response:
     # Check for required jsonrpc field
     if message.get("jsonrpc") != "2.0":
         return create_error_response(
-            "Invalid JSON-RPC message. Missing or invalid jsonrpc version.", 400
+            "Invalid JSON-RPC message. Missing or invalid jsonrpc version.",
+            400,
         )
 
     # Careful ID checks as the integer 0 is a valid ID
@@ -171,14 +173,14 @@ async def handle_jsonrpc_request(
             "error": {
                 "code": ERROR_CODE_METHOD_NOT_FOUND,
                 "message": f"Method not found: {method}",
-            }
+            },
         }
 
     # Process the result or error output
     exists = {"error", "result"} - set(result_or_error.keys())
     if len(exists) != 1:
         raise AssertionError(
-            "Internal server error. Invalid response in MCP protocol implementation."
+            "Internal server error. Invalid response in MCP protocol implementation.",
         )
 
     return JSONResponse(
@@ -186,7 +188,7 @@ async def handle_jsonrpc_request(
             "jsonrpc": "2.0",
             "id": message["id"],
             **result_or_error,
-        }
+        },
     )
 
 
@@ -224,15 +226,16 @@ def handle_initialize_request(message: JsonRpcRequest) -> dict[str, Any]:
             "capabilities": {
                 "tools": {
                     "listChanged": False,
-                }
+                },
             },
             "serverInfo": {"name": "LangGraph", "version": __version__},
-        }
+        },
     }
 
 
 async def handle_tools_list(
-    request: ApiRequest, params: dict[str, Any]
+    request: ApiRequest,
+    params: dict[str, Any],
 ) -> dict[str, Any]:
     """Handle tools/list request to get available assistants as tools.
 
@@ -255,7 +258,9 @@ async def handle_tools_list(
     # Get assistants from the API
     # For now set a large limit to get all assistants
     assistants = await client.assistants.search(
-        offset=cursor, limit=DEFAULT_PAGE_SIZE, headers=request.headers
+        offset=cursor,
+        limit=DEFAULT_PAGE_SIZE,
+        headers=request.headers,
     )
 
     if len(assistants) == DEFAULT_PAGE_SIZE:
@@ -285,7 +290,8 @@ async def handle_tools_list(
         """
         try:
             schemas = await client.assistants.get_schemas(
-                assistant["assistant_id"], headers=request.headers
+                assistant["assistant_id"],
+                headers=request.headers,
             )
             input_schema = schemas.get("input_schema") or {}
             if input_schema:
@@ -329,7 +335,8 @@ async def handle_tools_list(
 
 
 async def handle_tools_call(
-    request: ApiRequest, params: dict[str, Any]
+    request: ApiRequest,
+    params: dict[str, Any],
 ) -> dict[str, Any]:
     """Handle tools/call request to execute an assistant.
 
@@ -355,7 +362,8 @@ async def handle_tools_call(
     arguments = params.get("arguments", {})
     context = params.get("context")
     assistants = await client.assistants.search(
-        limit=MAX_ASSISTANTS, headers=request.headers
+        limit=MAX_ASSISTANTS,
+        headers=request.headers,
     )
     matching_assistant = []
     for assistant in assistants:
@@ -400,7 +408,7 @@ async def handle_tools_call(
                 "content": [
                     {"type": "text", "text": value["__error__"]["error"]},
                 ],
-            }
+            },
         }
 
     # All good, return the result
@@ -408,6 +416,6 @@ async def handle_tools_call(
         "result": {
             "content": [
                 {"type": "text", "text": repr(value)},
-            ]
-        }
+            ],
+        },
     }

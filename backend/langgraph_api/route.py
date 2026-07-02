@@ -50,7 +50,8 @@ def api_request_response(
                 response: ASGIApp = await func(request)
             else:
                 response = await run_in_threadpool(
-                    typing.cast("typing.Callable[[Request], ASGIApp]", func), request
+                    typing.cast("typing.Callable[[Request], ASGIApp]", func),
+                    request,
                 )
             await response(scope, receive, send)
 
@@ -106,7 +107,8 @@ class ApiRequest(Request):
                 )
             except orjson.JSONDecodeError as e:
                 raise HTTPException(
-                    status_code=422, detail="Invalid JSON in request body"
+                    status_code=422,
+                    detail="Invalid JSON in request body",
                 ) from e
         return self._json
 

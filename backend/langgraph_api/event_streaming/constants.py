@@ -25,7 +25,7 @@ SUPPORTED_CHANNELS: frozenset[str] = frozenset(
         "lifecycle",
         "input",
         "tasks",
-    }
+    },
 )
 
 # ``stream_mode`` set on every protocol v2 run. Doubles as the resumable

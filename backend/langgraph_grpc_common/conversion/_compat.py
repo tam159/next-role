@@ -77,7 +77,7 @@ except ImportError:  # langgraph < 0.5/6
 
     def identifier(obj: Any, name: str | None = None) -> str | None:
         raise NotImplementedError(
-            "langgraph.pregel._call not found. Please upgrade langgraph."
+            "langgraph.pregel._call not found. Please upgrade langgraph.",
         )
 
     class Runtime:

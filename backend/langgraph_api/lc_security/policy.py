@@ -83,7 +83,7 @@ _CLOUD_METADATA_IPS: frozenset[str] = frozenset(
         "169.254.170.2",
         "100.100.100.200",
         "fd00:ec2::254",
-    }
+    },
 )
 
 _CLOUD_METADATA_HOSTNAMES: frozenset[str] = frozenset(
@@ -92,7 +92,7 @@ _CLOUD_METADATA_HOSTNAMES: frozenset[str] = frozenset(
         "metadata.amazonaws.com",
         "metadata",
         "instance-data",
-    }
+    },
 )
 
 _LOCALHOST_NAMES: frozenset[str] = frozenset(
@@ -100,7 +100,7 @@ _LOCALHOST_NAMES: frozenset[str] = frozenset(
         "localhost",
         "localhost.localdomain",
         "host.docker.internal",
-    }
+    },
 )
 
 _K8S_SUFFIX = ".svc.cluster.local"
@@ -124,7 +124,8 @@ class SSRFPolicy:
     block_k8s_internal: bool = True
     allowed_hosts: frozenset[str] = frozenset()
     additional_blocked_cidrs: tuple[
-        ipaddress.IPv4Network | ipaddress.IPv6Network, ...
+        ipaddress.IPv4Network | ipaddress.IPv6Network,
+        ...,
     ] = ()
 
 
@@ -294,7 +295,10 @@ async def validate_url(url: str, policy: SSRFPolicy = SSRFPolicy()) -> None:
     port = parsed.port or (443 if scheme == "https" else 80)
     try:
         addrinfo = await asyncio.to_thread(
-            socket.getaddrinfo, hostname, port, type=socket.SOCK_STREAM
+            socket.getaddrinfo,
+            hostname,
+            port,
+            type=socket.SOCK_STREAM,
         )
     except socket.gaierror as exc:
         logger.warning(

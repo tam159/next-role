@@ -93,7 +93,7 @@ def profiled_import(path: str, top_n: int = 10):
                         cumulative_secs=round(cumtime_secs, 2),
                         calls=nc,
                         call_site=call_site,
-                    )
+                    ),
                 )
 
         slow_calls.sort(key=lambda x: x["cumulative_secs"], reverse=True)
@@ -102,7 +102,9 @@ def profiled_import(path: str, top_n: int = 10):
         # Only log if we have slow calls worth reporting
         if result.slow_calls:
             report = _format_slow_calls_report(
-                path, result.total_secs, result.slow_calls
+                path,
+                result.total_secs,
+                result.slow_calls,
             )
             logger.warning(
                 f"slow_import_profile: {report}",
@@ -113,7 +115,10 @@ def profiled_import(path: str, top_n: int = 10):
 
 
 def _find_user_call_site(
-    callers: dict, module_file: str, all_stats: dict, max_depth: int = 20
+    callers: dict,
+    module_file: str,
+    all_stats: dict,
+    max_depth: int = 20,
 ) -> str | None:
     """Walk up the call chain to find where in the user's module this was called from."""
     visited: set[tuple] = set()
@@ -189,7 +194,7 @@ def _format_slow_calls_report(
             "    import time delay startup. Consider moving them inside functions",
             "    or using lazy initialization.",
             "",
-        ]
+        ],
     )
 
     return "\n".join(lines)

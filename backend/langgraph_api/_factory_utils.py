@@ -118,16 +118,14 @@ def _classify_factory(
         return lambda config, runtime: {params[0].name: config}
     elif len(params) == 2:
         # Detect which param is runtime by annotation; the other is config.
-        rt_indices = [
-            i for i, p in enumerate(params) if _is_runtime_annotation(_annotation(p))
-        ]
+        rt_indices = [i for i, p in enumerate(params) if _is_runtime_annotation(_annotation(p))]
         if len(rt_indices) == 1:
             rt_idx = rt_indices[0]
             cfg_idx = 1 - rt_idx
         else:
             raise ValueError(
                 f"Graph factory {fn} can only accept arguments of type "
-                f"ServerRuntime and/or RunnableConfig, got {[p.annotation for p in params]}"
+                f"ServerRuntime and/or RunnableConfig, got {[p.annotation for p in params]}",
             )
         return lambda config, runtime: {
             params[rt_idx].name: runtime,
@@ -136,7 +134,7 @@ def _classify_factory(
     else:
         raise ValueError(
             f"Graph factory {fn} must take 0, 1, or 2 arguments. "
-            f"Got {len(params)} parameters: {[p.name for p in params]}"
+            f"Got {len(params)} parameters: {[p.name for p in params]}",
         )
 
 

@@ -46,17 +46,11 @@ class StreamPacket:
 
     @property
     def event_bytes(self) -> bytes:
-        return (
-            self.event.tobytes() if isinstance(self.event, memoryview) else self.event
-        )
+        return self.event.tobytes() if isinstance(self.event, memoryview) else self.event
 
     @property
     def message_bytes(self) -> bytes:
-        return (
-            self.message.tobytes()
-            if isinstance(self.message, memoryview)
-            else self.message
-        )
+        return self.message.tobytes() if isinstance(self.message, memoryview) else self.message
 
     @property
     def resumable(self) -> bool:
@@ -142,7 +136,7 @@ class StreamCodec:
                 decompressed = _zstd_decompressor.decompress(message_view)
             except zstandard.ZstdError as exc:
                 raise StreamFormatError(
-                    f"failed to decompress zstd message: {exc}"
+                    f"failed to decompress zstd message: {exc}",
                 ) from exc
             message_view = memoryview(decompressed)
 
@@ -250,17 +244,14 @@ def _decode_v0_resumable_format(
 
 
 def _decode_v0_live_format(
-    view: memoryview, channel: bytes | str | None = None
+    view: memoryview,
+    channel: bytes | str | None = None,
 ) -> StreamPacket | None:
     try:
         package = orjson.loads(view)
     except orjson.JSONDecodeError:
         return _decode_v0_flat_format(view, channel)
-    if (
-        not isinstance(package, dict)
-        or "event" not in package
-        or "message" not in package
-    ):
+    if not isinstance(package, dict) or "event" not in package or "message" not in package:
         return _decode_v0_flat_format(view, channel)
     event_obj = package.get("event")
     message_obj = package.get("message")
@@ -294,7 +285,8 @@ def _decode_v0_live_format(
 
 
 def _decode_v0_flat_format(
-    view: memoryview, channel: bytes | str | None = None
+    view: memoryview,
+    channel: bytes | str | None = None,
 ) -> StreamPacket | None:
     packet = bytes(view)
     stream_id = None

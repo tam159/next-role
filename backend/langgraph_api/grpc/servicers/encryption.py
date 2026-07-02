@@ -12,16 +12,16 @@ from typing import TYPE_CHECKING, Any
 import grpc
 import orjson
 import structlog
-from langgraph_grpc_common.proto.encryption_pb2 import (
-    DecryptResponse,
-    EncryptResponse,
-)
-from langgraph_grpc_common.proto.encryption_pb2_grpc import EncryptionServicer
 from langgraph_sdk import EncryptionContext
 
 from langgraph_api.encryption.middleware import _extract_skip_fields
 from langgraph_api.encryption.shared import BLOB_ENCRYPTION_CONTEXT_KEY, get_encryption
 from langgraph_api.schema import NESTED_ENCRYPTED_SUBFIELDS
+from langgraph_grpc_common.proto.encryption_pb2 import (
+    DecryptResponse,
+    EncryptResponse,
+)
+from langgraph_grpc_common.proto.encryption_pb2_grpc import EncryptionServicer
 
 if TYPE_CHECKING:
     from grpc import aio as grpc_aio
@@ -52,7 +52,7 @@ def _parse_metadata(metadata: dict[str, bytes]) -> dict[str, Any]:
                 result[k] = orjson.loads(v)
             except Exception as e:
                 raise ValueError(
-                    f"Failed to parse metadata value for key '{k}' as JSON: {e}"
+                    f"Failed to parse metadata value for key '{k}' as JSON: {e}",
                 ) from e
         else:
             result[k] = None
@@ -141,7 +141,8 @@ class EncryptionServicerImpl(EncryptionServicer):
 
         # Extract fields that should never be encrypted (custom encryption only)
         data_without_subfields, skipped_fields = _extract_skip_fields(
-            data_without_subfields, current_path
+            data_without_subfields,
+            current_path,
         )
 
         # Encrypt the parent field (without subfields or skipped fields)
@@ -213,14 +214,19 @@ class EncryptionServicerImpl(EncryptionServicer):
                     subfield_names.append(sf_name)
                     subfield_tasks.append(
                         self._decrypt_field_recursive(
-                            sf_value, model_type, sf_name, decryptor
-                        )
+                            sf_value,
+                            model_type,
+                            sf_name,
+                            decryptor,
+                        ),
                     )
 
             if subfield_tasks:
                 subfield_results = await asyncio.gather(*subfield_tasks)
                 for sf_name, sf_decrypted in zip(
-                    subfield_names, subfield_results, strict=True
+                    subfield_names,
+                    subfield_results,
+                    strict=True,
                 ):
                     decrypted[sf_name] = sf_decrypted
 
@@ -315,7 +321,10 @@ class EncryptionServicerImpl(EncryptionServicer):
 
             # Use recursive decryption that handles NESTED_ENCRYPTED_SUBFIELDS
             decrypted = await self._decrypt_field_recursive(
-                data, model_type, field or "", decryptor
+                data,
+                model_type,
+                field or "",
+                decryptor,
             )
 
             # Restore __blob_encryption_context__ so that internal consumers

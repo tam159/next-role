@@ -87,7 +87,7 @@ async def wait_if_not_done(coro: Coroutine[Any, Any, T], done: ValueEvent) -> T:
             coro_task = tg.create_task(coro)
             done_task = tg.create_task(done.wait())
             coro_task.add_done_callback(
-                lambda _: done_task.cancel("Coro task completed")
+                lambda _: done_task.cancel("Coro task completed"),
             )
             done_task.add_done_callback(lambda _: coro_task.cancel(done._value))
             try:
@@ -124,7 +124,8 @@ def _create_task_done_callback(
 
 
 def create_task(
-    coro: Coroutine[Any, Any, T], ignore_exceptions: tuple[Exception, ...] = ()
+    coro: Coroutine[Any, Any, T],
+    ignore_exceptions: tuple[Exception, ...] = (),
 ) -> asyncio.Task[T]:
     """Create a new task in the current task group and return it."""
     task = asyncio.create_task(coro)
@@ -157,7 +158,9 @@ def call_soon_in_main_loop(coro: Coroutine[Any, Any, T]) -> asyncio.Future[T]:
     main_loop_fut = asyncio.ensure_future(coro, loop=_MAIN_LOOP)
     this_loop_fut = asyncio.get_running_loop().create_future()
     _MAIN_LOOP.call_soon_threadsafe(
-        lg_future.chain_future, main_loop_fut, this_loop_fut
+        lg_future.chain_future,
+        main_loop_fut,
+        this_loop_fut,
     )
     return this_loop_fut
 
@@ -200,7 +203,9 @@ class SimpleTaskGroup(AbstractAsyncContextManager["SimpleTaskGroup"]):
         self.taskgroup_name = f" {taskgroup_name} " if taskgroup_name else ""
 
     def _create_task_done_callback(
-        self, ignore_exceptions: tuple[type[Exception], ...], task: asyncio.Task
+        self,
+        ignore_exceptions: tuple[type[Exception], ...],
+        task: asyncio.Task,
     ) -> None:
         with suppress(AttributeError):
             self.tasks.remove(task)
@@ -221,7 +226,7 @@ class SimpleTaskGroup(AbstractAsyncContextManager["SimpleTaskGroup"]):
         task = asyncio.create_task(coro)
         self.tasks.add(task)
         task.add_done_callback(
-            partial(self._create_task_done_callback, ignore_exceptions)
+            partial(self._create_task_done_callback, ignore_exceptions),
         )
         return task
 

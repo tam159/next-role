@@ -193,9 +193,7 @@ def _run_result_body(
                 thread_id=thread_id,
                 ignore_404=ignore_404,
             ):
-                if mode == b"values" or (
-                    mode == b"updates" and b"__interrupt__" in chunk
-                ):
+                if mode == b"values" or (mode == b"updates" and b"__interrupt__" in chunk):
                     vchunk = chunk
                     if b"__interrupt__" in chunk:
                         interrupt_chunks.append(chunk)
@@ -528,7 +526,8 @@ async def list_runs(
     offset = int(request.query_params.get("offset", 0))
     status = request.query_params.get("status")
     select = validate_select_columns(
-        request.query_params.getlist("select") or None, RUN_FIELDS
+        request.query_params.getlist("select") or None,
+        RUN_FIELDS,
     )
 
     async with connect() as conn:
@@ -954,7 +953,9 @@ async def search_crons(request: ApiRequest):
             select=select,
         )
     crons, response_headers = await get_pagination_headers(
-        crons_iter, next_offset, offset
+        crons_iter,
+        next_offset,
+        offset,
     )
 
     if not IS_POSTGRES_OR_GRPC_BACKEND or using_aes_encryption():

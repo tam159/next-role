@@ -42,7 +42,9 @@ class TimerConfig(Generic[P]):
 def timer(_func: Callable[P, R], /, **kwargs) -> Callable[P, R]: ...
 @overload
 def timer(
-    _func: None = None, /, **kwargs
+    _func: None = None,
+    /,
+    **kwargs,
 ) -> Callable[[Callable[P, R]], Callable[P, R]]: ...
 
 
@@ -286,8 +288,7 @@ def _log_timing(
     # Add profiler hint if we hit warn/error threshold and profiling isn't enabled
     if level >= logging.WARNING and not config.FF_PROFILE_IMPORTS:
         msg = (
-            f"{msg}\n"
-            f"    To get detailed profiling of slow operations, set FF_PROFILE_IMPORTS=true"
+            f"{msg}\n    To get detailed profiling of slow operations, set FF_PROFILE_IMPORTS=true"
         )
 
     logger.log(level, msg, **log_data)

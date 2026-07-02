@@ -38,13 +38,12 @@ class LangsmithAuthBackend(AuthenticationBackend):
 
     def _get_cache_key(self, headers):
         """Generate cache key from authentication headers"""
-        relevant_headers = tuple(
-            (name, value) for name, value in headers if value is not None
-        )
+        relevant_headers = tuple((name, value) for name, value in headers if value is not None)
         return str(hash(relevant_headers))
 
     async def authenticate(
-        self, conn: HTTPConnection
+        self,
+        conn: HTTPConnection,
     ) -> tuple[AuthCredentials, BaseUser] | None:
         headers = [
             ("Authorization", conn.headers.get("Authorization")),
@@ -64,17 +63,19 @@ class LangsmithAuthBackend(AuthenticationBackend):
 
         async with auth_client(base_url=self._base_url) as auth:
             if not LANGSMITH_AUTH_VERIFY_TENANT_ID and not conn.headers.get(
-                "x-api-key"
+                "x-api-key",
             ):
                 # when LANGSMITH_AUTH_VERIFY_TENANT_ID is false, we allow
                 # any valid bearer token to pass through
                 # api key auth is always required to match the tenant id
                 res = await auth.get(
-                    "/auth/verify", headers=[h for h in headers if h[1] is not None]
+                    "/auth/verify",
+                    headers=[h for h in headers if h[1] is not None],
                 )
             else:
                 res = await auth.get(
-                    "/auth/public", headers=[h for h in headers if h[1] is not None]
+                    "/auth/public",
+                    headers=[h for h in headers if h[1] is not None],
                 )
             if res.status_code == 401:
                 raise AuthenticationError("Invalid token")
@@ -87,9 +88,9 @@ class LangsmithAuthBackend(AuthenticationBackend):
             # If tenant id verification is disabled, the bearer token requests
             # are not required to match the tenant id. Api key requests are
             # always required to match the tenant id.
-            if (
-                LANGSMITH_AUTH_VERIFY_TENANT_ID or conn.headers.get("x-api-key")
-            ) and auth_dict["tenant_id"] != LANGSMITH_TENANT_ID:
+            if (LANGSMITH_AUTH_VERIFY_TENANT_ID or conn.headers.get("x-api-key")) and auth_dict[
+                "tenant_id"
+            ] != LANGSMITH_TENANT_ID:
                 raise AuthenticationError("Invalid tenant ID")
 
         credentials = AuthCredentials(["authenticated"])

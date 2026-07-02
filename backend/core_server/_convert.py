@@ -7,6 +7,7 @@ from typing import Any
 
 import orjson
 from google.protobuf.timestamp_pb2 import Timestamp
+
 from langgraph_grpc_common.conversion.config import config_to_proto
 from langgraph_grpc_common.proto import core_api_pb2 as pb
 from langgraph_grpc_common.proto import enum_thread_status_pb2 as _ets

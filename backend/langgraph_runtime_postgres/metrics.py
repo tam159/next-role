@@ -1,6 +1,6 @@
-from langgraph_api import config
 from typing_extensions import TypedDict
 
+from langgraph_api import config
 from langgraph_runtime_postgres import queue
 
 
@@ -22,5 +22,5 @@ def get_metrics() -> Metrics:
             max=workers_max,
             active=workers_active,
             available=workers_max - workers_active,
-        )
+        ),
     )

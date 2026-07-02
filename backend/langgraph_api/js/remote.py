@@ -60,7 +60,7 @@ SSL = ssl.create_default_context(cafile=certifi.where())
 
 if (port := int(os.getenv("PORT", "8080"))) and port in (GRAPH_PORT, REMOTE_PORT):
     raise ValueError(
-        f"PORT={port} is a reserved port for the JS worker. Please choose a different port."
+        f"PORT={port} is a reserved port for the JS worker. Please choose a different port.",
     )
 
 _client = httpx.AsyncClient(
@@ -104,16 +104,11 @@ def _js_sidecar_error_message(
         for key in ("message", "detail", "error"):
             value = parsed.get(key)
             if isinstance(value, str) and value:
-                return (
-                    f"JS graph {graph_id}/{method} returned HTTP {status_code}: {value}"
-                )
+                return f"JS graph {graph_id}/{method} returned HTTP {status_code}: {value}"
             if isinstance(value, dict):
                 nested = value.get("message") or value.get("detail")
                 if isinstance(nested, str) and nested:
-                    return (
-                        f"JS graph {graph_id}/{method} returned HTTP {status_code}: "
-                        f"{nested}"
-                    )
+                    return f"JS graph {graph_id}/{method} returned HTTP {status_code}: {nested}"
     return (
         f"JS graph {graph_id}/{method} returned HTTP {status_code}: "
         f"{body.decode('utf-8', errors='replace')[:500]}"
@@ -282,7 +277,10 @@ class RemotePregel(BaseRemotePregel):
         return DrawableGraph(
             {
                 data["id"]: Node(
-                    data["id"], data["id"], NoopModel, data.get("metadata")
+                    data["id"],
+                    data["id"],
+                    NoopModel,
+                    data.get("metadata"),
                 )
                 for data in nodes
             },
@@ -295,7 +293,7 @@ class RemotePregel(BaseRemotePregel):
                         data.get("conditional", False),
                     )
                     for data in edges
-                }
+                },
             ),
         )
 
@@ -341,7 +339,7 @@ class RemotePregel(BaseRemotePregel):
                         tuple(interrupts),
                         state,
                         task.get("result"),
-                    )
+                    ),
                 )
             return tuple(result)
 
@@ -358,7 +356,10 @@ class RemotePregel(BaseRemotePregel):
         )
 
     async def aget_state(
-        self, config: RunnableConfig, *, subgraphs: bool = False
+        self,
+        config: RunnableConfig,
+        *,
+        subgraphs: bool = False,
     ) -> StateSnapshot:
         return self._convert_state_snapshot(
             await _client_invoke(
@@ -370,7 +371,7 @@ class RemotePregel(BaseRemotePregel):
                     "config": self._inject_auth_to_config(config),
                     "subgraphs": subgraphs,
                 },
-            )
+            ),
         )
 
     async def aupdate_state(
@@ -426,7 +427,8 @@ class RemotePregel(BaseRemotePregel):
         raise NotImplementedError()
 
     def get_output_schema(
-        self, config: RunnableConfig | None = None
+        self,
+        config: RunnableConfig | None = None,
     ) -> type[BaseModel]:
         raise NotImplementedError()
 
@@ -467,7 +469,7 @@ class RemotePregel(BaseRemotePregel):
                         "langgraph_auth_user": ctx.user,
                         "langgraph_auth_user_id": user_id,
                         "langgraph_auth_permissions": list(ctx.permissions),
-                    }
+                    },
                 },
             )
 
@@ -479,13 +481,15 @@ async def run_js_process(paths_str: str | None, watch: bool = False):
     tsx_path = shutil.which("tsx")
     if tsx_path is None:
         raise FileNotFoundError(
-            "tsx not found in PATH. Please upgrade to latest LangGraph CLI to support running JS graphs."
+            "tsx not found in PATH. Please upgrade to latest LangGraph CLI to support running JS graphs.",
         )
     attempt = 0
     while (current_task := asyncio.current_task()) and not current_task.cancelled():
         client_file = os.path.join(os.path.dirname(__file__), "client.mts")
         client_preload_file = os.path.join(
-            os.path.dirname(__file__), "src", "preload.mjs"
+            os.path.dirname(__file__),
+            "src",
+            "preload.mjs",
         )
 
         args = (
@@ -542,13 +546,15 @@ async def run_js_process(paths_str: str | None, watch: bool = False):
 
 
 async def run_js_http_process(
-    paths_str: str | None, http_config: dict, watch: bool = False
+    paths_str: str | None,
+    http_config: dict,
+    watch: bool = False,
 ):
     # check if tsx is available
     tsx_path = shutil.which("tsx")
     if tsx_path is None:
         raise FileNotFoundError(
-            "tsx not found in PATH. Please upgrade to latest LangGraph CLI to support running JS graphs."
+            "tsx not found in PATH. Please upgrade to latest LangGraph CLI to support running JS graphs.",
         )
 
     attempt = 0
@@ -715,7 +721,7 @@ async def run_remote_checkpointer():
                         namespace=tuple(op["namespace"]),
                         key=op["key"],
                         value=op["value"],
-                    )
+                    ),
                 )
             elif "namespace_prefix" in op:
                 processed_operations.append(
@@ -724,12 +730,12 @@ async def run_remote_checkpointer():
                         filter=op.get("filter"),
                         limit=op.get("limit", 10),
                         offset=op.get("offset", 0),
-                    )
+                    ),
                 )
 
             elif "namespace" in op and "key" in op:
                 processed_operations.append(
-                    GetOp(namespace=tuple(op["namespace"]), key=op["key"])
+                    GetOp(namespace=tuple(op["namespace"]), key=op["key"]),
                 )
             elif "match_conditions" in op:
                 processed_operations.append(
@@ -738,7 +744,7 @@ async def run_remote_checkpointer():
                         max_depth=op.get("max_depth"),
                         limit=int(op.get("limit", 100)),
                         offset=op.get("offset", 0),
-                    )
+                    ),
                 )
             else:
                 raise ValueError(f"Unknown operation type: {op}")
@@ -810,7 +816,11 @@ async def run_remote_checkpointer():
 
         store = await _get_passthrough_store()
         result = await store.asearch(
-            namespace_prefix, filter=filter, limit=limit, offset=offset, query=query
+            namespace_prefix,
+            filter=filter,
+            limit=limit,
+            offset=offset,
+            query=query,
         )
 
         return [item.dict() for item in result]
@@ -852,7 +862,8 @@ async def run_remote_checkpointer():
                 return ApiResponse(await cb(payload))
             except ValueError as exc:
                 await logger.aexception(
-                    "ValueError calling remote handler", exc_info=exc
+                    "ValueError calling remote handler",
+                    exc_info=exc,
                 )
                 return ApiResponse({"error": str(exc)}, status_code=400)
             except Exception as exc:
@@ -869,10 +880,14 @@ async def run_remote_checkpointer():
                 methods=["POST"],
             ),
             Route(
-                "/checkpointer_list", wrap_handler(checkpointer_list), methods=["POST"]
+                "/checkpointer_list",
+                wrap_handler(checkpointer_list),
+                methods=["POST"],
             ),
             Route(
-                "/checkpointer_put", wrap_handler(checkpointer_put), methods=["POST"]
+                "/checkpointer_put",
+                wrap_handler(checkpointer_put),
+                methods=["POST"],
             ),
             Route(
                 "/checkpointer_put_writes",
@@ -890,7 +905,7 @@ async def run_remote_checkpointer():
             ),
             Route("/store_batch", wrap_handler(store_batch), methods=["POST"]),
             Route("/ok", lambda _: ApiResponse({"ok": True}), methods=["GET"]),
-        ]
+        ],
     )
 
     server = uvicorn.Server(
@@ -904,7 +919,7 @@ async def run_remote_checkpointer():
             log_config=None,
             log_level=None,
             access_log=True,
-        )
+        ),
     )
     await server.serve()
 
@@ -949,23 +964,19 @@ async def wait_until_js_ready(
         ):
             attempt = 0
             graph_ready = False
-            while (
-                current_task := asyncio.current_task()
-            ) and not current_task.cancelled():
+            while (current_task := asyncio.current_task()) and not current_task.cancelled():
                 if bg_tasks:
                     for task in bg_tasks:
                         if task.done():
                             exc = task.exception() if not task.cancelled() else None
                             logger.error(
-                                "JS background task finished while waiting for"
-                                " JS ready",
+                                "JS background task finished while waiting for JS ready",
                                 task_name=task.get_name(),
                                 task_cancelled=task.cancelled(),
                                 task_exception=repr(exc) if exc else None,
                             )
                             raise RuntimeError(
-                                f"JS background task '{task.get_name()}' died"
-                                " during startup"
+                                f"JS background task '{task.get_name()}' died during startup",
                             ) from exc
                 try:
                     if not graph_ready:
@@ -1053,7 +1064,7 @@ class CustomJsAuthBackend(AuthenticationBackend):
             keys = cache.get("cache_keys", [])
             if not isinstance(keys, list):
                 raise ValueError(
-                    f"LANGGRAPH_AUTH.cache.cache_keys must be a list. Got: {keys}"
+                    f"LANGGRAPH_AUTH.cache.cache_keys must be a list. Got: {keys}",
                 )
             self.cache_keys = [key.lower() for key in keys]
             self.ttl_cache = LRUCache(
@@ -1062,11 +1073,11 @@ class CustomJsAuthBackend(AuthenticationBackend):
             )
 
     async def authenticate(
-        self, conn: HTTPConnection
+        self,
+        conn: HTTPConnection,
     ) -> tuple[AuthCredentials, BaseUser] | None:
         if self.ls_auth is not None and (
-            (auth_scheme := conn.headers.get("x-auth-scheme"))
-            and auth_scheme == "langsmith"
+            (auth_scheme := conn.headers.get("x-auth-scheme")) and auth_scheme == "langsmith"
         ):
             return await self.ls_auth.authenticate(conn)
 
@@ -1129,7 +1140,7 @@ async def handle_js_auth_event(
                     if ctx
                     else None
                 ),
-            }
+            },
         ),
     )
 
@@ -1170,7 +1181,10 @@ class JSCustomHTTPProxyMiddleware:
         )
 
     async def __call__(
-        self, scope: types.Scope, receive: types.Receive, send: types.Send
+        self,
+        scope: types.Scope,
+        receive: types.Receive,
+        send: types.Send,
     ) -> None:
         if scope["type"] != "http" or "__langgraph_check" in scope["path"]:
             # TODO: add support for proxying `websockets``
@@ -1179,7 +1193,7 @@ class JSCustomHTTPProxyMiddleware:
 
         # First, check if the request can be handled by the JS server
         with DisableHttpxLoggingContextManager(
-            filter=lambda record: "__langgraph_check" not in record.getMessage()
+            filter=lambda record: "__langgraph_check" not in record.getMessage(),
         ):
             res = await self.proxy_client.options(
                 "/__langgraph_check",
@@ -1276,13 +1290,13 @@ class JSCustomHTTPProxyMiddleware:
                         for k, v in response.headers.items()
                         if k.lower() not in (b"transfer-encoding",)
                     ],
-                }
+                },
             )
 
             # Stream the response body
             async for chunk in response.aiter_raw():
                 await send(
-                    {"type": "http.response.body", "body": chunk, "more_body": True}
+                    {"type": "http.response.body", "body": chunk, "more_body": True},
                 )
 
             # Send the final empty chunk to indicate the end of the response

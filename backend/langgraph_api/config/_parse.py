@@ -94,12 +94,12 @@ def parse_checkpointer(value: str | None) -> CheckpointerConfig | None:
         elif not value:
             raise ValueError(
                 "LS_DEFAULT_CHECKPOINTER_BACKEND='mongo' requires "
-                "LS_MONGODB_URI or MONGODB_URI to be set"
+                "LS_MONGODB_URI or MONGODB_URI to be set",
             )
         else:
             raise ValueError(
                 "LANGGRAPH_CHECKPOINTER backend='mongo' requires a MongoDB URI: "
-                "set LS_MONGODB_URI or MONGODB_URI, or set 'uri' in the config explicitly"
+                "set LS_MONGODB_URI or MONGODB_URI, or set 'uri' in the config explicitly",
             )
 
     parsed = TypeAdapter(CheckpointerConfig).validate_python(raw)

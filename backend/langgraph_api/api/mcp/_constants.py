@@ -14,6 +14,6 @@ SUPPORTED_PROTOCOL_VERSIONS = frozenset(
         "2025-03-26",
         "2025-06-18",
         "2025-11-25",
-    )
+    ),
 )
 LATEST_PROTOCOL_VERSION = "2025-11-25"

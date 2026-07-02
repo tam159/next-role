@@ -31,35 +31,26 @@ def get_openapi_spec() -> bytes:
         "GraphSchema",
         "AssistantSearchRequest",
     ):
-        openapi["components"]["schemas"][schema]["properties"]["graph_id"]["enum"] = (
-            graph_ids
-        )
+        openapi["components"]["schemas"][schema]["properties"]["graph_id"]["enum"] = graph_ids
     # patch the auth schemes
     if config.LANGGRAPH_AUTH_TYPE == "langsmith":
         openapi["security"] = [
             {"x-api-key": []},
         ]
         openapi["components"]["securitySchemes"] = {
-            "x-api-key": {"type": "apiKey", "in": "header", "name": "x-api-key"}
+            "x-api-key": {"type": "apiKey", "in": "header", "name": "x-api-key"},
         }
     if config.LANGGRAPH_AUTH:
         # Allow user to specify OpenAPI security configuration
-        if (
-            isinstance(config.LANGGRAPH_AUTH, dict)
-            and "openapi" in config.LANGGRAPH_AUTH
-        ):
+        if isinstance(config.LANGGRAPH_AUTH, dict) and "openapi" in config.LANGGRAPH_AUTH:
             openapi_config = config.LANGGRAPH_AUTH["openapi"]
             if isinstance(openapi_config, dict):
                 # Add security schemes
                 if "securitySchemes" in openapi_config:
-                    openapi["components"]["securitySchemes"] = openapi_config[
-                        "securitySchemes"
-                    ]
+                    openapi["components"]["securitySchemes"] = openapi_config["securitySchemes"]
                 elif "security_schemes" in openapi_config:
                     # For our sorry python users
-                    openapi["components"]["securitySchemes"] = openapi_config[
-                        "security_schemes"
-                    ]
+                    openapi["components"]["securitySchemes"] = openapi_config["security_schemes"]
 
                 # Add default security if specified
                 if "security" in openapi_config:
@@ -77,7 +68,7 @@ def get_openapi_spec() -> bytes:
             logger.warning(
                 "Custom authentication is enabled but no OpenAPI security configuration was provided. "
                 "API documentation will not show authentication requirements. "
-                "Add 'openapi' section to auth section of your `langgraph.json` file to specify security schemes."
+                "Add 'openapi' section to auth section of your `langgraph.json` file to specify security schemes.",
             )
 
     # Remove webhook parameters if webhooks are disabled
@@ -96,7 +87,7 @@ def get_openapi_spec() -> bytes:
                 if "properties" in schema and "webhook" in schema["properties"]:
                     del schema["properties"]["webhook"]
                     logger.info(
-                        f"Removed webhook parameter from {schema_name} schema due to disable_webhooks setting"
+                        f"Removed webhook parameter from {schema_name} schema due to disable_webhooks setting",
                     )
 
     final = openapi
@@ -179,7 +170,8 @@ def merge_openapi_specs(spec_a: dict, spec_b: dict) -> dict:
 
     # Merge "components": Merge per component type.
     merged["components"] = _merge_components(
-        merged.get("components", {}), spec_b.get("components", {})
+        merged.get("components", {}),
+        spec_b.get("components", {}),
     )
 
     # Merge "security": Merge lists with deduplication.
@@ -191,7 +183,9 @@ def merge_openapi_specs(spec_a: dict, spec_b: dict) -> dict:
 
     # Merge "tags": Deduplicate tags by "name".
     merged["tags"] = _merge_lists(
-        merged.get("tags", []), spec_b.get("tags", []), key_func=lambda x: x.get("name")
+        merged.get("tags", []),
+        spec_b.get("tags", []),
+        key_func=lambda x: x.get("name"),
     )
 
     # Merge "externalDocs": Use spec_b if provided.
@@ -349,8 +343,6 @@ def _ensure_hashable(obj, depth=0, max_depth=3):
         return tuple(_ensure_hashable(e, depth + 1, max_depth) for e in obj)
     if isinstance(obj, typing.Mapping):
         return tuple(
-            sorted(
-                (k, _ensure_hashable(v, depth + 1, max_depth)) for k, v in obj.items()
-            )
+            sorted((k, _ensure_hashable(v, depth + 1, max_depth)) for k, v in obj.items()),
         )
     return obj

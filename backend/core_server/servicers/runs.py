@@ -16,14 +16,6 @@ import uuid
 
 import grpc
 from google.protobuf.empty_pb2 import Empty
-from langgraph_grpc_common.conversion.config import config_to_proto
-from langgraph_grpc_common.proto import core_api_pb2 as pb
-from langgraph_grpc_common.proto import enum_cancel_run_action_pb2 as eca
-from langgraph_grpc_common.proto import enum_control_signal_pb2 as ecs
-from langgraph_grpc_common.proto import enum_multitask_strategy_pb2 as ms
-from langgraph_grpc_common.proto import enum_run_status_pb2 as rs
-from langgraph_grpc_common.proto import enum_stream_mode_pb2 as sm
-from langgraph_grpc_common.proto.core_api_pb2_grpc import RunsServicer
 from psycopg.types.json import Jsonb
 
 from core_server import db
@@ -35,6 +27,14 @@ from core_server.redis_db import (
     get_redis,
     string_run_attempt,
 )
+from langgraph_grpc_common.conversion.config import config_to_proto
+from langgraph_grpc_common.proto import core_api_pb2 as pb
+from langgraph_grpc_common.proto import enum_cancel_run_action_pb2 as eca
+from langgraph_grpc_common.proto import enum_control_signal_pb2 as ecs
+from langgraph_grpc_common.proto import enum_multitask_strategy_pb2 as ms
+from langgraph_grpc_common.proto import enum_run_status_pb2 as rs
+from langgraph_grpc_common.proto import enum_stream_mode_pb2 as sm
+from langgraph_grpc_common.proto.core_api_pb2_grpc import RunsServicer
 
 try:
     from langgraph.checkpoint.base.id import uuid6
@@ -134,7 +134,8 @@ def run_to_proto(row: dict) -> pb.Run:
         metadata=pb.Fragment(value=json_bytes(row.get("metadata"))),
         kwargs=kwargs_to_proto(row.get("kwargs") or {}),
         multitask_strategy=MULTITASK_TO_PB.get(
-            row.get("multitask_strategy") or "reject", ms.reject
+            row.get("multitask_strategy") or "reject",
+            ms.reject,
         ),
     )
     if row.get("created_at"):
@@ -157,7 +158,9 @@ class RunsServicerImpl(RunsServicer):
         return run_to_proto(row)
 
     async def Search(
-        self, request: pb.SearchRunsRequest, context
+        self,
+        request: pb.SearchRunsRequest,
+        context,
     ) -> pb.SearchRunsResponse:
         where, params = ["thread_id = %(tid)s"], {"tid": request.thread_id.value}
         if request.HasField("status"):
@@ -181,7 +184,8 @@ class RunsServicerImpl(RunsServicer):
             params["statuses"] = list(request.statuses)
         async with db.pool().connection() as conn, conn.cursor() as cur:
             await cur.execute(
-                f"SELECT count(*) AS n FROM run WHERE {' AND '.join(where)}", params
+                f"SELECT count(*) AS n FROM run WHERE {' AND '.join(where)}",
+                params,
             )
             n = (await cur.fetchone())["n"]
         return pb.CountResponse(count=n)
@@ -220,7 +224,7 @@ class RunsServicerImpl(RunsServicer):
                     percentile_cont(0.5) WITHIN GROUP (ORDER BY extract(epoch FROM now() - created_at))
                         FILTER (WHERE status = 'pending') AS wait_med
                 FROM run
-                """
+                """,
             )
             row = await cur.fetchone()
         out = pb.RunStats(n_pending=row["n_pending"] or 0, n_running=row["n_running"] or 0)
@@ -243,7 +247,7 @@ class RunsServicerImpl(RunsServicer):
                     pool_available=s.get("pool_available", 0),
                     requests_queued=s.get("requests_waiting", 0),
                     requests_errors=s.get("requests_errors", 0),
-                )
+                ),
             )
         except Exception:
             pass
@@ -254,14 +258,16 @@ class RunsServicerImpl(RunsServicer):
                     idle_connections=len(getattr(cp, "_available_connections", [])),
                     in_use_connections=len(getattr(cp, "_in_use_connections", [])),
                     max_connections=getattr(cp, "max_connections", 0),
-                )
+                ),
             )
         except Exception:
             pass
         return out
 
     async def Create(
-        self, request: pb.CreateRunRequest, context
+        self,
+        request: pb.CreateRunRequest,
+        context,
     ) -> pb.CreateRunResponse:
         kwargs = loads(request.kwargs_json) if request.kwargs_json else {}
         metadata = loads(request.metadata_json) if request.HasField("metadata_json") else {}
@@ -287,12 +293,10 @@ class RunsServicerImpl(RunsServicer):
         )
         create_thread = (not thread_given) or (
             request.HasField("if_not_exists")
-            and request.if_not_exists
-            == pb.CreateRunBehavior.CREATE_THREAD_IF_THREAD_NOT_EXISTS
+            and request.if_not_exists == pb.CreateRunBehavior.CREATE_THREAD_IF_THREAD_NOT_EXISTS
         )
         prevent = (
-            request.HasField("prevent_insert_if_inflight")
-            and request.prevent_insert_if_inflight
+            request.HasField("prevent_insert_if_inflight") and request.prevent_insert_if_inflight
         )
         after_seconds = request.after_seconds if request.HasField("after_seconds") else 0
 
@@ -469,7 +473,8 @@ class RunsServicerImpl(RunsServicer):
         done = pb.StreamEvent(event_type="control", message=b"done")
         with contextlib.suppress(Exception):
             await get_redis().publish(
-                channel_run_stream(tid, rid), done.SerializeToString()
+                channel_run_stream(tid, rid),
+                done.SerializeToString(),
             )
         return Empty()
 
@@ -491,7 +496,8 @@ class RunsServicerImpl(RunsServicer):
             idle = 0
             while True:
                 m = await pubsub.get_message(
-                    ignore_subscribe_messages=True, timeout=1.0
+                    ignore_subscribe_messages=True,
+                    timeout=1.0,
                 )
                 if m is None:
                     idle += 1
@@ -523,7 +529,7 @@ class RunsServicerImpl(RunsServicer):
                 existing = await r.get(ctrl)
             if existing in (b"interrupt", b"rollback"):
                 yield pb.ControlEvent(
-                    action=ecs.interrupt if existing == b"interrupt" else ecs.rollback
+                    action=ecs.interrupt if existing == b"interrupt" else ecs.rollback,
                 )
                 return
             while True:

@@ -27,6 +27,7 @@ if TYPE_CHECKING:
     from collections.abc import Callable
 
 from dotenv import load_dotenv
+
 load_dotenv()
 
 # env
@@ -65,7 +66,9 @@ CHECKPOINTER_POSTGRES_POOL_TIMEOUT_SECONDS = env(
 # storage_postgres/Makefile sets these to the Go defaults for CI/local dev.
 # TODO(braa): flip these to match Go defaults once validated in production (LSD-1404)
 CHECKPOINT_MAX_BATCH_SIZE: int | None = env(
-    "CHECKPOINT_MAX_BATCH_SIZE", cast=int, default=None
+    "CHECKPOINT_MAX_BATCH_SIZE",
+    cast=int,
+    default=None,
 )
 CHECKPOINT_BATCH_DELAY: float = env("CHECKPOINT_BATCH_DELAY", cast=float, default=0.0)
 
@@ -109,7 +112,7 @@ AES_JSON_DISALLOWED_KEYS = frozenset(
         "langgraph_request_id",
         "langgraph_auth_user_id",
         "langgraph_auth_permissions",
-    }
+    },
 )
 
 
@@ -131,20 +134,22 @@ def _get_aes_json_keys(keys_str: str | None) -> frozenset[str] | None:
     if disallowed:
         raise ValueError(
             f"LANGGRAPH_AES_JSON_KEYS contains disallowed system keys: {sorted(disallowed)}. "
-            f"These keys are used internally and cannot be encrypted. Remove them from LANGGRAPH_AES_JSON_KEYS"
+            f"These keys are used internally and cannot be encrypted. Remove them from LANGGRAPH_AES_JSON_KEYS",
         )
 
     # Require AES key to be set
     if LANGGRAPH_AES_KEY is None:
         raise ValueError(
-            "LANGGRAPH_AES_JSON_KEYS requires LANGGRAPH_AES_KEY to be set."
+            "LANGGRAPH_AES_JSON_KEYS requires LANGGRAPH_AES_KEY to be set.",
         )
 
     return keys
 
 
 LANGGRAPH_AES_JSON_KEYS: frozenset[str] | None = env(
-    "LANGGRAPH_AES_JSON_KEYS", default=None, cast=_get_aes_json_keys
+    "LANGGRAPH_AES_JSON_KEYS",
+    default=None,
+    cast=_get_aes_json_keys,
 )
 
 # redis
@@ -154,7 +159,9 @@ REDIS_CLUSTER = env("REDIS_CLUSTER", cast=bool, default=False)
 REDIS_MAX_CONNECTIONS = env("REDIS_MAX_CONNECTIONS", cast=int, default=2000)
 REDIS_CONNECT_TIMEOUT = env("REDIS_CONNECT_TIMEOUT", cast=float, default=10.0)
 REDIS_HEALTH_CHECK_INTERVAL = env(
-    "REDIS_HEALTH_CHECK_INTERVAL", cast=float, default=10.0
+    "REDIS_HEALTH_CHECK_INTERVAL",
+    cast=float,
+    default=10.0,
 )
 REDIS_KEY_PREFIX = env("REDIS_KEY_PREFIX", cast=str, default="")
 # CA bundle (contents, not a path) for verifying Redis TLS. Must be
@@ -166,7 +173,9 @@ REDIS_TLS_CA_CERT = env("REDIS_TLS_CA_CERT", cast=str, default="")
 # Memorystore for Redis Cluster. When set, every new Redis connection AUTHs
 # with "default" + a fresh access token minted from this key.
 REDIS_GCP_SERVICE_ACCOUNT_JSON = env(
-    "REDIS_GCP_SERVICE_ACCOUNT_JSON", cast=str, default=""
+    "REDIS_GCP_SERVICE_ACCOUNT_JSON",
+    cast=str,
+    default="",
 )
 RUN_STATS_CACHE_SECONDS = env("RUN_STATS_CACHE_SECONDS", cast=int, default=60)
 
@@ -182,17 +191,23 @@ GRPC_CLIENT_POOL_SIZE = env("GRPC_CLIENT_POOL_SIZE", cast=int, default=5)
 
 # HTTP request body size limit (default matches gRPC limits: 300MB)
 HTTP_MAX_REQUEST_BODY_BYTES = env(
-    "HTTP_MAX_REQUEST_BODY_BYTES", cast=int, default=300 * 1024 * 1024
+    "HTTP_MAX_REQUEST_BODY_BYTES",
+    cast=int,
+    default=300 * 1024 * 1024,
 )
 
 # gRPC message size limits (300MB default)
 # Not in public docs: infrastructure, set by platform
 LSD_GRPC_SERVER_MAX_RECV_MSG_BYTES = env(
-    "LSD_GRPC_SERVER_MAX_RECV_MSG_BYTES", cast=int, default=300 * 1024 * 1024
+    "LSD_GRPC_SERVER_MAX_RECV_MSG_BYTES",
+    cast=int,
+    default=300 * 1024 * 1024,
 )
 # Not in public docs: infrastructure, set by platform
 LSD_GRPC_SERVER_MAX_SEND_MSG_BYTES = env(
-    "LSD_GRPC_SERVER_MAX_SEND_MSG_BYTES", cast=int, default=300 * 1024 * 1024
+    "LSD_GRPC_SERVER_MAX_SEND_MSG_BYTES",
+    cast=int,
+    default=300 * 1024 * 1024,
 )
 LSD_PUBLISH_QUEUE_SIZE = env("LSD_PUBLISH_QUEUE_SIZE", cast=int, default=512)
 # Per-run protocol v2 event buffer size. Each ``EventStreamingSession``
@@ -212,14 +227,20 @@ LSD_PROTOCOL_V2_BUFFER_SIZE = env(
 )
 # Not in public docs: infrastructure, set by platform
 GRPC_CLIENT_MAX_RECV_MSG_BYTES = env(
-    "GRPC_CLIENT_MAX_RECV_MSG_BYTES", cast=int, default=300 * 1024 * 1024
+    "GRPC_CLIENT_MAX_RECV_MSG_BYTES",
+    cast=int,
+    default=300 * 1024 * 1024,
 )
 # Not in public docs: infrastructure, set by platform
 GRPC_CLIENT_MAX_SEND_MSG_BYTES = env(
-    "GRPC_CLIENT_MAX_SEND_MSG_BYTES", cast=int, default=300 * 1024 * 1024
+    "GRPC_CLIENT_MAX_SEND_MSG_BYTES",
+    cast=int,
+    default=300 * 1024 * 1024,
 )
 GRPC_CLIENT_HTTP2_INITIAL_WINDOW_SIZE = env(
-    "GRPC_CLIENT_HTTP2_INITIAL_WINDOW_SIZE", cast=int, default=64 * 1024
+    "GRPC_CLIENT_HTTP2_INITIAL_WINDOW_SIZE",
+    cast=int,
+    default=64 * 1024,
 )
 LSD_GRPC_SERVER_ADDRESS = env(
     "LSD_GRPC_SERVER_ADDRESS",
@@ -244,7 +265,9 @@ A2A_ENABLED = HTTP_CONFIG is None or not HTTP_CONFIG.get("disable_a2a")
 WEBHOOKS_ENABLED = HTTP_CONFIG and HTTP_CONFIG.get("disable_webhooks")
 # Not in public docs: populated by langgraph.json config, not set as env var directly
 STORE_CONFIG = env(
-    "LANGGRAPH_STORE", cast=_parse.parse_schema(StoreConfig), default=None
+    "LANGGRAPH_STORE",
+    cast=_parse.parse_schema(StoreConfig),
+    default=None,
 )
 
 
@@ -254,25 +277,27 @@ def _validate_mount_prefix(mount_prefix: str | None) -> str | None:
     if not mount_prefix.startswith("/"):
         raise ValueError(
             f"Invalid mount_prefix '{mount_prefix}': Must start with '/'. "
-            f"Valid examples: '/my-api', '/v1', '/api/v1'.\nInvalid examples: 'api/', '/api/'"
+            f"Valid examples: '/my-api', '/v1', '/api/v1'.\nInvalid examples: 'api/', '/api/'",
         )
     if mount_prefix.endswith("/"):
         mount_prefix = mount_prefix[:-1]
     if mount_prefix == "/noauth" or mount_prefix.startswith("/noauth/"):
         raise ValueError(
-            f"Invalid mount_prefix '{mount_prefix}': '/noauth' is reserved for internal SDK loopback requests."
+            f"Invalid mount_prefix '{mount_prefix}': '/noauth' is reserved for internal SDK loopback requests.",
         )
     return mount_prefix
 
 
 MOUNT_PREFIX: str | None = _validate_mount_prefix(
     env("MOUNT_PREFIX", cast=str, default=None)
-    or (HTTP_CONFIG.get("mount_prefix") if HTTP_CONFIG else None)
+    or (HTTP_CONFIG.get("mount_prefix") if HTTP_CONFIG else None),
 )
 
 CORS_ALLOW_ORIGINS = env("CORS_ALLOW_ORIGINS", cast=CommaSeparatedStrings, default="*")
 CORS_CONFIG = env(
-    "CORS_CONFIG", cast=_parse.parse_schema(CorsConfig), default=None
+    "CORS_CONFIG",
+    cast=_parse.parse_schema(CorsConfig),
+    default=None,
 ) or (HTTP_CONFIG.get("cors") if HTTP_CONFIG else None)
 """
 {
@@ -339,31 +364,31 @@ if BG_JOB_SHUTDOWN_GRACE_PERIOD_SECS > 3600:
     )
 
 MAX_STREAM_CHUNK_SIZE_BYTES = env(
-    "MAX_STREAM_CHUNK_SIZE_BYTES", cast=int, default=1024 * 1024 * 128
+    "MAX_STREAM_CHUNK_SIZE_BYTES",
+    cast=int,
+    default=1024 * 1024 * 128,
 )
 
 
 # Not in public docs: populated by langgraph.json config, not set as env var directly
 CHECKPOINTER_CONFIG: CheckpointerConfig | None = _parse.parse_checkpointer(
-    env("LANGGRAPH_CHECKPOINTER", cast=str, default=None)
+    env("LANGGRAPH_CHECKPOINTER", cast=str, default=None),
 )
 USE_CUSTOM_CHECKPOINTER = bool(
     CHECKPOINTER_CONFIG is not None
     and CHECKPOINTER_CONFIG.get("backend") == "custom"
     and "path" in CHECKPOINTER_CONFIG
-    and CHECKPOINTER_CONFIG["path"].strip()
+    and CHECKPOINTER_CONFIG["path"].strip(),
 )
 
 SERDE: SerdeConfig | None = (
-    CHECKPOINTER_CONFIG["serde"]
-    if CHECKPOINTER_CONFIG and "serde" in CHECKPOINTER_CONFIG
-    else None
+    CHECKPOINTER_CONFIG["serde"] if CHECKPOINTER_CONFIG and "serde" in CHECKPOINTER_CONFIG else None
 )
-USE_PICKLE_FALLBACK = (
-    SERDE["pickle_fallback"] if SERDE and "pickle_fallback" in SERDE else True
-)
+USE_PICKLE_FALLBACK = SERDE["pickle_fallback"] if SERDE and "pickle_fallback" in SERDE else True
 THREAD_TTL: ThreadTTLConfig | None = env(
-    "LANGGRAPH_THREAD_TTL", cast=_parse.parse_thread_ttl, default=None
+    "LANGGRAPH_THREAD_TTL",
+    cast=_parse.parse_thread_ttl,
+    default=None,
 )
 if THREAD_TTL is None and CHECKPOINTER_CONFIG is not None:
     THREAD_TTL = CHECKPOINTER_CONFIG.get("ttl")
@@ -413,19 +438,25 @@ CRON_SCHEDULER_SLEEP_TIME = env("CRON_SCHEDULER_SLEEP_TIME", cast=int, default=5
 LANGGRAPH_AUTH_TYPE = env("LANGGRAPH_AUTH_TYPE", cast=str, default="noop")
 # Not in public docs: populated by langgraph.json config, not set as env var directly
 LANGGRAPH_POSTGRES_EXTENSIONS: Literal["standard", "lite"] = env(
-    "LANGGRAPH_POSTGRES_EXTENSIONS", cast=str, default="standard"
+    "LANGGRAPH_POSTGRES_EXTENSIONS",
+    cast=str,
+    default="standard",
 )
 if LANGGRAPH_POSTGRES_EXTENSIONS not in ("standard", "lite"):
     raise ValueError(
-        f"Unknown LANGGRAPH_POSTGRES_EXTENSIONS value: {LANGGRAPH_POSTGRES_EXTENSIONS}"
+        f"Unknown LANGGRAPH_POSTGRES_EXTENSIONS value: {LANGGRAPH_POSTGRES_EXTENSIONS}",
     )
 # Not in public docs: populated by langgraph.json config, not set as env var directly
 LANGGRAPH_AUTH = env(
-    "LANGGRAPH_AUTH", cast=_parse.parse_schema(AuthConfig), default=None
+    "LANGGRAPH_AUTH",
+    cast=_parse.parse_schema(AuthConfig),
+    default=None,
 )
 # Not in public docs: populated by langgraph.json config, not set as env var directly
 LANGGRAPH_ENCRYPTION = env(
-    "LANGGRAPH_ENCRYPTION", cast=_parse.parse_schema(EncryptionConfig), default=None
+    "LANGGRAPH_ENCRYPTION",
+    cast=_parse.parse_schema(EncryptionConfig),
+    default=None,
 )
 # Not in public docs: set by SaaS control plane, not user-configurable
 LANGSMITH_TENANT_ID = env("LANGSMITH_TENANT_ID", cast=str, default=None)
@@ -439,7 +470,9 @@ if LANGGRAPH_AUTH_TYPE == "langsmith":
     LANGSMITH_AUTH_ENDPOINT = env("LANGSMITH_AUTH_ENDPOINT", cast=str)
     LANGSMITH_TENANT_ID = env("LANGSMITH_TENANT_ID", cast=str)
     LANGSMITH_AUTH_VERIFY_TENANT_ID = env(
-        "LANGSMITH_AUTH_VERIFY_TENANT_ID", cast=bool, default=True
+        "LANGSMITH_AUTH_VERIFY_TENANT_ID",
+        cast=bool,
+        default=True,
     )
 
 else:
@@ -460,7 +493,7 @@ WEBHOOKS_CONFIG = env(
     cast=cast(
         "Callable[[str | None], WebhooksConfig | None]",
         _parse.parse_schema(
-            Annotated[WebhooksConfig, AfterValidator(webhooks_validator)]
+            Annotated[WebhooksConfig, AfterValidator(webhooks_validator)],
         ),
     ),
     default=None,
@@ -475,12 +508,16 @@ LANGGRAPH_CLOUD_LICENSE_KEY = env("LANGGRAPH_CLOUD_LICENSE_KEY", cast=str, defau
 # no additional claims are checked. The `lgp_enabled` claim is always
 # checked.
 LANGSMITH_LICENSE_REQUIRED_CLAIMS = env(
-    "LANGSMITH_LICENSE_REQUIRED_CLAIMS", cast=CommaSeparatedStrings, default=[]
+    "LANGSMITH_LICENSE_REQUIRED_CLAIMS",
+    cast=CommaSeparatedStrings,
+    default=[],
 )
 
 # Not in public docs: LANGCHAIN_API_KEY is a legacy alias (prefer LANGSMITH_API_KEY)
 LANGSMITH_API_KEY = env(
-    "LANGSMITH_API_KEY", cast=str, default=getenv("LANGCHAIN_API_KEY", "")
+    "LANGSMITH_API_KEY",
+    cast=str,
+    default=getenv("LANGCHAIN_API_KEY", ""),
 )
 # LANGSMITH_CONTROL_PLANE_API_KEY is used for license verification and
 # submitting usage metadata to LangSmith SaaS.
@@ -490,7 +527,9 @@ LANGSMITH_API_KEY = env(
 # LangSmith) and configure LANGSMITH_CONTROL_PLANE_API_KEY from LangSmith SaaS
 # to facilitate license key verification and metadata submission.
 LANGSMITH_CONTROL_PLANE_API_KEY = env(
-    "LANGSMITH_CONTROL_PLANE_API_KEY", cast=str, default=LANGSMITH_API_KEY
+    "LANGSMITH_CONTROL_PLANE_API_KEY",
+    cast=str,
+    default=LANGSMITH_API_KEY,
 )
 
 
@@ -525,25 +564,19 @@ if LANGSMITH_CONTROL_PLANE_API_KEY and TRACING is None:
 OTEL_ENABLED = env("OTEL_ENABLED", cast=bool, default=None)
 if OTEL_ENABLED is None:
     OTEL_ENABLED = bool(
-        getenv("OTEL_EXPORTER_OTLP_TRACES_ENDPOINT")
-        or getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
+        getenv("OTEL_EXPORTER_OTLP_TRACES_ENDPOINT") or getenv("OTEL_EXPORTER_OTLP_ENDPOINT"),
     )
 
 # if variant is "licensed", update to "local" if using LANGSMITH_CONTROL_PLANE_API_KEY instead
 
 # Not in public docs: LANGSMITH_LANGGRAPH_API_VARIANT is set by SaaS control plane
-if (
-    getenv("LANGSMITH_LANGGRAPH_API_VARIANT") == "licensed"
-    and LANGSMITH_CONTROL_PLANE_API_KEY
-):
+if getenv("LANGSMITH_LANGGRAPH_API_VARIANT") == "licensed" and LANGSMITH_CONTROL_PLANE_API_KEY:
     environ["LANGSMITH_LANGGRAPH_API_VARIANT"] = "local"
 
 
 # Metrics.
 USES_INDEXING = (
-    STORE_CONFIG
-    and STORE_CONFIG.get("index")
-    and STORE_CONFIG.get("index").get("embed")
+    STORE_CONFIG and STORE_CONFIG.get("index") and STORE_CONFIG.get("index").get("embed")
 )
 USES_CUSTOM_APP = HTTP_CONFIG and HTTP_CONFIG.get("app")
 USES_CUSTOM_AUTH = bool(LANGGRAPH_AUTH)
@@ -558,7 +591,9 @@ UI_USE_BUNDLER = env("LANGGRAPH_UI_BUNDLER", cast=bool, default=False)
 LANGGRAPH_METRICS_ENABLED = env("LANGGRAPH_METRICS_ENABLED", cast=bool, default=False)
 LANGGRAPH_METRICS_ENDPOINT = env("LANGGRAPH_METRICS_ENDPOINT", cast=str, default=None)
 LANGGRAPH_METRICS_EXPORT_INTERVAL_MS = env(
-    "LANGGRAPH_METRICS_EXPORT_INTERVAL_MS", cast=int, default=60000
+    "LANGGRAPH_METRICS_EXPORT_INTERVAL_MS",
+    cast=int,
+    default=60000,
 )
 # Not in public docs: infrastructure, set by platform
 LSD_DD_API_KEY = _first_non_empty(
@@ -578,7 +613,9 @@ _METRIC_MAX_EMITTING_TIER_DEFAULT = (
     1 if os.environ.get("LSD_DEPLOYMENT_TYPE", "") in ("dev", "dev_free") else 2
 )
 METRIC_MAX_EMITTING_TIER = env(
-    "METRIC_MAX_EMITTING_TIER", cast=int, default=_METRIC_MAX_EMITTING_TIER_DEFAULT
+    "METRIC_MAX_EMITTING_TIER",
+    cast=int,
+    default=_METRIC_MAX_EMITTING_TIER_DEFAULT,
 )
 DATADOG_METRICS_ENABLED = bool(LSD_DD_API_KEY)
 LANGGRAPH_LOGS_ENDPOINT = env("LANGGRAPH_LOGS_ENDPOINT", cast=str, default=None)
@@ -591,10 +628,12 @@ if FF_PYSPY_PROFILING_ENABLED:
     pyspy = shutil.which("py-spy")
     if not pyspy:
         raise ValueError(
-            "py-spy not found on PATH. Please re-deploy with py-spy installed."
+            "py-spy not found on PATH. Please re-deploy with py-spy installed.",
         )
 FF_PYSPY_PROFILING_MAX_DURATION_SECS = env(
-    "FF_PYSPY_PROFILING_MAX_DURATION_SECS", cast=int, default=240
+    "FF_PYSPY_PROFILING_MAX_DURATION_SECS",
+    cast=int,
+    default=240,
 )
 FF_PROFILE_IMPORTS = env("FF_PROFILE_IMPORTS", cast=bool, default=False)
 

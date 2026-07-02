@@ -72,17 +72,11 @@ def default(obj):
     # https://github.com/ijl/orjson#serialize
     if isinstance(obj, Fragment):
         return orjson.Fragment(obj.buf)
-    if (
-        hasattr(obj, "model_dump")
-        and callable(obj.model_dump)
-        and not isinstance(obj, type)
-    ):
+    if hasattr(obj, "model_dump") and callable(obj.model_dump) and not isinstance(obj, type):
         return obj.model_dump()
     elif hasattr(obj, "dict") and callable(obj.dict) and not isinstance(obj, type):
         return obj.dict()
-    elif (
-        hasattr(obj, "_asdict") and callable(obj._asdict) and not isinstance(obj, type)
-    ):
+    elif hasattr(obj, "_asdict") and callable(obj._asdict) and not isinstance(obj, type):
         return obj._asdict()
     elif isinstance(obj, BaseException):
         if isinstance(
@@ -249,13 +243,14 @@ class Serializer(JsonPlusSerializer):
         if data[0] == "pickle":
             if not self.pickle_fallback:
                 raise ValueError(
-                    "Pickle fallback is disabled. Cannot deserialize pickled object."
+                    "Pickle fallback is disabled. Cannot deserialize pickled object.",
                 )
             try:
                 return cloudpickle.loads(data[1])
             except Exception as e:
                 logger.warning(
-                    "Failed to unpickle object, replacing w None", exc_info=e
+                    "Failed to unpickle object, replacing w None",
+                    exc_info=e,
                 )
                 return None
         try:
@@ -268,6 +263,6 @@ class Serializer(JsonPlusSerializer):
                     " If you would like to retain the ability to deserialize old checkpoints saved in this format, "
                     'please set the "allowed_json_modules" option in your langgraph.json configuration to add the'
                     " necessary module and type paths to an allow-list to be deserialized. You can alkso retain the"
-                    ' ability to insecurely deserialize custom types by setting it to "true".'
+                    ' ability to insecurely deserialize custom types by setting it to "true".',
                 )
             raise

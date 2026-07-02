@@ -40,7 +40,7 @@ VALID_WEBHOOK_ALLOWED_FIELDS: frozenset[str] = frozenset(
         "webhook_sent_at",
         "values",
         "error",
-    }
+    },
 )
 
 
@@ -150,7 +150,7 @@ class IndexConfig(TypedDict, total=False):
 
     dims: int
     """Number of dimensions in the embedding vectors.
-    
+
     Common embedding models have the following dimensions:
         - OpenAI text-embedding-3-large: 256, 1024, or 3072
         - OpenAI text-embedding-3-small: 512 or 1536
@@ -164,13 +164,13 @@ class IndexConfig(TypedDict, total=False):
     embed: str
     """Either a path to an embedding model (./path/to/file.py:embedding_model)
     or a name of an embedding model (openai:text-embedding-3-small)
-    
+
     Note: LangChain is required to use the model format specification.
     """
 
     fields: list[str] | None
     """Fields to extract text from for embedding generation.
-    
+
     Defaults to the root ["$"], which embeds the json object as a whole.
     """
 
@@ -180,21 +180,21 @@ class TTLConfig(TypedDict, total=False):
 
     refresh_on_read: bool
     """Default behavior for refreshing TTLs on read operations (GET and SEARCH).
-    
+
     If True, TTLs will be refreshed on read operations (get/search) by default.
     This can be overridden per-operation by explicitly setting refresh_ttl.
     Defaults to True if not configured.
     """
     default_ttl: float | None
     """Default TTL (time-to-live) in minutes for new items.
-    
+
     If provided, new items will expire after this many minutes after their last access.
     The expiration timer refreshes on both read and write operations.
     Defaults to None (no expiration).
     """
     sweep_interval_minutes: int | None
     """Interval in minutes between TTL sweep operations.
-    
+
     If provided, the store will periodically delete expired items based on TTL.
     Defaults to None (no sweeping).
     """
@@ -223,11 +223,11 @@ class SerdeConfig(TypedDict, total=False):
 
     allowed_json_modules: list[list[str]] | Literal[True] | None
     """Optional. List of allowed python modules to de-serialize custom objects from.
-    
+
     If provided, only the specified modules will be allowed to be deserialized.
     If omitted, no modules are allowed, and the object returned will simply be a json object OR
     a deserialized langchain object.
-    
+
     Example:
     {...
         "serde": {
@@ -245,11 +245,11 @@ class SerdeConfig(TypedDict, total=False):
             "allowed_json_modules": true
         }
     }
-    
+
     """
     pickle_fallback: bool
     """Optional. Whether to allow pickling as a fallback for deserialization.
-    
+
     If True, pickling will be allowed as a fallback for deserialization.
     If False, pickling will not be allowed as a fallback for deserialization.
     Defaults to True if not configured."""
@@ -261,7 +261,7 @@ class DefaultCheckpointerConfig(TypedDict):
     backend: Literal["default"]
     ttl: NotRequired[ThreadTTLConfig | None]
     """Optional. Defines the TTL (time-to-live) behavior configuration.
-    
+
     If provided, the checkpointer will apply TTL settings according to the configuration.
     If omitted, no TTL behavior is configured.
     """
@@ -284,7 +284,7 @@ class CustomCheckpointerConfig(TypedDict):
     """
     ttl: NotRequired[ThreadTTLConfig | None]
     """Optional. Defines the TTL (time-to-live) behavior configuration.
-    
+
     If provided, the checkpointer will apply TTL settings according to the configuration.
     If omitted, no TTL behavior is configured.
     """
@@ -425,16 +425,14 @@ def _validate_url_policy(
         return policy
     if "allowed_domains" in policy:
         doms = policy["allowed_domains"]
-        if not isinstance(doms, list) or not all(
-            isinstance(d, str) and d for d in doms
-        ):
+        if not isinstance(doms, list) or not all(isinstance(d, str) and d for d in doms):
             raise ValueError(
-                f"webhooks.url.allowed_domains must be a list of non-empty strings. Got: {doms}"
+                f"webhooks.url.allowed_domains must be a list of non-empty strings. Got: {doms}",
             )
         for d in doms:
             if "*" in d and not d.startswith("*."):
                 raise ValueError(
-                    f"webhooks.url.allowed_domains wildcard can only be used as a prefix, in the form '*.domain'. Got: {doms}"
+                    f"webhooks.url.allowed_domains wildcard can only be used as a prefix, in the form '*.domain'. Got: {doms}",
                 )
     if "require_https" not in policy:
         policy["require_https"] = True
@@ -490,17 +488,17 @@ def webhooks_validator(cfg: "WebhooksConfig") -> "WebhooksConfig":
     if allowed_fields is not None:
         if not isinstance(allowed_fields, list):
             raise ValueError(
-                f"webhooks.allowed_fields must be a list of strings. Got: {type(allowed_fields).__name__}"
+                f"webhooks.allowed_fields must be a list of strings. Got: {type(allowed_fields).__name__}",
             )
         for field in allowed_fields:
             if not isinstance(field, str):
                 raise ValueError(
-                    f"webhooks.allowed_fields must contain only strings. Got: {type(field).__name__}"
+                    f"webhooks.allowed_fields must contain only strings. Got: {type(field).__name__}",
                 )
             if field not in VALID_WEBHOOK_ALLOWED_FIELDS:
                 raise ValueError(
                     f"webhooks.allowed_fields contains invalid field '{field}'. "
-                    f"Valid fields are: {sorted(VALID_WEBHOOK_ALLOWED_FIELDS)}"
+                    f"Valid fields are: {sorted(VALID_WEBHOOK_ALLOWED_FIELDS)}",
                 )
 
     # Enforce env prefix & actual env presence at the aggregate level
@@ -515,21 +513,21 @@ def webhooks_validator(cfg: "WebhooksConfig") -> "WebhooksConfig":
             # Only variables we support are of the form "env.FOO_BAR" right now.
             if not expr.startswith("env."):
                 raise ValueError(
-                    f"webhook headers: only env.VAR references are allowed (e.g. {{{{ env.{env_prefix}FOO_BAR }}}})"
+                    f"webhook headers: only env.VAR references are allowed (e.g. {{{{ env.{env_prefix}FOO_BAR }}}})",
                 )
             var = expr[len("env.") :]
             if not var or "." in var:
                 raise ValueError(
-                    f"webhook headers: invalid env reference '{var}'. Use env.VAR with no dots (e.g. {{{{ env.{env_prefix}FOO_BAR }}}})"
+                    f"webhook headers: invalid env reference '{var}'. Use env.VAR with no dots (e.g. {{{{ env.{env_prefix}FOO_BAR }}}})",
                 )
             if env_prefix and not var.startswith(env_prefix):
                 raise ValueError(
-                    f"webhook headers: environment variable name '{var}' must start with the configured env_prefix '{env_prefix}'"
+                    f"webhook headers: environment variable name '{var}' must start with the configured env_prefix '{env_prefix}'",
                 )
             val = os.getenv(var)
             if val is None:
                 raise ValueError(
-                    f"webhook headers: missing required environment variable '{var}'"
+                    f"webhook headers: missing required environment variable '{var}'",
                 )
             return val
 

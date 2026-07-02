@@ -89,9 +89,7 @@ async def get_item(request: ApiRequest):
     handler_payload: dict[str, Any] = {
         "namespace": namespace,
         "key": key,
-        "refresh_ttl": refresh_ttl_raw.lower() == "true"
-        if refresh_ttl_raw is not None
-        else None,
+        "refresh_ttl": refresh_ttl_raw.lower() == "true" if refresh_ttl_raw is not None else None,
     }
     await handle_event("get", handler_payload)
     result = await (await get_store()).aget(
@@ -102,7 +100,7 @@ async def get_item(request: ApiRequest):
     if result is None:
         return ApiResponse(None)
     return ApiResponse(
-        await decrypt_response(result.dict(), "store", STORE_ENCRYPTION_FIELDS)
+        await decrypt_response(result.dict(), "store", STORE_ENCRYPTION_FIELDS),
     )
 
 
@@ -119,7 +117,8 @@ async def delete_item(request: ApiRequest):
     }
     await handle_event("delete", handler_payload)
     await (await get_store()).adelete(
-        handler_payload["namespace"], handler_payload["key"]
+        handler_payload["namespace"],
+        handler_payload["key"],
     )
     return Response(status_code=204)
 
@@ -155,9 +154,11 @@ async def search_items(request: ApiRequest):
     return ApiResponse(
         {
             "items": await decrypt_responses(
-                [item.dict() for item in items], "store", STORE_ENCRYPTION_FIELDS
-            )
-        }
+                [item.dict() for item in items],
+                "store",
+                STORE_ENCRYPTION_FIELDS,
+            ),
+        },
     )
 
 

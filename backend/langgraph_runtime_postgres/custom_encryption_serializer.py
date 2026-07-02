@@ -26,6 +26,7 @@ from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
 
 import orjson
 from langgraph.checkpoint.serde.base import SerializerProtocol
+
 from langgraph_api.asyncio import get_event_loop
 
 if TYPE_CHECKING:
@@ -126,9 +127,9 @@ class CustomEncryptionSerializer:
         type_str, serialized = self.base.dumps_typed(obj)
 
         if self.encryption_instance._blob_encryptor:
-            from langgraph_api.encryption.context import get_encryption_context
-
             from langgraph_sdk import EncryptionContext
+
+            from langgraph_api.encryption.context import get_encryption_context
 
             context_dict = get_encryption_context()
 
@@ -142,7 +143,7 @@ class CustomEncryptionSerializer:
                 {
                     "b": base64.b64encode(encrypted).decode(),
                     "c": base64.b64encode(orjson.dumps(context_dict)).decode(),
-                }
+                },
             )
 
             return versioned_type, blob

@@ -36,7 +36,10 @@ async def _make_http_request_with_retries(
         try:
             async with httpx.AsyncClient(timeout=10.0) as client:
                 response = await client.request(
-                    method, url, headers=headers, json=json_data
+                    method,
+                    url,
+                    headers=headers,
+                    json=json_data,
                 )
                 response.raise_for_status()
                 return response

@@ -48,7 +48,9 @@ async def _profile_with_pyspy(seconds: int, fmt: Literal["svg"]) -> Response:
             path,
         ]
         proc = await asyncio.create_subprocess_exec(
-            *cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+            *cmd,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
         )
         try:
             _, stderr = await asyncio.wait_for(proc.communicate(), timeout=seconds + 15)

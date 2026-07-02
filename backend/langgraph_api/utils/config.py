@@ -78,9 +78,7 @@ def ensure_config(*configs: RunnableConfig | None) -> RunnableConfig:
         recursion_limit=DEFAULT_RECURSION_LIMIT,
         configurable={},
     )
-    if var_child_runnable_config is not None and (
-        var_config := var_child_runnable_config.get()
-    ):
+    if var_child_runnable_config is not None and (var_config := var_child_runnable_config.get()):
         empty.update(
             {
                 k: v.copy() if k in COPIABLE_KEYS else v

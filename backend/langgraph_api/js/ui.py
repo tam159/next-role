@@ -14,9 +14,7 @@ bg_tasks: set[asyncio.Task] = set()
 
 UI_ROOT_DIR = (
     Path(
-        os.path.abspath(".langgraph_api")
-        if UI_USE_BUNDLER
-        else os.path.dirname(__file__)
+        os.path.abspath(".langgraph_api") if UI_USE_BUNDLER else os.path.dirname(__file__),
     )
     / "ui"
 )
@@ -51,7 +49,7 @@ async def _start_ui_bundler_process():
         raise FileNotFoundError(
             "To run LangGraph with UI support, Node.js and npm are required. "
             "Please install Node.js from https://nodejs.org/ (this will include npm and npx). "
-            "After installation, restart your terminal and try again."
+            "After installation, restart your terminal and try again.",
         )
 
     if not os.path.exists(UI_ROOT_DIR):

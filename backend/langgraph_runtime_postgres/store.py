@@ -12,12 +12,12 @@ from langgraph.store.base import Op, Result
 # We subclass the OSS AsyncPostgresStore to override setup/batch/sweep behavior
 # so it integrates with our own database connection pooling and Redis coordination.
 from langgraph.store.postgres.aio import AsyncPostgresStore, PostgresIndexConfig
-from langgraph_api.config import StoreConfig, TTLConfig
-from langgraph_api.graph import resolve_embeddings
-from langgraph_api.serde import json_loads
 from psycopg import AsyncCursor, AsyncPipeline
 from psycopg.rows import DictRow
 
+from langgraph_api.config import StoreConfig, TTLConfig
+from langgraph_api.graph import resolve_embeddings
+from langgraph_api.serde import json_loads
 from langgraph_runtime_postgres import database
 from langgraph_runtime_postgres.redis import (
     LOCK_STORE_SWEEP,
@@ -48,12 +48,17 @@ class PGSTore(AsyncPostgresStore):
             if not ttl:
                 ttl = {"sweep_interval_minutes": 5}
         super().__init__(
-            None, deserializer=json_loads, index=index, ttl=ttl
+            None,
+            deserializer=json_loads,
+            index=index,
+            ttl=ttl,
         )
 
     @asynccontextmanager
     async def _cursor(
-        self, *, pipeline: bool = False
+        self,
+        *,
+        pipeline: bool = False,
     ) -> AsyncIterator[AsyncCursor[DictRow]]:
         """Create a cursor for the store."""
         async with database.connect(supports_core_api=False) as conn:
@@ -146,7 +151,7 @@ async def setup_vector_index(store: PGSTore) -> None:
                 CREATE TABLE IF NOT EXISTS {table} (
                     v INTEGER PRIMARY KEY
                 )
-            """
+            """,
         )
         await cur.execute(f"SELECT v FROM {table} ORDER BY v DESC LIMIT 1")
         row = cast(dict, await cur.fetchone())
@@ -168,7 +173,8 @@ async def setup_vector_index(store: PGSTore) -> None:
                     sql = sql % params
                 await cur.execute(sql)
                 await cur.execute(
-                    "INSERT INTO vector_migrations (v) VALUES (%s)", (v,)
+                    "INSERT INTO vector_migrations (v) VALUES (%s)",
+                    (v,),
                 )
                 await logger.ainfo("Applied vector migration", v=v)
             await logger.ainfo("Done applying vector migrations", version=version)
