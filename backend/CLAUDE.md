@@ -83,4 +83,3 @@ For tasks involving the **LangChain ecosystem** (LangChain, LangGraph, LangSmith
 
 - LLM provider keys (OpenAI / Anthropic / Google / AWS / Tavily) come from `.env` via `pydantic-settings` and `python-dotenv`. Don't hardcode.
 - `langchain` is on the v1 line (`>=1.2`); APIs differ from older v0.x snippets you may see online.
-- **`StreamChunkTimeoutError` on long runs**: langchain-openai aborts a stream after N seconds without a chunk. gpt-5.x reasoning pauses (Azure `/v1/responses`) routinely exceed its 120s default while the stream is healthy, so compose sets `LANGCHAIN_OPENAI_STREAM_CHUNK_TIMEOUT_S=600`. If a heavy subagent still dies with `chunks_received=<small n>`, raise it before suspecting the server.

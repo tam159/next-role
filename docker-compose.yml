@@ -164,12 +164,6 @@ services:
       # Repo-owned migrations, applied at boot under a Redis lock (the code
       # default is the official image's /storage/migrations).
       MIGRATIONS_PATH: /deps/next-role/backend/storage/migrations
-      # langchain-openai kills a stream after this many seconds without a
-      # chunk (its default 120s is too aggressive for gpt-5.x reasoning
-      # pauses on Azure /v1/responses — healthy streams go silent for
-      # minutes mid-thought, especially with parallel subagents). 600s still
-      # catches genuinely dead streams. Override in .env if needed.
-      LANGCHAIN_OPENAI_STREAM_CHUNK_TIMEOUT_S: ${LANGCHAIN_OPENAI_STREAM_CHUNK_TIMEOUT_S:-600}
       LANGSERVE_GRAPHS: >-
         {
           "career_agent": "/deps/next-role/backend/agents/career_agent/agents.py:career_agent"
