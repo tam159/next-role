@@ -7,7 +7,9 @@ exercise the path-translation logic without triggering the eager
 
 from __future__ import annotations
 
+import os
 import shlex
+import sys
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -15,6 +17,24 @@ from deepagents.backends import LocalShellBackend
 
 if TYPE_CHECKING:
     from deepagents.backends.protocol import ExecuteResponse
+
+
+def default_shell_env() -> dict[str, str]:
+    """Minimal environment for agent shell commands.
+
+    `LocalShellBackend` deliberately spawns with an empty environment so agent
+    commands never see provider API keys. But an empty env also empties PATH,
+    so `/bin/sh` falls back to its compiled-in default (`/usr/local/bin:...`)
+    — which misses virtualenv installs entirely: `rendercv` (and `python -m
+    rendercv`) resolve only when deps live in the system interpreter. Passing
+    just PATH — with the running interpreter's own bin dir first — makes
+    console scripts and `python` resolve to this exact environment wherever it
+    lives (`/opt/venv` in the image, `.venv` on a dev host), while keeping
+    every secret out of the subprocess.
+    """
+    interpreter_bin = str(Path(sys.executable).parent)
+    inherited = os.environ.get("PATH", os.defpath)
+    return {"PATH": f"{interpreter_bin}{os.pathsep}{inherited}"}
 
 
 class VirtualPathShellBackend(LocalShellBackend):

@@ -12,7 +12,7 @@ from backend.agents.career_agent.middleware import (
     ModelOverrideMiddleware,
     UtcDatetimeMiddleware,
 )
-from backend.agents.career_agent.shell_backend import VirtualPathShellBackend
+from backend.agents.career_agent.shell_backend import VirtualPathShellBackend, default_shell_env
 from backend.agents.career_agent.tools import (
     CAREER_AGENT_DIR,
     make_extract_jd,
@@ -88,6 +88,7 @@ _backend = CompositeBackend(
         root_dir=CAREER_AGENT_DIR,
         virtual_mode=True,
         timeout=60,
+        env=default_shell_env(),
     ),
     routes={
         "/memory/": StoreBackend(
