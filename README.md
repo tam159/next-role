@@ -229,7 +229,7 @@ Mapped to memory types:
 
 | Layer | Stack |
 | --- | --- |
-| **Backend** | Python 3.13 · LangChain v1 · LangGraph 1.x · DeepAgents 0.6 · `uv` · served by a vendored, self-hosted LangGraph Agent Server (`backend/ARCHITECTURE.md`) |
+| **Backend** | Python 3.13 · LangChain v1 · LangGraph 1.x · DeepAgents 0.6 · `uv` · served by NextRole's own self-hosted agent server ([`backend/ARCHITECTURE.md`](backend/ARCHITECTURE.md)) |
 | **Agent I/O** | Tavily (web search) · LlamaParse / LlamaCloud (document parsing) · `rendercv` (resume → PDF) · WeasyPrint (battlecard → PDF) |
 | **Frontend** | Next.js 16 · React 19 · TypeScript · Tailwind · `pnpm` · `@langchain/react` (v2 `useStream`) |
 | **Data** | PostgreSQL 18 + pgvector · Redis 8 |
@@ -243,7 +243,7 @@ Mapped to memory types:
 
 <br/>
 
-Because NextRole ships its own **LangGraph Agent Server** (vendored — see [`backend/ARCHITECTURE.md`](backend/ARCHITECTURE.md)), the `career_agent` assistant is also reachable by other tools and agents — no extra code:
+Because NextRole ships its own **agent server** implementing the LangGraph Server API (see [`backend/ARCHITECTURE.md`](backend/ARCHITECTURE.md)), the `career_agent` assistant is also reachable by other tools and agents — no extra code:
 
 - **MCP** — exposed as Model Context Protocol tools at **`/mcp`** (Streamable HTTP), usable by any MCP-compliant client. → [docs](https://docs.langchain.com/langsmith/server-mcp)
 - **A2A** — Google's Agent2Agent protocol at **`/a2a/{assistant_id}`** (JSON-RPC 2.0; `message/send` + `message/stream`). → [docs](https://docs.langchain.com/langsmith/server-a2a)

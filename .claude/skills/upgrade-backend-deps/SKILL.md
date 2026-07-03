@@ -35,7 +35,7 @@ For each package that appears in `[project.dependencies]` **or** `[dependency-gr
 
 If a direct dep didn't move (e.g. held back by another constraint), leave its pin alone.
 
-**Vendored-server compat pins are not staleness.** The block under `# --- Vendored langgraph server runtime ---` in `[project.dependencies]` carries upper bounds (`grpcio<1.81`, `protobuf<7`, `sse-starlette<3.4`, `jsonschema-rs<0.45`, `structlog<26`, `langgraph<2`, `langchain-protocol<0.1`) that encode compatibility with the vendored langgraph-api 0.10.0 code (see `backend/ARCHITECTURE.md` §10). Never delete or raise these ceilings as part of a routine bump — the `grpcio` band in particular must match the generated proto stubs, and `langchain-protocol` must move in lockstep with the frontend's `@langchain/langgraph-sdk`. If an upgrade is blocked by one of them, report it as "held by vendored-server pin" rather than forcing it.
+**Server compat pins are not staleness.** The block under `# --- Agent server runtime ---` in `[project.dependencies]` carries upper bounds (`grpcio<1.81`, `protobuf<7`, `sse-starlette<3.4`, `jsonschema-rs<0.45`, `structlog<26`, `langgraph<2`, `langchain-protocol<0.1`) that encode compatibility requirements of the server packages (see `backend/ARCHITECTURE.md` §10). Never delete or raise these ceilings as part of a routine bump — the `grpcio` band in particular must match the generated proto stubs, and `langchain-protocol` must move in lockstep with the frontend's `@langchain/langgraph-sdk`. If an upgrade is blocked by one of them, report it as "held by a server compat pin" rather than forcing it.
 
 ### 3. Bump tool revs in `.pre-commit-config.yaml`
 
