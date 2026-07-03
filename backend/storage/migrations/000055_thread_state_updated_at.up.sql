@@ -1,1 +1,0 @@
-ALTER TABLE thread ADD COLUMN IF NOT EXISTS state_updated_at TIMESTAMPTZ;

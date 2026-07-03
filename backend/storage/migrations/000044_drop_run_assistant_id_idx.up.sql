@@ -1,1 +1,0 @@
-DROP INDEX CONCURRENTLY IF EXISTS run_assistant_id_idx;

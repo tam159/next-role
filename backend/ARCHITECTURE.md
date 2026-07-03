@@ -74,8 +74,8 @@ edits under `backend/` (agents and server packages alike) restart the server.
 | `server/grpc_common/` | 5.6k | Generated protobuf/gRPC stubs (`proto/`, **do not edit or lint** — see §10) + proto↔python conversion |
 | `server/core_server/` | 2.5k | The gRPC data plane; imports only `grpc_common` |
 
-Plus `storage/migrations/` (60 versioned SQL migrations + 2 `.lite` variants) at the backend
-root, and — inside `server/` — `logging.json` (uvicorn log config; references
+Plus `storage/migrations/` (a single consolidated schema migration, `000001_init.up.sql`;
+future changes go in new files numbered `000002+`) at the backend root, and — inside `server/` — `logging.json` (uvicorn log config; references
 `server.api.logging.Formatter`) and `openapi.json`, which is **read at import time** from the
 directory containing `api/`, i.e. `backend/server/`
 (`server/api/validation.py`, `Path(__file__).parent.parent / "openapi.json"`). Moving either
@@ -161,16 +161,18 @@ materialized `values` for fast reads), `run` (**also the queue**), `checkpoints`
 lineage → time travel), `store` (cross-thread KV — DeepAgents memory), `cron`,
 `thread_ttl`, `checkpoint_delete_queue`, `schema_migrations`.
 
-**Migrations are owned by this repo** (`backend/storage/migrations/`, versions 000001–000060)
-and applied by the **backend at boot** under a Redis lock
-(`server/runtime_postgres/database.py` — `CREATE TABLE IF NOT EXISTS schema_migrations`,
-skip every `version <= MAX(version)`, apply the rest, one row per version). A database that
-is already at or beyond the shipped max is a clean no-op, so restarts and rolling deploys
-are safe. core-server never migrates; it assumes the schema.
+**Migrations are owned by this repo** (`backend/storage/migrations/`) and applied by the
+**backend at boot** under a Redis lock (`server/runtime_postgres/database.py` —
+`CREATE TABLE IF NOT EXISTS schema_migrations`, skip every `version <= MAX(version)`, apply
+the rest, one `schema_migrations` row per version). A database already at or beyond the
+shipped max is a clean no-op, so restarts and rolling deploys are safe. core-server never
+migrates; it assumes the schema.
 
-The `.lite` variants of 000017/000029 apply when `LANGGRAPH_POSTGRES_EXTENSIONS=lite`
-(default `standard`). `backend/init.sql` only enables the pgvector extension on first
-volume creation.
+The whole schema ships as **one consolidated migration** (`000001_init.up.sql` — extensions,
+all 12 tables, every index/constraint, verified equivalent to the schema the incremental
+history produced). Add future changes as new files numbered `000002+`; never edit 000001
+after it has been applied anywhere. `backend/init.sql` only enables the pgvector extension
+on first volume creation (the migration also creates it defensively).
 
 Most foreign keys are deliberately dropped by the later migrations (write-path lock
 avoidance, independent GC); referential integrity is app-enforced by core-server.

@@ -26,7 +26,7 @@ backend/
 │   ├── core_server/         #   gRPC data plane (python -m server.core_server)
 │   ├── openapi.json         #   Served API spec — must sit next to api/
 │   └── logging.json         #   Uvicorn log config
-├── storage/migrations/      # Versioned SQL schema, applied at boot
+├── storage/migrations/      # Consolidated SQL schema (000001_init), applied at boot
 ├── tests/                   # Unit tests (mirror agents/) + server smoke tests
 ├── Dockerfile               # One image for both services (python:3.13-slim + uv)
 └── pyproject.toml           # Single uv project: agent + server dependencies
