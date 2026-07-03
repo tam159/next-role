@@ -184,7 +184,7 @@ max-complexity = 10
 # S (security) reviewed once (ARCHITECTURE.md): S608 trusted SQL templates, S104 server
 # binds, S311 retry jitter — all by design. RUF100 off because existing noqa
 # comments reference rules this config ignores.
-"{api,runtime,runtime_postgres,grpc_common,core_server}/**" = [
+"server/**" = [
   "A",
   "ANN",
   "ARG",
@@ -250,9 +250,5 @@ root = ["..", "."]
 # The server packages carry ~1k inherited type diagnostics; exclude them
 # path-level so agents/ and tests/ keep full type checking.
 exclude = [
-  "api/",
-  "runtime/",
-  "runtime_postgres/",
-  "grpc_common/",
-  "core_server/"
+  "server/"
 ]

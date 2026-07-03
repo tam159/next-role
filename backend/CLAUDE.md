@@ -29,12 +29,12 @@ Suppress one line at a time. Don't blanket-disable a rule in `pyproject.toml` to
 
 ## Server packages
 
-`api/`, `runtime/`, `runtime_postgres/`, `grpc_common/`, and `core_server/` are the **agent server** — the platform that serves the LangGraph Server API and runs the agents. Design, topology, and maintenance notes live in [`ARCHITECTURE.md`](ARCHITECTURE.md). House rules:
+Everything under `server/` (`api`, `runtime`, `runtime_postgres`, `grpc_common`, `core_server`) is the **agent server** — the platform that serves the LangGraph Server API and runs the agents. Design, topology, and maintenance notes live in [`ARCHITECTURE.md`](ARCHITECTURE.md). House rules:
 
 - **Infrastructure, not product**: fix bugs surgically; don't refactor casually — this code is stable plumbing that the whole product sits on, and churn here has outsized blast radius.
 - **Relaxed quality gates by design**: a scoped `per-file-ignores` block in `pyproject.toml` turns off the noisy stylistic rule families for these dirs; ty excludes them (`[tool.ty.src]`). `agents/` and `tests/` keep the full strict bar — don't let server-package leniency leak there.
-- **`grpc_common/proto/` is generated** — never hand-edit, lint, or format it (excluded in the top-level `[tool.ruff] exclude` AND the pre-commit hooks' `exclude:` — both are required; see `ARCHITECTURE.md` §10). Regenerate only with `grpcio-tools==1.80.0`.
-- **Import gotcha**: `api.config` requires `REDIS_URI` (and `DATABASE_URI`/`POSTGRES_URI`) at import time — any script or test importing server modules needs those env vars set, even if unused.
+- **`server/grpc_common/proto/` is generated** — never hand-edit, lint, or format it (excluded in the top-level `[tool.ruff] exclude` AND the pre-commit hooks' `exclude:` — both are required; see `ARCHITECTURE.md` §10). Regenerate only with `grpcio-tools==1.80.0`.
+- **Import gotcha**: `server.api.config` requires `REDIS_URI` (and `DATABASE_URI`/`POSTGRES_URI`) at import time — any script or test importing server modules needs those env vars set, even if unused.
 - **No mirrored unit tests** for these dirs — the correctness bar is the e2e contract (`tests/server/test_smoke.py` integration tests + the frontend round-trip), not internals.
 
 ## Testing

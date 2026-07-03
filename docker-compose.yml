@@ -73,11 +73,11 @@ services:
       interval: 60s
       start_interval: 1s
 
-  # The gRPC data plane of the agent server (backend/core_server/).
+  # The gRPC data plane of the agent server (backend/server/core_server/).
   # Owns all assistant/thread/run/cron SQL and the Redis queue doorbell/pub-sub
   # fan-out; the backend blocks at boot until this is reachable. Same image as
   # the backend, different command. Internal-only — no host port. Code edits
-  # under backend/core_server/ or backend/grpc_common/ need a
+  # under backend/server/core_server/ or backend/server/grpc_common/ need a
   # `docker compose restart core-server` (no hot reload here).
   core-server:
     build:
@@ -85,7 +85,7 @@ services:
       dockerfile: Dockerfile
     image: next-role-backend:local
     restart: on-failure
-    command: ["python", "-m", "core_server"]
+    command: ["python", "-m", "server.core_server"]
     volumes:
       - .:/deps/next-role
       - /deps/next-role/backend/.venv
@@ -129,8 +129,8 @@ services:
     restart: on-failure
     # Image CMD + --reload: uvicorn/watchfiles watches the bind-mounted source,
     # so backend code edits (agents/ and server packages alike) hot-reload.
-    command: ["uvicorn", "api.server:app",
-              "--log-config", "logging.json",
+    command: ["uvicorn", "server.api.server:app",
+              "--log-config", "server/logging.json",
               "--host", "0.0.0.0", "--port", "8000",
               "--no-access-log",
               "--timeout-graceful-shutdown", "3600",

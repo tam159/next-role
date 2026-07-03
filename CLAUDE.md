@@ -38,7 +38,7 @@ Restart (`docker compose restart <service>`) when:
 - Adding a frontend dependency (`pnpm --dir frontend add ...` — boot self-heals `node_modules` from the new lockfile).
 - Changing `.env` values (env vars are read at container start).
 - Editing `docker-compose.yml` (use `docker compose up -d` to apply the diff).
-- Editing `backend/core_server/` or `backend/grpc_common/` — **core-server has no hot reload**; run `docker compose restart core-server`.
+- Editing `backend/server/core_server/` or `backend/server/grpc_common/` — **core-server has no hot reload**; run `docker compose restart core-server`.
 
 Rebuild (`docker compose up -d --build <service>`) when:
 

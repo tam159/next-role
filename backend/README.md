@@ -16,24 +16,24 @@ extra code. See [`ARCHITECTURE.md`](ARCHITECTURE.md) for the full design.
 backend/
 ├── agents/                  # First-party agents (full strict lint/type gates)
 │   └── career_agent/        #   the career agent: graph, tools, prompts, skills
-├── api/                     # ┐ Agent server: ASGI app — routes, auth, streaming,
-│                            # │ graph loading, run workers, gRPC client
-├── runtime/                 # │ Edition router (selects the runtime backend)
-├── runtime_postgres/        # │ Postgres runtime: pool, migrations, queue, store
-├── grpc_common/             # │ gRPC contract: generated proto stubs (never edit
-│                            # │ proto/ by hand!) + proto↔python conversion
-├── core_server/             # ┘ gRPC data plane service (python -m core_server)
+├── server/                  # The agent server platform
+│   ├── api/                 #   ASGI app — routes, auth, streaming, graph
+│   │                        #   loading, run workers, gRPC client
+│   ├── runtime/             #   Edition router (selects the runtime backend)
+│   ├── runtime_postgres/    #   Postgres runtime: pool, migrations, queue, store
+│   ├── grpc_common/         #   gRPC contract: generated proto stubs (never
+│   │                        #   edit proto/ by hand!) + proto↔python conversion
+│   ├── core_server/         #   gRPC data plane (python -m server.core_server)
+│   ├── openapi.json         #   Served API spec — must sit next to api/
+│   └── logging.json         #   Uvicorn log config
 ├── storage/migrations/      # Versioned SQL schema, applied at boot
 ├── tests/                   # Unit tests (mirror agents/) + server smoke tests
-├── openapi.json             # Served API spec — must sit next to api/ (import-time read)
-├── logging.json             # Uvicorn log config
 ├── Dockerfile               # One image for both services (python:3.13-slim + uv)
 └── pyproject.toml           # Single uv project: agent + server dependencies
 ```
 
-The server packages (`api/`, `runtime/`, `runtime_postgres/`, `grpc_common/`,
-`core_server/`) run under deliberately relaxed lint/type gates; `agents/` and `tests/` keep
-the repo's full strict bar. House rules for touching server code are in
+Everything under `server/` runs under deliberately relaxed lint/type gates; `agents/` and
+`tests/` keep the repo's full strict bar. House rules for touching server code are in
 [`CLAUDE.md`](CLAUDE.md).
 
 ## Running

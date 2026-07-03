@@ -1,1 +1,1 @@
-backend/grpc_common/proto/** linguist-generated=true
+backend/server/grpc_common/proto/** linguist-generated=true

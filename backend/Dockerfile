@@ -48,8 +48,8 @@ COPY . .
 
 # PYTHONPATH: /deps/next-role resolves the repo-root-anchored
 # `backend.agents.*` imports; /deps/next-role/backend resolves the
-# server packages (api, core_server, ...). openapi.json is read at
-# import time from the directory containing api/ — satisfied here
+# server packages (server.api, ...). openapi.json is read at
+# import time from the directory containing api/ (= server/) — satisfied here
 # by construction.
 ENV PATH="/opt/venv/bin:$PATH" \
     UV_PROJECT_ENVIRONMENT=/opt/venv \
@@ -60,8 +60,8 @@ EXPOSE 8000
 
 # Mirrors the official image's uvicorn invocation (graceful shutdown +
 # keep-alive). The compose dev override appends --reload.
-CMD ["uvicorn", "api.server:app", \
-     "--log-config", "logging.json", \
+CMD ["uvicorn", "server.api.server:app", \
+     "--log-config", "server/logging.json", \
      "--host", "0.0.0.0", "--port", "8000", \
      "--no-access-log", \
      "--timeout-graceful-shutdown", "3600", \
