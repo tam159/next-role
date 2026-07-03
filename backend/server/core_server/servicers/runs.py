@@ -22,9 +22,12 @@ from server.core_server import db
 from server.core_server._convert import json_bytes, loads, ts
 from server.core_server.redis_db import (
     LIST_RUN_QUEUE,
+    THREAD_EVENTS_MAXLEN,
+    THREAD_EVENTS_TTL_SECS,
     channel_run_control,
     channel_run_stream,
     get_redis,
+    stream_thread_events,
     string_run_attempt,
 )
 from server.grpc_common.conversion.config import config_to_proto
@@ -457,25 +460,40 @@ class RunsServicerImpl(RunsServicer):
             row = await cur.fetchone()
         return row is None or row["status"] not in ("pending", "running")
 
+    @staticmethod
+    async def _fanout_event(tid: str, rid: str | None, ev: pb.StreamEvent) -> None:
+        """Deliver one run event: live pub/sub channel + the durable thread log.
+
+        The channel serves v1 run-scoped subscribers; the XADD backs
+        Threads.Stream replay (`last_event_id`) so fresh v2 subscribers —
+        including the JS SDK's mid-run stream rotations — can catch up on
+        history instead of seeing live-only events. Best-effort by design:
+        a Redis hiccup must not fail the worker's publish path.
+        """
+        data = ev.SerializeToString()
+        r = get_redis()
+        with contextlib.suppress(Exception):
+            await r.publish(channel_run_stream(tid, rid if rid else "*"), data)
+        with contextlib.suppress(Exception):
+            key = stream_thread_events(tid)
+            await r.xadd(key, {"d": data}, maxlen=THREAD_EVENTS_MAXLEN, approximate=True)
+            await r.expire(key, THREAD_EVENTS_TTL_SECS)
+
     async def Publish(self, request: pb.PublishStreamEventRequest, context) -> Empty:
         tid = request.thread_id.value
         rid = request.run_id.value if request.HasField("run_id") and request.run_id.value else None
         ev = pb.StreamEvent(event_type=request.event_type, message=request.message)
         if rid:
             ev.run_id = rid
-        chan = channel_run_stream(tid, rid if rid else "*")
-        with contextlib.suppress(Exception):
-            await get_redis().publish(chan, ev.SerializeToString())
+        await self._fanout_event(tid, rid, ev)
         return Empty()
 
     async def MarkDone(self, request: pb.MarkRunDoneRequest, context) -> Empty:
         tid, rid = request.thread_id.value, request.run_id.value
-        done = pb.StreamEvent(event_type="control", message=b"done")
-        with contextlib.suppress(Exception):
-            await get_redis().publish(
-                channel_run_stream(tid, rid),
-                done.SerializeToString(),
-            )
+        # run_id travels on the event itself: log readers have no channel name
+        # to recover it from (v1 channel readers derive it either way).
+        done = pb.StreamEvent(event_type="control", message=b"done", run_id=rid)
+        await self._fanout_event(tid, rid, done)
         return Empty()
 
     async def Stream(self, request_iterator, context):

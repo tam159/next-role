@@ -29,6 +29,24 @@ def channel_run_control(thread_id, run_id) -> str:
     return f"{_PREFIX}thread:{thread_id}:run:{run_id}:control"
 
 
+def stream_thread_events(thread_id) -> str:
+    """Redis Stream key holding a thread's durable event log.
+
+    Written by Runs.Publish/MarkDone alongside the live pub/sub channels;
+    read by Threads.Stream so fresh subscribers can replay history
+    (`last_event_id="-"`) before tailing live — the contract the v2
+    event-streaming layer and the JS SDK's stream rotation are built on.
+    """
+    return f"{_PREFIX}thread:{thread_id}:events"
+
+
+# Per-thread event-log bounds: entries beyond the cap are trimmed (approximate,
+# O(1)) and the whole key expires after a day of inactivity — the log exists
+# for live replay/reconnect, not archival; durable truth stays in Postgres.
+THREAD_EVENTS_MAXLEN = 8192
+THREAD_EVENTS_TTL_SECS = 86400
+
+
 def string_run_attempt(run_id) -> str:
     return f"{_PREFIX}run:{run_id}:attempt"
 
