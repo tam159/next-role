@@ -341,21 +341,21 @@ class ThreadsServicerImpl(ThreadsServicer):
             )
         return thread_to_proto(new_row)
 
-    async def _thread_has_active_runs(self, thread_id: str) -> bool:
-        async with db.pool().connection() as conn, conn.cursor() as cur:
-            await cur.execute(
-                "SELECT 1 FROM run WHERE thread_id = %s AND status IN ('pending','running') LIMIT 1",
-                (thread_id,),
-            )
-            return (await cur.fetchone()) is not None
-
     async def Stream(self, request: pb.StreamThreadRequest, context):
         """Follow a thread's events across its runs (server-streaming).
 
         Subscribes to every run-stream channel for the thread, converts each
         run's 'done' control marker into a metadata/run_done event (matching the
-        reference runtime), applies stream_modes filtering, and ends once the
-        thread has no active runs.
+        reference runtime), and applies stream_modes filtering.
+
+        The stream is **connection-scoped, not run-scoped**: it stays open
+        across idle periods between runs and ends only when the caller
+        disconnects (grpc.aio cancels this handler, and the ``finally`` below
+        closes the pub/sub). The v2 event-streaming layer holds one of these
+        per open UI session and multiplexes every run of the thread over it —
+        an earlier idle-timeout here silently killed the client's stream two
+        seconds after each run finished, so follow-up runs executed but their
+        events had no subscriber.
         """
         tid = request.thread_id.value
         modes = {etsm.ThreadStreamMode.Name(m) for m in request.stream_modes}
@@ -381,18 +381,12 @@ class ThreadsServicerImpl(ThreadsServicer):
         pubsub = get_redis().pubsub()
         await pubsub.psubscribe(channel_run_stream(tid, "*"))
         try:
-            idle = 0
             while True:
+                # timeout=1.0 keeps the loop responsive to client cancellation;
+                # a None message is just a quiet second, never a reason to end.
                 m = await pubsub.get_message(ignore_subscribe_messages=True, timeout=1.0)
                 if m is None:
-                    if not await self._thread_has_active_runs(tid):
-                        idle += 1
-                        if idle >= 2:
-                            break
-                    else:
-                        idle = 0
                     continue
-                idle = 0
                 data = m.get("data")
                 if not isinstance(data, (bytes, bytearray)):
                     continue

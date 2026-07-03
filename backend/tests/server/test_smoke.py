@@ -1,10 +1,12 @@
-"""End-to-end smoke tests for the vendored LangGraph Agent Server.
+"""End-to-end smoke tests for the agent server.
 
-The vendored server dirs carry no mirrored unit tests (see backend/CLAUDE.md,
-"Vendored server code") — these integration checks against the running local
-stack are the regression net for the server swap and future dependency bumps.
+The server packages carry no mirrored unit tests (see backend/CLAUDE.md,
+"Server packages") — these integration checks against the running local
+stack are the regression net for the server and future dependency bumps.
 """
 
+import asyncio
+import contextlib
 import os
 import uuid
 from pathlib import Path
@@ -71,4 +73,39 @@ def test_store_roundtrip() -> None:
                 "/store/items",
                 json={"namespace": namespace, "key": key},
             )
+            assert deleted.status_code == 204
+
+
+async def test_thread_event_stream_survives_idle() -> None:
+    """The v2 thread stream is connection-scoped — it must stay open while idle.
+
+    Regression: core-server's Threads.Stream once self-terminated ~2s after a
+    thread had no active runs, silently killing the UI's long-lived SSE after
+    every run — follow-up messages then executed with no subscriber and the
+    chat never rendered the reply.
+    """
+    base = _base_url()
+    async with httpx.AsyncClient(base_url=base, timeout=30) as client:
+        created = await client.post("/threads", json={})
+        assert created.status_code == 200
+        thread_id = created.json()["thread_id"]
+        try:
+            async with client.stream(
+                "POST",
+                f"/threads/{thread_id}/stream/events",
+                json={"channels": ["lifecycle"]},
+            ) as response:
+                assert response.status_code == 200
+                closed_early = False
+                # 8s ≫ the old 2s idle-exit. If the timeout fires, the stream
+                # is still open (pass); if the line iterator is exhausted, the
+                # server closed an idle stream (the regression).
+                with contextlib.suppress(TimeoutError):
+                    async with asyncio.timeout(8):
+                        async for _line in response.aiter_lines():
+                            pass
+                        closed_early = True
+                assert not closed_early, "thread event stream closed while thread was idle"
+        finally:
+            deleted = await client.request("DELETE", f"/threads/{thread_id}")
             assert deleted.status_code == 204
