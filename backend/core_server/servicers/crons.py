@@ -5,7 +5,7 @@ Replicates the Go server's behavior observed on the wire:
   with config.configurable.cron_id injected on create;
 - next_run_date is computed from the schedule via croniter on create;
 - on_run_completed defaults to 'delete'.
-The payload<->proto converters mirror langgraph_api/grpc/ops/crons.py exactly.
+The payload<->proto converters mirror api/grpc/ops/crons.py exactly.
 """
 
 from __future__ import annotations
@@ -21,11 +21,11 @@ from psycopg.types.json import Jsonb
 
 from core_server import db
 from core_server._convert import json_bytes, loads, ts
-from langgraph_grpc_common.conversion.config import config_from_proto, config_to_proto
-from langgraph_grpc_common.proto import core_api_pb2 as pb
-from langgraph_grpc_common.proto import enum_cron_on_run_completed_pb2 as cron_orc_pb2
-from langgraph_grpc_common.proto import enum_multitask_strategy_pb2 as ms_pb2
-from langgraph_grpc_common.proto.core_api_pb2_grpc import CronsServicer
+from grpc_common.conversion.config import config_from_proto, config_to_proto
+from grpc_common.proto import core_api_pb2 as pb
+from grpc_common.proto import enum_cron_on_run_completed_pb2 as cron_orc_pb2
+from grpc_common.proto import enum_multitask_strategy_pb2 as ms_pb2
+from grpc_common.proto.core_api_pb2_grpc import CronsServicer
 
 _SORT = {
     pb.CronsSortBy.CRONS_SORT_BY_CRON_ID: "cron_id",

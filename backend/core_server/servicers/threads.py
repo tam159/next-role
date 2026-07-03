@@ -23,9 +23,9 @@ from core_server._convert import (
     thread_to_proto,
 )
 from core_server.redis_db import channel_run_stream, get_redis
-from langgraph_grpc_common.proto import core_api_pb2 as pb
-from langgraph_grpc_common.proto import enum_thread_stream_mode_pb2 as etsm
-from langgraph_grpc_common.proto.core_api_pb2_grpc import ThreadsServicer
+from grpc_common.proto import core_api_pb2 as pb
+from grpc_common.proto import enum_thread_stream_mode_pb2 as etsm
+from grpc_common.proto.core_api_pb2_grpc import ThreadsServicer
 
 _SORT = {
     pb.ThreadsSortBy.THREADS_SORT_BY_THREAD_ID: "thread_id",

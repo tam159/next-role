@@ -17,9 +17,9 @@ from grpc_health.v1 import health, health_pb2, health_pb2_grpc
 from core_server import db, settings
 from core_server._forward import install_fallback
 from core_server.redis_db import close_redis
-from langgraph_grpc_common.proto import checkpointer_pb2, core_api_pb2
-from langgraph_grpc_common.proto import checkpointer_pb2_grpc as ckpg
-from langgraph_grpc_common.proto import core_api_pb2_grpc as capg
+from grpc_common.proto import checkpointer_pb2, core_api_pb2
+from grpc_common.proto import checkpointer_pb2_grpc as ckpg
+from grpc_common.proto import core_api_pb2_grpc as capg
 
 logging.basicConfig(
     level=logging.INFO,

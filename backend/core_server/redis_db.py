@@ -1,6 +1,6 @@
 """Async Redis client (redis-py asyncio) + run queue/channel key helpers.
 
-Key formats mirror langgraph_runtime_postgres/redis.py (default: no cluster).
+Key formats mirror runtime_postgres/redis.py (default: no cluster).
 LIST_RUN_QUEUE is shared with the worker (it lpushes a wakeup sentinel); the
 stream/control channels are internal to this server (Python streams via gRPC).
 """

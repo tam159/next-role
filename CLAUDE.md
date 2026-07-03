@@ -31,14 +31,14 @@ If a service connection fails or `docker ps` shows the stack isn't up, **remind 
 
 ### Hot reload vs. restart vs. rebuild
 
-Frontend and backend hot-reload on source edits — frontend via `pnpm dev` (Turbopack), backend via uvicorn `--reload` in the compose `command` (watches everything under `backend/`, first-party and vendored server code alike). **Don't restart for plain code changes**; save the file and the running container picks it up.
+Frontend and backend hot-reload on source edits — frontend via `pnpm dev` (Turbopack), backend via uvicorn `--reload` in the compose `command` (watches everything under `backend/`, agents and server packages alike). **Don't restart for plain code changes**; save the file and the running container picks it up.
 
 Restart (`docker compose restart <service>`) when:
 
 - Adding a frontend dependency (`pnpm --dir frontend add ...` — boot self-heals `node_modules` from the new lockfile).
 - Changing `.env` values (env vars are read at container start).
 - Editing `docker-compose.yml` (use `docker compose up -d` to apply the diff).
-- Editing `backend/core_server/` or `backend/langgraph_grpc_common/` — **core-server has no hot reload**; run `docker compose restart core-server`.
+- Editing `backend/core_server/` or `backend/grpc_common/` — **core-server has no hot reload**; run `docker compose restart core-server`.
 
 Rebuild (`docker compose up -d --build <service>`) when:
 

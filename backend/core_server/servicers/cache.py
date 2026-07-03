@@ -10,8 +10,8 @@ from __future__ import annotations
 from google.protobuf.empty_pb2 import Empty
 
 from core_server.redis_db import get_redis
-from langgraph_grpc_common.proto import core_api_pb2 as pb
-from langgraph_grpc_common.proto.core_api_pb2_grpc import CacheServicer
+from grpc_common.proto import core_api_pb2 as pb
+from grpc_common.proto.core_api_pb2_grpc import CacheServicer
 
 _PREFIX = "core_server:cache:"
 

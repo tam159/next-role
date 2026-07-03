@@ -73,11 +73,11 @@ services:
       interval: 60s
       start_interval: 1s
 
-  # The gRPC data plane of the vendored LangGraph server (backend/core_server/).
+  # The gRPC data plane of the agent server (backend/core_server/).
   # Owns all assistant/thread/run/cron SQL and the Redis queue doorbell/pub-sub
   # fan-out; the backend blocks at boot until this is reachable. Same image as
   # the backend, different command. Internal-only — no host port. Code edits
-  # under backend/core_server/ or backend/langgraph_grpc_common/ need a
+  # under backend/core_server/ or backend/grpc_common/ need a
   # `docker compose restart core-server` (no hot reload here).
   core-server:
     build:
@@ -128,8 +128,8 @@ services:
     image: next-role-backend:local
     restart: on-failure
     # Image CMD + --reload: uvicorn/watchfiles watches the bind-mounted source,
-    # so backend code edits (agents/ and the vendored server alike) hot-reload.
-    command: ["uvicorn", "langgraph_api.server:app",
+    # so backend code edits (agents/ and server packages alike) hot-reload.
+    command: ["uvicorn", "api.server:app",
               "--log-config", "logging.json",
               "--host", "0.0.0.0", "--port", "8000",
               "--no-access-log",
@@ -157,11 +157,11 @@ services:
     environment:
       REDIS_URI: redis://redis:6379
       POSTGRES_URI: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
-      # Selects the postgres backend in the langgraph_runtime edition router
+      # Selects the postgres backend in the runtime edition router
       # (hard-required — the router raises if unset).
       LANGGRAPH_RUNTIME_EDITION: postgres
       LSD_GRPC_SERVER_ADDRESS: core-server:50052
-      # Vendored migrations, applied at boot under a Redis lock (the code
+      # Repo-owned migrations, applied at boot under a Redis lock (the code
       # default is the official image's /storage/migrations).
       MIGRATIONS_PATH: /deps/next-role/backend/storage/migrations
       LANGSERVE_GRAPHS: >-

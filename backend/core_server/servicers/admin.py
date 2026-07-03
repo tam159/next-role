@@ -5,8 +5,8 @@ from __future__ import annotations
 from google.protobuf.empty_pb2 import Empty
 
 from core_server import db
-from langgraph_grpc_common.proto import core_api_pb2 as pb
-from langgraph_grpc_common.proto.core_api_pb2_grpc import AdminServicer
+from grpc_common.proto import core_api_pb2 as pb
+from grpc_common.proto.core_api_pb2_grpc import AdminServicer
 
 # Map each TruncateRequest flag to the tables it clears (children first).
 _GROUPS = {

@@ -4,7 +4,7 @@ A Python (grpc.aio + psycopg + redis) reimplementation of the Go data-plane
 server, serving the 7 data-plane gRPC services + gRPC health on **:50052**.
 
 The contract comes from the extracted protos / shipped stubs
-(`langgraph_grpc_common/proto/*_pb2*`). The DB schema is the one the Go server
+(`grpc_common/proto/*_pb2*`). The DB schema is the one the Go server
 created (tables `assistant`, `thread`, `run`, `cron`, `checkpoints`,
 `checkpoint_blobs`, `checkpoint_writes`, `store`, `thread_ttl`).
 
@@ -41,9 +41,9 @@ container stays up only as the fallback while services are being ported.
 PYTHONPATH=. python3 -m core_server         # listens on :50052
 
 # 2) start the API against it (config default already points at :50052)
-export LANGSERVE_GRAPHS='{"react_agent": "langgraph_api/react_agent/graph.py:graph"}'
+export LANGSERVE_GRAPHS='{"react_agent": "api/react_agent/graph.py:graph"}'
 export DATABASE_URI="postgresql://langgraph_clone:langgraph_clone@localhost:5406/langgraph_clone?sslmode=disable"
-uvicorn langgraph_api.server:app --log-config logging.json --host 0.0.0.0 --port 8005 --no-access-log --reload
+uvicorn api.server:app --log-config logging.json --host 0.0.0.0 --port 8005 --no-access-log --reload
 ```
 
 Env knobs: `CORE_SERVER_BIND` (default `0.0.0.0:50052`), `CORE_SERVER_GO_FALLBACK`
@@ -61,7 +61,7 @@ Env knobs: `CORE_SERVER_BIND` (default `0.0.0.0:50052`), `CORE_SERVER_GO_FALLBAC
 docker compose up -d --build core-server   # brings up postgres + redis + core-server
 
 # API stays local, pointed at the container (config default :50052):
-export LANGSERVE_GRAPHS='{"react_agent": "langgraph_api/react_agent/graph.py:graph"}'
+export LANGSERVE_GRAPHS='{"react_agent": "api/react_agent/graph.py:graph"}'
 export DATABASE_URI="postgresql://langgraph_clone:langgraph_clone@localhost:5406/langgraph_clone?sslmode=disable"
-uvicorn langgraph_api.server:app --log-config logging.json --host 0.0.0.0 --port 8005 --no-access-log --reload
+uvicorn api.server:app --log-config logging.json --host 0.0.0.0 --port 8005 --no-access-log --reload
 ```

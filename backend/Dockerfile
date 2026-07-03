@@ -1,4 +1,4 @@
-# NextRole backend — vendored LangGraph Agent Server (see backend/ARCHITECTURE.md).
+# NextRole backend — the NextRole Agent Server (see backend/ARCHITECTURE.md).
 # One image, two compose services: `backend` runs uvicorn (HTTP/SSE + graph
 # workers), `core-server` runs `python -m core_server` (gRPC data plane).
 #
@@ -47,9 +47,9 @@ WORKDIR /deps/next-role/backend
 COPY . .
 
 # PYTHONPATH: /deps/next-role resolves the repo-root-anchored
-# `backend.agents.*` imports; /deps/next-role/backend resolves the vendored
-# server packages (langgraph_api, core_server, ...). openapi.json is read at
-# import time from the directory containing langgraph_api/ — satisfied here
+# `backend.agents.*` imports; /deps/next-role/backend resolves the
+# server packages (api, core_server, ...). openapi.json is read at
+# import time from the directory containing api/ — satisfied here
 # by construction.
 ENV PATH="/opt/venv/bin:$PATH" \
     UV_PROJECT_ENVIRONMENT=/opt/venv \
@@ -60,7 +60,7 @@ EXPOSE 8000
 
 # Mirrors the official image's uvicorn invocation (graceful shutdown +
 # keep-alive). The compose dev override appends --reload.
-CMD ["uvicorn", "langgraph_api.server:app", \
+CMD ["uvicorn", "api.server:app", \
      "--log-config", "logging.json", \
      "--host", "0.0.0.0", "--port", "8000", \
      "--no-access-log", \

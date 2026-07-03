@@ -4,7 +4,7 @@
   "disable_existing_loggers": false,
   "formatters": {
     "simple": {
-      "class": "langgraph_api.logging.Formatter"
+      "class": "api.logging.Formatter"
     }
   },
   "handlers": {

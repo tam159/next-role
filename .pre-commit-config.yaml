@@ -28,18 +28,18 @@ repos:
         name: Backend Ruff Lint
         args: [--fix, --exit-non-zero-on-fix]
         types_or: [ python, pyi, jupyter, pyproject ]
-        exclude: ^backend/langgraph_grpc_common/proto/
+        exclude: ^backend/grpc_common/proto/
       - id: ruff-format
         name: Backend Ruff Format
         types_or: [ python, pyi, jupyter, pyproject ]
-        exclude: ^backend/langgraph_grpc_common/proto/
+        exclude: ^backend/grpc_common/proto/
 
   - repo: local
     hooks:
       - id: backend-typecheck
         name: Backend Type Check
         # cd so ty discovers backend/pyproject.toml ([tool.ty.src] excludes the
-        # vendored server dirs); from the repo root it would find no config.
+        # server package dirs); from the repo root it would find no config.
         entry: bash -c 'cd backend && uv run ty check'
         language: system
         files: ^backend/

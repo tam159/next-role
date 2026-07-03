@@ -23,9 +23,9 @@ from core_server._convert import (
     assistant_version_to_proto,
     loads,
 )
-from langgraph_grpc_common.conversion.config import config_from_proto
-from langgraph_grpc_common.proto import core_api_pb2 as pb
-from langgraph_grpc_common.proto.core_api_pb2_grpc import AssistantsServicer
+from grpc_common.conversion.config import config_from_proto
+from grpc_common.proto import core_api_pb2 as pb
+from grpc_common.proto.core_api_pb2_grpc import AssistantsServicer
 
 _SORT_COLS = ("assistant_id", "graph_id", "name", "created_at", "updated_at")
 

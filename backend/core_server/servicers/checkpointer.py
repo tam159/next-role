@@ -1,7 +1,7 @@
 """Native Checkpointer service — management methods only.
 
 IMPORTANT: in the Postgres runtime the graph's checkpointer writes/reads
-Postgres *directly* (langgraph_runtime_postgres.checkpoint.Checkpointer +
+Postgres *directly* (runtime_postgres.checkpoint.Checkpointer +
 the in-process ingestion loop). The gRPC Checkpointer service's data methods
 (Put / PutWrites / GetTuple / List) are used only by the MongoDB backend
 (GrpcCheckpointer), so they are left forwarded — they are never called in this
@@ -18,8 +18,8 @@ import grpc
 from google.protobuf.empty_pb2 import Empty
 
 from core_server import db
-from langgraph_grpc_common.proto import checkpointer_pb2 as cpb
-from langgraph_grpc_common.proto.checkpointer_pb2_grpc import CheckpointerServicer
+from grpc_common.proto import checkpointer_pb2 as cpb
+from grpc_common.proto.checkpointer_pb2_grpc import CheckpointerServicer
 
 _CKPT_TABLES = ("checkpoint_writes", "checkpoint_blobs", "checkpoints")
 

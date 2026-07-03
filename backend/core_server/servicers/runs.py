@@ -27,14 +27,14 @@ from core_server.redis_db import (
     get_redis,
     string_run_attempt,
 )
-from langgraph_grpc_common.conversion.config import config_to_proto
-from langgraph_grpc_common.proto import core_api_pb2 as pb
-from langgraph_grpc_common.proto import enum_cancel_run_action_pb2 as eca
-from langgraph_grpc_common.proto import enum_control_signal_pb2 as ecs
-from langgraph_grpc_common.proto import enum_multitask_strategy_pb2 as ms
-from langgraph_grpc_common.proto import enum_run_status_pb2 as rs
-from langgraph_grpc_common.proto import enum_stream_mode_pb2 as sm
-from langgraph_grpc_common.proto.core_api_pb2_grpc import RunsServicer
+from grpc_common.conversion.config import config_to_proto
+from grpc_common.proto import core_api_pb2 as pb
+from grpc_common.proto import enum_cancel_run_action_pb2 as eca
+from grpc_common.proto import enum_control_signal_pb2 as ecs
+from grpc_common.proto import enum_multitask_strategy_pb2 as ms
+from grpc_common.proto import enum_run_status_pb2 as rs
+from grpc_common.proto import enum_stream_mode_pb2 as sm
+from grpc_common.proto.core_api_pb2_grpc import RunsServicer
 
 try:
     from langgraph.checkpoint.base.id import uuid6
