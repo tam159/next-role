@@ -1,7 +1,5 @@
 """Define the career agent."""
 
-from typing import Literal
-
 import deepagents.graph as _graph_mod
 import deepagents.middleware.filesystem as _fs_mw
 import deepagents.middleware.memory as _mem_mw
@@ -12,8 +10,6 @@ from backend.agents.career_agent import prompts as _prompts
 from backend.agents.career_agent.middleware import (
     EnsurePreferencesFileMiddleware,
     ModelOverrideMiddleware,
-    SubagentFullHistoryMiddleware,
-    SubagentTranscriptRecorder,
     UtcDatetimeMiddleware,
 )
 from backend.agents.career_agent.shell_backend import VirtualPathShellBackend, default_shell_env
@@ -86,22 +82,6 @@ _apply_prompt_overrides()
 
 
 _MODEL = "openai:gpt-5.4"
-
-# What the parent agent sees from each subagent in follow-up turns. Mirrors
-# langgraph-supervisor's `output_mode` (deepagents itself has no such knob —
-# its task tool always returns only the final message):
-#   "last_message" (default) — the task tool's final answer only. Token-optimal;
-#       the parent can re-read subagent artifacts (/research/*.md, ...) on demand.
-#   "full_history" — every subagent's real internal messages (AI tool calls and
-#       tool results as structured message objects, never prose describing
-#       them) are recorded into parent state and spliced into each model
-#       request. Costly: transcripts ride along on every subsequent turn of
-#       the thread. Recording happens at run time, so already-finished threads
-#       gain nothing retroactively when this is flipped on. Note: the system
-#       prompts still say subagent work is hidden, so the model may deny
-#       seeing it when asked about "the subagent" directly — it does use the
-#       transcript content itself (verified).
-SUBAGENT_OUTPUT_MODE: Literal["last_message", "full_history"] = "last_message"
 
 _backend = CompositeBackend(
     default=VirtualPathShellBackend(
@@ -178,16 +158,12 @@ career_agent = create_deep_agent(
         CAREER_AGENT_DIR / "subagents.yaml",
         tools=_SUBAGENT_TOOLS,
         default_tools=_SUBAGENT_DEFAULT_TOOLS,
-        default_middleware=[
-            _model_override_middleware,
-            *([SubagentTranscriptRecorder()] if SUBAGENT_OUTPUT_MODE == "full_history" else []),
-        ],
+        default_middleware=[_model_override_middleware],
     ),
     backend=_backend,
     middleware=[
         EnsurePreferencesFileMiddleware(_backend),
         _model_override_middleware,
         UtcDatetimeMiddleware(),
-        *([SubagentFullHistoryMiddleware()] if SUBAGENT_OUTPUT_MODE == "full_history" else []),
     ],
 )
