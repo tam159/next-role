@@ -20,19 +20,27 @@ repos:
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.15.20
     hooks:
+      # Generated protobuf/gRPC stubs are excluded here as well as in ruff's own
+      # config: pre-commit passes filenames explicitly, which bypasses
+      # [tool.ruff] exclude (an F401 autofix once stripped the side-effect
+      # empty_pb2 imports that register well-known types in the descriptor pool).
       - id: ruff-check
         name: Backend Ruff Lint
         args: [--fix, --exit-non-zero-on-fix]
         types_or: [ python, pyi, jupyter, pyproject ]
+        exclude: ^backend/server/grpc_common/proto/
       - id: ruff-format
         name: Backend Ruff Format
         types_or: [ python, pyi, jupyter, pyproject ]
+        exclude: ^backend/server/grpc_common/proto/
 
   - repo: local
     hooks:
       - id: backend-typecheck
         name: Backend Type Check
-        entry: uv run ty check
+        # cd so ty discovers backend/pyproject.toml ([tool.ty.src] excludes the
+        # server package dirs); from the repo root it would find no config.
+        entry: bash -c 'cd backend && uv run ty check'
         language: system
         files: ^backend/
         types_or: [python, pyi, jupyter, pyproject]

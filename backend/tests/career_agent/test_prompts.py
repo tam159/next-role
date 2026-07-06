@@ -9,12 +9,12 @@ format guard below catches that permanently.
 import ast
 from pathlib import Path
 
-_AGENTS_PY = Path(__file__).resolve().parents[2] / "app" / "career_agent" / "agents.py"
+_AGENTS_PY = Path(__file__).resolve().parents[2] / "agents" / "career_agent" / "agents.py"
 
 
 def test_memory_prompt_formats_with_only_agent_memory_placeholder() -> None:
     """`MEMORY` must format cleanly with just `agent_memory` — no stray braces."""
-    from backend.app.career_agent import prompts
+    from backend.agents.career_agent import prompts
 
     rendered = prompts.MEMORY.format(agent_memory="SENTINEL_MEMORY_BODY")
 
@@ -25,7 +25,7 @@ def test_memory_prompt_formats_with_only_agent_memory_placeholder() -> None:
 
 def test_memory_prompt_keeps_required_placeholder() -> None:
     """`_format_agent_memory` calls `.format(agent_memory=...)`, so it must stay."""
-    from backend.app.career_agent import prompts
+    from backend.agents.career_agent import prompts
 
     assert "{agent_memory}" in prompts.MEMORY
 
@@ -52,7 +52,7 @@ def test_memory_index_wired_as_second_memory_source() -> None:
                     if isinstance(el, ast.Constant) and isinstance(el.value, str)
                 ]
 
-    from backend.app.career_agent.middleware import PREFERENCES_PATH
+    from backend.agents.career_agent.middleware import PREFERENCES_PATH
 
     assert sources, "create_deep_agent(memory=[...]) with string entries not found"
     assert "AGENTS.md" in sources
@@ -73,9 +73,9 @@ def test_memory_prompt_override_reaches_the_middleware(monkeypatch) -> None:
     """
     monkeypatch.setenv("OPENAI_API_KEY", "test-key")  # model-client construction needs a key string
 
-    import backend.app.career_agent.agents  # noqa: F401  # import triggers _apply_prompt_overrides
+    import backend.agents.career_agent.agents  # noqa: F401  # import triggers _apply_prompt_overrides
     import deepagents.middleware.memory as mem
-    from backend.app.career_agent import prompts
+    from backend.agents.career_agent import prompts
 
     kwdefaults = mem.MemoryMiddleware.__init__.__kwdefaults__ or {}
     if "system_prompt" in kwdefaults:  # deepagents 0.6.3+

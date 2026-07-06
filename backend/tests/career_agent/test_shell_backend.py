@@ -3,17 +3,19 @@
 Verifies that `/virtual/path` tokens in `execute()` commands are rewritten
 to real on-disk absolute paths under `root_dir`, while real absolute paths
 (`/tmp/x`, `/usr/bin/python`) and `..`-escape attempts are left untouched.
+Also covers `default_shell_env`, the sanitized environment agent shell
+commands run under.
 """
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+import os
+import shutil
+import sys
+from pathlib import Path
 
 import pytest
-from backend.app.career_agent.shell_backend import VirtualPathShellBackend
-
-if TYPE_CHECKING:
-    from pathlib import Path
+from backend.agents.career_agent.shell_backend import VirtualPathShellBackend, default_shell_env
 
 
 @pytest.fixture
@@ -79,3 +81,32 @@ def test_execute_runs_translated_command(
     result = backend.execute("cat /tailored_resume/hello.txt")
     assert result.exit_code == 0
     assert "hello-from-virtual-path" in result.output
+
+
+class TestDefaultShellEnv:
+    """`default_shell_env` — the sanitized env handed to agent shell commands."""
+
+    def test_path_resolves_interpreter_bin_first(self):
+        """The running interpreter's bin dir leads PATH (venv console scripts win)."""
+        env = default_shell_env()
+
+        first_entry = env["PATH"].split(os.pathsep)[0]
+        assert first_entry == str(Path(sys.executable).parent)
+
+    def test_inherits_process_path_entries(self):
+        """System PATH entries stay reachable behind the interpreter's bin dir."""
+        env = default_shell_env()
+
+        for entry in os.environ.get("PATH", os.defpath).split(os.pathsep):
+            assert entry in env["PATH"].split(os.pathsep)
+
+    def test_exposes_no_other_variables(self):
+        """Secrets (API keys etc.) must never leak into agent subprocesses."""
+        assert set(default_shell_env().keys()) == {"PATH"}
+
+    def test_console_scripts_of_this_environment_resolve(self):
+        """The venv's own console scripts must be findable via the built PATH."""
+        env = default_shell_env()
+
+        found = shutil.which("rendercv", path=env["PATH"])
+        assert found is not None

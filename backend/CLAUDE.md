@@ -27,11 +27,21 @@ Python 3.13 backend. Built on LangChain / LangGraph / DeepAgents for the career-
 
 Suppress one line at a time. Don't blanket-disable a rule in `pyproject.toml` to make a single error go away.
 
+## Server packages
+
+Everything under `server/` (`api`, `runtime`, `runtime_postgres`, `grpc_common`, `core_server`) is the **agent server** — the platform that serves the LangGraph Server API and runs the agents. Design, topology, and maintenance notes live in [`ARCHITECTURE.md`](ARCHITECTURE.md). House rules:
+
+- **Infrastructure, not product**: fix bugs surgically; don't refactor casually — this code is stable plumbing that the whole product sits on, and churn here has outsized blast radius.
+- **Relaxed quality gates by design**: a scoped `per-file-ignores` block in `pyproject.toml` turns off the noisy stylistic rule families for these dirs; ty excludes them (`[tool.ty.src]`). `agents/` and `tests/` keep the full strict bar — don't let server-package leniency leak there.
+- **`server/grpc_common/proto/` is generated** — never hand-edit, lint, or format it (excluded in the top-level `[tool.ruff] exclude` AND the pre-commit hooks' `exclude:` — both are required; see `ARCHITECTURE.md` §10). Regenerate only with `grpcio-tools==1.80.0`.
+- **Import gotcha**: `server.api.config` requires `REDIS_URI` (and `DATABASE_URI`/`POSTGRES_URI`) at import time — any script or test importing server modules needs those env vars set, even if unused.
+- **No mirrored unit tests** for these dirs — the correctness bar is the e2e contract (`tests/server/test_smoke.py` integration tests + the frontend round-trip), not internals.
+
 ## Testing
 
 > **Current phase: unit tests + integration tests against the local DB.** LLM evals are deferred (slow + costly). When you create or modify code, write or update **unit tests** by default, and add **integration tests** when the code's value lives in real DB/Redis/HTTP behavior (e.g., pgvector queries, transaction semantics, connection pooling). Do **not** create `@pytest.mark.eval` tests — that marker exists for future use only.
 
-- **Layout**: `backend/tests/` mirrors `backend/app/`. A source file `app/<pkg>/<module>.py` has its tests at `tests/<pkg>/test_<module>.py` (e.g., `app/career_agent/tools.py` → `tests/career_agent/test_tools.py`). **No `__init__.py` needed** — pytest runs in `--import-mode=importlib`, so test subdirectories are plain folders.
+- **Layout**: `backend/tests/` mirrors `backend/agents/`. A source file `agents/<pkg>/<module>.py` has its tests at `tests/<pkg>/test_<module>.py` (e.g., `agents/career_agent/tools.py` → `tests/career_agent/test_tools.py`). **No `__init__.py` needed** — pytest runs in `--import-mode=importlib`, so test subdirectories are plain folders.
 - **One source module → can have multiple test files** when concerns are unrelated: split as `test_<module>_<concern>.py` (e.g., `test_tools_parsing.py`, `test_tools_search.py`). Don't pile everything into one giant test file.
 - **Run** (from `backend/` — `testpaths = ["tests"]` is relative):
   - Default (fast unit tests only): `cd backend && uv run pytest`
@@ -59,7 +69,7 @@ Suppress one line at a time. Don't blanket-disable a rule in `pyproject.toml` to
 ## Local database
 
 - **Postgres 18 + pgvector** via `docker compose up postgres`. Connection: `POSTGRES_URI` in `.env`; local port is `${POSTGRES_LOCAL_PORT}` (default `5449`). Driver is `psycopg` (psycopg3).
-- **Schema is owned by `langchain/langgraph-api:3.13`** (the backend's base image). It runs its own migrations on container startup — don't write or expect Alembic/SQLModel migrations of your own. `backend/init.sql` only enables the `vector` extension at first volume creation.
+- **Schema is owned by `backend/storage/migrations/`** (versioned SQL), applied by the backend at container startup under a Redis lock — don't write or expect Alembic/SQLModel migrations of your own. `backend/init.sql` only enables the `vector` extension at first volume creation.
 - **To understand the schema, query the live DB** via the `next-role-postgres` MCP (`@bytebase/dbhub`). Default schema is `public`. Prefer it over reading source: list tables → describe the ones relevant to the task. Don't shell into `psql`.
 
 ## Library docs

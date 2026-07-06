@@ -26,7 +26,7 @@ class _FakeModel:
 
 @pytest.fixture
 def middleware():
-    from backend.app.career_agent.middleware import ModelOverrideMiddleware
+    from backend.agents.career_agent.middleware import ModelOverrideMiddleware
 
     return ModelOverrideMiddleware()
 
@@ -34,7 +34,7 @@ def middleware():
 @pytest.fixture(autouse=True)
 def _clear_model_cache():
     """Reset the module-level model cache between tests."""
-    from backend.app.career_agent import middleware as mw
+    from backend.agents.career_agent import middleware as mw
 
     mw._MODEL_CACHE.clear()  # noqa: SLF001
     yield
@@ -71,11 +71,11 @@ def test_main_agent_override_invokes_init_chat_model(middleware):
     }
     with (
         patch(
-            "backend.app.career_agent.middleware.get_config",
+            "backend.agents.career_agent.middleware.get_config",
             return_value=config,
         ),
         patch(
-            "backend.app.career_agent.middleware.init_chat_model",
+            "backend.agents.career_agent.middleware.init_chat_model",
             return_value=fake_model,
         ) as mocked_init,
     ):
@@ -91,7 +91,7 @@ def test_main_agent_override_invokes_init_chat_model(middleware):
 def test_subagent_override_disables_streaming_when_default_on(middleware, monkeypatch):
     """With the rollback default flipped on, a subagent override gets a no-stream copy."""
     monkeypatch.setattr(
-        "backend.app.career_agent.middleware.DISABLE_SUBAGENT_STREAMING",
+        "backend.agents.career_agent.middleware.DISABLE_SUBAGENT_STREAMING",
         True,
     )
     request, captured = _fake_request()
@@ -107,11 +107,11 @@ def test_subagent_override_disables_streaming_when_default_on(middleware, monkey
     }
     with (
         patch(
-            "backend.app.career_agent.middleware.get_config",
+            "backend.agents.career_agent.middleware.get_config",
             return_value=config,
         ),
         patch(
-            "backend.app.career_agent.middleware.init_chat_model",
+            "backend.agents.career_agent.middleware.init_chat_model",
             return_value=fake_model,
         ) as mocked_init,
     ):
@@ -133,11 +133,11 @@ def test_subagent_streams_by_default(middleware):
     config = {"configurable": {}, "metadata": {"lc_agent_name": "resume-tailor"}}
     with (
         patch(
-            "backend.app.career_agent.middleware.get_config",
+            "backend.agents.career_agent.middleware.get_config",
             return_value=config,
         ),
         patch(
-            "backend.app.career_agent.middleware.init_chat_model",
+            "backend.agents.career_agent.middleware.init_chat_model",
         ) as mocked_init,
     ):
         middleware.wrap_model_call(request, _fake_handler(received))
@@ -159,8 +159,8 @@ def test_subagent_streaming_can_be_reenabled_via_config(middleware):
         "metadata": {"lc_agent_name": "resume-tailor"},
     }
     with (
-        patch("backend.app.career_agent.middleware.get_config", return_value=config),
-        patch("backend.app.career_agent.middleware.init_chat_model") as mocked_init,
+        patch("backend.agents.career_agent.middleware.get_config", return_value=config),
+        patch("backend.agents.career_agent.middleware.init_chat_model") as mocked_init,
     ):
         middleware.wrap_model_call(request, _fake_handler(received))
 
@@ -184,9 +184,9 @@ def test_reenabled_subagent_still_gets_model_override(middleware):
         "metadata": {"lc_agent_name": "hiring-recon"},
     }
     with (
-        patch("backend.app.career_agent.middleware.get_config", return_value=config),
+        patch("backend.agents.career_agent.middleware.get_config", return_value=config),
         patch(
-            "backend.app.career_agent.middleware.init_chat_model",
+            "backend.agents.career_agent.middleware.init_chat_model",
             return_value=fake_model,
         ) as mocked_init,
     ):
@@ -200,7 +200,7 @@ def test_reenabled_subagent_still_gets_model_override(middleware):
 def test_module_default_on_disables_subagent_streaming(middleware, monkeypatch):
     """Flipping the `DISABLE_SUBAGENT_STREAMING` module default back on is the rollback."""
     monkeypatch.setattr(
-        "backend.app.career_agent.middleware.DISABLE_SUBAGENT_STREAMING",
+        "backend.agents.career_agent.middleware.DISABLE_SUBAGENT_STREAMING",
         True,
     )
     req_model = _FakeModel(name="subagent-default")
@@ -209,8 +209,8 @@ def test_module_default_on_disables_subagent_streaming(middleware, monkeypatch):
 
     config = {"configurable": {}, "metadata": {"lc_agent_name": "resume-tailor"}}
     with (
-        patch("backend.app.career_agent.middleware.get_config", return_value=config),
-        patch("backend.app.career_agent.middleware.init_chat_model") as mocked_init,
+        patch("backend.agents.career_agent.middleware.get_config", return_value=config),
+        patch("backend.agents.career_agent.middleware.init_chat_model") as mocked_init,
     ):
         middleware.wrap_model_call(request, _fake_handler(received))
 
@@ -232,8 +232,8 @@ def test_per_run_rollback_disables_streaming(middleware):
         "metadata": {"lc_agent_name": "interview-coach"},
     }
     with (
-        patch("backend.app.career_agent.middleware.get_config", return_value=config),
-        patch("backend.app.career_agent.middleware.init_chat_model") as mocked_init,
+        patch("backend.agents.career_agent.middleware.get_config", return_value=config),
+        patch("backend.agents.career_agent.middleware.init_chat_model") as mocked_init,
     ):
         middleware.wrap_model_call(request, _fake_handler(received))
 
@@ -251,11 +251,11 @@ def test_no_configurable_passes_request_through(middleware):
     config: dict = {"configurable": {}, "metadata": {}}
     with (
         patch(
-            "backend.app.career_agent.middleware.get_config",
+            "backend.agents.career_agent.middleware.get_config",
             return_value=config,
         ),
         patch(
-            "backend.app.career_agent.middleware.init_chat_model",
+            "backend.agents.career_agent.middleware.init_chat_model",
         ) as mocked_init,
     ):
         middleware.wrap_model_call(request, _fake_handler(received))
@@ -272,11 +272,11 @@ def test_empty_string_override_passes_request_through(middleware):
     config = {"configurable": {"main_agent_model": ""}, "metadata": {}}
     with (
         patch(
-            "backend.app.career_agent.middleware.get_config",
+            "backend.agents.career_agent.middleware.get_config",
             return_value=config,
         ),
         patch(
-            "backend.app.career_agent.middleware.init_chat_model",
+            "backend.agents.career_agent.middleware.init_chat_model",
         ) as mocked_init,
     ):
         middleware.wrap_model_call(request, _fake_handler(received))
@@ -296,11 +296,11 @@ def test_invalid_model_string_falls_back_gracefully(middleware, caplog):
     }
     with (
         patch(
-            "backend.app.career_agent.middleware.get_config",
+            "backend.agents.career_agent.middleware.get_config",
             return_value=config,
         ),
         patch(
-            "backend.app.career_agent.middleware.init_chat_model",
+            "backend.agents.career_agent.middleware.init_chat_model",
             side_effect=ValueError("unsupported provider"),
         ),
         caplog.at_level("WARNING"),
@@ -321,11 +321,11 @@ def test_resolved_model_is_cached(middleware):
     }
     with (
         patch(
-            "backend.app.career_agent.middleware.get_config",
+            "backend.agents.career_agent.middleware.get_config",
             return_value=config,
         ),
         patch(
-            "backend.app.career_agent.middleware.init_chat_model",
+            "backend.agents.career_agent.middleware.init_chat_model",
             return_value=fake_model,
         ) as mocked_init,
     ):
@@ -341,7 +341,7 @@ def test_get_config_outside_runnable_context_is_safe(middleware):
     received: dict = {}
 
     with patch(
-        "backend.app.career_agent.middleware.get_config",
+        "backend.agents.career_agent.middleware.get_config",
         side_effect=RuntimeError("outside runnable"),
     ):
         middleware.wrap_model_call(request, _fake_handler(received))
@@ -366,11 +366,11 @@ async def test_async_path_also_overrides(middleware):
     }
     with (
         patch(
-            "backend.app.career_agent.middleware.get_config",
+            "backend.agents.career_agent.middleware.get_config",
             return_value=config,
         ),
         patch(
-            "backend.app.career_agent.middleware.init_chat_model",
+            "backend.agents.career_agent.middleware.init_chat_model",
             return_value=fake_model,
         ),
     ):

@@ -73,10 +73,69 @@ services:
       interval: 60s
       start_interval: 1s
 
+  # The gRPC data plane of the agent server (backend/server/core_server/).
+  # Owns all assistant/thread/run/cron SQL and the Redis queue doorbell/pub-sub
+  # fan-out; the backend blocks at boot until this is reachable. Same image as
+  # the backend, different command. Internal-only — no host port. Code edits
+  # under backend/server/core_server/ or backend/server/grpc_common/ need a
+  # `docker compose restart core-server` (no hot reload here).
+  core-server:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    image: next-role-backend:local
+    restart: on-failure
+    command: ["python", "-m", "server.core_server"]
+    volumes:
+      - .:/deps/next-role
+      - /deps/next-role/backend/.venv
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    environment:
+      CORE_SERVER_BIND: 0.0.0.0:50052
+      # Default is a Go-binary fallback at localhost:50051; empty disables it —
+      # all RPCs are served natively by the Python implementation.
+      CORE_SERVER_GO_FALLBACK: ""
+      CORE_SERVER_POSTGRES_URI: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?sslmode=disable
+      CORE_SERVER_REDIS_URI: redis://redis:6379
+      # Only used to enumerate registered graph ids (assistant scoping); the
+      # graph itself is loaded by the backend service.
+      LANGSERVE_GRAPHS: >-
+        {
+          "career_agent": "/deps/next-role/backend/agents/career_agent/agents.py:career_agent"
+        }
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import socket; socket.create_connection(('localhost', 50052), 2)",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+      start_interval: 1s
+
   backend:
     build:
       context: ./backend
       dockerfile: Dockerfile
+    image: next-role-backend:local
+    restart: on-failure
+    # Image CMD + --reload: uvicorn/watchfiles watches the bind-mounted source,
+    # so backend code edits (agents/ and server packages alike) hot-reload.
+    command: ["uvicorn", "server.api.server:app",
+              "--log-config", "server/logging.json",
+              "--host", "0.0.0.0", "--port", "8000",
+              "--no-access-log",
+              "--timeout-graceful-shutdown", "3600",
+              "--timeout-keep-alive", "75",
+              "--reload"]
     ports:
       - "${LANGGRAPH_LOCAL_PORT}:8000"
     volumes:
@@ -85,24 +144,43 @@ services:
       # this, `uv run` inside the container creates `/deps/next-role/backend/.venv`
       # which leaks through the bind mount to the host with container-style paths
       # hardcoded — making the venv unusable from macOS and clobbering any host
-      # venv. Same pattern as frontend `node_modules` above.
+      # venv. Same pattern as frontend `node_modules` above. (The image's own
+      # venv lives at /opt/venv, outside the mount.)
       - /deps/next-role/backend/.venv
     depends_on:
       redis:
         condition: service_healthy
       postgres:
         condition: service_healthy
+      core-server:
+        condition: service_healthy
     environment:
       REDIS_URI: redis://redis:6379
       POSTGRES_URI: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
-      LANGSMITH_LANGGRAPH_DESKTOP: "true"
+      # Selects the postgres backend in the runtime edition router
+      # (hard-required — the router raises if unset).
+      LANGGRAPH_RUNTIME_EDITION: postgres
+      LSD_GRPC_SERVER_ADDRESS: core-server:50052
+      # Repo-owned migrations, applied at boot under a Redis lock (the code
+      # default is the official image's /storage/migrations).
+      MIGRATIONS_PATH: /deps/next-role/backend/storage/migrations
       LANGSERVE_GRAPHS: >-
         {
-          "career_agent": "/deps/next-role/backend/app/career_agent/agents.py:career_agent"
+          "career_agent": "/deps/next-role/backend/agents/career_agent/agents.py:career_agent"
         }
     env_file: .env
     healthcheck:
-      test: ["CMD", "python", "/api/healthcheck.py"]
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/ok', timeout=5).status==200 else 1)",
+        ]
       interval: 60s
-      start_interval: 1s
-      start_period: 10s
+      timeout: 5s
+      retries: 5
+      # First boot budget: migrations no-op + up to 60s waiting on core-server
+      # gRPC readiness.
+      start_period: 60s
+      start_interval: 2s

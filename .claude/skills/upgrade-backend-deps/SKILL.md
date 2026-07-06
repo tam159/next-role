@@ -35,6 +35,8 @@ For each package that appears in `[project.dependencies]` **or** `[dependency-gr
 
 If a direct dep didn't move (e.g. held back by another constraint), leave its pin alone.
 
+**Server compat pins are not staleness.** The block under `# --- Agent server runtime ---` in `[project.dependencies]` carries upper bounds (`grpcio<1.81`, `protobuf<7`, `sse-starlette<3.4`, `jsonschema-rs<0.45`, `structlog<26`, `langgraph<2`, `langchain-protocol<0.1`) that encode compatibility requirements of the server packages (see `backend/ARCHITECTURE.md` §10). Never delete or raise these ceilings as part of a routine bump — the `grpcio` band in particular must match the generated proto stubs, and `langchain-protocol` must move in lockstep with the frontend's `@langchain/langgraph-sdk`. If an upgrade is blocked by one of them, report it as "held by a server compat pin" rather than forcing it.
+
 ### 3. Bump tool revs in `.pre-commit-config.yaml`
 
 Only one entry there is coupled to the uv lockfile: `astral-sh/ruff-pre-commit`'s `rev:` should match the `ruff` version in `dependency-groups.dev`. If `ruff` upgraded, bump the `rev` (prepend `v`, e.g. `0.15.13` → `v0.15.13`).
@@ -79,16 +81,18 @@ Remember whether it was running — needed in step 8.
 ### 7. Rebuild the backend image
 
 ```bash
-docker compose build --no-cache backend
+docker compose build backend
 ```
 
-`--no-cache` because the Dockerfile's `pip install -c /api/constraints.txt -e /deps/*` step can otherwise reuse a stale layer. The rebuild is heavy (a few minutes) — if the user only edited config and doesn't need the container image refreshed yet, ask before running this step.
+No `--no-cache` needed: the Dockerfile's dependency layer is keyed on `COPY pyproject.toml uv.lock` followed by `uv sync --frozen`, so a changed lockfile invalidates exactly that layer and an unchanged one reuses cache. The same image serves both the `backend` and `core-server` services (shared `image:` tag) — one build covers both. If the user only edited config and doesn't need the container image refreshed yet, ask before running this step.
 
 ### 8. Restart the container only if it was running before
 
 ```bash
-docker compose up -d backend   # only if step 6 showed it was up
+docker compose up -d backend core-server   # only if step 6 showed it was up
 ```
+
+(`core-server` runs the same image, so recreate both to keep them on the same build.)
 
 Don't start the container if the user had it stopped — they may have stopped it intentionally. After restart, verify health:
 

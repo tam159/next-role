@@ -1,10 +1,10 @@
-"""Tests for `backend.app.career_agent.utils.load_subagents`."""
+"""Tests for `backend.agents.career_agent.utils.load_subagents`."""
 
 from pathlib import Path
 from typing import Any
 
 import pytest
-from backend.app.career_agent.utils import load_subagents
+from backend.agents.career_agent.utils import load_subagents
 from langchain.agents.middleware import AgentMiddleware
 from langchain_core.tools import tool
 

@@ -6,7 +6,10 @@ dev = [
   "pytest-cov>=7.1.0",
   "pre-commit>=4.6.0",
   "toml-sort>=0.24.4",
-  "ty>=0.0.54"
+  "ty>=0.0.54",
+  # Regenerates grpc_common/proto stubs; exact-pinned to match
+  # GRPC_GENERATED_VERSION baked into the generated *_pb2_grpc.py files.
+  "grpcio-tools==1.80.0"
 ]
 
 [project]
@@ -25,7 +28,7 @@ dependencies = [
   "langchain-anthropic>=1.4.7",
   "langchain-google-genai>=4.2.6",
   "langchain-tavily>=0.2.18",
-  "langgraph>=1.2.6",
+  "langgraph>=1.2.6,<2",
   "deepagents>=0.6.12",
   "llama-cloud>=2.9.1",
   "pydantic-settings>=2.14.2",
@@ -35,7 +38,46 @@ dependencies = [
   "weasyprint>=69.0",
   "types-python-dateutil>=2.9.0.20260518",
   "types-pyyaml>=6.0.12.20260518",
-  "types-requests>=2.33.0.20260518"
+  "types-requests>=2.33.0.20260518",
+  # --- Agent server runtime (backend/ARCHITECTURE.md) ---
+  # Upper bounds are compat pins required by the server code, not staleness:
+  # grpcio band must match the generated proto stubs (GRPC_GENERATED_VERSION).
+  "croniter>=6.2.2",
+  "cloudpickle>=3.1.2",
+  "cryptography>=48.0.0",
+  "google-auth>=2.53.0",
+  "grpcio>=1.80.0,<1.81.0",
+  "grpcio-health-checking>=1.80.0,<1.81.0",
+  "httptools>=0.7.1; platform_system != 'Windows'",
+  "httpx>=0.28.1",
+  "jsonschema-rs>=0.44.1,<0.45",
+  "langchain-core>=1.4.6",
+  # v2 streaming wire format; >=0.0.18 matches the frontend SDK's bundled version
+  "langchain-protocol>=0.0.18,<0.1",
+  "langgraph-checkpoint>=4.1.0,<5",
+  "langgraph-checkpoint-postgres>=3.1.0",
+  "langgraph-runtime-inmem>=0.30.0,<0.31.0",
+  "langgraph-sdk>=0.4.2",
+  "langsmith[otel]>=0.8.5",
+  "opentelemetry-api>=1.41.1",
+  "opentelemetry-exporter-otlp-proto-http>=1.41.1",
+  "opentelemetry-sdk>=1.41.1",
+  "orjson>=3.11.9",
+  "protobuf>=6.33.6,<7.0.0",
+  "psycopg[binary,pool]>=3.3.4",
+  "pyjwt>=2.12.1",
+  "redis>=7.4.0",
+  "sse-starlette>=3.3.4,<3.4.0",
+  "starlette>=1.0.1",
+  "structlog>=25.5.0,<26",
+  "tenacity>=9.1.4",
+  "truststore>=0.10.4",
+  "uuid-utils>=0.15.0",
+  "uvicorn>=0.47.0",
+  "uvloop>=0.22.1; platform_system != 'Windows'",
+  "watchfiles>=1.2.0",
+  "websockets>=15.0.1",
+  "zstandard>=0.25.0"
 ]
 
 [tool.pytest.ini_options]
@@ -51,6 +93,38 @@ markers = [
 [tool.ruff]
 target-version = "py313"
 line-length = 100
+# Exclude a variety of commonly ignored directories. Top-level [tool.ruff]
+# exclude applies to BOTH the linter and the formatter ([tool.ruff.lint]
+# exclude would silently not cover `ruff format`).
+exclude = [
+  ".bzr",
+  ".direnv",
+  ".eggs",
+  ".git",
+  ".git-rewrite",
+  ".hg",
+  ".mypy_cache",
+  ".nox",
+  ".pants.d",
+  ".pytype",
+  ".ruff_cache",
+  ".svn",
+  ".tox",
+  ".venv",
+  "__pypackages__",
+  "_build",
+  "buck-out",
+  "build",
+  "dist",
+  "node_modules",
+  "notebooks",
+  "venv",
+  # Generated protobuf/gRPC stubs (see .gitattributes linguist-generated).
+  # Regenerate with grpcio-tools==1.80.0; never hand-edit or lint.
+  # `**/` prefix required: `ruff check .` produces ./-prefixed candidate paths
+  # that an anchored `grpc_common/proto` pattern fails to match.
+  "**/grpc_common/proto"
+]
 
 [tool.ruff.format]
 docstring-code-format = true
@@ -99,37 +173,55 @@ ignore = [
 # Allow autofix for all enabled rules (when `--fix`) is provided.
 fixable = ["ALL"]
 unfixable = []
-# Exclude a variety of commonly ignored directories.
-exclude = [
-  ".bzr",
-  ".direnv",
-  ".eggs",
-  ".git",
-  ".git-rewrite",
-  ".hg",
-  ".mypy_cache",
-  ".nox",
-  ".pants.d",
-  ".pytype",
-  ".ruff_cache",
-  ".svn",
-  ".tox",
-  ".venv",
-  "__pypackages__",
-  "_build",
-  "buck-out",
-  "build",
-  "dist",
-  "node_modules",
-  "notebooks",
-  "venv"
-]
-
 [tool.ruff.lint.mccabe]
 max-complexity = 10
 
 [tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["F401"]
+# Agent server packages (see backend/ARCHITECTURE.md).
+# Noisy stylistic families are off wholesale for the server packages;
+# real-bug classes (F, E, W, B, I, DTZ, RUF, ...) stay on everywhere.
+# S (security) reviewed once (ARCHITECTURE.md): S608 trusted SQL templates, S104 server
+# binds, S311 retry jitter — all by design. RUF100 off because existing noqa
+# comments reference rules this config ignores.
+"server/**" = [
+  "A",
+  "ANN",
+  "ARG",
+  "ASYNC",
+  "B008",
+  "C4",
+  "C901",
+  "D",
+  "E402",
+  "E501",
+  "EM",
+  "ERA",
+  "FBT",
+  "FIX",
+  "FURB",
+  "G",
+  "INP",
+  "N",
+  "PERF",
+  "PIE",
+  "PLC",
+  "PLR",
+  "PLW",
+  "PTH",
+  "PYI",
+  "RET",
+  "RSE",
+  "RUF100",
+  "S",
+  "SIM",
+  "SLF",
+  "T100",
+  "TC",
+  "TD",
+  "TRY",
+  "UP"
+]
 "tests/**/*.py" = [
   "S101",
   "D100",
@@ -147,3 +239,16 @@ max-complexity = 10
   "PLR2004"
 ]
 "**/notebooks/**/*.ipynb" = ["D100"]
+
+[tool.ty.environment]
+# Repo root first so the repo-root-anchored `backend.agents.*` namespace imports
+# resolve (mirrors pytest's `pythonpath = [".."]`); "." keeps the server
+# top-level packages (api, ...) resolvable as first-party modules.
+root = ["..", "."]
+
+[tool.ty.src]
+# The server packages carry ~1k inherited type diagnostics; exclude them
+# path-level so agents/ and tests/ keep full type checking.
+exclude = [
+  "server/"
+]
