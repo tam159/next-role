@@ -150,9 +150,14 @@ SDK's bundled version — it is pre-1.0; keep the two in lockstep). Cancellation
 same bus on a `:control` channel with a 60 s `SET` to cover the subscribe race.
 
 Alongside the live channels, core-server keeps a **per-thread durable event log** (Redis
-Stream `thread:{tid}:events`, written by `Runs.Publish`/`MarkDone`, read by
-`Threads.Stream`). A fresh subscriber replays the log from `last_event_id` before tailing
-live; each event carries its log entry id as the wire `event_id` for client-side dedup.
+Stream `thread:{tid}:events`, written by `Runs.Publish`/`MarkDone`). `Threads.Stream`
+serves subscribers in two phases: replay the structural log from `last_event_id`, then
+tail the live pub/sub channels — which carry everything, including the chunked message
+events that drive token-by-token text and tool-argument streaming (chunks must NOT be
+served from the log; an XREAD-only version silently reduced live streaming to structural
+events). Published structural events carry their log entry id (`stream_id`), so the
+replay→live seam dedups exactly by monotonic id comparison; the id doubles as the wire
+`event_id` for client-side dedup.
 This is what the SDK's contract requires — it **rotates** its shared SSE whenever a
 subagent pane mounts mid-run and expects the fresh stream to replay history — and it is
 also what hydrates subagent activity when reopening a historical thread. The log stores

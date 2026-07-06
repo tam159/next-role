@@ -8,6 +8,7 @@ fallback for now — they belong with the Runs/Checkpointer phase.
 
 from __future__ import annotations
 
+import contextlib
 import uuid
 
 import grpc
@@ -21,7 +22,7 @@ from server.core_server._convert import (
     loads,
     thread_to_proto,
 )
-from server.core_server.redis_db import get_redis, stream_thread_events
+from server.core_server.redis_db import channel_run_stream, get_redis, stream_thread_events
 from server.grpc_common.proto import core_api_pb2 as pb
 from server.grpc_common.proto import enum_thread_stream_mode_pb2 as etsm
 from server.grpc_common.proto.core_api_pb2_grpc import ThreadsServicer
@@ -33,6 +34,23 @@ _SORT = {
     pb.ThreadsSortBy.THREADS_SORT_BY_STATUS: "status",
     pb.ThreadsSortBy.THREADS_SORT_BY_STATE_UPDATED_AT: "state_updated_at",
 }
+
+
+def _stream_id_after(candidate: str, threshold: str) -> bool:
+    """True when Redis stream id `candidate` is strictly newer than `threshold`.
+
+    Ids are "<ms>-<seq>"; compare numerically — string comparison would order
+    "999-0" after "1000-0".
+    """
+
+    def parts(stream_id: str) -> tuple[int, int]:
+        ms, _, seq = stream_id.partition("-")
+        try:
+            return int(ms), int(seq or 0)
+        except ValueError:
+            return (0, 0)
+
+    return parts(candidate) > parts(threshold)
 
 
 def _if_exists_do_nothing(value: int) -> bool:
@@ -343,22 +361,34 @@ class ThreadsServicerImpl(ThreadsServicer):
     async def Stream(self, request: pb.StreamThreadRequest, context):
         """Follow a thread's events across its runs (server-streaming).
 
-        Reads the thread's durable event log (a Redis Stream fed by
-        Runs.Publish/MarkDone), so a fresh subscriber first **replays
-        history** from ``last_event_id`` — ``"-"`` means from the beginning,
-        a concrete entry id resumes strictly after it, unset tails live —
-        and then keeps tailing. Replay is what the v2 event-streaming layer
-        and the JS SDK's mid-run stream rotation are built on: a rotated
-        subscriber that only saw live events would miss everything already
-        streamed and leave subagent panes waiting forever. Each event's log
-        entry id travels as ``stream_id`` for client-side dedup across
-        rotations. Converts each run's 'done' control marker into a
-        metadata/run_done event and applies stream_modes filtering.
+        Two phases with distinct sources:
+
+        1. **Replay** (when ``last_event_id`` is set — ``"-"`` means from the
+           beginning, a concrete entry id resumes strictly after it) reads the
+           durable per-thread log, which holds **structural events only**
+           (tools/values/lifecycle/control). This is what the v2 layer, the
+           JS SDK's mid-run stream rotations, and history views are built on.
+        2. **Live** tails the thread's pub/sub channels, which carry
+           **everything** — including the chunked message streams that make
+           token-by-token text and tool-argument streaming work in the UI.
+           Chunks are deliberately not in the log (they flooded it; see
+           Runs._fanout_event), so live delivery must NOT read the log: an
+           earlier XREAD-only version of this method silently reduced live
+           streaming to structural events and tool calls only appeared in the
+           frontend once finished.
+
+        The pub/sub subscription opens *before* replay, and published
+        structural events carry their log entry id (``stream_id``), so
+        seam duplicates — events logged while replay was still reading — are
+        dropped exactly, by monotonic id comparison. Chunk events carry no
+        stream_id and are forwarded as-is. Converts each run's 'done' control
+        marker into a metadata/run_done event and applies stream_modes
+        filtering.
 
         The stream is **connection-scoped, not run-scoped**: it stays open
         across idle periods between runs and ends only when the caller
         disconnects (grpc.aio cancels this handler out of the blocking
-        XREAD). An earlier idle-timeout here silently killed the client's
+        reads). An earlier idle-timeout here silently killed the client's
         stream two seconds after each run finished, so follow-up runs
         executed but their events had no subscriber.
         """
@@ -383,41 +413,77 @@ class ThreadsServicerImpl(ThreadsServicer):
                     pass
             return True
 
+        def convert(ev: pb.StreamEvent, stream_id: str | None) -> pb.StreamEvent | None:
+            event_name = ev.event_type
+            payload = ev.message
+            run_id = ev.run_id if ev.HasField("run_id") else None
+            if event_name == "control" and payload == b"done":
+                event_name = "metadata"
+                payload = orjson.dumps({"status": "run_done", "run_id": run_id or ""})
+            if should_filter(event_name, payload):
+                return None
+            out = pb.StreamEvent(event_type=event_name, message=payload)
+            if run_id:
+                out.run_id = run_id
+            if stream_id:
+                out.stream_id = stream_id
+            return out
+
         key = stream_thread_events(tid)
         last_event_id = request.last_event_id
         if last_event_id == "-":
-            last_id: bytes | str = "0-0"  # full replay
+            replay_from: str | None = "0-0"  # full replay
         elif last_event_id:
-            last_id = last_event_id  # resume strictly after this entry
+            replay_from = last_event_id  # resume strictly after this entry
         else:
-            last_id = "$"  # live tail only
+            replay_from = None  # live tail only
         r = get_redis()
-        while True:
-            # block=1000ms keeps the loop responsive to client cancellation;
-            # an empty read is just a quiet second, never a reason to end.
-            resp = await r.xread({key: last_id}, count=256, block=1000)
-            if not resp:
-                continue
-            for _key, entries in resp:
-                for entry_id, fields in entries:
-                    last_id = entry_id
-                    data = fields.get(b"d")
-                    if not isinstance(data, (bytes, bytearray)):
-                        continue
-                    ev = pb.StreamEvent()
-                    ev.ParseFromString(bytes(data))
-                    event_name = ev.event_type
-                    payload = ev.message
-                    run_id = ev.run_id if ev.HasField("run_id") else None
-                    if event_name == "control" and payload == b"done":
-                        event_name = "metadata"
-                        payload = orjson.dumps({"status": "run_done", "run_id": run_id or ""})
-                    if should_filter(event_name, payload):
-                        continue
-                    out = pb.StreamEvent(event_type=event_name, message=payload)
-                    if run_id:
-                        out.run_id = run_id
-                    out.stream_id = (
-                        entry_id.decode() if isinstance(entry_id, (bytes, bytearray)) else entry_id
-                    )
+        pubsub = r.pubsub()
+        try:
+            # Subscribe before replaying so no event can fall between phases.
+            await pubsub.psubscribe(channel_run_stream(tid, "*"))
+
+            replayed_up_to = "0-0"
+            if replay_from is not None:
+                cursor = replay_from
+                while True:
+                    resp = await r.xread({key: cursor}, count=256, block=None)
+                    if not resp:
+                        break
+                    for _key, entries in resp:
+                        for entry_id, fields in entries:
+                            cursor = entry_id
+                            replayed_up_to = (
+                                entry_id.decode()
+                                if isinstance(entry_id, (bytes, bytearray))
+                                else entry_id
+                            )
+                            data = fields.get(b"d")
+                            if not isinstance(data, (bytes, bytearray)):
+                                continue
+                            ev = pb.StreamEvent()
+                            ev.ParseFromString(bytes(data))
+                            out = convert(ev, replayed_up_to)
+                            if out is not None:
+                                yield out
+
+            while True:
+                # timeout=1.0 keeps the loop responsive to client cancellation;
+                # a quiet second is never a reason to end.
+                m = await pubsub.get_message(ignore_subscribe_messages=True, timeout=1.0)
+                if m is None:
+                    continue
+                data = m.get("data")
+                if not isinstance(data, (bytes, bytearray)):
+                    continue
+                ev = pb.StreamEvent()
+                ev.ParseFromString(bytes(data))
+                stream_id = ev.stream_id if ev.HasField("stream_id") else None
+                if stream_id and not _stream_id_after(stream_id, replayed_up_to):
+                    continue  # structural event already delivered by replay
+                out = convert(ev, stream_id)
+                if out is not None:
                     yield out
+        finally:
+            with contextlib.suppress(Exception):
+                await pubsub.aclose()

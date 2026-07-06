@@ -478,16 +478,32 @@ class RunsServicerImpl(RunsServicer):
         activity. Panes hydrate from `tools`/`values`/`lifecycle` events;
         main-chat prose hydrates from thread state over REST.
         """
-        data = ev.SerializeToString()
         r = get_redis()
+        # Base type: strip the namespace suffix ("|tools:<id>") and the kind
+        # suffix ("/partial", "/complete", ...) — chunked message events are
+        # "messages/partial|<ns>" on the wire, not bare "messages".
+        base_type = ev.event_type.split("|", 1)[0].split("/", 1)[0]
+        if base_type != "messages":
+            # Log structural events FIRST and stamp the entry id into the
+            # published copy: Threads.Stream subscribes to pub/sub before it
+            # replays the log, and drops live structural events whose id is
+            # already covered by replay — exact seam dedup instead of
+            # duplicates. Chunked message events are live-only and carry no
+            # stream_id.
+            with contextlib.suppress(Exception):
+                key = stream_thread_events(tid)
+                entry_id = await r.xadd(
+                    key,
+                    {"d": ev.SerializeToString()},
+                    maxlen=THREAD_EVENTS_MAXLEN,
+                    approximate=True,
+                )
+                await r.expire(key, THREAD_EVENTS_TTL_SECS)
+                ev.stream_id = (
+                    entry_id.decode() if isinstance(entry_id, (bytes, bytearray)) else entry_id
+                )
         with contextlib.suppress(Exception):
-            await r.publish(channel_run_stream(tid, rid if rid else "*"), data)
-        if ev.event_type.split("|", 1)[0] == "messages":
-            return
-        with contextlib.suppress(Exception):
-            key = stream_thread_events(tid)
-            await r.xadd(key, {"d": data}, maxlen=THREAD_EVENTS_MAXLEN, approximate=True)
-            await r.expire(key, THREAD_EVENTS_TTL_SECS)
+            await r.publish(channel_run_stream(tid, rid if rid else "*"), ev.SerializeToString())
 
     async def Publish(self, request: pb.PublishStreamEventRequest, context) -> Empty:
         tid = request.thread_id.value
