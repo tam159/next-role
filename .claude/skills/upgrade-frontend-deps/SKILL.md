@@ -1,6 +1,6 @@
 ---
 name: upgrade-frontend-deps
-description: Upgrade the Next.js frontend's pnpm dependencies to their latest versions in verified waves. Inventories with `pnpm outdated`, removes verified-unused deps, batches safe minor/patch bumps, handles the @langchain/react + langgraph-sdk lockstep pair, takes majors one commit at a time with registry peer-dep checks, gates every wave on type-check + lint + build + an agent-browser check against baseline screenshots, then dedupes, audits for duplicate versions, and opens a PR. Use when the user says "upgrade frontend libs", "bump frontend deps", "update npm/pnpm packages", or `pnpm outdated` shows a backlog. Backend deps are a separate flow (`upgrade-backend-deps`).
+description: Upgrade the Next.js frontend's pnpm dependencies to their latest versions in verified waves. Inventories with `pnpm outdated`, removes verified-unused deps, batches safe minor/patch bumps, handles the @langchain/react + langgraph-sdk lockstep pair, takes majors one commit at a time with registry peer-dep checks, gates every wave on type-check + lint + unit tests + build + an agent-browser check against baseline screenshots, then dedupes, audits for duplicate versions, and opens a PR. Use when the user says "upgrade frontend libs", "bump frontend deps", "update npm/pnpm packages", or `pnpm outdated` shows a backlog. Backend deps are a separate flow (`upgrade-backend-deps`).
 ---
 
 Upgrade the frontend's pnpm dependencies in revertable waves, preserving exact-pin style and the single-resolved-version invariant, with browser verification against a pre-upgrade baseline.
@@ -12,6 +12,7 @@ Upgrade the frontend's pnpm dependencies in revertable waves, preserving exact-p
 - **One commit per wave** (majors: one per package) so any regression reverts surgically.
 - **Lockfile changes need `docker compose restart frontend`; source edits hot-reload.** Never restart for source-only changes; never skip the restart after `pnpm add/remove`.
 - **`@types/node` tracks the Docker runtime**, not npm `latest`. Read the major from `frontend/Dockerfile`'s `FROM node:XX-alpine` and stay on `@types/node@^XX`. Document it under "Held back".
+- **`vitest` + `@vitest/coverage-v8` are an exact-version lockstep pair** (coverage is an exact peer of the runner) — bump both together in one command; a split pair breaks `pnpm test:coverage`.
 
 ## Workflow
 
@@ -34,7 +35,7 @@ Gate examples that have mattered: typescript-eslint's `typescript: <X` upper bou
 ```bash
 git switch -c chore/upgrade-frontend-deps
 cd frontend && pnpm install --frozen-lockfile   # host node_modules current (pre-commit hooks need it)
-pnpm type-check && pnpm lint && pnpm build      # "Gate G" — must be green BEFORE touching anything
+pnpm type-check && pnpm lint && pnpm test && pnpm build   # "Gate G" — must be green BEFORE touching anything
 ```
 
 Record the current lint warning count — you'll need to distinguish pre-existing warnings from upgrade fallout later.
@@ -110,7 +111,7 @@ Full visual checklist vs baseline (light + dark, dialogs, selects, hover, print 
 pnpm --dir frontend dedupe
 pnpm --dir frontend run check:sdk-sync          # dedupe must not split the SDK copy
 pnpm --dir frontend outdated                    # expect: empty, or only documented hold-backs
-cd frontend && pnpm quality && pnpm build
+cd frontend && pnpm quality && pnpm test && pnpm build
 docker compose restart frontend
 pnpm --dir frontend why clsx react react-dom @langchain/langgraph-sdk   # one version each
 ```
