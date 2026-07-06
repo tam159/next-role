@@ -1303,27 +1303,64 @@ class Threads(Authenticated):
             graph_id = graph_id or thread_metadata.get("graph_id")
 
             if graph_id:
-                async with get_graph(
-                    graph_id,
-                    thread_config,
-                    checkpointer=await api_checkpointer.get_checkpointer(
-                        conn=conn,
-                        unpack_hook=_msgpack_ext_hook_to_json,
-                    ),
-                    store=(await api_store.get_store()),
-                    access_context="threads.read",
-                ) as graph:
+                before_config = (
+                    {"configurable": {"checkpoint_id": before}}
+                    if isinstance(before, str)
+                    else before
+                )
+                checkpointer = await api_checkpointer.get_checkpointer(
+                    conn=conn,
+                    unpack_hook=_msgpack_ext_hook_to_json,
+                )
+                try:
+                    async with get_graph(
+                        graph_id,
+                        thread_config,
+                        checkpointer=checkpointer,
+                        store=(await api_store.get_store()),
+                        access_context="threads.read",
+                    ) as graph:
+                        return [
+                            c
+                            async for c in graph.aget_state_history(
+                                config,
+                                limit=limit,
+                                filter=metadata,
+                                before=before_config,
+                            )
+                        ]
+                except ValueError:
+                    # `aget_state_history` resolves a non-root checkpoint_ns by
+                    # recasting it against the graph's DECLARED subgraphs and
+                    # raises "Subgraph <x> not found" for namespaces minted
+                    # dynamically per task (parallel Send dispatch — e.g. the
+                    # `tools:<task-id>` namespaces deepagents' task tool
+                    # creates for subagents). Those checkpoints are real and
+                    # durable, just not addressable through the graph: read
+                    # them straight from the checkpointer instead. This is the
+                    # server half of the JS SDK's `fetchSubagentHistory`
+                    # contract, which restores subagent conversations from
+                    # `getHistory(thread, {checkpoint: {checkpoint_ns}})` after
+                    # a reload. Consumers of namespaced history read `values`;
+                    # tasks/next need graph structure and stay empty.
+                    if not config.get("configurable", {}).get("checkpoint_ns"):
+                        raise
                     return [
-                        c
-                        async for c in graph.aget_state_history(
+                        StateSnapshot(
+                            values=t.checkpoint.get("channel_values", {}),
+                            next=(),
+                            config=t.config,
+                            metadata=t.metadata,
+                            created_at=t.checkpoint.get("ts"),
+                            parent_config=t.parent_config,
+                            tasks=(),
+                            interrupts=(),
+                        )
+                        async for t in checkpointer.alist(
                             config,
                             limit=limit,
                             filter=metadata,
-                            before=(
-                                {"configurable": {"checkpoint_id": before}}
-                                if isinstance(before, str)
-                                else before
-                            ),
+                            before=before_config,
                         )
                     ]
             else:
