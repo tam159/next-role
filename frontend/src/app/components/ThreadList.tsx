@@ -42,7 +42,8 @@ function getThreadColor(status: ThreadItem["status"]): string {
   return STATUS_COLORS[status] ?? "bg-gray-400";
 }
 
-function formatTime(date: Date, now = new Date()): string {
+// eslint-disable-next-line react-refresh/only-export-components -- exported for tests
+export function formatTime(date: Date, now = new Date()): string {
   const diff = now.getTime() - date.getTime();
   const days = Math.floor(diff / (1000 * 60 * 60 * 24));
 

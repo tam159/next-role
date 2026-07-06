@@ -11,7 +11,11 @@ import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { oneDark } from "react-syntax-highlighter/dist/esm/styles/prism";
 import { toast } from "sonner";
 import { MarkdownContent } from "@/app/components/MarkdownContent";
-import { PRINT_FILE_STORAGE_KEY, type PrintKind, type PrintPayload } from "@/app/print/file/page";
+import {
+  PRINT_FILE_STORAGE_KEY,
+  type PrintKind,
+  type PrintPayload,
+} from "@/app/print/file/printPayload";
 import type { FileItem } from "@/app/types/types";
 import useSWRMutation from "swr/mutation";
 
