@@ -41,10 +41,13 @@ def stream_thread_events(thread_id) -> str:
 
 
 # Per-thread event-log bounds: entries beyond the cap are trimmed (approximate,
-# O(1)) and the whole key expires after a day of inactivity — the log exists
-# for live replay/reconnect, not archival; durable truth stays in Postgres.
+# O(1)) and the whole key expires after a week of inactivity — the log exists
+# for replay (history panes, reconnects, SDK stream rotations), not archival;
+# durable truth stays in Postgres. Only structural events are logged (see
+# Runs._fanout_event), so a full multi-subagent run is ~50 entries and the cap
+# holds dozens of runs per thread.
 THREAD_EVENTS_MAXLEN = 8192
-THREAD_EVENTS_TTL_SECS = 86400
+THREAD_EVENTS_TTL_SECS = 604800
 
 
 def string_run_attempt(run_id) -> str:

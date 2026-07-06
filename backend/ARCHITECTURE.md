@@ -149,6 +149,20 @@ mounted in `server/api/api/event_streaming.py` behind `FF_V2_EVENT_STREAMING` (d
 SDK's bundled version — it is pre-1.0; keep the two in lockstep). Cancellation travels the
 same bus on a `:control` channel with a 60 s `SET` to cover the subscribe race.
 
+Alongside the live channels, core-server keeps a **per-thread durable event log** (Redis
+Stream `thread:{tid}:events`, written by `Runs.Publish`/`MarkDone`, read by
+`Threads.Stream`). A fresh subscriber replays the log from `last_event_id` before tailing
+live; each event carries its log entry id as the wire `event_id` for client-side dedup.
+This is what the SDK's contract requires — it **rotates** its shared SSE whenever a
+subagent pane mounts mid-run and expects the fresh stream to replay history — and it is
+also what hydrates subagent activity when reopening a historical thread. The log stores
+**structural events only** (`tools`, `values`, `lifecycle`, `control`): chunked message
+streams are live-only, because measured on a real multi-subagent run they were ~99% of
+entries and 95% of 66 MB, flooding the cap until the earliest subagents' tool events were
+trimmed. Bounds: ~8192 entries (approximate trim) and a 7-day TTL
+(`server/core_server/redis_db.py`) — beyond them, history panes degrade to the
+input/output summary held in thread state.
+
 Meta endpoints: `/ok` (LB health; also pings core-server gRPC health), `/info` (version +
 flags), `/metrics` (Prometheus), `/docs` + `/openapi.json`, plus `/mcp` and
 `/a2a/{assistant_id}`.
@@ -204,9 +218,12 @@ All read in `server/api/config/__init__.py` unless noted. The compose file sets 
 Real properties of this codebase — accepted for a single-user local deployment, listed so
 nobody is surprised later:
 
-1. **No resumable streams / event replay.** Streaming is live pub/sub only; a late joiner
-   or `Last-Event-ID` reconnect is not back-filled (final state still recoverable from the
-   DB).
+1. **Event replay is bounded, not archival.** The per-thread event log (§5) makes
+   reconnects, SDK stream rotations, and history views lossless within its bounds
+   (~8192 structural entries, 7-day TTL). Beyond them — or for chunked message streams,
+   which are live-only — replay degrades gracefully: final state always rehydrates from
+   Postgres, but per-tool subagent activity older than the log is gone. Truly durable
+   pane history would have to be derived from the namespaced checkpoints.
 2. **No orphan-run sweeper.** A hard-killed worker (OOM/SIGKILL) leaves its run stuck in
    `status='running'` forever; core-server's `Sweep` RPC is a no-op. Mitigation if it ever
    matters: periodically re-pend runs `running` longer than a threshold.

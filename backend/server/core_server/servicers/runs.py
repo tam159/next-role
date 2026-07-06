@@ -466,14 +466,24 @@ class RunsServicerImpl(RunsServicer):
 
         The channel serves v1 run-scoped subscribers; the XADD backs
         Threads.Stream replay (`last_event_id`) so fresh v2 subscribers —
-        including the JS SDK's mid-run stream rotations — can catch up on
-        history instead of seeing live-only events. Best-effort by design:
-        a Redis hiccup must not fail the worker's publish path.
+        including the JS SDK's mid-run stream rotations and history views —
+        can catch up instead of seeing live-only events. Best-effort by
+        design: a Redis hiccup must not fail the worker's publish path.
+
+        Only **structural** events are logged. Chunked message streams
+        (`messages`, `messages|<namespace>`) are live-only: measured on a
+        real multi-subagent run they were ~8.1k of 8.2k entries and 95% of
+        66 MB, flooding the capped log until the earliest subagents' tool
+        events were trimmed — history panes then showed missing/misordered
+        activity. Panes hydrate from `tools`/`values`/`lifecycle` events;
+        main-chat prose hydrates from thread state over REST.
         """
         data = ev.SerializeToString()
         r = get_redis()
         with contextlib.suppress(Exception):
             await r.publish(channel_run_stream(tid, rid if rid else "*"), data)
+        if ev.event_type.split("|", 1)[0] == "messages":
+            return
         with contextlib.suppress(Exception):
             key = stream_thread_events(tid)
             await r.xadd(key, {"d": data}, maxlen=THREAD_EVENTS_MAXLEN, approximate=True)
