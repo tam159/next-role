@@ -15,7 +15,8 @@ interface TopBarProps {
   assistant: Assistant | null;
   threadId: string | null;
   interruptCount: number;
-  onOpenThreads: () => void;
+  threadsOpen: boolean;
+  onToggleThreads: () => void;
   onOpenSettings: () => void;
   onNewThread: () => void;
 }
@@ -41,7 +42,8 @@ export function TopBar({
   assistant,
   threadId,
   interruptCount,
-  onOpenThreads,
+  threadsOpen,
+  onToggleThreads,
   onOpenSettings,
   onNewThread,
 }: TopBarProps) {
@@ -85,7 +87,13 @@ export function TopBar({
     <header className="relative z-30 flex h-[60px] shrink-0 items-center justify-between border-b border-primary bg-surface px-4">
       {/* LEFT */}
       <div className="flex min-w-0 items-center gap-2.5">
-        <button onClick={onOpenThreads} title="Threads" className={cn(ICON_BTN, "relative")}>
+        <button
+          onClick={onToggleThreads}
+          title="Threads"
+          aria-expanded={threadsOpen}
+          aria-controls="threads-panel"
+          className={cn(ICON_BTN, "relative")}
+        >
           <MessageSquare className="size-[19px]" strokeWidth={1.7} />
           {interruptCount > 0 && (
             <span className="absolute -top-0.5 -right-0.5 grid min-h-4 min-w-4 place-items-center rounded-full bg-destructive px-1 text-[10px] font-semibold text-white">

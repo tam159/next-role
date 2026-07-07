@@ -259,12 +259,11 @@ components:
     hoverBackground: "{colors.surface-3}"
     rounded: "{rounded.button}"
     note: "Square letter badge + title + domain + external-link icon."
-  threads-drawer:
+  threads-panel:
     backgroundColor: "{colors.surface}"
-    width: 330px
-    shadow: "{shadow.lg}"
-    scrim: "{colors.scrim}"
-    note: "Left slide-over; pinnable to a persistent 300px docked column."
+    width: 320px
+    border: "1px {colors.border} right hairline"
+    note: "Collapsible docked column below the top bar; width animates 0↔320px over 200ms. Pin keeps it open across thread selection and restores it on load. Below 1024px it overlays the content row with {shadow.lg} + {colors.scrim}."
   thread-card:
     backgroundColor: transparent
     activeBackground: "{colors.accent-soft}"
@@ -307,7 +306,7 @@ The product is organized as a **focused two-panel workspace**:
 1. **Conversation panel** (`{colors.bg}`) — chat with the agent plus a vertical **tool-activity timeline rail** that shows each tool/subagent step.
 2. **Workspace panel** (`{colors.surface}`) — three collapsible cards: **Plan** (todos + progress), **Files** (generated artifacts), **Sources** (web research).
 
-Threads live in a **left slide-over drawer** that can be **pinned** into a persistent docked column. Everything is fully themed for **light (paper) and dark (espresso)**.
+Threads live in a **collapsible docked panel** below the top bar, toggled from the top-bar threads button; **pinning** keeps it open across thread switches and restores it on load. Everything is fully themed for **light (paper) and dark (espresso)**.
 
 **Key Characteristics:**
 
@@ -332,7 +331,7 @@ The accent is **user-selectable** and persisted (`data-accent` on the root); **e
 ### Surface (Light — paper)
 
 - **Canvas** (`{colors.bg}` — #f3f0e9): the conversation floor and deepest app background.
-- **Surface** (`{colors.surface}` — #fbfaf5): raised panels — top bar, workspace, threads drawer.
+- **Surface** (`{colors.surface}` — #fbfaf5): raised panels — top bar, workspace, threads panel.
 - **Surface-2** (`{colors.surface-2}` — #ffffff): cards, chat bubbles, composer, modals, file cards.
 - **Surface-3** (`{colors.surface-3}` — #f4f1ea): insets, hover fills, segmented-control track, code/detail panels.
 
@@ -357,7 +356,7 @@ The accent is **user-selectable** and persisted (`data-accent` on the root); **e
 - **Warm** (`{colors.warm}` — #d9785a): PDF / decorative warm accent.
 - **Warning** (`{colors.warning}` — #c47a16): in-progress / needs-review states.
 - **Error** (`{colors.error}` — #d9534f): destructive actions, error tool states.
-- **Scrim** (`{colors.scrim}` — rgba(40,34,24,.34) / dark rgba(0,0,0,.55)): modal + drawer backdrop.
+- **Scrim** (`{colors.scrim}` — rgba(40,34,24,.34) / dark rgba(0,0,0,.55)): modal backdrop; threads-panel backdrop on small screens.
 
 ### File-Category Hues
 
@@ -407,7 +406,7 @@ The serif hero is the brand's literary signal — set at weight 500 with the emp
 ### Grid & Containers
 
 - **App shell:** full-height column — `{component.top-bar}` (60px) over a horizontal split.
-- **Main split:** resizable Conversation (~46%) + Workspace (~54%), via `react-resizable-panels`. When threads are pinned, a fixed 300px docked column precedes the split.
+- **Main split:** resizable Conversation (~46%) + Workspace (~54%), via `react-resizable-panels`. When the threads panel is open, a 320px (`--sidebar-width`) docked column precedes the split; it collapses to 0 with a 200ms width animation.
 - **Workspace cards:** stacked, `flex-shrink: 0` so each keeps natural height and the panel scrolls.
 - **File grid:** auto-fill 2-up of `{component.file-card}` (min ~220px).
 
@@ -417,13 +416,13 @@ Generous internal padding + the warm canvas give the conversation an unhurried, 
 
 ## Elevation & Depth
 
-| Level    | Treatment                                                        | Use                                    |
-| -------- | ---------------------------------------------------------------- | -------------------------------------- |
-| Flat     | No shadow, no border                                             | Conversation floor, panels             |
-| Hairline | 1px `{colors.border}`                                            | Cards, inputs, dividers                |
-| Card     | `{colors.surface-2}` + `{shadow.sm}`                             | Workspace cards, file cards, bubbles   |
-| Overlay  | `{colors.surface-2/.surface}` + `{shadow.lg}` + `{colors.scrim}` | Modals, threads drawer, roster popover |
-| Running  | `tool-running-sweep` / `progress-active` sheen                   | Active tool node + progress bar        |
+| Level    | Treatment                                                        | Use                                                   |
+| -------- | ---------------------------------------------------------------- | ----------------------------------------------------- |
+| Flat     | No shadow, no border                                             | Conversation floor, panels                            |
+| Hairline | 1px `{colors.border}`                                            | Cards, inputs, dividers                               |
+| Card     | `{colors.surface-2}` + `{shadow.sm}`                             | Workspace cards, file cards, bubbles                  |
+| Overlay  | `{colors.surface-2/.surface}` + `{shadow.lg}` + `{colors.scrim}` | Modals, roster popover, threads panel (small screens) |
+| Running  | `tool-running-sweep` / `progress-active` sheen                   | Active tool node + progress bar                       |
 
 Depth is **color-block first** — surface contrast (canvas → surface → surface-2) and hairlines carry most separation; shadows are soft and warm (`rgba(60,50,30,…)` on light, black on dark). The brand mark adds an accent **glow** behind the hero logo only.
 
@@ -497,9 +496,9 @@ Depth is **color-block first** — surface contrast (canvas → surface → surf
 
 **`source-row`** — square letter badge + title + domain (`{colors.text-3}`) + external-link icon; hover `{colors.surface-3}`.
 
-### Overlays
+### Overlays & Panels
 
-**`threads-drawer`** — left slide-over (330px, `{colors.surface}`, `{shadow.lg}`, `{colors.scrim}`) on Radix Dialog. Header "Threads" + status filter + **pin** toggle + close. Pinning converts it to a persistent 300px docked column that stays open while switching threads (auto-closes on select when unpinned). Holds `{component.thread-card}` rows.
+**`threads-panel`** — collapsible docked column (320px `--sidebar-width`, `{colors.surface}`, right hairline) below the top bar; the top-bar threads button toggles it (`aria-expanded`), animating width 0↔320px over 200ms. Header "Threads" + status filter + **pin** toggle + close — same controls in both pin states. Pinned = stays open while switching threads and is restored open on the next visit; unpinned = auto-closes on select; closing (toggle or X) always unpins. Stays mounted while collapsed (`inert`) so the interrupt badge keeps updating. Below 1024px it overlays the content row with `{shadow.lg}` + `{colors.scrim}` (scrim click closes). Holds `{component.thread-card}` rows.
 
 **`thread-card`** — status dot + title + role/meta; active = `{colors.accent-soft}` bg + accent border.
 
@@ -538,10 +537,10 @@ Depth is **color-block first** — surface contrast (canvas → surface → surf
 | ------- | ---------- | ------------------------------------------------------------------------------------------------------------------ |
 | Mobile  | < 768px    | Thread title/sub + roster label hide; roster pill shows dot + chevron; workspace stacks under chat; file grid 1-up |
 | Tablet  | 768–1024px | Two-panel split tightens; file grid 2-up                                                                           |
-| Desktop | ≥ 1024px   | Full top bar; resizable chat + workspace; pinnable docked threads column; file grid 2-up                           |
+| Desktop | ≥ 1024px   | Full top bar; resizable chat + workspace; collapsible docked threads panel; file grid 2-up                         |
 
 - **Touch targets:** icon buttons 38px; send/icon-circular 36px; inputs/buttons 38px.
-- **Overlays:** threads use a slide-over drawer by default (overlay on small screens); pinning to a docked column is a desktop affordance.
+- **Overlays:** the threads panel is docked in-flow ≥ 1024px and overlays the content row with scrim + shadow below; pinning is a desktop affordance.
 - **Code & paths:** mono blocks scroll horizontally inside their container rather than wrapping; the conversation column caps at 760px.
 
 ## Iteration Guide
@@ -557,6 +556,6 @@ Depth is **color-block first** — surface contrast (canvas → surface → surf
 
 - Two parallel token layers exist in `globals.css` — the app `--color-*`/`--brand-accent*` set (consumed via Tailwind extends) and the Radix `--primary`/`--ring`/`--background` HSL set (consumed by `components/ui/*`). They must be edited together; the accent feeds both.
 - Temperature and system-instruction controls from the original design were deferred (no backend wiring yet); Settings currently exposes appearance, model overrides, and connection config.
-- Animation timings (streaming caret, tool sweep, progress sheen, drawer slide) are encoded ad hoc in `globals.css` / Tailwind, not formalized as motion tokens.
+- Animation timings (streaming caret, tool sweep, progress sheen, threads-panel width animation) are encoded ad hoc in `globals.css` / Tailwind, not formalized as motion tokens.
 - The four accents ship solid/hover/soft/text quartets for light and dark; only the emerald set is exercised heavily — verify contrast when promoting another accent to default.
 - This documents the product UI; transient states (toasts via `sonner`, tool-approval interrupt variants) are styled with tokens but not all enumerated here.

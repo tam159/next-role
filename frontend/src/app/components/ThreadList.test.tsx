@@ -153,6 +153,34 @@ describe("ThreadList", () => {
 
     expect(setSize).toHaveBeenCalledWith(2);
   });
+
+  // The header is identical in both pin states (the X is no longer hidden
+  // while pinned) — only the pin button's icon/label flips.
+  it("renders working pin and close buttons while pinned", async () => {
+    const user = userEvent.setup();
+    const onTogglePin = vi.fn();
+    const onClose = vi.fn();
+    renderList({ pinned: true, onTogglePin, onClose });
+
+    await user.click(screen.getByRole("button", { name: "Unpin threads" }));
+    expect(onTogglePin).toHaveBeenCalledTimes(1);
+
+    await user.click(screen.getByRole("button", { name: "Close threads panel" }));
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it("renders working pin and close buttons while unpinned", async () => {
+    const user = userEvent.setup();
+    const onTogglePin = vi.fn();
+    const onClose = vi.fn();
+    renderList({ pinned: false, onTogglePin, onClose });
+
+    await user.click(screen.getByRole("button", { name: "Pin threads open" }));
+    expect(onTogglePin).toHaveBeenCalledTimes(1);
+
+    await user.click(screen.getByRole("button", { name: "Close threads panel" }));
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
 });
 
 describe("formatTime", () => {

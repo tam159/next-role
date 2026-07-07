@@ -187,7 +187,7 @@
     --shadow-lg: 0 16px 48px -18px rgba(60, 50, 30, 0.3);
     --shadow-xl: 0 24px 64px -20px rgba(60, 50, 30, 0.34);
 
-    /* Modal / drawer backdrop */
+    /* Modal backdrop; threads-panel backdrop on small screens */
     --scrim: rgba(40, 34, 24, 0.34);
 
     /* Transition variables */
