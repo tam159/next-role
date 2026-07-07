@@ -1,9 +1,8 @@
 "use client";
 
 import React, { useMemo } from "react";
-import { SubAgentIndicator } from "@/app/components/SubAgentIndicator";
-import { SubagentCard } from "@/app/components/SubagentCard";
-import { ToolCallBox } from "@/app/components/ToolCallBox";
+import { QueuedSubagentCard, SubagentCard } from "@/app/components/SubagentCard";
+import { ToolCallGroup } from "@/app/components/ToolCallGroup";
 import { MarkdownContent } from "@/app/components/MarkdownContent";
 import { LogoMark } from "@/app/components/LogoMark";
 import type { ToolCall, ActionRequest, ReviewConfig } from "@/app/types/types";
@@ -15,6 +14,13 @@ import { cn } from "@/lib/utils";
 interface ChatMessageProps {
   message: BaseMessage;
   toolCalls: ToolCall[];
+  /**
+   * The merged run of regular tool calls headed by this message (batched per
+   * issuing message), or null when this message's calls render under an
+   * earlier head. Computed in ChatInterface, where runs span messages.
+   */
+  toolBatches?: ToolCall[][] | null;
+  isOpenEndedGroup?: boolean;
   isLoading?: boolean;
   showAvatar?: boolean;
   actionRequestsMap?: Map<string, ActionRequest>;
@@ -27,6 +33,8 @@ export const ChatMessage = React.memo<ChatMessageProps>(
   ({
     message,
     toolCalls,
+    toolBatches,
+    isOpenEndedGroup,
     isLoading,
     showAvatar = true,
     actionRequestsMap,
@@ -101,44 +109,28 @@ export const ChatMessage = React.memo<ChatMessageProps>(
               </div>
             </div>
           )}
-          {hasToolCalls && (
-            <div className="relative mt-4 flex w-full flex-col gap-1.5 before:absolute before:top-2 before:bottom-2 before:left-[12px] before:w-px before:bg-border2">
-              {toolCalls.map((toolCall: ToolCall) => {
-                if (toolCall.name === "task") return null;
-                const actionRequest = actionRequestsMap?.get(toolCall.name);
-                const reviewConfig = reviewConfigsMap?.get(toolCall.name);
-                return (
-                  <ToolCallBox
-                    key={toolCall.id}
-                    toolCall={toolCall}
-                    actionRequest={actionRequest}
-                    reviewConfig={reviewConfig}
-                    onResume={onResumeInterrupt}
-                    isLoading={isLoading}
-                  />
-                );
-              })}
-            </div>
+          {toolBatches && toolBatches.length > 0 && (
+            <ToolCallGroup
+              batches={toolBatches}
+              isLoading={isLoading}
+              isOpenEnded={isOpenEndedGroup}
+              actionRequestsMap={actionRequestsMap}
+              reviewConfigsMap={reviewConfigsMap}
+              onResumeInterrupt={onResumeInterrupt}
+            />
           )}
           {!isUser && taskToolCalls.length > 0 && (
-            <div className="mt-4 flex w-fit max-w-full flex-col gap-4">
+            <div className="mt-4 flex w-full flex-col gap-4">
               {taskToolCalls.map((toolCall) => {
                 const snapshot = stream.subagents.get(toolCall.id);
                 if (!snapshot) {
                   // Discovery hasn't landed yet (the task call's args are
-                  // still streaming): show a static queued indicator until
+                  // still streaming): show a header-only queued card until
                   // the tools-channel event creates the snapshot.
                   return (
-                    <SubAgentIndicator
+                    <QueuedSubagentCard
                       key={toolCall.id}
-                      subAgent={{
-                        id: toolCall.id,
-                        name: toolCall.name,
-                        subAgentName: String(toolCall.args["subagent_type"]),
-                        input: toolCall.args,
-                        status: "pending",
-                      }}
-                      onClick={() => {}}
+                      name={String(toolCall.args["subagent_type"])}
                     />
                   );
                 }
@@ -148,6 +140,7 @@ export const ChatMessage = React.memo<ChatMessageProps>(
                     stream={stream}
                     snapshot={snapshot}
                     taskToolCall={toolCall}
+                    isLoading={isLoading}
                   />
                 );
               })}

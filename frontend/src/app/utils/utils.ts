@@ -92,3 +92,13 @@ export function parsePartialArgs(raw: string | undefined): Record<string, unknow
     ? (parsed as Record<string, unknown>)
     : {};
 }
+
+/** Compact elapsed time between two instants: "<1s", "42s", "3m 07s". */
+export function formatDuration(startedAt: Date, completedAt: Date): string {
+  const totalSeconds = Math.round((completedAt.getTime() - startedAt.getTime()) / 1000);
+  if (totalSeconds < 1) return "<1s";
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  if (minutes === 0) return `${seconds}s`;
+  return `${minutes}m ${String(seconds).padStart(2, "0")}s`;
+}

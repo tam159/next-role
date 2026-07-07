@@ -38,11 +38,8 @@ vi.mock("@/app/components/SubagentCard", () => ({
     snapshot: SubagentDiscoverySnapshot;
     taskToolCall: ToolCall;
   }) => <div data-testid={`subagent-card-${taskToolCall.id}`} data-snapshot-name={snapshot.name} />,
-}));
-
-vi.mock("@/app/components/SubAgentIndicator", () => ({
-  SubAgentIndicator: ({ subAgent }: { subAgent: { id: string; status: string } }) => (
-    <div data-testid={`subagent-indicator-${subAgent.id}`} data-status={subAgent.status} />
+  QueuedSubagentCard: ({ name }: { name: string }) => (
+    <div data-testid={`queued-subagent-card-${name}`} />
   ),
 }));
 
@@ -83,11 +80,11 @@ describe("ChatMessage", () => {
     expect(screen.getByAltText("NextRole")).toBeInTheDocument();
   });
 
-  it("renders one ToolCallBox per non-task tool call", () => {
+  it("renders the merged tool run headed by this message as ToolCallBoxes", () => {
     renderMessage(new AIMessage(""), {
-      toolCalls: [
-        toolCall({ id: "a1", name: "internet_search" }),
-        toolCall({ id: "b2", name: "read_file", args: { path: "/x" } }),
+      toolBatches: [
+        [toolCall({ id: "a1", name: "internet_search" })],
+        [toolCall({ id: "b2", name: "read_file", args: { path: "/x" } })],
       ],
     });
 
@@ -95,20 +92,31 @@ describe("ChatMessage", () => {
     expect(screen.getByTestId("tool-call-box-b2")).toHaveAttribute("data-name", "read_file");
   });
 
-  it("routes the action request to the tool call box whose tool name matches", () => {
+  it("renders no tool boxes when this message's calls belong to an earlier head", () => {
+    renderMessage(new AIMessage(""), {
+      toolCalls: [toolCall({ id: "a1", name: "internet_search" })],
+      toolBatches: null,
+    });
+
+    expect(screen.queryByTestId("tool-call-box-a1")).not.toBeInTheDocument();
+  });
+
+  it("routes the action request to the interrupted tool call box", () => {
     const actionRequest: ActionRequest = { name: "write_file", args: { path: "/tmp/a.md" } };
     const onResumeInterrupt = vi.fn();
     renderMessage(new AIMessage(""), {
-      toolCalls: [
-        toolCall({ id: "a1", name: "write_file", status: "interrupted" }),
-        toolCall({ id: "b2", name: "execute" }),
+      toolBatches: [
+        [
+          toolCall({ id: "a1", name: "write_file", status: "interrupted" }),
+          toolCall({ id: "b2", name: "execute" }),
+        ],
       ],
       actionRequestsMap: new Map([["write_file", actionRequest]]),
       onResumeInterrupt,
     });
 
-    // actionRequestsMap is keyed by tool NAME in the component, so the
-    // write_file box gets the request and every box receives onResume.
+    // actionRequestsMap is keyed by tool NAME and attaches only to the
+    // interrupted call; every box receives onResume.
     const interrupted = screen.getByTestId("tool-call-box-a1");
     expect(interrupted).toHaveAttribute("data-action-request", "write_file");
     expect(interrupted).toHaveAttribute("data-has-resume", "yes");
@@ -134,10 +142,10 @@ describe("ChatMessage", () => {
     );
     // Task calls never render as plain tool call boxes.
     expect(screen.queryByTestId("tool-call-box-task-1")).not.toBeInTheDocument();
-    expect(screen.queryByTestId("subagent-indicator-task-1")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("queued-subagent-card-researcher")).not.toBeInTheDocument();
   });
 
-  it("renders a queued SubAgentIndicator for a task call before discovery lands", () => {
+  it("renders a queued subagent card for a task call before discovery lands", () => {
     const task = toolCall({
       id: "task-1",
       name: "task",
@@ -146,10 +154,7 @@ describe("ChatMessage", () => {
     });
     renderMessage(new AIMessage(""), { toolCalls: [task] });
 
-    expect(screen.getByTestId("subagent-indicator-task-1")).toHaveAttribute(
-      "data-status",
-      "pending"
-    );
+    expect(screen.getByTestId("queued-subagent-card-researcher")).toBeInTheDocument();
     expect(screen.queryByTestId("subagent-card-task-1")).not.toBeInTheDocument();
   });
 
@@ -159,7 +164,7 @@ describe("ChatMessage", () => {
     });
 
     expect(screen.queryByTestId("subagent-card-task-1")).not.toBeInTheDocument();
-    expect(screen.queryByTestId("subagent-indicator-task-1")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("queued-subagent-card-undefined")).not.toBeInTheDocument();
     expect(screen.queryByTestId("tool-call-box-task-1")).not.toBeInTheDocument();
   });
 

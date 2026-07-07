@@ -3,6 +3,7 @@ import {
   cn,
   extractStringFromMessageContent,
   extractSubAgentContent,
+  formatDuration,
   parsePartialArgs,
   toResultString,
   unwrapToolPayload,
@@ -158,5 +159,23 @@ describe("parsePartialArgs", () => {
   it("returns {} for undefined or empty input", () => {
     expect(parsePartialArgs(undefined)).toEqual({});
     expect(parsePartialArgs("")).toEqual({});
+  });
+});
+
+describe("formatDuration", () => {
+  const at = (iso: string) => new Date(iso);
+
+  it("renders sub-second durations as <1s", () => {
+    expect(formatDuration(at("2026-07-01T10:00:00.000Z"), at("2026-07-01T10:00:00.400Z"))).toBe(
+      "<1s"
+    );
+  });
+
+  it("renders seconds-only durations", () => {
+    expect(formatDuration(at("2026-07-01T10:00:00Z"), at("2026-07-01T10:00:42Z"))).toBe("42s");
+  });
+
+  it("renders minutes with zero-padded seconds", () => {
+    expect(formatDuration(at("2026-07-01T10:00:00Z"), at("2026-07-01T10:03:07Z"))).toBe("3m 07s");
   });
 });

@@ -485,7 +485,7 @@ export const TasksFilesSidebar = React.memo<{
               onClick={() => setTasksOpen((v) => !v)}
               className={cn(
                 "flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground transition-transform duration-200 hover:bg-muted",
-                tasksOpen ? "rotate-180" : "rotate-0"
+                tasksOpen ? "rotate-0" : "-rotate-90"
               )}
               aria-label="Toggle tasks panel"
             >
@@ -531,7 +531,7 @@ export const TasksFilesSidebar = React.memo<{
               onClick={() => setFilesOpen((v) => !v)}
               className={cn(
                 "flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground transition-transform duration-200 hover:bg-muted",
-                filesOpen ? "rotate-180" : "rotate-0"
+                filesOpen ? "rotate-0" : "-rotate-90"
               )}
               aria-label="Toggle files panel"
             >

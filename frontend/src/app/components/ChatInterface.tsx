@@ -305,6 +305,76 @@ export const ChatInterface = React.memo<ChatInterfaceProps>(({ assistant }) => {
     return result;
   }, [messages, interrupt]);
 
+  // Merge consecutive runs of regular (non-`task`) tool calls across AI
+  // messages into one disclosure unit per run, batched by issuing message
+  // (calls in one message ran in parallel). A run breaks on prose — which
+  // renders above its own message's tool calls — on a subagent spawn — whose
+  // card renders below them — and on human messages. The same identity-caching
+  // discipline as processedMessages applies: a head keeps its previous batches
+  // reference while no member batch changed, so React.memo holds downstream.
+  const regularToolCallsCacheRef = useRef(
+    new Map<string, { source: ToolCall[]; regular: ToolCall[] }>()
+  );
+  const toolBatchesCacheRef = useRef(new Map<string, ToolCall[][]>());
+
+  const { toolBatchesByHead, openEndedHeadId } = useMemo(() => {
+    const regularCache = regularToolCallsCacheRef.current;
+    const batchesCache = toolBatchesCacheRef.current;
+    const byHead = new Map<string, ToolCall[][]>();
+    const seenMessageIds = new Set<string>();
+    let current: { headId: string; batches: ToolCall[][] } | null = null;
+
+    for (const { message, toolCalls } of processedMessages) {
+      const messageId = message.id;
+      if (!messageId || message.type === "human") {
+        current = null;
+        continue;
+      }
+      seenMessageIds.add(messageId);
+
+      let regular: ToolCall[];
+      const cached = regularCache.get(messageId);
+      if (cached && cached.source === toolCalls) {
+        regular = cached.regular;
+      } else {
+        regular = toolCalls.filter((tc) => tc.name !== "task");
+        if (
+          cached &&
+          cached.regular.length === regular.length &&
+          cached.regular.every((tc, i) => tc === regular[i])
+        ) {
+          regular = cached.regular;
+        }
+        regularCache.set(messageId, { source: toolCalls, regular });
+      }
+
+      if (extractStringFromMessageContent(message).trim() !== "") current = null;
+      if (regular.length > 0) {
+        if (!current) current = { headId: messageId, batches: [] };
+        current.batches.push(regular);
+        byHead.set(current.headId, current.batches);
+      }
+      if (toolCalls.some((tc) => tc.name === "task" && !!tc.args["subagent_type"])) {
+        current = null;
+      }
+    }
+
+    for (const [headId, batches] of byHead) {
+      const prev = batchesCache.get(headId);
+      if (prev && prev.length === batches.length && prev.every((b, i) => b === batches[i])) {
+        byHead.set(headId, prev);
+      } else {
+        batchesCache.set(headId, batches);
+      }
+    }
+    for (const id of batchesCache.keys()) if (!byHead.has(id)) batchesCache.delete(id);
+    for (const id of regularCache.keys()) if (!seenMessageIds.has(id)) regularCache.delete(id);
+
+    // A transcript that ends inside a run may still grow another batch — its
+    // head holds the group open across think-pauses while the run is live.
+    return { toolBatchesByHead: byHead, openEndedHeadId: current?.headId ?? null };
+  }, [processedMessages]);
+
   // Parse out any action requests or review configs from the interrupt
   const actionRequestsMap: Map<string, ActionRequest> | null = useMemo(() => {
     const actionRequests = interrupt?.value && (interrupt.value as any)["action_requests"];
@@ -363,17 +433,20 @@ export const ChatInterface = React.memo<ChatInterfaceProps>(({ assistant }) => {
             </div>
           ) : (
             <div className="mx-auto w-full max-w-[760px] px-6 pt-6 pb-8">
-              {processedMessages.map((data, index) => {
-                const isLastMessage = index === processedMessages.length - 1;
+              {processedMessages.map((data) => {
+                const messageId = data.message.id;
+                const toolBatches = messageId ? toolBatchesByHead.get(messageId) : undefined;
                 return (
                   <ChatMessage
-                    key={data.message.id}
+                    key={messageId}
                     message={data.message}
                     toolCalls={data.toolCalls}
+                    toolBatches={toolBatches ?? null}
+                    isOpenEndedGroup={messageId != null && messageId === openEndedHeadId}
                     isLoading={isLoading}
                     showAvatar={data.showAvatar}
-                    actionRequestsMap={isLastMessage ? actionRequestsMap : undefined}
-                    reviewConfigsMap={isLastMessage ? reviewConfigsMap : undefined}
+                    actionRequestsMap={actionRequestsMap}
+                    reviewConfigsMap={reviewConfigsMap}
                     stream={stream}
                     onResumeInterrupt={resumeInterrupt}
                   />
