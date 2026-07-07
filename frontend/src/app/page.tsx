@@ -11,11 +11,12 @@ import { TopBar } from "@/app/components/TopBar";
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
 import { useDefaultLayout } from "react-resizable-panels";
 import { ThreadList } from "@/app/components/ThreadList";
-import { ThreadsDrawer } from "@/app/components/ThreadsDrawer";
+import { useThreadsPanel } from "@/app/hooks/useThreadsPanel";
 import { ChatProvider } from "@/providers/ChatProvider";
 import { FilePreviewProvider } from "@/providers/FilePreviewProvider";
 import { ChatInterface } from "@/app/components/ChatInterface";
 import { Workspace } from "@/app/components/Workspace";
+import { cn } from "@/lib/utils";
 
 interface HomePageInnerProps {
   config: StandaloneConfig;
@@ -32,42 +33,32 @@ function HomePageInner({
 }: HomePageInnerProps) {
   const client = useClient();
   const [threadId, setThreadId] = useQueryState("threadId");
-  const [sidebar, setSidebar] = useQueryState("sidebar");
 
   const [mutateThreads, setMutateThreads] = useState<(() => void) | null>(null);
   const [interruptCount, setInterruptCount] = useState(0);
   const [assistant, setAssistant] = useState<Assistant | null>(null);
 
-  // Threads can be pinned to a persistent docked column (stays open while
-  // switching threads) or used as an overlay drawer. Pinned state is a
-  // persisted preference.
-  const [threadsPinned, setThreadsPinnedState] = useState(false);
-  useEffect(() => {
-    setThreadsPinnedState(localStorage.getItem("nr-threads-pinned") === "1");
-  }, []);
-  const setThreadsPinned = useCallback((value: boolean) => {
-    setThreadsPinnedState(value);
-    try {
-      localStorage.setItem("nr-threads-pinned", value ? "1" : "0");
-    } catch {
-      // ignore storage failures
-    }
-  }, []);
+  const {
+    open: threadsOpen,
+    pinned: threadsPinned,
+    toggle: toggleThreads,
+    close: closeThreads,
+    togglePin: toggleThreadsPin,
+    onThreadSelected,
+  } = useThreadsPanel();
 
-  // Only set threadId here. Closing the overlay drawer is done in the effect
-  // below, after threadId commits — calling setSidebar in the same handler
-  // rebuilds the query from a pre-threadId snapshot and clobbers it (drawer
-  // closes but no thread loads).
-  const handleThreadSelect = useCallback((id: string) => setThreadId(id), [setThreadId]);
+  const handleThreadSelect = useCallback(
+    (id: string) => {
+      setThreadId(id);
+      onThreadSelected();
+    },
+    [setThreadId, onThreadSelected]
+  );
 
-  // Collapse the overlay drawer once a thread is open (the pinned dock stays).
-  useEffect(() => {
-    if (threadId && sidebar && !threadsPinned) setSidebar(null);
-  }, [threadId, sidebar, threadsPinned, setSidebar]);
-
-  // Threads now live in a slide-over drawer, so the main layout is a fixed two
-  // panels (chat + workspace). Bumped id so stale 3-panel saved layouts (with a
-  // thread-history panel) don't conflict with the new panel set.
+  // The threads panel sits outside the panel group, so the main layout is a
+  // fixed two panels (chat + workspace). Bumped id so stale 3-panel saved
+  // layouts (with a thread-history panel) don't conflict with the new panel
+  // set.
   const { defaultLayout, onLayoutChanged } = useDefaultLayout({
     id: "standalone-chat-v2",
     panelIds: ["chat", "workspace"],
@@ -151,24 +142,53 @@ function HomePageInner({
               assistant={assistant}
               threadId={threadId}
               interruptCount={interruptCount}
-              onOpenThreads={() => (threadsPinned ? setThreadsPinned(false) : setSidebar("1"))}
+              threadsOpen={threadsOpen}
+              onToggleThreads={toggleThreads}
               onOpenSettings={() => setConfigDialogOpen(true)}
               onNewThread={() => setThreadId(null)}
             />
 
-            <div className="flex flex-1 overflow-hidden bg-canvas">
-              {/* Pinned → persistent docked column (stays open while switching). */}
-              {threadsPinned && (
-                <aside className="flex w-[300px] shrink-0 flex-col border-r border-border bg-surface">
+            <div className="relative flex flex-1 overflow-hidden bg-canvas">
+              {/* Threads: one always-docked, collapsible panel. The wrapper
+                  animates width 0↔var(--sidebar-width); the inner aside keeps
+                  a fixed width so content never reflows mid-slide, and is
+                  right-anchored (justify-end) so the panel and its border-r
+                  hairline slide with the moving edge. */}
+              <div
+                id="threads-panel"
+                inert={!threadsOpen}
+                className={cn(
+                  "flex shrink-0 justify-end overflow-hidden transition-[width] duration-200 ease-in-out motion-reduce:transition-none",
+                  "max-lg:absolute max-lg:inset-y-0 max-lg:left-0 max-lg:z-40",
+                  threadsOpen ? "w-[var(--sidebar-width)]" : "w-0"
+                )}
+              >
+                <aside
+                  aria-label="Threads"
+                  className="flex w-[var(--sidebar-width)] shrink-0 flex-col border-r border-border bg-surface max-lg:shadow-[var(--shadow-lg)]"
+                >
                   <ThreadList
-                    pinned
-                    onTogglePin={() => setThreadsPinned(false)}
+                    pinned={threadsPinned}
+                    onTogglePin={toggleThreadsPin}
                     onThreadSelect={handleThreadSelect}
                     onMutateReady={(fn) => setMutateThreads(() => fn)}
+                    onClose={closeThreads}
                     onInterruptCountChange={setInterruptCount}
                   />
                 </aside>
-              )}
+              </div>
+
+              {/* Below lg the panel overlays the content row; the scrim gives
+                  click-out and fades on the same 200ms. The top bar (and its
+                  toggle) stays clickable. */}
+              <div
+                onClick={closeThreads}
+                aria-hidden="true"
+                className={cn(
+                  "absolute inset-0 z-30 bg-[var(--scrim)] transition-opacity duration-200 motion-reduce:transition-none lg:hidden",
+                  threadsOpen ? "opacity-100" : "pointer-events-none opacity-0"
+                )}
+              />
 
               <div className="min-w-0 flex-1">
                 <ResizablePanelGroup
@@ -196,22 +216,6 @@ function HomePageInner({
                 </ResizablePanelGroup>
               </div>
             </div>
-
-            {/* Unpinned → overlay drawer that auto-closes on select. */}
-            {!threadsPinned && (
-              <ThreadsDrawer open={!!sidebar} onOpenChange={(o) => setSidebar(o ? "1" : null)}>
-                <ThreadList
-                  onTogglePin={() => {
-                    setThreadsPinned(true);
-                    setSidebar(null);
-                  }}
-                  onThreadSelect={handleThreadSelect}
-                  onMutateReady={(fn) => setMutateThreads(() => fn)}
-                  onClose={() => setSidebar(null)}
-                  onInterruptCountChange={setInterruptCount}
-                />
-              </ThreadsDrawer>
-            )}
           </div>
         </FilePreviewProvider>
       </ChatProvider>

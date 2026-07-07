@@ -258,13 +258,13 @@ export function ThreadList({
               {pinned ? <PinOff className="h-4 w-4" /> : <Pin className="h-4 w-4" />}
             </Button>
           )}
-          {onClose && !pinned && (
+          {onClose && (
             <Button
               variant="ghost"
               size="icon"
               onClick={onClose}
               className="h-8 w-8"
-              aria-label="Close threads sidebar"
+              aria-label="Close threads panel"
             >
               <X className="h-4 w-4" />
             </Button>
