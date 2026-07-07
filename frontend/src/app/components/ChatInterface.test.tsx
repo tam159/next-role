@@ -1,8 +1,9 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import React from "react";
-import { AIMessage, HumanMessage, type BaseMessage } from "@langchain/core/messages";
+import { AIMessage, HumanMessage, ToolMessage, type BaseMessage } from "@langchain/core/messages";
 import type { Assistant } from "@langchain/langgraph-sdk";
+import type { ToolCall } from "@/app/types/types";
 import { ChatInterface } from "./ChatInterface";
 
 // ---------------------------------------------------------------------------
@@ -61,8 +62,24 @@ vi.mock("@/app/lib/uploadFiles", () => ({
 }));
 
 vi.mock("@/app/components/ChatMessage", () => ({
-  ChatMessage: ({ message }: { message: BaseMessage }) => (
-    <div data-testid="chat-message">{message.id}</div>
+  ChatMessage: ({
+    message,
+    toolBatches,
+    isOpenEndedGroup,
+  }: {
+    message: BaseMessage;
+    toolBatches?: ToolCall[][] | null;
+    isOpenEndedGroup?: boolean;
+  }) => (
+    <div
+      data-testid="chat-message"
+      data-batches={
+        toolBatches ? JSON.stringify(toolBatches.map((b) => b.map((tc) => tc.name))) : ""
+      }
+      data-open-ended={isOpenEndedGroup ? "yes" : "no"}
+    >
+      {message.id}
+    </div>
   ),
 }));
 
@@ -190,5 +207,97 @@ describe("ChatInterface", () => {
     expect(document.querySelector('input[type="file"]')).toBeNull();
     expect(uploadAgentFilesMock).not.toHaveBeenCalled();
     expect(appendUploadNote).not.toHaveBeenCalled();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Tool-call run grouping (computed here, rendered by ToolCallGroup)
+// ---------------------------------------------------------------------------
+
+const aiWithTools = (
+  id: string,
+  tools: Array<{ id: string; name: string }>,
+  content = ""
+): AIMessage =>
+  new AIMessage({
+    id,
+    content,
+    tool_calls: tools.map((t) => ({ id: t.id, name: t.name, args: {}, type: "tool_call" })),
+  });
+
+const toolResult = (callId: string): ToolMessage =>
+  new ToolMessage({ content: "ok", tool_call_id: callId });
+
+const batchesOf = (stub: HTMLElement) => stub.getAttribute("data-batches");
+
+describe("ChatInterface tool-call run grouping", () => {
+  it("merges consecutive AI tool messages into the head's batches", () => {
+    ctx.messages = [
+      aiWithTools("m1", [
+        { id: "t1", name: "read_file" },
+        { id: "t2", name: "read_file" },
+      ]),
+      toolResult("t1"),
+      toolResult("t2"),
+      aiWithTools("m2", [{ id: "t3", name: "edit_file" }]),
+      toolResult("t3"),
+      new AIMessage({ id: "m3", content: "done" }),
+    ];
+    renderChat();
+
+    const [m1, m2, m3] = screen.getAllByTestId("chat-message");
+    expect(batchesOf(m1)).toBe('[["read_file","read_file"],["edit_file"]]');
+    expect(batchesOf(m2)).toBe("");
+    expect(batchesOf(m3)).toBe("");
+  });
+
+  it("breaks a run on prose before its own tools and on a subagent spawn after them", () => {
+    ctx.messages = [
+      aiWithTools("m1", [{ id: "t1", name: "read_file" }]),
+      toolResult("t1"),
+      // Prose renders above this message's own tools → new head here.
+      aiWithTools("m2", [{ id: "t2", name: "edit_file" }], "Let me update that."),
+      toolResult("t2"),
+      // Its regular call joins m2's run; the subagent card then ends it.
+      new AIMessage({
+        id: "m3",
+        content: "",
+        tool_calls: [
+          { id: "t3", name: "list_files", args: {}, type: "tool_call" },
+          { id: "task1", name: "task", args: { subagent_type: "researcher" }, type: "tool_call" },
+        ],
+      }),
+      toolResult("t3"),
+      aiWithTools("m4", [{ id: "t4", name: "execute" }]),
+      toolResult("t4"),
+    ];
+    renderChat();
+
+    const [m1, m2, m3, m4] = screen.getAllByTestId("chat-message");
+    expect(batchesOf(m1)).toBe('[["read_file"]]');
+    expect(batchesOf(m2)).toBe('[["edit_file"],["list_files"]]');
+    expect(batchesOf(m3)).toBe("");
+    expect(batchesOf(m4)).toBe('[["execute"]]');
+  });
+
+  it("flags only a transcript that ends inside a run as open-ended", () => {
+    ctx.messages = [aiWithTools("m1", [{ id: "t1", name: "read_file" }])];
+    ctx.isLoading = true;
+    renderChat();
+    expect(screen.getByTestId("chat-message")).toHaveAttribute("data-open-ended", "yes");
+  });
+
+  it("clears the open-ended flag once prose follows the run", () => {
+    ctx.messages = [
+      aiWithTools("m1", [{ id: "t1", name: "read_file" }]),
+      toolResult("t1"),
+      new AIMessage({ id: "m2", content: "All set." }),
+    ];
+    ctx.isLoading = true;
+    renderChat();
+
+    const [m1, m2] = screen.getAllByTestId("chat-message");
+    expect(m1).toHaveAttribute("data-open-ended", "no");
+    expect(m2).toHaveAttribute("data-open-ended", "no");
   });
 });

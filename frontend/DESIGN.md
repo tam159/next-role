@@ -202,6 +202,16 @@ components:
     railColor: "{colors.border-2}"
     expandedBackground: "{colors.surface-2}"
     detailBackground: "{colors.surface-3}"
+  tool-call-group:
+    note: "A consecutive run of main-agent tool calls (across AI messages; broken by prose, a subagent, or a user message) behind a rail-geometry summary row ('N tool calls' + deduped names + failed pill). Live while running — the tip group stays open between batches — then auto-collapses; manual toggle wins; approval pins open. Expanded body clusters per-message batches; simultaneous ones open with an 'N in parallel' micro-label and close with a border-2 hairline break."
+    nodeSize: 26px
+    railColor: "{colors.border-2}"
+  subagent-card:
+    backgroundColor: "{colors.surface-2}"
+    border: "1px {colors.border}"
+    rounded: "{rounded.card}"
+    shadow: "{shadow.xs}"
+    note: "One card per subagent: header (identity-icon chip + name + status badge + 'n tools' pill + duration + chevron) over a border-t INPUT/ACTIVITY/OUTPUT body. Identity icons: hiring-recon=Radar, resume-tailor=Scissors, interview-coach=MessagesSquare, default=Bot. ACTIVITY clusters the subagent's own steps with the same 'N in parallel' labels as tool-call-group. Expanded while running, auto-collapses to the header on completion."
   composer:
     backgroundColor: "{colors.surface-2}"
     border: "1px {colors.border}"
@@ -437,6 +447,7 @@ Depth is **color-block first** — surface contrast (canvas → surface → surf
 - **Icons:** Lucide, 1.7–1.8 stroke, `currentColor` — sized 14–19px.
 - **Brand mark:** the rocket-over-rising-"N" logo (`/public/next-role-logo.png`), used in the top bar, the hero (with an accent glow), and as the assistant avatar (28px, once per turn).
 - **Tool status nodes:** 26px circles — running = spinning accent ring on `{colors.accent-soft}`; done = check on `{colors.success-soft}`; error = alert on error-tint; the timeline rail connects them in `{colors.border-2}`.
+- **Disclosure chevrons:** one convention everywhere (tool rows, tool-call groups, subagent cards, workspace cards, sidebar sections, argument keys): a `ChevronDown` that points **right when collapsed** (`-rotate-90`) and **down when expanded**, animated with `transition-transform duration-200`. Never down→up.
 
 ## Components
 
@@ -465,6 +476,10 @@ Depth is **color-block first** — surface contrast (canvas → surface → surf
 **`assistant-turn`** — a 28px brand-mark avatar (rendered **once per turn**, pinned to the top via `items-start`) + a content column carrying the thinking indicator, the tool rail, and the streamed reply.
 
 **`tool-rail-row`** — the signature element. A `[node | content]` row on a vertical rail (`{colors.border-2}`). The node shows status (spinner / `{colors.success-soft}` check / hollow `{colors.border-2}` / error). Content = kind icon + `{typography.tool-name}` + one-line summary + chevron; expanding reveals a `{colors.surface-3}` mono detail panel (Arguments / Result). Subagent steps nest as a branch with their own nested rows. Streaming uses the `tool-running-sweep` sheen.
+
+**`tool-call-group`** — a consecutive run of main-agent tool calls as a single disclosure unit, spanning AI messages until broken by prose, a subagent card, or a user message. Progressive disclosure: expanded with live rows while the run is active (the transcript-tip group holds open across the model's think-pauses between batches), then **auto-collapses the moment the run ends** to a summary row in the same `[node | content]` rail geometry — group status node + "N tool calls" + up to 3 deduped mono names (+K overflow) + a `{colors.error}`-tinted "n failed" pill when applicable + chevron. The expanded body preserves per-message batches: calls issued together are clustered, labeled with an "N in parallel" micro-header, and closed with a light hairline break so the cluster's end stays legible. A manual toggle always wins and disables auto-driving; a pending tool approval pins the group open. A run of one call renders as its plain `{component.tool-rail-row}`. Historical messages mount collapsed with no animation.
+
+**`subagent-card`** — one subagent as a single `{colors.surface-2}` + hairline `{rounded.card}` card (replaces the old separate indicator chip + panel). Always-visible header row: neutral Bot chip + subagent name + status badge (Running / Complete / Failed / Queued) + `{colors.surface-3}` "n tools" count pill + duration (terminal only) + `{component.workspace-card}`-style chevron; `tool-running-sweep` on the header while running. Body below a hairline divider: INPUT / ACTIVITY (nested tool rail) / OUTPUT. Same auto-collapse rules as `{component.tool-call-group}`, keyed on the subagent's own completion. The queued state is the same header without a body, so discovery landing doesn't jump.
 
 **`composer`** — `{colors.surface-2}`, `{rounded.composer}`, `{shadow.lg}`, focus-within ring in the accent. Auto-growing textarea, a paperclip attach (reuses the file-upload path), the "Enter to send · Shift+Enter" hint, and a circular **`send-button`** (`{colors.accent}` when there's text, `{colors.border-2}` when empty; a red Stop while the agent runs).
 

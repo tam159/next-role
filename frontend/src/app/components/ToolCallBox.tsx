@@ -5,7 +5,6 @@ import {
   Bot,
   BookOpen,
   ChevronDown,
-  ChevronUp,
   FilePenLine,
   FolderTree,
   Globe2,
@@ -251,7 +250,7 @@ export const ToolCallBox = React.memo<ToolCallBoxProps>(
                 size={14}
                 className={cn(
                   "shrink-0 text-tertiary transition-transform duration-200",
-                  isExpanded && "rotate-180"
+                  !isExpanded && "-rotate-90"
                 )}
               />
             )}
@@ -287,11 +286,13 @@ export const ToolCallBox = React.memo<ToolCallBoxProps>(
                               className="flex w-full items-center justify-between bg-surface3 p-2 text-left text-xs font-medium transition-colors hover:bg-surface3/70"
                             >
                               <span className="font-mono text-secondary">{key}</span>
-                              {expandedArgs[key] ? (
-                                <ChevronUp size={12} className="text-tertiary" />
-                              ) : (
-                                <ChevronDown size={12} className="text-tertiary" />
-                              )}
+                              <ChevronDown
+                                size={12}
+                                className={cn(
+                                  "text-tertiary transition-transform duration-200",
+                                  !expandedArgs[key] && "-rotate-90"
+                                )}
+                              />
                             </button>
                             {expandedArgs[key] && (
                               <div className="border-t border-primary bg-surface3 p-2">

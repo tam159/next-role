@@ -1,9 +1,9 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { AIMessageChunk } from "@langchain/core/messages";
+import { AIMessage, AIMessageChunk } from "@langchain/core/messages";
 import { useMessages, useToolCalls } from "@langchain/react";
 import type { AnyStream, AssembledToolCall, SubagentDiscoverySnapshot } from "@langchain/react";
-import { SubagentCard } from "@/app/components/SubagentCard";
+import { QueuedSubagentCard, SubagentCard } from "@/app/components/SubagentCard";
 import type { ToolCall } from "@/app/types/types";
 
 // Keep everything real except the scoped selector hooks the card subscribes with.
@@ -56,9 +56,19 @@ function assembled(overrides: Partial<CardToolCall> = {}): CardToolCall {
   } as CardToolCall;
 }
 
-function renderCard(snapshot = makeSnapshot()) {
-  return render(<SubagentCard stream={stream} snapshot={snapshot} taskToolCall={taskToolCall} />);
+function renderCard(
+  snapshot = makeSnapshot(),
+  props: Partial<React.ComponentProps<typeof SubagentCard>> = {}
+) {
+  return render(
+    <SubagentCard stream={stream} snapshot={snapshot} taskToolCall={taskToolCall} {...props} />
+  );
 }
+
+// The card body stays mounted while collapsed (0fr grid row + inert), so
+// presence/absence of the disclosure is asserted via aria-expanded and inert,
+// never via text (dis)appearance.
+const header = () => screen.getByRole("button", { name: /researcher/ });
 
 beforeEach(() => {
   vi.mocked(useToolCalls).mockReturnValue([]);
@@ -100,17 +110,63 @@ describe("SubagentCard", () => {
     expect(container.textContent).not.toContain('"type"');
   });
 
-  it("starts expanded and collapses/re-expands via the indicator", async () => {
+  it("starts expanded while running and collapses/re-expands via the header", async () => {
     const user = userEvent.setup();
-    renderCard();
+    const { container } = renderCard(makeSnapshot(), { isLoading: true });
 
+    expect(header()).toHaveAttribute("aria-expanded", "true");
+    expect(container.querySelector("[inert]")).toBeNull();
+
+    await user.click(header());
+    expect(header()).toHaveAttribute("aria-expanded", "false");
+    expect(container.querySelector("[inert]")).not.toBeNull();
+
+    await user.click(header());
+    expect(header()).toHaveAttribute("aria-expanded", "true");
+  });
+
+  it("mounts collapsed when the subagent is already terminal (history reload)", () => {
+    const { container } = renderCard(
+      makeSnapshot({ status: "complete", completedAt: new Date("2026-07-01T10:05:00Z") }),
+      { isLoading: false }
+    );
+
+    expect(header()).toHaveAttribute("aria-expanded", "false");
+    expect(container.querySelector("[inert]")).not.toBeNull();
+    // The body is inert, not unmounted — its content stays queryable.
     expect(screen.getByText("Input")).toBeInTheDocument();
+  });
 
-    await user.click(screen.getByRole("button", { name: /researcher/ }));
-    expect(screen.queryByText("Input")).not.toBeInTheDocument();
+  it("auto-collapses the moment the subagent completes mid-run", () => {
+    const { rerender } = renderCard(makeSnapshot(), { isLoading: true });
+    expect(header()).toHaveAttribute("aria-expanded", "true");
 
-    await user.click(screen.getByRole("button", { name: /researcher/ }));
-    expect(screen.getByText("Input")).toBeInTheDocument();
+    rerender(
+      <SubagentCard
+        stream={stream}
+        snapshot={makeSnapshot({
+          status: "complete",
+          completedAt: new Date("2026-07-01T10:05:00Z"),
+        })}
+        taskToolCall={taskToolCall}
+        isLoading
+      />
+    );
+    expect(header()).toHaveAttribute("aria-expanded", "false");
+  });
+
+  it("shows the tool-count pill and duration once complete", () => {
+    vi.mocked(useToolCalls).mockReturnValue([
+      assembled(),
+      assembled({ id: "nested-2", callId: "nested-2", name: "read_file" }),
+    ]);
+    renderCard(
+      makeSnapshot({ status: "complete", completedAt: new Date("2026-07-01T10:05:07Z") }),
+      { isLoading: false }
+    );
+
+    expect(screen.getByText("2 tools")).toBeInTheDocument();
+    expect(screen.getByText("5m 07s")).toBeInTheDocument();
   });
 
   it("renders nested tool calls from the tools channel, excluding nested task calls", () => {
@@ -170,5 +226,51 @@ describe("SubagentCard", () => {
 
     expect(screen.getByText("Output")).toBeInTheDocument();
     expect(screen.getByText("Task wrapped up.")).toBeInTheDocument();
+  });
+
+  it("labels calls issued together by one subagent step as parallel", () => {
+    vi.mocked(useToolCalls).mockReturnValue([
+      assembled(),
+      assembled({ id: "nested-2", callId: "nested-2", name: "read_file" }),
+      assembled({ id: "nested-3", callId: "nested-3", name: "edit_file" }),
+    ]);
+    vi.mocked(useMessages).mockReturnValue([
+      new AIMessage({
+        content: "",
+        tool_calls: [
+          { id: "nested-1", name: "internet_search", args: {}, type: "tool_call" },
+          { id: "nested-2", name: "read_file", args: {}, type: "tool_call" },
+        ],
+      }),
+      new AIMessage({
+        content: "",
+        tool_calls: [{ id: "nested-3", name: "edit_file", args: {}, type: "tool_call" }],
+      }),
+    ]);
+    renderCard();
+
+    expect(screen.getByText("2 in parallel")).toBeInTheDocument();
+    expect(screen.getAllByText(/in parallel/)).toHaveLength(1);
+  });
+});
+
+describe("QueuedSubagentCard", () => {
+  it("renders a header-only card with the Queued badge and no toggle", () => {
+    render(<QueuedSubagentCard name="researcher" />);
+
+    expect(screen.getByText("researcher")).toBeInTheDocument();
+    expect(screen.getByText("Queued")).toBeInTheDocument();
+    expect(screen.queryByRole("button")).not.toBeInTheDocument();
+  });
+
+  it.each([
+    ["hiring-recon", "lucide-radar"],
+    ["resume-tailor", "lucide-scissors"],
+    ["interview-coach", "lucide-messages-square"],
+    ["some-new-agent", "lucide-bot"],
+  ])("shows the %s identity icon (%s)", (name, iconClass) => {
+    const { container } = render(<QueuedSubagentCard name={name} />);
+
+    expect(container.querySelector(`.${iconClass}`)).not.toBeNull();
   });
 });
