@@ -24,7 +24,7 @@ See CONTRIBUTING.md for the full workflow.
 ## Checklist
 
 - [ ] PR is focused on a single logical change
-- [ ] Added/updated tests for changed behavior (`cd backend && uv run pytest` passes)
+- [ ] Added/updated tests for changed behavior (backend: `cd backend && uv run pytest`; frontend: `cd frontend && pnpm test`)
 - [ ] Ran the quality gate locally (`pre-commit run --all-files`)
 - [ ] Updated docs (README / `CLAUDE.md` / `docs/prd/`) if behavior changed
 - [ ] Commits follow [Conventional Commits](https://www.conventionalcommits.org/)

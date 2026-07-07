@@ -1,0 +1,74 @@
+name: CI
+
+# Frontend unit tests run only when frontend code (or a workflow file) changes.
+# The workflow ALWAYS triggers so the required `frontend-tests` check is always
+# reported; the expensive job is gated by a job-level `if:`. A job skipped by a
+# conditional reports "Success" and satisfies the required check, whereas a
+# workflow-level `paths:` skip leaves the check stuck in "Expected" and blocks
+# the merge:
+# https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/defining-the-mergeability-of-pull-requests/troubleshooting-required-status-checks
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+# Cancel superseded runs on the same ref (e.g. new push to a PR branch).
+concurrency:
+  group: ci-frontend-tests-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  # Cheap gate (~10s) deciding whether the frontend suite needs to run. Its own
+  # check (`detect-frontend`) is not required; it only feeds the `if:` below.
+  detect-frontend:
+    runs-on: ubuntu-latest
+    outputs:
+      frontend: ${{ steps.filter.outputs.frontend }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Detect frontend changes
+        uses: dorny/paths-filter@fbd0ab8f3e69293af611ebaee6363fc25e6d187d # v4.0.1
+        id: filter
+        with:
+          filters: |
+            frontend:
+              - "frontend/**"
+              - ".github/workflows/**"
+
+  # Frontend tests: the Vitest unit + component suite (node + jsdom projects).
+  # Skipped (→ reports success) on backend-only and doc-only changes.
+  frontend-tests:
+    name: frontend-tests
+    needs: detect-frontend
+    if: needs.detect-frontend.outputs.frontend == 'true'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          package_json_file: frontend/package.json
+
+      - name: Install Node
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: frontend/.nvmrc
+          cache: pnpm
+          cache-dependency-path: frontend/pnpm-lock.yaml
+
+      - name: Install frontend deps
+        run: pnpm install --frozen-lockfile
+
+      - name: Run unit tests
+        run: pnpm test

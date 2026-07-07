@@ -68,9 +68,10 @@ Stack-specific tooling lives in the per-app guides — read these before diving 
 4. **Run the quality gate locally** before pushing (see below) — this is exactly what CI enforces.
 5. **Push** to your fork and **open a PR** against `tam159/next-role:main`. Fill in the PR template
    so reviewers have context.
-6. **CI must pass.** Every PR runs two required checks:
+6. **CI must pass.** Every PR runs three required checks:
    - `code-quality` — the full pre-commit gate (ruff, ty, eslint, prettier, gitleaks, file hygiene).
    - `backend-tests` — the default backend unit-test suite.
+   - `frontend-tests` — the frontend Vitest unit + component suite.
 7. Address review feedback by pushing more commits to the same branch. Squash/cleanup happens at
    merge time, so don't worry about a messy intermediate history.
 
@@ -92,14 +93,24 @@ And run the backend tests (matches the CI `backend-tests` job):
 cd backend && uv run pytest
 ```
 
+And the frontend tests (matches the CI `frontend-tests` job):
+
+```bash
+cd frontend && pnpm test
+```
+
 If a hook auto-fixes a file (ruff format, prettier, end-of-file fixer), re-stage the change and
 commit again.
 
 ## Testing
 
-We currently run **unit tests + integration tests against a local DB**; LLM evals are deferred. Full
-details (layout, markers, async mode) are in [`backend/CLAUDE.md`](backend/CLAUDE.md#testing). The
-essentials:
+Both apps have unit-test suites that run as required CI checks; the backend adds local-DB
+integration tests, and LLM evals are deferred.
+
+### Backend (pytest)
+
+Full details (layout, markers, async mode) are in [`backend/CLAUDE.md`](backend/CLAUDE.md#testing).
+The essentials:
 
 - Tests mirror the source tree: `app/<pkg>/<module>.py` → `tests/<pkg>/test_<module>.py`.
 - **Add/update unit tests by default** when you change code. Mock external dependencies; never
@@ -114,6 +125,25 @@ cd backend
 uv run pytest                              # default: fast unit tests (what CI runs)
 uv run pytest tests/career_agent/test_tools.py   # a single file
 uv run pytest -m integration               # integration tests (needs the local stack up)
+```
+
+### Frontend (Vitest)
+
+Full details (environments, mocking conventions) are in
+[`frontend/CLAUDE.md`](frontend/CLAUDE.md#testing). The essentials:
+
+- Tests are **colocated**: `src/**/<module>.test.ts(x)` sits next to the file it covers.
+- The file extension picks the environment: `.test.ts` runs in node (pure modules, API route
+  handlers), `.test.tsx` runs in jsdom (anything that renders or touches `window`).
+- **Add/update unit tests by default** when you change code. Mock the LangGraph SDK/stream and
+  `fetch` — tests never hit the network.
+
+```bash
+cd frontend
+pnpm test                                  # full suite (what CI runs)
+pnpm test:watch                            # watch mode
+pnpm exec vitest run src/lib/config.test.ts   # a single file
+pnpm test:coverage                         # v8 coverage report
 ```
 
 ## Coding conventions

@@ -4,39 +4,12 @@ import React, { useEffect, useState } from "react";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { oneLight } from "react-syntax-highlighter/dist/esm/styles/prism";
 import { MarkdownContent } from "@/app/components/MarkdownContent";
-
-export type PrintKind = "markdown" | "code" | "docx";
-
-export type PrintPayload = {
-  path: string;
-  content: string;
-  kind: PrintKind;
-  language?: string;
-};
-
-export const PRINT_FILE_STORAGE_KEY = "nextrole:print-file";
-
-function parsePayload(raw: string | null): PrintPayload | null {
-  if (!raw) return null;
-  try {
-    const parsed = JSON.parse(raw) as Partial<PrintPayload>;
-    if (
-      typeof parsed?.path === "string" &&
-      typeof parsed?.content === "string" &&
-      (parsed.kind === "markdown" || parsed.kind === "code" || parsed.kind === "docx")
-    ) {
-      return parsed as PrintPayload;
-    }
-    return null;
-  } catch {
-    return null;
-  }
-}
-
-function basenameWithoutExtension(path: string): string {
-  const base = path.split("/").pop() || path;
-  return base.replace(/\.[^.]+$/, "");
-}
+import {
+  PRINT_FILE_STORAGE_KEY,
+  type PrintPayload,
+  basenameWithoutExtension,
+  parsePayload,
+} from "./printPayload";
 
 const PRINT_STYLES = `
 @page { margin: 0.75in; size: letter; }
