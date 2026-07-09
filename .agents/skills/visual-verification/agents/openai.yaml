@@ -1,0 +1,4 @@
+interface:
+  display_name: "Visual Verification"
+  short_description: "Check the running UI in a browser"
+  default_prompt: "Use $visual-verification to inspect the running UI after frontend changes."
