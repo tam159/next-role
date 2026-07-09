@@ -47,7 +47,7 @@ After rendering, the agent emits one short handoff line: `Battlecard saved — N
 - **Drop the v0 markdown output entirely.** Earlier consideration: keep `.md` alongside `.json` + `.pdf` for grep-ability. Rejected — three artifacts is noise, and the JSON+PDF pair already covers "edit" + "review" use cases. Existing `.md` files are left in place (regenerated per run, not migrated).
 - **Tool returns backend-relative path, not on-disk.** Caught during review — `Path` object's `__str__` was the on-disk absolute. Switched to `json_path.removesuffix(".json") + ".pdf"` so the LLM gets a usable path back.
 - **Render-only tests gated by `pytest.mark.skipif`.** `_weasyprint_importable()` tries `import weasyprint` and catches `OSError`. Four validation tests always run; two render tests skip on Mac unless Pango is installed, but pass cleanly inside the backend container in CI.
-- **Not exposed to subagents.** Stage 5 is main-agent-only per AGENTS.md. Deliberately omitted from `_SUBAGENT_TOOLS` so no future declarative subagent silently picks it up.
+- **Not exposed to subagents.** Stage 5 is main-agent-only per CAREER_AGENT.md. Deliberately omitted from `_SUBAGENT_TOOLS` so no future declarative subagent silently picks it up.
 - **Empty-content check removed from the tool.** `FilesystemBackend.read` returns line-numbered content (e.g. `["1\t   ", "2\t  "]`), so `content.strip()` on a whitespace-only file is non-empty. The JSON decode error message is just as informative for that case; the redundant check is gone.
 
 ## Deferred (intentional non-goals for v1)

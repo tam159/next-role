@@ -1,0 +1,28 @@
+{
+  "mcpServers": {
+    "docs-langchain": {
+      "type": "http",
+      "url": "https://docs.langchain.com/mcp"
+    },
+    "next-role-postgres": {
+      "type": "stdio",
+      "command": "sh",
+      "args": [
+        "-lc",
+        "exec npx -y @bytebase/dbhub --dsn \"postgresql://$POSTGRES_USER:$POSTGRES_PASSWORD@localhost:$POSTGRES_LOCAL_PORT/$POSTGRES_DB\""
+      ],
+      "envFile": "${workspaceFolder}/.env"
+    },
+    "llama-index-docs": {
+      "type": "stdio",
+      "command": "uvx",
+      "args": [
+        "--from",
+        "mcpdoc",
+        "mcpdoc",
+        "--urls",
+        "LlamaIndex:https://developers.llamaindex.ai/llms.txt"
+      ]
+    }
+  }
+}

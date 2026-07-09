@@ -4,7 +4,7 @@
 
 ## Why
 
-The 5-stage career-agent workflow (intake → process → research → customize/prep → cheat sheet) had Stages 1–2 implemented in `AGENTS.md`; Stages 3–5 were `_Not yet implemented — placeholder._`. The main agent could parse a CV + JD and had nothing to do next. Also, after parsing it was reading only the first 100 lines of each processed file (the login-wall verification skim), which left it without enough substance to write good subagent task descriptions for delegation.
+The 5-stage career-agent workflow (intake → process → research → customize/prep → cheat sheet) had Stages 1–2 implemented in `CAREER_AGENT.md`; Stages 3–5 were `_Not yet implemented — placeholder._`. The main agent could parse a CV + JD and had nothing to do next. Also, after parsing it was reading only the first 100 lines of each processed file (the login-wall verification skim), which left it without enough substance to write good subagent task descriptions for delegation.
 
 ## What ships
 
@@ -17,7 +17,7 @@ Three subagents, one skill, and the per-stage procedure to orchestrate them:
 
 Each subagent's workflow lives in its own `skills/<subagent>/<subagent>/SKILL.md` (see PRD 06); the YAML system_prompt is a ~7-line pointer to the skill plus the single-shot rule and the exact one-line final-reply contract back to the main agent. The `interview-battlecard` skill sits under `skills/career-agent/interview-battlecard/` (the main agent's consumer grouping).
 
-`AGENTS.md` Stages 3–5 now carry concrete delegation procedures with full task-input templates. Stage 2 gained a "Load full context before delegating" step (read both processed files in full with `limit=1000`). The CompositeBackend route `/interview_prep/` was renamed to `/interview_coach/`; all other routes unchanged.
+`CAREER_AGENT.md` Stages 3–5 now carry concrete delegation procedures with full task-input templates. Stage 2 gained a "Load full context before delegating" step (read both processed files in full with `limit=1000`). The CompositeBackend route `/interview_prep/` was renamed to `/interview_coach/`; all other routes unchanged.
 
 ## How — the key choices
 
@@ -31,7 +31,7 @@ Each subagent's workflow lives in its own `skills/<subagent>/<subagent>/SKILL.md
 
 **hiring-recon includes match analysis.** Considered splitting (pure recon → match analysis derived later in resume-tailor). Kept combined because the analyst already has the resume + JD in context, and downstream subagents start from a richer baseline instead of re-deriving the same gap matrix twice.
 
-**Stage 4 spawns both subagents in parallel.** AGENTS.md's Stage 4 instructs the main agent to spawn `resume-tailor` and `interview-coach` "in parallel so they can run concurrently" and lists the five shared paths each subagent receives in its task input. The main agent doesn't need to read the recon report itself — it just forwards `research_path` to both subagents.
+**Stage 4 spawns both subagents in parallel.** CAREER_AGENT.md's Stage 4 instructs the main agent to spawn `resume-tailor` and `interview-coach` "in parallel so they can run concurrently" and lists the five shared paths each subagent receives in its task input. The main agent doesn't need to read the recon report itself — it just forwards `research_path` to both subagents.
 
 ## Files of interest
 
@@ -40,7 +40,7 @@ Each subagent's workflow lives in its own `skills/<subagent>/<subagent>/SKILL.md
 | Subagent specs (thin pointers to skills) | `backend/app/career_agent/subagents.yaml` |
 | Subagent loader (tool whitelist + `skills:` passthrough) | `backend/app/career_agent/utils.py` (`load_subagents`) |
 | Tool pool + StoreBackend route rename | `backend/app/career_agent/agents.py` (`_SUBAGENT_TOOLS`, `_SUBAGENT_DEFAULT_TOOLS`; `/interview_prep/` → `/interview_coach/`) |
-| Stages 3–5 procedures + Stage 2 full-context read | `backend/app/career_agent/AGENTS.md` |
+| Stages 3–5 procedures + Stage 2 full-context read | `backend/agents/career_agent/CAREER_AGENT.md` |
 | 5-stage summary in main agent system prompt | `backend/app/career_agent/prompts.py` (`SYSTEM_PROMPT`) |
 | Subagent workflows | `backend/app/career_agent/skills/{hiring-recon,resume-tailor,interview-coach}/<same>/SKILL.md` |
 | Battlecard skill (main agent) | `backend/app/career_agent/skills/career-agent/interview-battlecard/SKILL.md` |
@@ -50,7 +50,7 @@ Each subagent's workflow lives in its own `skills/<subagent>/<subagent>/SKILL.md
 
 - **Names matter; rename cascades.** First pass used `researcher` / `custom-resume` / `interview-prep` / `interview-cheat-sheet`. User correction: too generic. Final names — `hiring-recon` / `resume-tailor` / `interview-coach` / `interview-battlecard` — were chosen for thematic coherence (recon → tailor → coach → battlecard reads as a single kit). The rename cascaded into directory names, the `/interview_coach/` backend route, the README, and the SYSTEM_PROMPT. Budget for that whenever naming changes.
 - **Full-file read before delegating.** The 100-line read in Stage 2's login-wall check was being mis-applied as the agent's only context for Stage 3 delegation. Fixed by adding an explicit "Load full context" step at the end of Stage 2 with `limit=1000`.
-- **Subagents take exact paths in the task input.** Subagents run in a fresh context. The main agent's job is to construct a task description that contains every path the subagent needs — the subagent does not hunt for files. Stated as the standard pattern in AGENTS.md Stages 3 and 4.
+- **Subagents take exact paths in the task input.** Subagents run in a fresh context. The main agent's job is to construct a task description that contains every path the subagent needs — the subagent does not hunt for files. Stated as the standard pattern in CAREER_AGENT.md Stages 3 and 4.
 
 ## Followups that shipped
 

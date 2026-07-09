@@ -1,0 +1,27 @@
+---
+description: Use Context7 for current library, framework, SDK, API, CLI, and cloud docs.
+alwaysApply: true
+---
+
+# Context7 Documentation Rule
+
+Use Context7 MCP to fetch current documentation whenever the user asks about a library,
+framework, SDK, API, CLI tool, or cloud service. This includes API syntax,
+configuration, version migrations, library-specific debugging, setup instructions, and
+CLI usage.
+
+Use Context7 even for familiar tools such as React, Next.js, Prisma, Express, Tailwind,
+Django, or Spring Boot. Prefer it over web search for library docs.
+
+Do not use Context7 for refactoring, writing scripts from scratch, debugging business
+logic, code review, or general programming concepts.
+
+Workflow:
+
+1. Start with `resolve-library-id` using the library name and the user's question, unless
+   the user provides an exact library ID in `/org/project` format.
+2. Pick the best match by exact name, relevance, snippet count, source reputation, and
+   benchmark score.
+3. Query docs with the selected library ID and the user's full question.
+4. If the answer is not good enough, query again with research mode when available.
+5. Answer using the fetched docs.

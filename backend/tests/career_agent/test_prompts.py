@@ -31,7 +31,7 @@ def test_memory_prompt_keeps_required_placeholder() -> None:
 
 
 def test_memory_index_wired_as_second_memory_source() -> None:
-    """`create_deep_agent(memory=[...])` must load both AGENTS.md and the index.
+    """`create_deep_agent(memory=[...])` must load both procedures and the index.
 
     Parsed from source via AST so the check needs no model/API key and runs no
     agent code.
@@ -55,7 +55,7 @@ def test_memory_index_wired_as_second_memory_source() -> None:
     from backend.agents.career_agent.middleware import PREFERENCES_PATH
 
     assert sources, "create_deep_agent(memory=[...]) with string entries not found"
-    assert "AGENTS.md" in sources
+    assert "CAREER_AGENT.md" in sources
     # The literal wired in agents.py must match the path the ensure-middleware seeds.
     assert PREFERENCES_PATH in sources
 

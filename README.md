@@ -171,7 +171,7 @@ The agent's behavior is configured by files, not hardcoded — making it easy to
 
 | Primitive | Where | Role | When loaded |
 | --- | --- | --- | --- |
-| **Memory** | `AGENTS.md` | Per-stage procedure manual (semantic memory) | Always (system prompt) |
+| **Memory** | `CAREER_AGENT.md` | Per-stage procedure manual (semantic memory) | Always (system prompt) |
 | **Skills** | `skills/<consumer>/<name>/SKILL.md` | Task workflows (procedural memory) | On demand, per consumer |
 | **Subagents** | `subagents.yaml` | Specialist delegates → the `task` tool | Always |
 | **Tools** | `tools.py` + DeepAgents built-ins | `parse_document`, `extract_jd`, `render_battlecard_pdf`, `prepare_render_settings`, `list_files`, `overwrite_file`, plus `read/write/edit_file`, `ls/glob/grep`, `execute` | — |
@@ -206,7 +206,7 @@ flowchart LR
     CB -->|default| Shell
     CB -->|KV routes| Store
     CB -->|binary + PDF routes| Disk
-    Sem["Semantic memory · AGENTS.md"] -. loaded into system prompt .-> Agent
+    Sem["Semantic memory · CAREER_AGENT.md"] -. loaded into system prompt .-> Agent
     Proc["Procedural memory · skills/*/SKILL.md"] -. loaded on demand .-> Agent
     Work["Working memory · LangGraph thread"] -. drives .-> Agent
     Store --- Epi["Episodic memory · persisted artifacts<br/>(incl. /memory/ auto-memory)"]
@@ -216,7 +216,7 @@ flowchart LR
 Mapped to memory types:
 
 - **Working memory** — the live LangGraph conversation thread.
-- **Semantic memory** — `AGENTS.md`, always in the system prompt.
+- **Semantic memory** — `CAREER_AGENT.md`, always in the system prompt.
 - **Procedural memory** — `skills/*/SKILL.md`, loaded on demand.
 - **Episodic memory** — persisted artifacts in Postgres + disk, including *auto-memory*: standing preferences saved to the `/memory/` route and auto-applied across sessions.
 

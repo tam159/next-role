@@ -68,7 +68,7 @@ class EnsurePreferencesFileMiddleware(AgentMiddleware):
 
     gpt-5.4 reliably *appends* a preference to `/memory/preferences.md` when the
     file already exists, but won't reliably *create* it on a clean slate — it
-    fumbles toward AGENTS.md or starts the intake workflow instead. So we seed
+    fumbles toward CAREER_AGENT.md or starts the intake workflow instead. So we seed
     the scaffold here in `before_agent`: a single cheap store write — no model
     round trip, so no added response latency — and idempotent, because the
     backend's `write` refuses to overwrite an existing file. This keeps the
