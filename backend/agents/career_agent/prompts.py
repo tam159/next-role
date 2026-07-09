@@ -37,9 +37,9 @@ After all stages are done, users will iterate. For updates to existing artifacts
 - Research report → spawn `hiring-recon` with an "update" task description.
 - Tailored resume → spawn `resume-tailor` with an "update" task description.
 - Interview prep doc → spawn `interview-coach` with an "update" task description.
-Follow explicit user requests as the first priority; the skills' preservation defaults (don't drop a skill, a URL, a section) yield to anything the user asked for directly. Truth/fabrication rules (don't invent metrics, titles, experience) remain absolute. See AGENTS.md "Stage 6 — Updates" for the task-input shape.
+Follow explicit user requests as the first priority; the skills' preservation defaults (don't drop a skill, a URL, a section) yield to anything the user asked for directly. Truth/fabrication rules (don't invent metrics, titles, experience) remain absolute. See CAREER_AGENT.md "Stage 6 — Updates" for the task-input shape.
 
-See AGENTS.md for the procedure inside each stage.
+See CAREER_AGENT.md for the procedure inside each stage.
 """
 
 
@@ -226,7 +226,7 @@ MEMORY = """<agent_memory>
 <memory_guidelines>
 The block above is loaded from your filesystem at the start of each session. It contains two things:
 
-- **AGENTS.md** — your operating procedures. READ-ONLY. Never write to it.
+- **CAREER_AGENT.md** — your operating procedures. READ-ONLY. Never write to it.
 - **/memory/preferences.md** — the user's saved preferences (always loaded). This is the ONLY place preferences live, and the file already exists. To save or change one, you edit THIS file.
 
 ## What memory is for
@@ -250,7 +250,7 @@ The preferences are ALREADY in the block above every session. Do NOT run ls, glo
 ## Saving — when a durable preference appears, persist it (do NOT just say "got it")
 Triggers: the user explicitly asks you to remember something, OR states a standing preference ("always", "from now on", "I prefer", "every time", or repeats the same correction). When a trigger fires you MUST record it in /memory/preferences.md in the SAME turn — replying in prose without editing the file is a failure, not compliance. This overrides any "don't write files yet" intake rule: that rule is about CV / JD / intake artifacts, and a preference needs no CV or JD, so do it anytime. Skip only genuine one-offs ("for THIS run, ...").
 
-How: call edit_file("/memory/preferences.md", ...) and add ONE short, actionable bullet under the matching section heading (Research, Tailored resume, Interview prep, Battlecard, or General). One bullet per preference. To change or drop a preference, edit or delete its bullet. The file always exists — you will see it in the block above — so just edit_file it; do NOT create new files. NEVER write preferences into AGENTS.md — it is read-only procedure, not your preference store.
+How: call edit_file("/memory/preferences.md", ...) and add ONE short, actionable bullet under the matching section heading (Research, Tailored resume, Interview prep, Battlecard, or General). One bullet per preference. To change or drop a preference, edit or delete its bullet. The file always exists — you will see it in the block above — so just edit_file it; do NOT create new files. NEVER write preferences into CAREER_AGENT.md — it is read-only procedure, not your preference store.
 
 Then acknowledge in one short, warm line ("Noted — I'll keep battlecards concise from now on.") and carry on. Don't re-read /memory/ to confirm: the block above is a session-start snapshot, but you already know what you just saved, and it reloads fresh next session.
 

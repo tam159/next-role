@@ -22,7 +22,7 @@ The agent maintains a `write_todos` checklist of remaining stages from turn one,
 
 ## How — the key architectural choices
 
-**Two-file split: overview in `SYSTEM_PROMPT`, procedure in `AGENTS.md`.** `SYSTEM_PROMPT` is short and names the 5 stages plus the `write_todos` invariant. `AGENTS.md` is the per-stage procedure manual, loaded into every turn via `memory=["AGENTS.md"]` in `agents.py` and rendered through the `MEMORY` block's `{agent_memory}` placeholder. The system prompt names each downstream stage's subagent / skill and the canonical output path inline so the LLM can plan against the spine without first reading `AGENTS.md`.
+**Two-file split: overview in `SYSTEM_PROMPT`, procedure in `CAREER_AGENT.md`.** `SYSTEM_PROMPT` is short and names the 5 stages plus the `write_todos` invariant. `CAREER_AGENT.md` is the per-stage procedure manual, loaded into every turn via `memory=["CAREER_AGENT.md"]` in `agents.py` and rendered through the `MEMORY` block's `{agent_memory}` placeholder. The system prompt names each downstream stage's subagent / skill and the canonical output path inline so the LLM can plan against the spine without first reading `CAREER_AGENT.md`.
 
 **Per-consumer skill grouping under `skills/`.** Each agent or subagent gets its own outer folder of skills (`skills/career-agent/`, `skills/hiring-recon/`, `skills/resume-tailor/`, `skills/interview-coach/`), with the actual skill name as the inner folder. Each consumer's declaration (e.g. `skills=["skills/career-agent/"]` on the main agent, `skills: skills/hiring-recon/` in `subagents.yaml`) points only at its own outer folder, so `SkillsMiddleware` loads exactly the skills that consumer needs — no cross-pollination. Considered a flat `skills/` with frontmatter-based gating; rejected because it would make the per-subagent skill list implicit and hard to audit.
 
@@ -43,7 +43,7 @@ The agent maintains a `write_todos` checklist of remaining stages from turn one,
 | Concern | Path |
 |---|---|
 | 5-stage workflow + `write_todos` invariant | `backend/app/career_agent/prompts.py` (`SYSTEM_PROMPT`) |
-| Per-stage procedure manual (loaded via `memory=["AGENTS.md"]`) | `backend/app/career_agent/AGENTS.md` |
+| Per-stage procedure manual (loaded via `memory=["CAREER_AGENT.md"]`) | `backend/agents/career_agent/CAREER_AGENT.md` |
 | Agent wiring — `memory`, `skills`, `tools`, `subagents`, `backend` routes | `backend/app/career_agent/agents.py` |
 | Subagent definitions (`hiring-recon`, `resume-tailor`, `interview-coach`) | `backend/app/career_agent/subagents.yaml` |
 | Stage 3 skill | `backend/app/career_agent/skills/hiring-recon/hiring-recon/SKILL.md` |
@@ -55,7 +55,7 @@ The agent maintains a `write_todos` checklist of remaining stages from turn one,
 ## Decisions worth remembering
 
 - **Override the default `write_todos` guidance, in-prompt.** Career-agent turns look "simple" individually (parse this file; spawn that subagent) but are stages of a 5-step arc, so `SYSTEM_PROMPT` explicitly tells the LLM to call `write_todos` from turn one. The middleware's general "skip TODOs for simple objectives" prompt is not edited — the override stays scoped to this agent.
-- **Don't ask the user twice.** If prep timeline / extra context arrive in a later turn (because they skipped the upfront ask), the same Stage 2 persistence step runs at that time — slugs already exist, and `AGENTS.md` spells out the late-arrival path. The agent does not loop on the ask if the user declined.
+- **Don't ask the user twice.** If prep timeline / extra context arrive in a later turn (because they skipped the upfront ask), the same Stage 2 persistence step runs at that time — slugs already exist, and `CAREER_AGENT.md` spells out the late-arrival path. The agent does not loop on the ask if the user declined.
 - **Skill folders kebab-case, backend routes snake_case.** `skills/interview-coach/`, `skills/resume-tailor/`, `skills/career-agent/interview-battlecard/` all keep kebab-case (matches the existing skill folder convention and the `name:` slug in each `SKILL.md` frontmatter). Backend routes `/tailored_resume/`, `/interview_coach/`, `/interview_battlecard/`, `/render_intermediate/` use snake_case — the auto-memory rule requires snake_case for multi-word directory names matching `CompositeBackend` routes. Don't unify these.
 - **Slug suffix convention.** CV slugs end in `-resume`, JD slugs end in `-jd`. The missing-inputs check in Stage 2 uses this to detect when both artifacts exist in `/processed/` before Stages 3-5 run. Nested paths (`/research/<resume>/<jd>.md`, etc.) drop the `.md` extension on the directory segment but keep the suffix inside it (`/research/tam-nguyen-senior-ai-engineer-resume/aws-ai-solution-engineer-jd.md`).
 - **`/render_intermediate/` is hidden from the UI.** It holds `rendercv`-generated `.typ` files that are an implementation detail of the PDF pipeline. The frontend allowlist (`AGENT_FILE_SOURCES.career_agent`) deliberately omits it; users see the YAML source of truth and the rendered PDF, nothing in between.

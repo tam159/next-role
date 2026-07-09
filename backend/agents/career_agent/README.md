@@ -2,7 +2,7 @@
 
 **Define an agent through three filesystem primitives:**
 
-- **Memory** (`AGENTS.md`) – persistent context like brand voice and style guidelines
+- **Memory** (`CAREER_AGENT.md`) – persistent context like brand voice and style guidelines
 - **Skills** (`skills/*/SKILL.md`) – workflows for specific tasks, loaded on demand
 - **Subagents** (`subagents.yaml`) – specialized agents for delegated tasks like research
 
@@ -12,7 +12,7 @@ The agent is configured by files:
 
 ```
 career_agent/
-├── AGENTS.md                    # Per-stage procedure (loaded as memory)
+├── CAREER_AGENT.md   # Per-stage procedure (loaded as memory)
 ├── subagents.yaml               # Subagent definitions (hiring-recon, resume-tailor, interview-coach)
 ├── skills/                      # Per-consumer skill grouping (one source path per agent)
 │   ├── career-agent/            # main agent
@@ -36,7 +36,7 @@ The outer folder under `skills/` is the consumer grouping (a deepagents source p
 
 | File                | Purpose                              | When Loaded                  |
 | ------------------- | ------------------------------------ | ---------------------------- |
-| `AGENTS.md`         | Brand voice, tone, writing standards | Always (system prompt)       |
+| `CAREER_AGENT.md` | Stage procedures and update templates | Always (system prompt)       |
 | `subagents.yaml`    | Research and other delegated tasks   | Always (defines `task` tool) |
 | `skills/*/SKILL.md` | Content-specific workflows           | On demand                    |
 
@@ -73,7 +73,7 @@ subagents=[
 
 ## Multi-turn updates
 
-Once the five stages have run, users iterate ("add a round", "drop this link", "add common questions to round 2"). The main agent routes by which file owns the change: it edits `/interview_battlecard/<r>/<j>.json` itself (read → `edit_file` or `overwrite_file` → `render_battlecard_pdf`), and delegates research / tailored-resume / interview-prep updates to the matching subagent with an explicit "update" task description that names the target path and the surgical change. Subagents read the existing file first, preserve everything the user did not name, and reply with `Updated … at: <path>`. Skill-level preservation defaults (don't drop a skill, don't drop a URL, etc.) yield to explicit user requests; truth/fabrication rules stay absolute. See `AGENTS.md` "Stage 6 — Updates" for the full procedure and task-input templates.
+Once the five stages have run, users iterate ("add a round", "drop this link", "add common questions to round 2"). The main agent routes by which file owns the change: it edits `/interview_battlecard/<r>/<j>.json` itself (read → `edit_file` or `overwrite_file` → `render_battlecard_pdf`), and delegates research / tailored-resume / interview-prep updates to the matching subagent with an explicit "update" task description that names the target path and the surgical change. Subagents read the existing file first, preserve everything the user did not name, and reply with `Updated … at: <path>`. Skill-level preservation defaults (don't drop a skill, don't drop a URL, etc.) yield to explicit user requests; truth/fabrication rules stay absolute. See `CAREER_AGENT.md` "Stage 6 — Updates" for the full procedure and task-input templates.
 
 
 ## File Upload (v1)

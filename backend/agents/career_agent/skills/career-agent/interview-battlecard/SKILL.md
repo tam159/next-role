@@ -167,7 +167,7 @@ The battlecard is the main agent's own artifact — no subagent is involved. Whe
    - **`overwrite_file(path, <new json>)`** only when restructuring most of the file (e.g. the user reordered every round, or you're rewriting from a refreshed interview-coach doc).
    - **No JSON change** if the user only asked to re-render after editing in Workspace; skip straight to step 4.
 4. `render_battlecard_pdf("/interview_battlecard/<resume>/<jd>.json")` — mandatory after any JSON change, and on a re-render-only request. The tool is idempotent.
-5. Report back with one line per the AGENTS.md update phrasing convention (`Updated battlecard at: <pdf_path>` or similar). Don't dump the JSON.
+5. Report back with one line per the CAREER_AGENT.md update phrasing convention (`Updated battlecard at: <pdf_path>` or similar). Don't dump the JSON.
 
 ## Output handoff
 

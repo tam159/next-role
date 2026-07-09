@@ -145,7 +145,7 @@ _model_override_middleware = ModelOverrideMiddleware()
 career_agent = create_deep_agent(
     system_prompt=_prompts.SYSTEM_PROMPT,
     model=_MODEL,
-    memory=["AGENTS.md", "/memory/preferences.md"],
+    memory=["CAREER_AGENT.md", "/memory/preferences.md"],
     skills=["skills/career-agent/"],
     tools=[
         _list_files,

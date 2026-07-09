@@ -6,7 +6,7 @@
 
 The v2 workflow takes the user from intake to a finished interview kit (research report, tailored resume PDF, interview prep doc, battlecard PDF) in one autonomous pass. After that pass, users want to iterate without restarting: "add a 4th round to the battlecard", "add React to my resume skills", "drop the Twitter link", "expand the research on team org structure", "add common questions to round 2 of my prep doc".
 
-Before this change, the prompts and skills assumed a one-shot pipeline. Every subagent's system_prompt was stamped *"Single-shot — do not call `write_todos`. Your final reply MUST be exactly one line: `Wrote <X> to: <path>`"*; every skill described a from-scratch authoring workflow; `AGENTS.md` had no follow-up path. Only the battlecard SKILL.md had a single sentence about user-edits-then-re-render. The agent would either refuse update requests or quietly recreate artifacts from scratch, losing user intent and ignoring prior tailoring.
+Before this change, the prompts and skills assumed a one-shot pipeline. Every subagent's system_prompt was stamped *"Single-shot — do not call `write_todos`. Your final reply MUST be exactly one line: `Wrote <X> to: <path>`"*; every skill described a from-scratch authoring workflow; `CAREER_AGENT.md` had no follow-up path. Only the battlecard SKILL.md had a single sentence about user-edits-then-re-render. The agent would either refuse update requests or quietly recreate artifacts from scratch, losing user intent and ignoring prior tailoring.
 
 ## What the user sees
 
@@ -40,7 +40,7 @@ No frontend changes — the entire surface is conversational.
 | Concern | Path |
 |---|---|
 | Routing summary in main system prompt | `backend/app/career_agent/prompts.py` (`SYSTEM_PROMPT`, the new follow-up paragraph) |
-| Stage 6 procedure: per-artifact update flows + task-input templates | `backend/app/career_agent/AGENTS.md` (`## Stage 6 — Updates and follow-ups`) |
+| Stage 6 procedure: per-artifact update flows + task-input templates | `backend/agents/career_agent/CAREER_AGENT.md` (`## Stage 6 — Updates and follow-ups`) |
 | Subagent system_prompts: create vs update mode, user-first clause, two-verb reply contract | `backend/app/career_agent/subagents.yaml` |
 | Battlecard update flow (main agent owns it) + Hard-rules split | `backend/app/career_agent/skills/career-agent/interview-battlecard/SKILL.md` (`## Updates`, `## Hard rules`) |
 | Research update flow + Rules split | `backend/app/career_agent/skills/hiring-recon/hiring-recon/SKILL.md` (`## Updates`, `## Rules`) |
@@ -56,7 +56,7 @@ No frontend changes — the entire surface is conversational.
 - **No new tools, no wiring changes.** `edit_file` was already exposed via deepagents' `FilesystemMiddleware` and documented in `prompts.FILESYSTEM`. `agents.py`, `tools.py`, and the backend route table are untouched. The entire feature is prompt + skill work.
 - **Per-rule exceptions over a blanket "user can override anything" clause.** Each preservation rule in the resume-tailor skill (skills, URLs, the bigger "Unacceptable" list) carries its own *Exception: if the user explicitly asks to drop one, drop only what they named* sentence, and the unacceptable list itself is split into "Absolute" (truth) and "By default" (preservation) sub-blocks. Considered one global "user requests override" line at the top; rejected because the granularity matters — *dropping a Twitter link* is fine on request, *claiming an untrue title* is never fine even if the user asks.
 - **Updates section appended to each SKILL.md, not woven into the existing workflow.** Each `## Updates` subsection sits between the create-mode procedure and the final `## Rules` block. Two reasons: skim-friendly for a future reader (the create flow is the dominant path on first read), and additive so the existing create flow stays exactly as v2 documented it — no regression risk on the first-run path.
-- **README has one paragraph, not a duplicate procedure.** The README's new `## Multi-turn updates` block is six lines and points at `AGENTS.md` Stage 6 for detail. Duplicating Stage 6's task-input templates in the README would create a second source of truth that drifts.
+- **README has one paragraph, not a duplicate procedure.** The README's new `## Multi-turn updates` block is six lines and points at `CAREER_AGENT.md` Stage 6 for detail. Duplicating Stage 6's task-input templates in the README would create a second source of truth that drifts.
 
 ## Deferred (intentional non-goals for v1)
 
