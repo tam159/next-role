@@ -1,0 +1,4 @@
+interface:
+  display_name: "Quality"
+  short_description: "Run the repo validation workflow"
+  default_prompt: "Use $quality to validate the changed files before reporting done."

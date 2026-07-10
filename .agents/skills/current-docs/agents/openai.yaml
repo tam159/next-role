@@ -1,0 +1,19 @@
+interface:
+  display_name: "Current Docs"
+  short_description: "Fetch current library docs before answering"
+  default_prompt: "Use $current-docs to answer this library or framework question with current docs."
+dependencies:
+  tools:
+    - type: "mcp"
+      value: "context7"
+      description: "Context7 current library documentation"
+      transport: "stdio"
+    - type: "mcp"
+      value: "docs-langchain"
+      description: "LangChain, LangGraph, and LangSmith documentation"
+      transport: "streamable_http"
+      url: "https://docs.langchain.com/mcp"
+    - type: "mcp"
+      value: "llama-index-docs"
+      description: "LlamaIndex documentation via mcpdoc"
+      transport: "stdio"
