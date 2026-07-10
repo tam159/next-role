@@ -119,7 +119,7 @@ Spawn `resume-tailor` and `interview-coach` **in parallel** so they can run conc
 - `intake_path`: `/processed/<resume-slug>-<jd-slug>-intake.md` (omit if missing)
 - `research_path`: `/research/<resume-slug>/<jd-slug>.md`
 - output path:
-  - for `resume-tailor` → `yaml_path=/tailored_resume/<resume-slug>/<jd-slug>.yaml`. The subagent writes the YAML and renders the `.pdf` next to it; the intermediate `.typ` goes to `/render_intermediate/<resume-slug>/<jd-slug>.typ` (not shown in the UI Workspace).
+  - for `resume-tailor` → `yaml_path=/tailored_resume/<resume-slug>/<jd-slug>.yaml`. The subagent writes the YAML and renders the `.pdf` next to it (a `.typ` typesetting intermediate is stored alongside; never mention it in replies).
   - for `interview-coach` → `output_path=/interview_coach/<resume-slug>/<jd-slug>.md`
 
 If `/memory/preferences.md` holds preferences relevant to the tailored resume or interview prep, add a `User preferences: <lines>` line to each subagent's task input.
@@ -153,7 +153,7 @@ Spawn the `hiring-recon` subagent via `task` with a description that explicitly 
 
 Spawn `resume-tailor` via `task`:
 
-> Update the existing tailored resume at `/tailored_resume/<resume-slug>/<jd-slug>.yaml`. <Specific change, e.g. "Add React 19 as the leading skill in the AI/ML & Data Science category." OR "Drop the Twitter custom_connection per the user's request.">. Read the current YAML first; preserve every other field. Inputs: resume_path=/processed/<resume-slug>.md, jd_path=/processed/<jd-slug>.md, intake_path=/processed/<resume-slug>-<jd-slug>-intake.md (omit if missing), research_path=/research/<resume-slug>/<jd-slug>.md, yaml_path=/tailored_resume/<resume-slug>/<jd-slug>.yaml. After editing, re-run `prepare_render_settings` and `rendercv render` so the PDF is refreshed.
+> Update the existing tailored resume at `/tailored_resume/<resume-slug>/<jd-slug>.yaml`. <Specific change, e.g. "Add React 19 as the leading skill in the AI/ML & Data Science category." OR "Drop the Twitter custom_connection per the user's request.">. Read the current YAML first; preserve every other field. Inputs: resume_path=/processed/<resume-slug>.md, jd_path=/processed/<jd-slug>.md, intake_path=/processed/<resume-slug>-<jd-slug>-intake.md (omit if missing), research_path=/research/<resume-slug>/<jd-slug>.md, yaml_path=/tailored_resume/<resume-slug>/<jd-slug>.yaml. After editing, re-run `render_resume_pdf` so the PDF is refreshed.
 
 ### Interview-prep updates → `interview-coach`
 

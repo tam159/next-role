@@ -60,7 +60,7 @@ Preparing for an interview takes hours of tedious resume tailoring and company r
 
 ## Quick Start
 
-The whole stack — frontend, backend, Postgres, Redis — runs in Docker.
+The whole stack — frontend, backend, Postgres, Redis, S3-compatible object storage — runs in Docker.
 
 ```bash
 # 1. Clone & configure
@@ -96,7 +96,8 @@ docker ps                     # read the 0.0.0.0:<host>->... mappings
 | `OPENAI_API_BASE` | ⬜ | Self-hosted / Azure / LM Studio endpoint |
 | `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` / `AWS_DEFAULT_REGION` | ⬜ | AWS Bedrock models |
 | `LANGCHAIN_API_KEY` + `LANGCHAIN_TRACING_V2=true` | ⬜ | LangSmith tracing (recommended) |
-| `FRONTEND_LOCAL_PORT` / `LANGGRAPH_LOCAL_PORT` / `POSTGRES_LOCAL_PORT` / `REDIS_LOCAL_PORT` | preset | Host port mappings |
+| `FRONTEND_LOCAL_PORT` / `LANGGRAPH_LOCAL_PORT` / `POSTGRES_LOCAL_PORT` / `REDIS_LOCAL_PORT` / `OBJECT_STORE_LOCAL_PORT` | preset | Host port mappings |
+| `OBJECT_STORE_*` | preset | Artifact object storage (local SeaweedFS defaults; point at S3/GCS/Azure for cloud) |
 
 Secrets live only in `.env` (gitignored); `gitleaks` runs on every commit.
 
@@ -130,7 +131,7 @@ Output quality tracks the model you pick — smaller local models trade some qua
 - **Add a frontend dep:** `pnpm --dir frontend add <pkg>` → `docker compose restart frontend`
 - **Add a backend dep:** `uv add <pkg>` → `docker compose up -d --build backend`
 - **Change `.env`:** `docker compose restart <service>`
-- **Stop:** `docker compose down` (add `-v` to wipe the DB & Redis volumes)
+- **Stop:** `docker compose down` (add `-v` to wipe the DB, Redis & object-storage volumes)
 
 </details>
 
@@ -174,7 +175,7 @@ The agent's behavior is configured by files, not hardcoded — making it easy to
 | **Memory** | `CAREER_AGENT.md` | Per-stage procedure manual (semantic memory) | Always (system prompt) |
 | **Skills** | `skills/<consumer>/<name>/SKILL.md` | Task workflows (procedural memory) | On demand, per consumer |
 | **Subagents** | `subagents.yaml` | Specialist delegates → the `task` tool | Always |
-| **Tools** | `tools.py` + DeepAgents built-ins | `parse_document`, `extract_jd`, `render_battlecard_pdf`, `prepare_render_settings`, `list_files`, `overwrite_file`, plus `read/write/edit_file`, `ls/glob/grep`, `execute` | — |
+| **Tools** | `tools.py` + DeepAgents built-ins | `parse_document`, `extract_jd`, `render_resume_pdf`, `render_battlecard_pdf`, `list_files`, `overwrite_file`, plus `read/write/edit_file`, `ls/glob/grep`, `execute` | — |
 | **Filesystem** | `CompositeBackend` | Routes virtual paths to the right store (see below) | — |
 | **Middleware** | `middleware.py` | `ModelOverrideMiddleware` (runtime LLM swap) + `UtcDatetimeMiddleware` | — |
 
@@ -187,7 +188,7 @@ Subagents only receive the tools they opt into in YAML — tool whitelisting kee
 
 <br/>
 
-A single `CompositeBackend` gives the agent one virtual filesystem while routing each path prefix to the right physical store — Postgres for text artifacts, disk for binaries and render outputs, and a shell backend that translates virtual paths to real ones before running commands like `rendercv render`.
+A single `CompositeBackend` gives the agent one virtual filesystem while routing each path prefix to the right physical store — Postgres for text artifacts, S3-compatible object storage for uploads and rendered PDFs (SeaweedFS locally; S3 / GCS / Azure in the cloud), and a shell backend whose disk holds only render scratch and translates virtual paths to real ones before running commands like `rendercv render`.
 
 ```mermaid
 flowchart LR
@@ -195,22 +196,22 @@ flowchart LR
     CB{{"CompositeBackend<br/>routes virtual paths"}}
     Agent --> CB
     subgraph Shell["VirtualPathShellBackend · default route"]
-        SH["rewrites /virtual/path → on-disk path<br/>before subprocess.run<br/>(e.g. rendercv render /tailored_resume/...)"]
+        SH["shell `execute`<br/>rewrites /virtual/path → on-disk path<br/>(renders run in a throwaway temp dir)"]
     end
     subgraph Store["StoreBackend · Postgres + pgvector"]
         ST["/memory/ · /processed/ · /research/<br/>/interview_coach/<br/>/large_tool_results/ · /workspace/"]
     end
-    subgraph Disk["FilesystemBackend · disk (binaries + renders)"]
-        DK["/upload/ · /tailored_resume/<br/>/render_intermediate/<br/>/interview_battlecard/"]
+    subgraph Obj["ObjectStoreBackend · S3-compatible<br/>SeaweedFS local · S3/GCS/Azure cloud"]
+        OB["/upload/ · /tailored_resume/<br/>/interview_battlecard/"]
     end
-    CB -->|default| Shell
+    CB -->|default: shell + scratch| Shell
     CB -->|KV routes| Store
-    CB -->|binary + PDF routes| Disk
+    CB -->|artifact routes| Obj
     Sem["Semantic memory · CAREER_AGENT.md"] -. loaded into system prompt .-> Agent
     Proc["Procedural memory · skills/*/SKILL.md"] -. loaded on demand .-> Agent
     Work["Working memory · LangGraph thread"] -. drives .-> Agent
     Store --- Epi["Episodic memory · persisted artifacts<br/>(incl. /memory/ auto-memory)"]
-    Disk --- Epi
+    Obj --- Epi
 ```
 
 Mapped to memory types:
@@ -232,8 +233,8 @@ Mapped to memory types:
 | **Backend** | Python 3.13 · LangChain v1 · LangGraph 1.x · DeepAgents 0.6 · `uv` · served by NextRole's own self-hosted agent server ([`backend/ARCHITECTURE.md`](backend/ARCHITECTURE.md)) |
 | **Agent I/O** | Tavily (web search) · LlamaParse / LlamaCloud (document parsing) · `rendercv` (resume → PDF) · WeasyPrint (battlecard → PDF) |
 | **Frontend** | Next.js 16 · React 19 · TypeScript · Tailwind · `pnpm` · `@langchain/react` (v2 `useStream`) |
-| **Data** | PostgreSQL 18 + pgvector · Redis 8 |
-| **Infra** | Docker Compose (frontend · backend · core-server · postgres · redis) |
+| **Data** | PostgreSQL 18 + pgvector · Redis 8 · S3-compatible object storage (SeaweedFS locally; S3 / GCS / Azure in the cloud) |
+| **Infra** | Docker Compose (frontend · backend · core-server · postgres · redis · object-store) |
 | **Observability** | LangSmith |
 
 </details>
@@ -269,7 +270,8 @@ Set `LANGCHAIN_API_KEY` and `LANGCHAIN_TRACING_V2=true` in `.env`, and every run
 - 📊 **Agent evaluation** — LangSmith evals over the workflow (the `@pytest.mark.eval` marker is already reserved).
 - 🎨 **Enhanced UI** — richer artifact editing, diff views, and inline regeneration.
 - 🔌 **MCP / A2A examples** — sample integrations driving `career_agent` from external agents and IDEs.
-- 🧵 **Per-thread / multi-user scoping** — namespace artifacts per user instead of the current global layout.
+- 🧵 **Per-thread / multi-user scoping** — namespace artifacts per user instead of the current global layout (object keys already carry a `users/<scope>/` segment, so this is an auth + key-mapping change, not a migration).
+- ☁️ **Cloud deployment** — binary artifacts already live in S3-compatible object storage (SeaweedFS locally; point `OBJECT_STORE_*` at S3 / GCS / Azure). Remaining: managed bucket provisioning (versioning, SSE, IAM), auth on the files API, and presigned-URL delivery.
 - 🌐 **More sources & ATS-aware tailoring** — pluggable retrievers + keyword/ATS optimization passes.
 
 ## Limitations
@@ -277,7 +279,7 @@ Set `LANGCHAIN_API_KEY` and `LANGCHAIN_TRACING_V2=true` in `.env`, and every run
 > NextRole is built for **local, single-user, trusted use** today.
 
 - 🔒 **Local shell execution** — `VirtualPathShellBackend` runs render commands via `subprocess` on the host. Safe locally; **not** hardened for multi-tenant production (needs sandboxing — see roadmap).
-- 👤 **Global file scoping** — uploads and artifacts share one filesystem layout; re-uploading a filename overwrites. No per-user isolation yet.
+- 👤 **Global file scoping** — uploads and artifacts share one global key layout in the object store; re-uploading a filename overwrites. No per-user isolation yet (the `users/default/` key segment is the prepared seam).
 - 🧪 **LLM evals deferred** — current tests are unit + local-DB integration; automated quality evals aren't wired up yet.
 - 🧠 **Personalization is preferences-only** — the agent persists and auto-applies the preferences you *state* across sessions, but doesn't yet infer your style/history on its own or consolidate memory over time (see [roadmap](#roadmap)).
 - ⏱️ **Latency** — a full run makes several LLM and tool calls across multiple agents; expect minutes, not seconds.

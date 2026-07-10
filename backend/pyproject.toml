@@ -77,7 +77,10 @@ dependencies = [
   "uvloop>=0.22.1; platform_system != 'Windows'",
   "watchfiles>=1.2.0",
   "websockets>=15.0.1",
-  "zstandard>=0.25.0"
+  "zstandard>=0.25.0",
+  "obstore>=0.11.0",
+  "python-multipart>=0.0.32",
+  "pyyaml>=6.0.3",
 ]
 
 [tool.pytest.ini_options]

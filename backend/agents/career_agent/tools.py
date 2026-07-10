@@ -1,7 +1,10 @@
 """Tools for the career agent."""
 
+import datetime
 import json
 import re
+import shlex
+import tempfile
 import textwrap
 from pathlib import Path
 from typing import Any, Literal
@@ -14,8 +17,9 @@ from langchain_core.tools import BaseTool, tool
 CAREER_AGENT_DIR: Path = Path(__file__).parent
 
 # Top-level YAML key marking the rendercv `settings:` block. Used by
-# `prepare_render_settings` to strip any pre-existing settings block so re-calls
-# stay idempotent. Anchored to start-of-line in MULTILINE mode.
+# `render_resume_pdf` to strip any trailing settings block from the stored
+# YAML before hydrating its scratch render copy (keeps the durable artifact
+# free of machine-local paths). Anchored to start-of-line in MULTILINE mode.
 _SETTINGS_BLOCK_HEADER_RE = re.compile(r"^settings:", re.MULTILINE)
 
 # LlamaParse emits `![alt](page_X_image_Y.jpg)` markdown for embedded images
@@ -206,13 +210,14 @@ def make_overwrite_file(backend: CompositeBackend) -> BaseTool:
     return overwrite_file
 
 
-def _resolve_source_on_disk(source_path: str) -> Path | str:
-    """Resolve a backend absolute path to a real on-disk file under `CAREER_AGENT_DIR`.
+def _materialize_source(backend: CompositeBackend, source_path: str) -> Path | str:
+    """Download `source_path` through the backend into a temp file for LlamaCloud.
 
-    Returns a `Path` if the file exists on disk, or a string error message
-    suitable for returning to the caller. LlamaCloud needs a real file on disk
-    — paths backed by `StoreBackend` routes (e.g. `/processed/`, `/research/`)
-    are not on disk and will be rejected here.
+    LlamaCloud's SDK uploads a real on-disk file (and infers the document type
+    from its filename suffix), while artifact bytes live in object storage —
+    so the file is materialized into a `NamedTemporaryFile` that preserves the
+    original suffix. Returns the temp `Path`, or an `Error: ...` string.
+    The caller must delete the returned file when done.
     """
     if not source_path.startswith("/"):
         return (
@@ -220,10 +225,21 @@ def _resolve_source_on_disk(source_path: str) -> Path | str:
         )
     if ".." in Path(source_path).parts:
         return f"Error: invalid source_path {source_path!r} (path traversal not allowed)"
-    src = CAREER_AGENT_DIR / source_path.lstrip("/")
-    if not src.is_file():
-        return f"Error: file not found at {source_path}"
-    return src
+    responses = backend.download_files([source_path])
+    resp = responses[0] if responses else None
+    if resp is None or resp.error or resp.content is None:
+        detail = resp.error if resp is not None and resp.error else "not found"
+        return f"Error: cannot read {source_path} ({detail})"
+    tmp = tempfile.NamedTemporaryFile(  # noqa: SIM115 — handed off, deleted by caller
+        delete=False,
+        prefix="nextrole-parse-",
+        suffix=Path(source_path).suffix,
+    )
+    try:
+        tmp.write(resp.content)
+    finally:
+        tmp.close()
+    return Path(tmp.name)
 
 
 def make_parse_document(backend: CompositeBackend) -> BaseTool:
@@ -233,17 +249,16 @@ def make_parse_document(backend: CompositeBackend) -> BaseTool:
     def parse_document(source_path: str, output_path: str) -> str:
         """Parse a document with LlamaParse and persist the result as markdown.
 
-        Works on any document the agent can read from disk: PDFs, DOCX, PPTX,
-        images, etc. Common source dir is `/upload/` (user uploads), but any
-        on-disk file under the agent's workspace is supported. The parsed
-        markdown is written directly to `output_path` — you do NOT need to
-        call `write_file` afterwards.
+        Works on any document the agent's filesystem can read: PDFs, DOCX,
+        PPTX, images, etc. Common source dir is `/upload/` (user uploads),
+        but any readable backend path is supported. The parsed markdown is
+        written directly to `output_path` — you do NOT need to call
+        `write_file` afterwards.
 
         Args:
             source_path: Absolute backend path to the document to parse, e.g.
                 "/upload/Resume - Tam NGUYEN.pdf" or
-                "/workspace/spec.docx". Must point to a real on-disk file.
-                Path traversal (`..`) is rejected.
+                "/workspace/spec.docx". Path traversal (`..`) is rejected.
             output_path: Absolute backend path where the parsed markdown will
                 be saved, e.g. "/processed/tam-nguyen-lead-ai-ml-resume.md".
                 Must end with `.md`. Pick a content-meaningful filename.
@@ -255,16 +270,16 @@ def make_parse_document(backend: CompositeBackend) -> BaseTool:
         """
         from llama_cloud import LlamaCloud
 
-        resolved = _resolve_source_on_disk(source_path)
-        if isinstance(resolved, str):
-            return resolved
-        src = resolved
-
         if not output_path.startswith("/") or not output_path.endswith(".md"):
             return (
                 f"Error: invalid output_path {output_path!r} "
                 "(must be an absolute path ending in .md)"
             )
+
+        resolved = _materialize_source(backend, source_path)
+        if isinstance(resolved, str):
+            return resolved
+        src = resolved
 
         try:
             client = LlamaCloud()
@@ -290,6 +305,8 @@ def make_parse_document(backend: CompositeBackend) -> BaseTool:
                 return f"Error writing {output_path}: {write_result.error}"
         except Exception as e:
             return f"Error processing {source_path}: {e}"
+        finally:
+            src.unlink(missing_ok=True)
         return f"Saved {output_path} ({len(markdown)} chars)"
 
     return parse_document
@@ -313,20 +330,224 @@ def _tavily_extract_one(url: str) -> tuple[str, str]:
     return first.get("title") or "", first.get("raw_content") or ""
 
 
-def make_prepare_render_settings(backend: CompositeBackend) -> BaseTool:
-    """Build the `prepare_render_settings` tool, closed over the agent's backend."""
+class _RenderStageError(Exception):
+    """In-band render-pipeline failure; the message is the tool's error result."""
+
+
+def _coerce_string_entry(item: object) -> str | None:
+    """Coerce a should-be-string YAML list entry back to a string, if possible.
+
+    The LLM's most common rendercv defect is an unquoted `: ` inside a bullet
+    ("Strongest where AI meets execution: reusable patterns…"), which YAML
+    silently parses as a one-pair mapping — rendercv then fails with "Input
+    should be a valid string". A trailing colon parses as `{text: None}`, and
+    bare numbers parse as ints. All three have an exact, lossless textual
+    inverse, so they are repaired here instead of burning an LLM roundtrip.
+
+    Returns the repaired string, or `None` when the entry is either already
+    valid or not mechanically repairable (nested lists, multi-key mappings —
+    those stay with the agent's fix-and-retry loop).
+    """
+    # bool is an int subclass, and `Answer: yes` → True has no faithful
+    # textual inverse — leave booleans to the agent.
+    if isinstance(item, bool):
+        return None
+    if isinstance(item, (int, float)):
+        return str(item)
+    if not isinstance(item, dict) or len(item) != 1:
+        return None
+    key, value = next(iter(item.items()))
+    if not isinstance(key, str) or isinstance(value, bool):
+        return None
+    if value is None or isinstance(value, (str, int, float, datetime.date)):
+        return f"{key}:" if value is None else f"{key}: {value}"
+    return None
+
+
+def _repair_string_entries(items: object) -> int:
+    """Repair should-be-string entries of a list in place; returns fix count."""
+    if not isinstance(items, list):
+        return 0
+    entries: list[Any] = items
+    fixes = 0
+    for i, item in enumerate(entries):
+        coerced = _coerce_string_entry(item)
+        if coerced is not None:
+            entries[i] = coerced
+            fixes += 1
+    return fixes
+
+
+def _normalize_resume_yaml(body: str) -> tuple[str, int]:
+    """Repair mechanically-fixable string entries in a rendercv YAML body.
+
+    Walks `cv.sections`: items of text-style sections (lists of strings) and
+    every entry's `highlights` list. Returns `(body, fix_count)` — the body is
+    re-serialized only when something was repaired, so the untouched original
+    (comments included) flows through in the common case. Unparseable YAML is
+    returned as-is; rendercv will surface the parse error for the agent loop.
+    """
+    import yaml
+
+    try:
+        tree = yaml.safe_load(body)
+    except yaml.YAMLError:
+        return body, 0
+    if not isinstance(tree, dict):
+        return body, 0
+    cv = tree.get("cv")
+    sections = cv.get("sections") if isinstance(cv, dict) else None
+    if not isinstance(sections, dict):
+        return body, 0
+
+    fixes = 0
+    for section in sections.values():
+        fixes += _repair_string_entries(section)
+        if isinstance(section, list):
+            for entry in section:
+                if isinstance(entry, dict):
+                    fixes += _repair_string_entries(entry.get("highlights"))
+
+    if fixes == 0:
+        return body, 0
+    return yaml.safe_dump(tree, sort_keys=False, allow_unicode=True, width=4096), fixes
+
+
+def _read_resume_yaml_body(backend: CompositeBackend, yaml_path: str) -> str:
+    """Read the stored YAML and strip any trailing `settings:` block.
+
+    Pre-migration YAMLs carried a settings block with machine-absolute paths;
+    the stored copy must stay clean, so it is stripped before hydration.
+    """
+    read_res = backend.read(yaml_path, offset=0, limit=10**9)
+    if read_res.error or not read_res.file_data:
+        msg = f"Error (read): {yaml_path}: {read_res.error or 'not found'}"
+        raise _RenderStageError(msg)
+    existing = read_res.file_data.get("content", "")
+    if isinstance(existing, list):
+        existing = "\n".join(existing)
+    if not existing.strip():
+        msg = f"Error (read): {yaml_path} is empty"
+        raise _RenderStageError(msg)
+    match = _SETTINGS_BLOCK_HEADER_RE.search(existing)
+    body = existing[: match.start()] if match else existing
+    return body.rstrip() + "\n"
+
+
+def _write_render_copy(body: str, render_dir: Path, stem: str) -> tuple[Path, int]:
+    """Write the normalized render copy + settings block into the temp render dir.
+
+    Renders happen in a throwaway `TemporaryDirectory` outside the repo tree —
+    rendercv is a subprocess that needs a real filesystem, but none of its
+    working files are artifacts: the durable YAML/PDF/typ all live in the
+    object store. The settings block pins every rendercv output inside the
+    temp dir; its machine-local absolute paths are never persisted anywhere.
+
+    The render copy is also normalized: mechanically-repairable string-entry
+    defects (unquoted mid-string colons, trailing colons, bare numbers) are
+    fixed here so they never cost an LLM fix-and-retry roundtrip. The stored
+    YAML keeps the agent's original text.
+    """
+    body, fixes = _normalize_resume_yaml(body)
+    settings_block = textwrap.dedent(
+        f"""\
+        settings:
+          current_date: today
+          render_command:
+            output_folder: {render_dir}
+            typst_path: {render_dir / stem}.typ
+            pdf_path: OUTPUT_FOLDER/{stem}.pdf
+            dont_generate_markdown: true
+            dont_generate_html: true
+            dont_generate_png: true
+            dont_generate_typst: false
+            dont_generate_pdf: false
+          bold_keywords: []
+        """,
+    )
+    yaml_file = render_dir / f"{stem}.yaml"
+    yaml_file.write_text(body + settings_block, encoding="utf-8")
+    return yaml_file, fixes
+
+
+def _run_rendercv(backend: CompositeBackend, yaml_file: Path) -> str:
+    """Run `rendercv render` on the temp render copy via the composite default.
+
+    The path is a real absolute path outside the shell backend's root, so the
+    virtual-path rewriter passes it through untouched. Returns the process
+    output (kept for the verify-stage message).
+    """
+    try:
+        exec_res = backend.execute(f"rendercv render {shlex.quote(str(yaml_file))}")
+    except NotImplementedError:
+        msg = "Error (render): the agent backend does not support shell execution"
+        raise _RenderStageError(msg) from None
+    if exec_res.exit_code not in (0, None):
+        msg = f"Error (render): rendercv exited {exec_res.exit_code}:\n{exec_res.output[-6000:]}"
+        raise _RenderStageError(msg)
+    return exec_res.output
+
+
+def _collect_render_outputs(render_dir: Path, stem: str, exec_output: str) -> dict[str, bytes]:
+    """Read rendercv's outputs from the temp dir, keyed by suffix.
+
+    The `.pdf` is mandatory (verify-stage error when missing); the `.typ`
+    typesetting intermediate is included when present.
+    """
+    pdf_file = render_dir / f"{stem}.pdf"
+    if not pdf_file.is_file():
+        msg = (
+            f"Error (verify): rendercv reported success but {stem}.pdf was not "
+            f"produced. Output tail:\n{exec_output[-2000:]}"
+        )
+        raise _RenderStageError(msg)
+    outputs = {".pdf": pdf_file.read_bytes()}
+    typ_file = render_dir / f"{stem}.typ"
+    if typ_file.is_file():
+        outputs[".typ"] = typ_file.read_bytes()
+    return outputs
+
+
+def _publish_render_outputs(
+    backend: CompositeBackend,
+    yaml_path: str,
+    outputs: dict[str, bytes],
+) -> None:
+    """Upload the rendered files to the artifact store next to their YAML."""
+    files = [
+        (str(Path(yaml_path).with_suffix(suffix)), content) for suffix, content in outputs.items()
+    ]
+    responses = backend.upload_files(files)
+    failed = [r.path for r in responses if r.error] if responses else [p for p, _ in files]
+    if failed:
+        msg = (
+            f"Error (publish): rendered OK but saving {', '.join(failed)} failed. "
+            "Fix storage and call this tool again (it re-renders from the stored YAML)."
+        )
+        raise _RenderStageError(msg)
+
+
+def make_render_resume_pdf(backend: CompositeBackend) -> BaseTool:
+    """Build the `render_resume_pdf` tool, closed over the agent's backend."""
 
     @tool
-    def prepare_render_settings(yaml_path: str) -> str:
-        """Append the canonical rendercv `settings:` block to a tailored-resume YAML.
+    def render_resume_pdf(yaml_path: str) -> str:
+        """Render a tailored-resume YAML to PDF and publish it next to the YAML.
 
-        Run this AFTER writing the YAML (`cv:`, `design:`, `locale:`) and
-        BEFORE invoking `rendercv render` via `execute`. The injected block
-        pins `<stem>.pdf` next to the YAML and routes the intermediate
-        `<stem>.typ` to `<CAREER_AGENT_DIR>/render_intermediate/<resume>/<jd>.typ`
-        (real disk, outside the UI's `agentFiles.ts` allowlist). Markdown,
-        html, png are disabled. Idempotent — any pre-existing trailing
-        `settings:` block is replaced.
+        One call runs the whole pipeline: read the YAML from the artifact
+        store, write a render copy (with the canonical rendercv `settings:`
+        block) into a throwaway temp directory, run `rendercv render` on it,
+        and publish the outputs back next to the YAML. Run it AFTER writing
+        the YAML (`cv:`, `design:`, `locale:`).
+
+        Do NOT append a `settings:` block to the YAML and do NOT run
+        `rendercv` via `execute` — the stored YAML stays settings-free; the
+        canonical block (with machine-local temp paths) exists only in the
+        render copy.
+
+        On a rendercv failure the result contains its output — fix the YAML
+        (`edit_file`/`overwrite_file`) and call this tool again. Idempotent:
+        re-rendering overwrites the previous outputs.
 
         Args:
             yaml_path: Absolute backend path, e.g.
@@ -334,7 +555,8 @@ def make_prepare_render_settings(backend: CompositeBackend) -> BaseTool:
                 "/tailored_resume/" and end in ".yaml" or ".yml".
 
         Returns:
-            Short confirmation string, or `Error: ...` on failure.
+            Short confirmation string with the published PDF path, or
+            `Error (<stage>): ...` naming the failed pipeline stage.
 
         """
         if not yaml_path.startswith("/tailored_resume/") or not yaml_path.endswith(
@@ -344,61 +566,46 @@ def make_prepare_render_settings(backend: CompositeBackend) -> BaseTool:
                 f"Error: invalid yaml_path {yaml_path!r} "
                 "(must start with /tailored_resume/ and end with .yaml/.yml)"
             )
+        if ".." in Path(yaml_path).parts:
+            return f"Error: invalid yaml_path {yaml_path!r} (path traversal not allowed)"
 
-        read_res = backend.read(yaml_path, offset=0, limit=10**9)
-        if read_res.error or not read_res.file_data:
-            return f"Error reading {yaml_path}: {read_res.error or 'not found'}"
-        existing = read_res.file_data.get("content", "")
-        if isinstance(existing, list):
-            existing = "\n".join(existing)
-        if not existing.strip():
-            return f"Error: {yaml_path} is empty"
-
-        # Strip any trailing `settings:` block (idempotency on re-render).
-        match = _SETTINGS_BLOCK_HEADER_RE.search(existing)
-        body = existing[: match.start()] if match else existing
-        body = body.rstrip() + "\n"
-
-        # Map the backend path to its on-disk parent so rendercv writes the
-        # PDF alongside the YAML rather than in cwd / rendercv_output/.
-        on_disk_dir = (CAREER_AGENT_DIR / yaml_path.lstrip("/")).parent.resolve()
-        stem = Path(yaml_path).stem
-
-        # The .typ is an intermediate artifact users don't need to review,
-        # so route it to /render_intermediate/<resume>/<jd>.typ (real disk,
-        # outside the UI's `agentFiles.ts` allowlist). rendercv writes the
-        # file directly, so we must ensure the parent dir exists.
-        sub_under_tailored = yaml_path[len("/tailored_resume/") :]
-        typ_on_disk = (CAREER_AGENT_DIR / "render_intermediate" / sub_under_tailored).with_suffix(
-            ".typ",
+        pdf_dest = str(Path(yaml_path).with_suffix(".pdf"))
+        try:
+            body = _read_resume_yaml_body(backend, yaml_path)
+            with tempfile.TemporaryDirectory(prefix="nextrole-render-") as tmp:
+                render_dir = Path(tmp)
+                stem = Path(yaml_path).stem
+                yaml_file, fixes = _write_render_copy(body, render_dir, stem)
+                exec_output = _run_rendercv(backend, yaml_file)
+                outputs = _collect_render_outputs(render_dir, stem, exec_output)
+            _publish_render_outputs(backend, yaml_path, outputs)
+        except _RenderStageError as e:
+            return str(e)
+        note = (
+            f" (auto-repaired {fixes} invalid string entr{'y' if fixes == 1 else 'ies'} — "
+            "unquoted colons or bare numbers; quote such strings next time)"
+            if fixes
+            else ""
         )
-        typ_on_disk.parent.mkdir(parents=True, exist_ok=True)
+        return f"Rendered and published {pdf_dest}{note}"
 
-        settings_block = textwrap.dedent(
-            f"""\
-            settings:
-              current_date: today
-              render_command:
-                output_folder: {on_disk_dir}
-                typst_path: {typ_on_disk}
-                pdf_path: OUTPUT_FOLDER/{stem}.pdf
-                dont_generate_markdown: true
-                dont_generate_html: true
-                dont_generate_png: true
-                dont_generate_typst: false
-                dont_generate_pdf: false
-              bold_keywords: []
-            """,
-        )
+    return render_resume_pdf
 
-        new_content = body + settings_block
-        write_result = _upsert(backend, yaml_path, new_content)
-        if write_result.error:
-            return f"Error writing {yaml_path}: {write_result.error}"
 
-        return f"Prepared for rendering: {yaml_path}\nReady to render now."
+def _weasyprint_pdf_bytes(html_str: str, template_dir: Path) -> bytes:
+    """Render HTML to PDF bytes via weasyprint; raises on empty output.
 
-    return prepare_render_settings
+    weasyprint is imported lazily — it pulls Pango/GLib via cffi at import
+    time, so deferring keeps `tools.py` import-safe on hosts without those
+    native libs.
+    """
+    from weasyprint import HTML
+
+    pdf_bytes = HTML(string=html_str, base_url=str(template_dir)).write_pdf()
+    if not pdf_bytes:
+        msg = "weasyprint produced no output"
+        raise ValueError(msg)
+    return pdf_bytes
 
 
 def make_render_battlecard_pdf(backend: CompositeBackend) -> BaseTool:
@@ -410,8 +617,8 @@ def make_render_battlecard_pdf(backend: CompositeBackend) -> BaseTool:
 
         Run this AFTER the agent has written the JSON source of truth.
         Reads the JSON via the backend, renders the bundled Jinja2 template,
-        and writes `<stem>.pdf` next to the JSON on real disk. Idempotent —
-        any prior PDF at the same path is overwritten.
+        and saves `<stem>.pdf` next to the JSON in the artifact store.
+        Idempotent — any prior PDF at the same path is overwritten.
 
         Args:
             json_path: Absolute backend path under `/interview_battlecard/`
@@ -419,7 +626,7 @@ def make_render_battlecard_pdf(backend: CompositeBackend) -> BaseTool:
                 "/interview_battlecard/<resume-slug>/<jd-slug>.json".
 
         Returns:
-            Short confirmation string with the on-disk PDF path,
+            Short confirmation string with the saved PDF path,
             or `Error: ...` on failure.
 
         """
@@ -440,24 +647,25 @@ def make_render_battlecard_pdf(backend: CompositeBackend) -> BaseTool:
         except json.JSONDecodeError as e:
             return f"Error: {json_path} is not valid JSON: {e}"
 
-        # Lazy imports — weasyprint pulls Pango/GLib via cffi at import time,
-        # so deferring keeps `tools.py` import-safe on hosts without those libs.
         from jinja2 import Environment, FileSystemLoader
-        from weasyprint import HTML
 
         template_dir = CAREER_AGENT_DIR / "templates" / "battlecard"
         env = Environment(loader=FileSystemLoader(str(template_dir)), autoescape=True)
         template = env.get_template("battlecard.html.j2")
         html_str = template.render(**data)
 
-        pdf_path = (CAREER_AGENT_DIR / json_path.lstrip("/")).with_suffix(".pdf")
-        pdf_path.parent.mkdir(parents=True, exist_ok=True)
         try:
-            HTML(string=html_str, base_url=str(template_dir)).write_pdf(str(pdf_path))
+            pdf_bytes = _weasyprint_pdf_bytes(html_str, template_dir)
         except Exception as e:
             return f"Error rendering PDF for {json_path}: {e}"
 
+        # Publish through the backend so the PDF lands in the artifact store
+        # (object storage) next to its JSON, not on local disk.
         pdf_backend_path = json_path.removesuffix(".json") + ".pdf"
+        responses = backend.upload_files([(pdf_backend_path, pdf_bytes)])
+        if not responses or responses[0].error:
+            detail = responses[0].error if responses else "no response"
+            return f"Error saving PDF {pdf_backend_path}: {detail}"
         return f"Rendered PDF to {pdf_backend_path}"
 
     return render_battlecard_pdf

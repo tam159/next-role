@@ -30,11 +30,11 @@ resume-tailor:
     Rewrite the candidate's resume tailored to one specific JD using the
     hiring-recon report, then render it to PDF via rendercv. Caller MUST pass:
     resume_path, jd_path, intake_path (optional), research_path, yaml_path. The
-    YAML is written to yaml_path and the .typ + .pdf siblings are produced next
-    to it under `/tailored_resume/<resume>/`.
+    YAML is written to yaml_path and the .pdf sibling is published next to it
+    under `/tailored_resume/<resume>/`.
   model: openai:gpt-5.4
   tools:
-    - prepare_render_settings
+    - render_resume_pdf
   skills:
     - skills/resume-tailor/
   system_prompt: |
@@ -44,8 +44,8 @@ resume-tailor:
     Single-shot — do not call `write_todos`. The user's task may be to
     CREATE a new tailored resume or UPDATE an existing one — read the user
     input to tell. In update mode, read yaml_path first, apply the
-    surgical change, then re-run `prepare_render_settings` and
-    `execute("rendercv render <on-disk YAML path>")` so the PDF refreshes.
+    surgical change, then re-run `render_resume_pdf(yaml_path)` so the PDF
+    refreshes.
 
     Your final reply MUST be exactly one line, note that <pdf_path> starts
     with /tailored_resume/.

@@ -1,3 +1,5 @@
+import { filesApiUrl } from "@/app/lib/agentFiles";
+
 export type UploadResponse = {
   uploaded: { path: string; size: number }[];
   errors: { name: string; reason: string }[];
@@ -12,7 +14,7 @@ export async function uploadAgentFiles(args: {
   form.append("path", targetDir);
   for (const f of files) form.append("file", f, f.name);
 
-  const res = await fetch("/api/files/upload", { method: "POST", body: form });
+  const res = await fetch(filesApiUrl("/files/upload"), { method: "POST", body: form });
   const data = (await res.json().catch(() => null)) as UploadResponse | { error?: string } | null;
 
   if (!res.ok) {
@@ -23,10 +25,11 @@ export async function uploadAgentFiles(args: {
   return data as UploadResponse;
 }
 
-export const CAREER_AGENT_UPLOAD_DIR = "backend/agents/career_agent/upload";
+/** Virtual artifact path for user uploads (backend files API contract). */
+export const CAREER_AGENT_UPLOAD_DIR = "/upload";
 
-export async function deleteAgentFile(repoRelPath: string): Promise<void> {
-  const res = await fetch(`/api/files/delete?path=${encodeURIComponent(repoRelPath)}`, {
+export async function deleteAgentFile(virtualPath: string): Promise<void> {
+  const res = await fetch(filesApiUrl(`/files/delete?path=${encodeURIComponent(virtualPath)}`), {
     method: "DELETE",
   });
   if (!res.ok) {

@@ -1,7 +1,18 @@
 import type { Client } from "@langchain/langgraph-sdk";
 import { AGENT_FILE_SOURCES, type AgentFileSources } from "@/app/config/agentFiles";
+import { getConfig } from "@/lib/config";
 
-export type AgentFileSource = "state" | "store" | "disk";
+export type AgentFileSource = "state" | "store" | "artifact";
+
+/**
+ * Build an absolute URL to the backend files API (`/files/*`), which lives on
+ * the agent server (`LANGGRAPH_HTTP` custom app) — the same origin the SDK
+ * client already talks to for store/threads/runs.
+ */
+export function filesApiUrl(pathAndQuery: string): string {
+  const base = (getConfig()?.deploymentUrl ?? "").replace(/\/+$/, "");
+  return `${base}${pathAndQuery}`;
+}
 
 export type AgentFile = {
   path: string;
@@ -154,14 +165,13 @@ async function fetchStoreFiles(
   return out;
 }
 
-async function fetchDiskFiles(cfg: NonNullable<AgentFileSources["disk"]>): Promise<AgentFile[]> {
-  const params = new URLSearchParams({
-    root: cfg.root,
-    dirs: cfg.includeDirs.join(","),
-  });
-  const listRes = await fetch(`/api/files/list?${params}`);
+async function fetchArtifactFiles(
+  cfg: NonNullable<AgentFileSources["artifacts"]>
+): Promise<AgentFile[]> {
+  const params = new URLSearchParams({ prefixes: cfg.pathPrefixes.join(",") });
+  const listRes = await fetch(filesApiUrl(`/files/list?${params}`));
   if (!listRes.ok) {
-    console.warn("disk list failed", listRes.status, await listRes.text());
+    console.warn("artifact list failed", listRes.status, await listRes.text());
     return [];
   }
   const listData = (await listRes.json()) as {
@@ -171,24 +181,23 @@ async function fetchDiskFiles(cfg: NonNullable<AgentFileSources["disk"]>): Promi
   const reads = await Promise.all(
     listData.files.map(async (f): Promise<AgentFile | null> => {
       try {
-        const r = await fetch(`/api/files/read?path=${encodeURIComponent(f.path)}`);
+        const r = await fetch(filesApiUrl(`/files/read?path=${encodeURIComponent(f.path)}`));
         if (!r.ok) return null;
         const data = (await r.json()) as {
           content: string;
           encoding: "utf-8" | "base64";
         };
-        const rootStripped = f.path.replace(new RegExp(`^/${cfg.root.replace(/\//g, "\\/")}`), "");
         const modifiedAt = f.modifiedAt ? Date.parse(f.modifiedAt) : undefined;
         return {
-          path: rootStripped || f.path,
+          path: f.path,
           content: data.content,
           encoding: data.encoding,
-          source: "disk",
+          source: "artifact",
           sourceKey: f.path,
           modifiedAt: Number.isFinite(modifiedAt) ? modifiedAt : undefined,
         };
       } catch (e) {
-        console.warn("disk read failed", f.path, e);
+        console.warn("artifact read failed", f.path, e);
         return null;
       }
     })
@@ -214,10 +223,10 @@ export async function fetchAgentFiles(args: {
       })
     );
   }
-  if (cfg?.disk) {
+  if (cfg?.artifacts) {
     tasks.push(
-      fetchDiskFiles(cfg.disk).catch((e) => {
-        console.warn("disk fetch failed", e);
+      fetchArtifactFiles(cfg.artifacts).catch((e) => {
+        console.warn("artifact fetch failed", e);
         return [];
       })
     );
@@ -267,8 +276,8 @@ export async function writeAgentFile(args: {
     return;
   }
 
-  if (file.source === "disk") {
-    const res = await fetch("/api/files/write", {
+  if (file.source === "artifact") {
+    const res = await fetch(filesApiUrl("/files/write"), {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -278,7 +287,7 @@ export async function writeAgentFile(args: {
       }),
     });
     if (!res.ok) {
-      throw new Error(`Disk write failed: ${res.status} ${await res.text()}`);
+      throw new Error(`Artifact write failed: ${res.status} ${await res.text()}`);
     }
     return;
   }

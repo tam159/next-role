@@ -49,15 +49,15 @@ const assistant = {
 
 const careerSources: AgentFileSources = {
   store: { namespacePrefix: ["career_agent"], pathPrefixes: ["/processed/"] },
-  disk: { root: "backend/agents/career_agent", includeDirs: ["upload", "tailored_resume"] },
+  artifacts: { pathPrefixes: ["/upload/", "/tailored_resume/"] },
 };
 
-const diskFile: AgentFile = {
+const artifactFile: AgentFile = {
   path: "/upload/cv.md",
-  content: "old disk content",
+  content: "old artifact content",
   encoding: "utf-8",
-  source: "disk",
-  sourceKey: "/backend/agents/career_agent/upload/cv.md",
+  source: "artifact",
+  sourceKey: "/upload/cv.md",
 };
 
 const stateFile: AgentFile = {
@@ -290,13 +290,13 @@ describe("setFiles", () => {
     expect(client.threads.updateState).not.toHaveBeenCalled();
   });
 
-  it("routes a changed disk file to writeAgentFile with its existing sourceKey", async () => {
-    const { result, client } = await setup({ sources: careerSources, agentFiles: [diskFile] });
-    await waitFor(() => expect(result.current.files["/upload/cv.md"]).toBe("old disk content"));
+  it("routes a changed artifact file to writeAgentFile with its existing sourceKey", async () => {
+    const { result, client } = await setup({ sources: careerSources, agentFiles: [artifactFile] });
+    await waitFor(() => expect(result.current.files["/upload/cv.md"]).toBe("old artifact content"));
     fetchAgentFilesMock.mockClear();
 
     await act(async () => {
-      await result.current.setFiles({ "/upload/cv.md": "new disk content" });
+      await result.current.setFiles({ "/upload/cv.md": "new artifact content" });
     });
 
     expect(writeAgentFileMock).toHaveBeenCalledTimes(1);
@@ -304,7 +304,7 @@ describe("setFiles", () => {
       client,
       threadId: "thread-1",
       graphId: "career_agent",
-      file: { ...diskFile, content: "new disk content" },
+      file: { ...artifactFile, content: "new artifact content" },
     });
     expect(client.threads.updateState).not.toHaveBeenCalled();
     // Refetches to pick up new modified_at.
@@ -343,7 +343,7 @@ describe("setFiles", () => {
     expect(client.threads.updateState).not.toHaveBeenCalled();
   });
 
-  it("routes a new path under a disk includeDir to a disk write with a synthesized sourceKey", async () => {
+  it("routes a new path under an artifact prefix to an artifact write with the virtual path", async () => {
     const { result, client } = await setup({ sources: careerSources });
 
     await act(async () => {
@@ -359,8 +359,8 @@ describe("setFiles", () => {
         path: "/upload/new.pdf",
         content: "pdf bytes",
         encoding: "utf-8",
-        source: "disk",
-        sourceKey: "/backend/agents/career_agent/upload/new.pdf",
+        source: "artifact",
+        sourceKey: "/upload/new.pdf",
       },
     });
     expect(client.threads.updateState).not.toHaveBeenCalled();
@@ -369,14 +369,14 @@ describe("setFiles", () => {
   it("falls back to a state update for unmatched new paths, carrying unchanged state files", async () => {
     const { result, client } = await setup({
       sources: careerSources,
-      agentFiles: [stateFile, diskFile],
+      agentFiles: [stateFile, artifactFile],
     });
     await waitFor(() => expect(Object.keys(result.current.files)).toHaveLength(2));
 
     await act(async () => {
       await result.current.setFiles({
         "/notes.md": "keep",
-        "/upload/cv.md": "old disk content",
+        "/upload/cv.md": "old artifact content",
         "/random/new.md": "fresh",
       });
     });
@@ -404,17 +404,17 @@ describe("setFiles", () => {
 });
 
 describe("removeFiles", () => {
-  it("aggregates a mixed batch: deletes disk files, errors for state and unknown paths", async () => {
-    const pdfDiskFile: AgentFile = {
+  it("aggregates a mixed batch: deletes artifact files, errors for state and unknown paths", async () => {
+    const pdfArtifactFile: AgentFile = {
       path: "/upload/cv.pdf",
       content: "pdf",
       encoding: "utf-8",
-      source: "disk",
-      sourceKey: "/backend/agents/career_agent/upload/cv.pdf",
+      source: "artifact",
+      sourceKey: "/upload/cv.pdf",
     };
     const { result } = await setup({
       sources: careerSources,
-      agentFiles: [pdfDiskFile, stateFile],
+      agentFiles: [pdfArtifactFile, stateFile],
     });
     await waitFor(() => expect(Object.keys(result.current.files)).toHaveLength(2));
     fetchAgentFilesMock.mockClear();
@@ -427,12 +427,12 @@ describe("removeFiles", () => {
     expect(outcome).toEqual({
       deleted: ["/upload/cv.pdf"],
       errors: [
-        { path: "/notes.md", reason: "Only disk-backed files can be deleted from the UI" },
+        { path: "/notes.md", reason: "Only artifact files can be deleted from the UI" },
         { path: "/ghost.md", reason: "File not found: /ghost.md" },
       ],
     });
     expect(deleteAgentFileMock).toHaveBeenCalledTimes(1);
-    expect(deleteAgentFileMock).toHaveBeenCalledWith("/backend/agents/career_agent/upload/cv.pdf");
+    expect(deleteAgentFileMock).toHaveBeenCalledWith("/upload/cv.pdf");
     // Refreshes the file list after the batch.
     expect(fetchAgentFilesMock).toHaveBeenCalledTimes(1);
   });

@@ -20,10 +20,12 @@ The local stack runs in Docker via `docker compose up -d`. To find host ports fo
 docker ps
 ```
 
-Read the `0.0.0.0:<host>->...` mappings — host ports come from `.env` (`FRONTEND_LOCAL_PORT`, `LANGGRAPH_LOCAL_PORT`, `POSTGRES_LOCAL_PORT`, `REDIS_LOCAL_PORT`) and vary per machine, so don't assume defaults. Once you know the port, hit endpoints directly:
+Read the `0.0.0.0:<host>->...` mappings — host ports come from `.env` (`FRONTEND_LOCAL_PORT`, `LANGGRAPH_LOCAL_PORT`, `POSTGRES_LOCAL_PORT`, `REDIS_LOCAL_PORT`, `OBJECT_STORE_LOCAL_PORT`) and vary per machine, so don't assume defaults. Once you know the port, hit endpoints directly:
 
 - `http://localhost:<LANGGRAPH_LOCAL_PORT>/docs` — backend API docs (LangGraph)
+- `http://localhost:<LANGGRAPH_LOCAL_PORT>/files/list?prefixes=/upload/` — artifact files API (object storage)
 - `http://localhost:<FRONTEND_LOCAL_PORT>/` — frontend UI
+- `http://localhost:<OBJECT_STORE_UI_LOCAL_PORT>/buckets/next-role-artifacts/` — SeaweedFS filer UI (browse bucket objects)
 
 Use the `agent-browser` skill for visual verification, or `curl` for API checks.
 
