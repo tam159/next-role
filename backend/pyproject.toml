@@ -6,7 +6,7 @@ dev = [
   "pytest-cov>=7.1.0",
   "pre-commit>=4.6.0",
   "toml-sort>=0.24.4",
-  "ty>=0.0.54",
+  "ty>=0.0.58",
   # Regenerates grpc_common/proto stubs; exact-pinned to match
   # GRPC_GENERATED_VERSION baked into the generated *_pb2_grpc.py files.
   "grpcio-tools==1.80.0"
