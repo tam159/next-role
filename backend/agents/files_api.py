@@ -74,6 +74,18 @@ def _authenticated(handler):  # noqa: ANN001, ANN202
     return wrapped
 
 
+def _scope(request: Request) -> str | None:
+    """Return the caller's object-store scope (identity), None for single-user.
+
+    The server's auth middleware puts the authenticated user on the request
+    scope; its identity scopes object keys the same way the agent's runtime
+    identity does. None (no user) resolves to the default single-user layout.
+    """
+    user = request.scope.get("user")
+    identity = getattr(user, "identity", None) if user is not None else None
+    return identity or None
+
+
 # Extensions served as base64 (mirrors the frontend's former BINARY_EXTS).
 _BINARY_EXTS = {
     "png", "jpg", "jpeg", "gif", "webp", "bmp", "ico",
@@ -121,12 +133,14 @@ async def list_files(request: Request) -> JSONResponse:
             return JSONResponse({"error": f"Disallowed prefix: {raw}"}, status_code=403)
         areas.append(area)
 
+    scope = _scope(request)
+
     def _collect() -> list[dict[str, Any]]:
         store = get_store()
         files: list[dict[str, Any]] = []
         for area in areas:
-            for meta in list_meta(store, area_key_prefix(area) + "/"):
-                vpath = virtual_path_for_key(str(meta["path"]))
+            for meta in list_meta(store, area_key_prefix(area, scope) + "/"):
+                vpath = virtual_path_for_key(str(meta["path"]), scope)
                 if vpath is None:
                     continue
                 files.append(
@@ -152,7 +166,7 @@ async def read_file(request: Request) -> JSONResponse:
     path = request.query_params.get("path")
     if not path:
         return JSONResponse({"error": "Missing 'path'"}, status_code=400)
-    key = key_for_virtual_path(path)
+    key = key_for_virtual_path(path, _scope(request))
     if key is None:
         return JSONResponse({"error": "Forbidden path"}, status_code=403)
 
@@ -191,6 +205,7 @@ async def upload_files(request: Request) -> JSONResponse:
     uploaded: list[dict[str, Any]] = []
     errors: list[dict[str, str]] = []
     store = get_store()
+    scope = _scope(request)
 
     for file in file_entries:
         name = file.filename or ""
@@ -203,7 +218,7 @@ async def upload_files(request: Request) -> JSONResponse:
             continue
 
         target = f"{dir_field.rstrip('/')}/{name}"
-        key = key_for_virtual_path(target)
+        key = key_for_virtual_path(target, scope)
         if key is None:
             errors.append({"name": name, "reason": "Forbidden path"})
             continue
@@ -237,7 +252,7 @@ async def write_file(request: Request) -> JSONResponse:
     encoding = body.get("encoding", "utf-8")
     if not path or not isinstance(content, str):
         return JSONResponse({"error": "Missing 'path' or 'content'"}, status_code=400)
-    key = key_for_virtual_path(path)
+    key = key_for_virtual_path(path, _scope(request))
     if key is None:
         return JSONResponse({"error": "Forbidden path"}, status_code=403)
 
@@ -262,7 +277,7 @@ async def delete_file(request: Request) -> JSONResponse:
     path = request.query_params.get("path")
     if not path:
         return JSONResponse({"error": "Missing 'path'"}, status_code=400)
-    key = key_for_virtual_path(path)
+    key = key_for_virtual_path(path, _scope(request))
     if key is None:
         return JSONResponse({"error": "Forbidden path"}, status_code=403)
 

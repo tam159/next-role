@@ -9,8 +9,15 @@ case where the custom-route flag is missing).
 import pytest
 from backend.agents import files_api
 from obstore.store import MemoryStore
-from starlette.authentication import SimpleUser
 from starlette.testclient import TestClient
+
+
+class _AuthedUser:
+    """Stands in for the custom-auth ProxyUser (concrete `identity`)."""
+
+    def __init__(self, identity: str) -> None:
+        self.identity = identity
+        self.is_authenticated = True
 
 
 @pytest.fixture
@@ -59,6 +66,24 @@ def test_multi_user_mode_401s_without_a_user(monkeypatch, mem_store) -> None:
 
 
 def test_multi_user_mode_serves_authenticated_requests(monkeypatch, mem_store) -> None:
-    client = _client(monkeypatch, auth_enabled=True, user=SimpleUser("user-1"))
+    client = _client(monkeypatch, auth_enabled=True, user=_AuthedUser("user-1"))
     res = client.get("/files/list", params={"prefixes": "/upload/"})
     assert res.status_code == 200
+
+
+def test_files_api_scopes_keys_to_the_request_user(monkeypatch, mem_store) -> None:
+    """Uploads land under the authenticated user's object-key scope."""
+    client = _client(monkeypatch, auth_enabled=True, user=_AuthedUser("alice"))
+    res = client.post(
+        "/files/upload",
+        data={"path": "/upload"},
+        files={"file": ("cv.pdf", b"%PDF-1.4 alice", "application/pdf")},
+    )
+    assert res.status_code == 200
+    keys = [str(m["path"]) for m in mem_store.list().collect()]
+    assert keys == ["users/alice/career_agent/upload/cv.pdf"]
+
+    # Bob sees nothing of Alice's.
+    bob = _client(monkeypatch, auth_enabled=True, user=_AuthedUser("bob"))
+    listing = bob.get("/files/list", params={"prefixes": "/upload/"})
+    assert listing.json()["files"] == []

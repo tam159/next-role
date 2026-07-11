@@ -13,6 +13,7 @@ from backend.agents.career_agent.middleware import (
     UtcDatetimeMiddleware,
 )
 from backend.agents.career_agent.object_backend import ObjectStoreBackend
+from backend.agents.career_agent.scope import kv_namespace
 from backend.agents.career_agent.shell_backend import VirtualPathShellBackend, default_shell_env
 from backend.agents.career_agent.tools import (
     CAREER_AGENT_DIR,
@@ -92,23 +93,27 @@ _backend = CompositeBackend(
         env=default_shell_env(),
     ),
     routes={
+        # Namespaces are scoped to the authenticated caller at call time
+        # (kv_namespace reads the run's identity via get_config); single-user
+        # mode keeps the original ("career_agent", <area>) tuples. The lambda's
+        # Runtime arg is unused — identity comes from the run config.
         "/memory/": StoreBackend(
-            namespace=lambda _: ("career_agent", "memory"),
+            namespace=lambda _rt: kv_namespace("memory"),
         ),
         "/processed/": StoreBackend(
-            namespace=lambda _: ("career_agent", "processed"),
+            namespace=lambda _rt: kv_namespace("processed"),
         ),
         "/research/": StoreBackend(
-            namespace=lambda _: ("career_agent", "research"),
+            namespace=lambda _rt: kv_namespace("research"),
         ),
         "/interview_coach/": StoreBackend(
-            namespace=lambda _: ("career_agent", "interview_coach"),
+            namespace=lambda _rt: kv_namespace("interview_coach"),
         ),
         "/large_tool_results/": StoreBackend(
-            namespace=lambda _: ("career_agent", "large_tool_results"),
+            namespace=lambda _rt: kv_namespace("large_tool_results"),
         ),
         "/workspace/": StoreBackend(
-            namespace=lambda _: ("career_agent", "workspace"),
+            namespace=lambda _rt: kv_namespace("workspace"),
         ),
         # Binary artifact areas live in S3-compatible object storage (SeaweedFS
         # locally, S3/GCS/Azure in the cloud). NOTE: these prefixes hold the
