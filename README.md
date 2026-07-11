@@ -98,7 +98,9 @@ docker ps                     # read the 0.0.0.0:<host>->... mappings
 | `LANGCHAIN_API_KEY` + `LANGCHAIN_TRACING_V2=true` | ⬜ | LangSmith tracing (recommended) |
 | `AUTH_ENABLED` / `BETTER_AUTH_SECRET` / `LANGGRAPH_AUTH` | ⬜ | Multi-user auth (opt-in) — steps in [Authentication & multi-user](#authentication--multi-user) |
 | `FRONTEND_LOCAL_PORT` / `LANGGRAPH_LOCAL_PORT` / `POSTGRES_LOCAL_PORT` / `REDIS_LOCAL_PORT` / `OBJECT_STORE_LOCAL_PORT` | preset | Host port mappings |
-| `OBJECT_STORE_*` | preset | Artifact object storage (local SeaweedFS defaults; point at S3/GCS/Azure for cloud) |
+| `OBJECT_STORE_*` | preset | Artifact object storage — see below |
+
+**Object storage.** Binary artifacts (uploads + rendered PDFs) live in S3-compatible object storage. Locally that's the compose `object-store` service (SeaweedFS) and the presets work as-is: S3 API on `OBJECT_STORE_LOCAL_PORT`, a browsable bucket UI on `OBJECT_STORE_UI_LOCAL_PORT`, and placeholder credentials that the local emulator accepts but doesn't enforce. For the cloud, point `OBJECT_STORE_ENDPOINT` / `OBJECT_STORE_BUCKET` / credentials at a managed bucket — AWS S3, GCS, Azure, or any S3-compatible store — with no code changes. Note: the `AWS_*` variables are reserved for Bedrock models; the object store reads only `OBJECT_STORE_*`.
 
 Secrets live only in `.env` (gitignored); `gitleaks` runs on every commit.
 
