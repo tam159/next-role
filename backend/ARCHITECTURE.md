@@ -15,9 +15,10 @@ other, and what to know before touching any of it.
 5. [Streaming](#5-streaming)
 6. [Schema & migrations](#6-schema--migrations)
 7. [Configuration knobs](#7-configuration-knobs)
-8. [Known limitations](#8-known-limitations)
-9. [Production sketch](#9-production-sketch)
-10. [Maintenance: generated code, pins & tests](#10-maintenance-generated-code-pins--tests)
+8. [Authentication & multi-user](#8-authentication--multi-user)
+9. [Known limitations](#9-known-limitations)
+10. [Production sketch](#10-production-sketch)
+11. [Maintenance: generated code, pins & tests](#11-maintenance-generated-code-pins--tests)
 
 ---
 
@@ -26,7 +27,8 @@ other, and what to know before touching any of it.
 One image (`backend/Dockerfile`, `python:3.13-slim` + uv), two compose services:
 
 - **`backend`** — `uvicorn server.api.server:app` on container **:8000** (host
-  `${LANGGRAPH_LOCAL_PORT}`). HTTP + SSE + WebSocket API, auth (noop locally), validation,
+  `${LANGGRAPH_LOCAL_PORT}`). HTTP + SSE + WebSocket API, auth (noop by default; custom
+  JWT auth when `LANGGRAPH_AUTH` is set — see §8), validation,
   **and graph execution**: an embedded worker pool (`N_JOBS_PER_WORKER`, default 10) claims
   queued runs and executes `career_agent` in-process. Stateless.
 - **`core-server`** — `python -m server.core_server`, gRPC on **:50052** (internal only, no host
@@ -79,7 +81,7 @@ edits under `backend/` (agents and server packages alike) restart the server.
 | `server/api/` | 36k | The ASGI server: routes (assistants/threads/runs/store/crons/mcp/a2a), auth, streaming, graph loading, worker, gRPC client |
 | `server/runtime/` | 85 | Edition router — `__init__.py` reads `LANGGRAPH_RUNTIME_EDITION` and aliases `runtime.*` submodules to the chosen backend in `sys.modules` (`postgres` → local `runtime_postgres`; `inmem` → the PyPI `langgraph-runtime-inmem` package) |
 | `server/runtime_postgres/` | 3.5k | Postgres backend: pool + migrations, checkpoint ingestion, queue loop, store, lifespan |
-| `server/grpc_common/` | 5.6k | Generated protobuf/gRPC stubs (`proto/`, **do not edit or lint** — see §10) + proto↔python conversion |
+| `server/grpc_common/` | 5.6k | Generated protobuf/gRPC stubs (`proto/`, **do not edit or lint** — see §11) + proto↔python conversion |
 | `server/core_server/` | 2.5k | The gRPC data plane; imports only `grpc_common` |
 
 Plus `storage/migrations/` (a single consolidated schema migration, `000001_init.up.sql`;
@@ -113,6 +115,12 @@ directly from the backend process (`server/runtime_postgres/database.py`,
 1. **Checkpoints** (graph state snapshots) — written on the hot path of every superstep;
    the extra gRPC hop would double serialization on the highest-volume writes.
 2. **The KV store** (`/store/*`, DeepAgents memory) and **thread state/history reads**.
+
+Auth note: because core-server is the sole owner of the metadata-table SQL, it is also
+where per-user authorization is *enforced* (translating the auth handlers' filters into SQL
+WHERE clauses — §8). The backend-side ops layer only *computes* those filters. The KV store
+and thread state/history bypass, though, means their isolation is not a servicer filter but a
+namespace/ownership property the store handler and the `Threads.get` gate provide (§8).
 
 Why a separate data plane at all: bounded Postgres connections (N backend replicas share a
 few core-server pools instead of N pools), and one owner for correctness-critical logic —
@@ -216,22 +224,115 @@ All read in `server/api/config/__init__.py` unless noted. The compose file sets 
 | `LSD_GRPC_SERVER_ADDRESS` ★ | `localhost:50052` | where the backend dials core-server |
 | `MIGRATIONS_PATH` ★ | `/storage/migrations` | must point at `backend/storage/migrations` |
 | `LANGSERVE_GRAPHS` ★ | — | JSON `{graph_id: "path.py:variable"}`; any source containing `/` is loaded as a file path (`server/api/graph.py`) |
-| `LANGGRAPH_HTTP` ★ | — | JSON `{"app": "path.py:app"}` — mounts a user Starlette/FastAPI app into the server (`load_custom_app`). Used for the artifact **files API** (`backend/agents/files_api.py`); `enable_custom_route_auth` puts it behind auth later |
+| `LANGGRAPH_HTTP` ★ | — | JSON `{"app": "path.py:app"}` — mounts a user Starlette/FastAPI app into the server (`load_custom_app`). Used for the artifact **files API** (`backend/agents/files_api.py`); add `"enable_custom_route_auth": true` (compose does) to put its routes behind the server's auth middleware in multi-user mode |
 | `OBJECT_STORE_*` ★ | — | S3-compatible artifact storage: endpoint/bucket/region/creds/path-style. Local = SeaweedFS; cloud = S3 / GCS / Azure. Deliberately separate from `AWS_*` (Bedrock creds) |
 | `N_JOBS_PER_WORKER` | `10` | embedded worker concurrency; `0` = web-only, no queue |
 | `FF_CRONS_ENABLED` | `true` | cron scheduler in this process (keep exactly one) |
 | `FF_V2_EVENT_STREAMING` | `true` | v2 `/stream/events` + `/commands` routes |
-| `CORS_ALLOW_ORIGINS` | `*` | fine for local dev; tighten for any shared deployment |
-| `LANGGRAPH_AUTH_TYPE` | `noop` | custom auth backends live in `server/api/auth/` |
+| `CORS_ALLOW_ORIGINS` | `*` | fine for local dev; **pin to the frontend origin** for any shared deployment |
+| `LANGGRAPH_AUTH_TYPE` | `noop` | `noop` = unauthenticated single-user; custom auth backends live in `server/api/auth/`. See §8 |
+| `LANGGRAPH_AUTH` | — | JSON `{"path": "…/agents/auth.py:auth", "disable_studio_auth": true}` — activates custom JWT auth + per-user authorization (§8). Unset = single-user |
+| `REQUIRE_AUTH` | `false` | boot guard: `true` + no `LANGGRAPH_AUTH` → the server refuses to start (cloud safety net) |
+| `AUTH_JWKS_URL` | — | JWKS endpoint the `@auth.authenticate` handler verifies bearer JWTs against (the frontend's `/api/auth/jwks`). Required when `LANGGRAPH_AUTH` is set |
+| `AUTH_JWT_ISSUER` / `AUTH_JWT_AUDIENCE` | — | expected `iss` / `aud` claims (the frontend origin); checked when present |
 | `CORE_SERVER_BIND` ★ | `0.0.0.0:50052` | core-server listen address (`server/core_server/settings.py`) |
 | `CORE_SERVER_GO_FALLBACK` ★ | `localhost:50051` | **must be `""`** — non-empty forwards unimplemented RPCs to an external gRPC server that doesn't exist here |
 | `CORE_SERVER_POSTGRES_URI` / `CORE_SERVER_REDIS_URI` ★ | derived | core-server's own connections |
 | `BG_JOB_MAX_RETRIES` / `BG_JOB_TIMEOUT_SECS` / `BG_JOB_SHUTDOWN_GRACE_PERIOD_SECS` | 3 / 86400 / 180 | run retry/timeout/drain budget |
 
-## 8. Known limitations
+## 8. Authentication & multi-user
 
-Real properties of this codebase — accepted for a single-user local deployment, listed so
-nobody is surprised later:
+The server ships the **complete LangGraph custom-auth framework** (`server/api/auth/`) but runs
+it as **noop by default** — a single unauthenticated user, every resource shared. Setting
+`LANGGRAPH_AUTH` flips the whole platform into per-user mode; unsetting it returns to exactly
+the single-user behavior (every enforcement clause below collapses to empty). This dual mode is
+a hard invariant: the local `docker compose up` experience must stay zero-login and byte-for-byte
+unchanged.
+
+**Enable it** (see [`.env.example`](../.env.example) for the full runbook): stand up the
+frontend's [Better Auth](https://better-auth.com) (Google + email/password, JWT plugin), set
+`LANGGRAPH_AUTH={"path": "…/agents/auth.py:auth", "disable_studio_auth": true}` plus
+`AUTH_JWKS_URL` / `AUTH_JWT_ISSUER` / `AUTH_JWT_AUDIENCE`, add
+`"enable_custom_route_auth": true` to `LANGGRAPH_HTTP`, pin `CORS_ALLOW_ORIGINS`, and in the
+cloud set `REQUIRE_AUTH=true`.
+
+### Request flow
+
+```
+browser ──session cookie──▶ frontend (Better Auth: mints short-lived EdDSA JWT, sub = user id)
+   └──Authorization: Bearer <JWT>──▶ backend
+        @auth.authenticate (agents/auth.py): verify JWT vs JWKS → identity
+        AuthenticationMiddleware sets scope["user"]; ApiRoute enters the AuthContext ContextVar
+        @auth.on.* handlers: stamp metadata.owner, return {"owner": id} filters, rewrite store ns
+        merge_auth injects langgraph_auth_user into the run's configurable
+        ops layer → gRPC → core-server servicers: translate filters → SQL WHERE (enforcement)
+        worker restores langgraph_auth_user for the run → agent backends scope storage by identity
+```
+
+### Two halves: identity + authorization
+
+1. **Authentication & authorization handlers** live in the *product* tree,
+   `backend/agents/auth.py` (`auth = Auth()`), not in `server/`:
+   - `@auth.authenticate` reads the `Authorization` bearer (works on HTTP **and** WebSocket
+     scopes because it takes `authorization`, not `request`), verifies it against the JWKS with
+     the algorithm **pinned to EdDSA** (never trusting the token header) and `iss`/`aud` checked,
+     and returns the identity (`sub`).
+   - `@auth.on.threads` / `.crons` stamp `metadata.owner = identity` on writes and return an
+     `{"owner": identity}` filter; `@auth.on.assistants` allows reads for all and denies writes
+     (assistants are shared system config); `@auth.on.store` rewrites each namespace so its first
+     segment is the identity; a global default-deny `@auth.on` fails closed.
+
+2. **Enforcement** happens in core-server. Upstream, the ops layer *computes* auth filters and
+   ships them on request protos, but the native servicers historically **ignored them** — so the
+   filters were a no-op. `server/core_server/_filters.py` closes that: it translates the
+   `AuthFilter` protos (`$eq` / `$contains` / `$and` / `$or`) into **parameterized** JSONB
+   predicates (values always bound via `Jsonb`, never interpolated; the `owner` equality hits the
+   `thread_owner_updated_idx` partial index), wired into every read/write of
+   `threads` / `runs` / `crons` / `assistants`. Ownership is invisible-not-forbidden:
+   a resource the caller doesn't own returns **`NOT_FOUND`**, never a 403 existence oracle. Two
+   non-obvious sites carry the highest blast radius:
+   - **`ThreadsServicerImpl.Stream`** gates ownership *before* subscribing to the pub/sub
+     channels — without it any authenticated caller could stream another user's live,
+     token-by-token events by thread id (both the v1 `/stream` and the v2 `/stream/events`
+     transport reach this method).
+   - **`RunsServicerImpl.Create`** enforces `thread_filters` / `assistant_filters`, blocking a
+     run injected into a thread the caller doesn't own.
+
+### Per-user storage scoping
+
+The two persistence tiers scope at **call time** (the agent backends are import-time singletons,
+so identity comes from the run config, not construction), via
+`backend/agents/career_agent/scope.py`:
+
+- **KV store** (Postgres, DeepAgents `StoreBackend`): namespaces become
+  `(<identity>, "career_agent", <area>)` when authenticated, and stay the original
+  `("career_agent", <area>)` 2-tuple otherwise — no user segment appears in single-user mode, so
+  pre-existing rows are untouched. Per-user memory (`/memory/preferences.md`) falls out for free.
+- **Object store**: keys become `users/<identity>/career_agent/<area>/…` (or
+  `users/default/…` single-user, matching the historical layout). The agent backend resolves
+  identity from the run runtime; the files API from `request.user.identity`.
+
+The frontend needs no per-user store logic: it keeps sending logical `["career_agent", …]`
+namespaces and the `@auth.on.store` rewrite prepends identity transparently, landing on the same
+rows the agent writes.
+
+### What stays outside the wall
+
+- **Meta/health/docs routes** (`/`, `/info`, `/ok`, `/metrics`, `/docs`, `/openapi.json`) are
+  unauthenticated by design — `/metrics` leaks thread/run counts, so block it at the ingress in a
+  shared deployment.
+- **MCP (`/mcp`) and A2A (`/a2a`)** are authentication-gated but have **no per-resource
+  authorization** of their own yet — disable them (`disable_mcp` / `disable_a2a` in
+  `LANGGRAPH_HTTP`) until that is audited.
+- **Studio backdoors** are closed by `disable_studio_auth: true`; also never set
+  `LANGSMITH_LANGGRAPH_API_VARIANT=local_dev` in production.
+- Browsers can't set an `Authorization` header on a raw WebSocket handshake, so the frontend
+  streams over the **SSE POST** transport (which carries the bearer); the WS route stays for
+  non-browser clients.
+
+## 9. Known limitations
+
+Real properties of this codebase, listed so nobody is surprised later:
 
 1. **Event replay is bounded, not archival.** The per-thread event log (§5) makes
    reconnects, SDK stream rotations, and history views lossless within its bounds
@@ -248,9 +349,15 @@ nobody is surprised later:
 4. **Referential integrity is app-enforced** (FKs dropped by design); a data-plane bug can
    orphan rows silently.
 5. **The backend is not Postgres-free** — checkpoints/store/state bypass gRPC, so backend
-   replicas also consume DB connections (matters only when scaling out, §9).
+   replicas also consume DB connections (matters only when scaling out, §10).
+6. **Shell execution is not sandboxed for untrusted tenants.** Multi-user mode (§8) isolates
+   *data*, but `VirtualPathShellBackend` still runs render commands via `subprocess` on the host.
+   Fine for a single user or a trusted team; isolate render/shell steps (remote sandbox) before
+   opening public signup.
+7. **MCP / A2A carry no per-resource authorization** (§8) — only authentication. Disable them in
+   a shared deployment until per-user scoping is wired into those handlers.
 
-## 9. Production sketch
+## 10. Production sketch
 
 Locally, one `backend` container fuses web + workers + cron. To scale (same image, different
 commands/env):
@@ -272,7 +379,15 @@ by a managed bucket (S3 / GCS / Azure) — provision versioning/SSE/IAM there; n
 Renders use a throwaway `TemporaryDirectory`, so worker pods need only ordinary ephemeral
 `/tmp`.
 
-## 10. Maintenance: generated code, pins & tests
+For a multi-tenant deployment, additionally enable auth (§8) on **every** replica that serves
+the API (`LANGGRAPH_AUTH` + `REQUIRE_AUTH=true` so a misconfigured pod refuses to boot rather
+than serving everyone's data), pin `CORS_ALLOW_ORIGINS`, make the frontend's JWKS endpoint
+reachable from the backend pods, terminate TLS at the ingress, and block the unauthenticated
+meta routes (`/metrics`, `/docs`). The auth identity travels in the run's `configurable` and is
+restored by the worker, so storage scoping (§8) holds on `api-worker` pods exactly as on
+`api-web`.
+
+## 11. Maintenance: generated code, pins & tests
 
 - **Generated code:** `server/grpc_common/proto/` is protoc/grpcio-tools output — never hand-edit,
   lint, or format it. It is excluded three ways: `[tool.ruff] exclude` (top-level — a

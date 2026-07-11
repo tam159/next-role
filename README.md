@@ -96,6 +96,7 @@ docker ps                     # read the 0.0.0.0:<host>->... mappings
 | `OPENAI_API_BASE` | ⬜ | Self-hosted / Azure / LM Studio endpoint |
 | `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` / `AWS_DEFAULT_REGION` | ⬜ | AWS Bedrock models |
 | `LANGCHAIN_API_KEY` + `LANGCHAIN_TRACING_V2=true` | ⬜ | LangSmith tracing (recommended) |
+| `AUTH_ENABLED` / `BETTER_AUTH_SECRET` / `LANGGRAPH_AUTH` | ⬜ | Multi-user auth (opt-in) — steps in [Authentication & multi-user](#authentication--multi-user) |
 | `FRONTEND_LOCAL_PORT` / `LANGGRAPH_LOCAL_PORT` / `POSTGRES_LOCAL_PORT` / `REDIS_LOCAL_PORT` / `OBJECT_STORE_LOCAL_PORT` | preset | Host port mappings |
 | `OBJECT_STORE_*` | preset | Artifact object storage (local SeaweedFS defaults; point at S3/GCS/Azure for cloud) |
 
@@ -250,6 +251,8 @@ Because NextRole ships its own **agent server** implementing the LangGraph Serve
 - **A2A** — Google's Agent2Agent protocol at **`/a2a/{assistant_id}`** (JSON-RPC 2.0; `message/send` + `message/stream`). → [docs](https://docs.langchain.com/langsmith/server-a2a)
 - The full server API is browsable at the **`/docs`** endpoint of your deployment.
 
+> In multi-user mode these endpoints are authentication-gated but not yet per-user authorized — disable them (`disable_mcp` / `disable_a2a`) in a shared deployment until that lands. See [`backend/ARCHITECTURE.md` §8](backend/ARCHITECTURE.md#8-authentication--multi-user).
+
 ![NextRole Agent Expose](docs/images/next-role-agent-expose.png)
 
 </details>
@@ -270,16 +273,48 @@ Set `LANGCHAIN_API_KEY` and `LANGCHAIN_TRACING_V2=true` in `.env`, and every run
 - 📊 **Agent evaluation** — LangSmith evals over the workflow (the `@pytest.mark.eval` marker is already reserved).
 - 🎨 **Enhanced UI** — richer artifact editing, diff views, and inline regeneration.
 - 🔌 **MCP / A2A examples** — sample integrations driving `career_agent` from external agents and IDEs.
-- 🧵 **Per-thread / multi-user scoping** — namespace artifacts per user instead of the current global layout (object keys already carry a `users/<scope>/` segment, so this is an auth + key-mapping change, not a migration).
-- ☁️ **Cloud deployment** — binary artifacts already live in S3-compatible object storage (SeaweedFS locally; point `OBJECT_STORE_*` at S3 / GCS / Azure). Remaining: managed bucket provisioning (versioning, SSE, IAM), auth on the files API, and presigned-URL delivery.
+- ☁️ **Cloud deployment** — binary artifacts already live in S3-compatible object storage (SeaweedFS locally; point `OBJECT_STORE_*` at S3 / GCS / Azure). Remaining: managed bucket provisioning (versioning, SSE, IAM) and presigned-URL delivery.
 - 🌐 **More sources & ATS-aware tailoring** — pluggable retrievers + keyword/ATS optimization passes.
+
+## Authentication & multi-user
+
+NextRole runs **zero-login single-user by default** — `docker compose up` and start prepping, no accounts. Flip on **multi-user mode** for a shared or cloud deployment and every user gets private threads, files, and memory.
+
+- **Login** — Google OAuth and/or email + password, via self-hosted [Better Auth](https://better-auth.com) inside the Next.js app (its tables live in your Postgres; no third-party auth vendor).
+- **Isolation** — the agent server verifies a short-lived JWT (JWKS) on every request; threads/runs/crons are owner-scoped in SQL (unowned → `404`), and store namespaces + object keys are scoped per user (`users/<id>/…`). Design details in [`backend/ARCHITECTURE.md` §8](backend/ARCHITECTURE.md#8-authentication--multi-user).
+
+**Enable it** — set these in `.env`, then `docker compose up -d frontend backend`:
+
+1. `AUTH_ENABLED=true` and `BETTER_AUTH_SECRET=$(openssl rand -base64 32)`.
+2. Create the Better Auth tables once (it owns `user` / `session` / `account` / `jwks`, separate from `backend/storage/migrations/`):
+   ```bash
+   AUTH_DATABASE_URL="postgresql://<POSTGRES_USER>:<POSTGRES_PASSWORD>@localhost:<POSTGRES_LOCAL_PORT>/<POSTGRES_DB>" \
+   BETTER_AUTH_SECRET=<same secret> \
+     pnpm --dir frontend dlx @better-auth/cli@latest migrate --config src/lib/auth/server.ts
+   ```
+3. `LANGGRAPH_AUTH={"path": "/deps/next-role/backend/agents/auth.py:auth", "disable_studio_auth": true}` — turns on backend enforcement. (Login without this is fine for trying the UI, but provides no isolation.)
+4. *Optional Google sign-in:* `AUTH_GOOGLE_ENABLED=true` + `GOOGLE_AUTH_CLIENT_ID` / `GOOGLE_AUTH_CLIENT_SECRET` (OAuth client redirect URI `http://localhost:<FRONTEND_LOCAL_PORT>/api/auth/callback/google`). Email + password works without it.
+
+<details>
+<summary><b>Cloud hardening checklist</b> — beyond enabling auth</summary>
+
+<br/>
+
+- **`REQUIRE_AUTH=true`** — the backend refuses to boot if `LANGGRAPH_AUTH` is missing, so a misconfigured deploy fails loudly instead of serving everyone's data.
+- **HTTPS everywhere** — set `BETTER_AUTH_URL` / `AUTH_JWT_ISSUER` / `AUTH_JWT_AUDIENCE` to the public https origin, and `AUTH_JWKS_URL` to the in-network frontend URL the backend can reach.
+- **Pin CORS** — `CORS_ALLOW_ORIGINS=https://your-frontend.example` (the default `*` is local-only).
+- **Block the unauthenticated meta routes** at the ingress — `/metrics` leaks thread/run counts; also `/docs`, `/openapi.json`, `/info`.
+- **Gate MCP / A2A** — authentication-only today (no per-resource authz), so disable via `LANGGRAPH_HTTP` `"disable_mcp": true` / `"disable_a2a": true` until audited.
+- **Close the Studio backdoors** — never set `LANGSMITH_LANGGRAPH_API_VARIANT=local_dev` in production; `disable_studio_auth: true` (above) closes the header-based one.
+- **Reverse proxy** must never forward a client-controlled root_path (the in-process `/noauth` loopback bypass stays internal-only).
+
+</details>
 
 ## Limitations
 
-> NextRole is built for **local, single-user, trusted use** today.
+> Multi-user mode isolates data, but the shell sandbox below is still the gate before opening signups to untrusted users.
 
-- 🔒 **Local shell execution** — `VirtualPathShellBackend` runs render commands via `subprocess` on the host. Safe locally; **not** hardened for multi-tenant production (needs sandboxing — see roadmap).
-- 👤 **Global file scoping** — uploads and artifacts share one global key layout in the object store; re-uploading a filename overwrites. No per-user isolation yet (the `users/default/` key segment is the prepared seam).
+- 🔒 **Local shell execution** — `VirtualPathShellBackend` runs render commands via `subprocess` on the host. Safe locally and for a trusted team; **not** hardened for untrusted multi-tenant use (needs sandboxing — see roadmap). Isolate render/shell steps before exposing public signup.
 - 🧪 **LLM evals deferred** — current tests are unit + local-DB integration; automated quality evals aren't wired up yet.
 - 🧠 **Personalization is preferences-only** — the agent persists and auto-applies the preferences you *state* across sessions, but doesn't yet infer your style/history on its own or consolidate memory over time (see [roadmap](#roadmap)).
 - ⏱️ **Latency** — a full run makes several LLM and tool calls across multiple agents; expect minutes, not seconds.
