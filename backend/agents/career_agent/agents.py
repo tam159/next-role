@@ -12,6 +12,7 @@ from backend.agents.career_agent.middleware import (
     ModelOverrideMiddleware,
     UtcDatetimeMiddleware,
 )
+from backend.agents.career_agent.object_backend import ObjectStoreBackend
 from backend.agents.career_agent.shell_backend import VirtualPathShellBackend, default_shell_env
 from backend.agents.career_agent.tools import (
     CAREER_AGENT_DIR,
@@ -19,8 +20,8 @@ from backend.agents.career_agent.tools import (
     make_list_files,
     make_overwrite_file,
     make_parse_document,
-    make_prepare_render_settings,
     make_render_battlecard_pdf,
+    make_render_resume_pdf,
     web_extract,
     web_search,
 )
@@ -109,6 +110,14 @@ _backend = CompositeBackend(
         "/workspace/": StoreBackend(
             namespace=lambda _: ("career_agent", "workspace"),
         ),
+        # Binary artifact areas live in S3-compatible object storage (SeaweedFS
+        # locally, S3/GCS/Azure in the cloud). NOTE: these prefixes hold the
+        # text sources of truth too (rendercv YAML, battlecard JSON), not just
+        # PDFs. rendercv renders in a throwaway temp dir outside the repo tree
+        # (see render_resume_pdf in tools.py) — no disk artifact area remains.
+        "/upload/": ObjectStoreBackend("upload"),
+        "/tailored_resume/": ObjectStoreBackend("tailored_resume"),
+        "/interview_battlecard/": ObjectStoreBackend("interview_battlecard"),
     },
 )
 
@@ -119,7 +128,7 @@ _list_files = make_list_files(_backend)
 _parse_document = make_parse_document(_backend)
 _extract_jd = make_extract_jd(_backend)
 _overwrite_file = make_overwrite_file(_backend)
-_prepare_render_settings = make_prepare_render_settings(_backend)
+_render_resume_pdf = make_render_resume_pdf(_backend)
 _render_battlecard_pdf = make_render_battlecard_pdf(_backend)
 
 # Generic filesystem utilities every subagent gets unconditionally — saves
@@ -133,7 +142,7 @@ _SUBAGENT_DEFAULT_TOOLS = [_list_files, _overwrite_file]
 _SUBAGENT_TOOLS = {
     "web_search": web_search,
     "web_extract": web_extract,
-    "prepare_render_settings": _prepare_render_settings,
+    "render_resume_pdf": _render_resume_pdf,
 }
 
 # Shared across the main agent and every declarative subagent: declarative

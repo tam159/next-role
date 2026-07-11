@@ -1,6 +1,8 @@
 volumes:
   pg-data:
     driver: local
+  seaweed-data:
+    driver: local
 
 services:
   frontend:
@@ -72,6 +74,52 @@ services:
       retries: 5
       interval: 60s
       start_interval: 1s
+
+  # S3-compatible object storage for binary artifacts (uploads + rendered
+  # PDFs). SeaweedFS all-in-one: master (9333), volume, filer (8888, browsable
+  # UI), S3 gateway (8333). No -s3.config -> auth is disabled, so the dev
+  # OBJECT_STORE_* credentials are accepted but not enforced (private compose
+  # network only; real creds/IAM arrive with cloud provisioning).
+  object-store:
+    image: chrislusf/seaweedfs:4.22
+    command: server -s3 -dir=/data -ip.bind=0.0.0.0
+    ports:
+      - "${OBJECT_STORE_LOCAL_PORT}:8333"
+      - "${OBJECT_STORE_UI_LOCAL_PORT}:8888"
+    volumes:
+      - seaweed-data:/data
+    healthcheck:
+      # Master healthz; the init container's retry loop covers the short gap
+      # until the S3 gateway itself accepts requests.
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:9333/cluster/healthz"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+      start_interval: 1s
+
+  # One-shot bucket bootstrap (S3 CreateBucket is not in obstore's scope, and
+  # SeaweedFS only auto-creates buckets for authenticated admins). Reuses the
+  # backend image purely for curl — anonymous PUT works because auth is
+  # disabled above. GET on the bucket root (ListObjects) probes existence.
+  object-store-init:
+    image: next-role-backend:local
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    restart: "no"
+    depends_on:
+      object-store:
+        condition: service_healthy
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - >-
+        for i in $(seq 1 60); do
+        curl -sf -o /dev/null "http://object-store:8333/${OBJECT_STORE_BUCKET}" && exit 0;
+        curl -sf -X PUT -o /dev/null "http://object-store:8333/${OBJECT_STORE_BUCKET}" && exit 0;
+        sleep 1;
+        done;
+        echo "object-store bucket init failed" >&2; exit 1
 
   # The gRPC data plane of the agent server (backend/server/core_server/).
   # Owns all assistant/thread/run/cron SQL and the Redis queue doorbell/pub-sub
@@ -154,8 +202,18 @@ services:
         condition: service_healthy
       core-server:
         condition: service_healthy
+      object-store:
+        condition: service_healthy
+      object-store-init:
+        condition: service_completed_successfully
     environment:
       REDIS_URI: redis://redis:6379
+      # In-network S3 endpoint (overrides the host-side value in .env).
+      OBJECT_STORE_ENDPOINT: http://object-store:8333
+      # Mounts the artifact files API (backend/agents/files_api.py) into the
+      # agent server — the vendored server's designed custom-app hook.
+      LANGGRAPH_HTTP: >-
+        {"app": "/deps/next-role/backend/agents/files_api.py:app"}
       POSTGRES_URI: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
       # Selects the postgres backend in the runtime edition router
       # (hard-required — the router raises if unset).

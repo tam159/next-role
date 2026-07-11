@@ -43,14 +43,14 @@ source) and run in CI's required `frontend-tests` check — deliberately not in 
   - `nuqs`: `NuqsTestingAdapter` for components, `vi.mock("nuqs")` for hooks. `swr`: never mock —
     wrap in a fresh-cache `<SWRConfig value={{ provider: () => new Map() }}>`. `fetch`:
     `vi.stubGlobal("fetch", ...)` + `vi.unstubAllGlobals()` in afterEach. `sonner`: mock `toast`.
-- **Import-time state**: `src/lib/config.ts` reads env vars and `src/app/api/files/_lib.ts`
-  computes `REPO_ROOT` from `process.cwd()` at module load — stub first (`vi.stubEnv` /
-  `vi.spyOn(process, "cwd")`), then dynamically `await import(...)`. Never enable global
+- **Import-time state**: `src/lib/config.ts` reads env vars at module load — stub first
+  (`vi.stubEnv`), `vi.resetModules()`, then dynamically `await import(...)`. Never enable global
   `restoreMocks` (it silently kills `beforeAll` spies).
-- **Route-handler tests** use a real temp-dir sandbox, not fs mocks: mock
-  `@/app/config/agentFiles` with a fixture config, point `process.cwd()` at `<tmp>/frontend`,
-  create fixtures with `node:fs`, then dynamically import the route
-  (see `src/app/api/files/*/route.test.ts`).
+- **File bytes never pass through Next.js**: artifact upload/read/list/write/delete go to the
+  backend files API (`${deploymentUrl}/files/*`, see `app/lib/agentFiles.ts` `filesApiUrl`).
+  There are no Next API routes for files — test the client libs by stubbing `fetch` against
+  `/files/*` URLs (see `agentFiles.test.ts`, `uploadFiles.test.ts`); server-side validation
+  lives in `backend/agents/files_api.py` and is tested in `backend/tests/test_files_api.py`.
 - **Upgrade rule**: `vitest` + `@vitest/coverage-v8` are an exact-version lockstep pair — bump
   together (see the `upgrade-frontend-deps` skill).
 

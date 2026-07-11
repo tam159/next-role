@@ -66,7 +66,7 @@ subagents=[
 2.1. User uploads resume and optional JD → saves to `/upload/`.
 2.2. Agent processes the uploaded documents → saves to `/processed/<slug>.md`. Persists intake answers to `/processed/<resume>-<jd>-intake.md`. Reads both processed files in full so it has substance for delegating downstream stages.
 3. Delegates to `hiring-recon` subagent → company + role intel + match analysis → saves to `/research/<resume>/<jd>.md`.
-4.1. Delegates to `resume-tailor` subagent → tailored resume YAML at `/tailored_resume/<resume>/<jd>.yaml` (source of truth, user-editable), which `rendercv` then renders to `.typ` + `.pdf` siblings.
+4.1. Delegates to `resume-tailor` subagent → tailored resume YAML at `/tailored_resume/<resume>/<jd>.yaml` (source of truth, user-editable), then `render_resume_pdf` renders in a throwaway temp dir and publishes the `.pdf` + `.typ` siblings next to the YAML.
 4.2. In parallel with 4.1, delegates to `interview-coach` subagent → structured prep doc with self-introduction + per-round STAR stories → saves to `/interview_coach/<resume>/<jd>.md`.
 5. Agent loads `/skills/interview-battlecard/SKILL.md`, reads the tailored resume + interview-coach prep + research report, writes a one-page-per-round battlecard as JSON at `/interview_battlecard/<resume>/<jd>.json` (LLM-written, user-editable source of truth), then calls `render_battlecard_pdf` to produce a `.pdf` sibling for download.
 
@@ -84,13 +84,12 @@ the frontend in two places:
 - **Chat composer** — paperclip icon in the message input.
 - **Workspace > Files** — Upload button in the section header.
 
-Both surfaces POST `multipart/form-data` to the Next.js route
-`/api/files/upload`, which validates the path against the
-`AGENT_FILE_SOURCES.career_agent.disk` allowlist
-(`frontend/src/app/config/agentFiles.ts`) and writes bytes directly to
-`backend/agents/career_agent/upload/<filename>` via the shared `.:/deps/next-role`
-volume mount in `docker-compose.yml`. The agent's `FilesystemBackend(root_dir=CAREER_AGENT_DIR)`
-picks files up on the next tool call — no Python-side endpoint is involved.
+Both surfaces POST `multipart/form-data` to the backend files API
+(`/files/upload`, served by `backend/agents/files_api.py` via the agent
+server's `LANGGRAPH_HTTP` custom-app hook), which validates the extension,
+size, and path prefix, then stores the bytes in the object store at
+`users/default/career_agent/upload/<filename>`. The agent's
+`ObjectStoreBackend` route (`/upload/`) sees the file on its next tool call.
 
 Re-uploading the same filename overwrites. Scoping is global per the layout above
 (no per-thread subdirectories).
@@ -98,7 +97,7 @@ Re-uploading the same filename overwrites. Scoping is global per the layout abov
 ## File Structure
 
 ```
-/upload/                                                      # FilesystemBackend
+/upload/                                                      # ObjectStoreBackend
 └── Senior AI Engineer - Tam NGUYEN.pdf                       # Uploaded resume
 └── AWS AI Solution Engineer.pdf                              # Uploaded JD
 
@@ -111,23 +110,20 @@ Re-uploading the same filename overwrites. Scoping is global per the layout abov
 └── tam-nguyen-senior-ai-engineer-resume/
     └── aws-ai-solution-engineer-jd.md                        # hiring-recon report
 
-/tailored_resume/                                             # FilesystemBackend
+/tailored_resume/                                             # ObjectStoreBackend
 └── tam-nguyen-senior-ai-engineer-resume/
     ├── aws-ai-solution-engineer-jd.yaml                      # rendercv source (LLM-written, user-editable)
-    └── aws-ai-solution-engineer-jd.pdf                       # rendercv-generated PDF
-
-/render_intermediate/                                         # FilesystemBackend, NOT in the UI allowlist
-└── tam-nguyen-senior-ai-engineer-resume/
-    └── aws-ai-solution-engineer-jd.typ                       # rendercv-generated Typst (intermediate)
+    ├── aws-ai-solution-engineer-jd.pdf                       # rendercv-generated PDF
+    └── aws-ai-solution-engineer-jd.typ                       # rendercv Typst intermediate (never cited in replies)
 
 /interview_coach/                                             # StoreBackend
 └── tam-nguyen-senior-ai-engineer-resume/
     └── aws-ai-solution-engineer-jd.md                        # interview-coach output
 
-/interview_battlecard/                                        # FilesystemBackend
+/interview_battlecard/                                        # ObjectStoreBackend
 └── tam-nguyen-senior-ai-engineer-resume/
     ├── aws-ai-solution-engineer-jd.json                      # weasyprint source (LLM-written, user-editable)
     └── aws-ai-solution-engineer-jd.pdf                       # weasyprint-rendered day-of cheat sheet
 ```
 
-Note: both the tailored resume and the interview battlecard follow the same source-then-render pattern. Tailored resumes use `rendercv` (YAML → `.typ` intermediate → `.pdf`, via `prepare_render_settings` + `rendercv render`). Battlecards use `weasyprint` (JSON → `.pdf`, via `render_battlecard_pdf`). The JSON / YAML side is the user-editable source of truth; the PDF is regenerated on demand. `/interview_battlecard/` uses FilesystemBackend so the binary PDF lands on disk, not in Postgres.
+Note: both the tailored resume and the interview battlecard follow the same source-then-render pattern. Tailored resumes use `rendercv` (YAML → `.typ` intermediate → `.pdf`, via the one-shot `render_resume_pdf` tool, which hydrates a scratch copy, renders, and publishes). Battlecards use `weasyprint` (JSON → `.pdf`, via `render_battlecard_pdf`). The JSON / YAML side is the user-editable source of truth; the PDF is regenerated on demand. `/upload/`, `/tailored_resume/`, and `/interview_battlecard/` live in S3-compatible object storage (SeaweedFS locally; S3/GCS/Azure in the cloud) under deterministic keys — `users/default/career_agent/<area>/<relpath>` — so binary PDFs live neither on shared disk nor in Postgres.

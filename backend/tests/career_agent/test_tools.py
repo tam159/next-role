@@ -152,7 +152,13 @@ def test_parse_document_passes_expected_args_to_llamacloud(tmp_path, monkeypatch
         )
 
     assert captured["create"]["purpose"] == "parse"
-    assert captured["create"]["file"].endswith("/upload/x.pdf")
+    # The source is materialized into a temp file for LlamaCloud, preserving
+    # the original suffix (LlamaCloud infers document type from the filename),
+    # and deleted once parsing is done.
+    materialized = Path(captured["create"]["file"])
+    assert materialized.suffix == ".pdf"
+    assert materialized.name.startswith("nextrole-parse-")
+    assert not materialized.exists()
     parse_kwargs = captured["parse"]
     assert parse_kwargs["file_id"] == "f1"
     assert parse_kwargs["tier"] == "agentic"
@@ -201,7 +207,7 @@ def test_parse_document_handles_missing_file(tmp_path, monkeypatch, backend):
     result = tools.make_parse_document(backend).invoke(
         {"source_path": "/upload/ghost.pdf", "output_path": "/processed/x.md"},
     )
-    assert result.startswith("Error: file not found at /upload/ghost.pdf")
+    assert result.startswith("Error: cannot read /upload/ghost.pdf")
 
 
 def test_parse_document_surfaces_parse_failure(tmp_path, monkeypatch, backend):
@@ -558,142 +564,3 @@ def test_overwrite_file_surfaces_upsert_error(backend):
         )
 
     assert result == "Error overwriting /processed/x.md: disk full"
-
-
-# ---------------------------------------------------------------------------
-# prepare_render_settings
-# ---------------------------------------------------------------------------
-
-
-_MINIMAL_CV_YAML = """\
-# changes:
-# - reordered: Role A above Role B
-# - keywords added: rag, agents
-cv:
-  name: Tam Nguyen
-  email: t@example.com
-  sections:
-    summary:
-      - Senior AI engineer.
-design:
-  theme: engineeringclassic
-locale:
-  language: english
-"""
-
-
-def _seed_yaml(tmp_path: Path, monkeypatch, *, relative: str, content: str) -> Path:
-    """Anchor `CAREER_AGENT_DIR` at tmp_path and drop a YAML under /tailored_resume/."""
-    from backend.agents.career_agent import tools
-
-    monkeypatch.setattr(tools, "CAREER_AGENT_DIR", tmp_path)
-    target = tmp_path / relative.lstrip("/")
-    target.parent.mkdir(parents=True, exist_ok=True)
-    target.write_text(content)
-    return target
-
-
-def test_prepare_render_settings_appends_block(tmp_path, monkeypatch, backend):
-    from backend.agents.career_agent.tools import make_prepare_render_settings
-
-    yaml_path = "/tailored_resume/tam-resume/aitomatic-jd.yaml"
-    on_disk = _seed_yaml(tmp_path, monkeypatch, relative=yaml_path, content=_MINIMAL_CV_YAML)
-
-    result = make_prepare_render_settings(backend).invoke({"yaml_path": yaml_path})
-
-    # Confirmation names the prepared YAML; the agent invokes `rendercv render`
-    # separately via `execute` (the shell backend translates the virtual path).
-    assert f"Prepared for rendering: {yaml_path}" in result
-    assert "Ready to render now." in result
-    written = on_disk.read_text()
-    # The body the LLM wrote is preserved verbatim.
-    assert "# changes:" in written
-    assert "cv:\n  name: Tam Nguyen" in written
-    assert "design:\n  theme: engineeringclassic" in written
-    # And the canonical settings block is appended.
-    assert "\nsettings:\n" in written
-    assert "current_date: today" in written
-    # PDF lands next to the YAML, .typ is routed into /render_intermediate/.
-    assert "pdf_path: OUTPUT_FOLDER/aitomatic-jd.pdf" in written
-    expected_typ = tmp_path / "render_intermediate" / "tam-resume" / "aitomatic-jd.typ"
-    assert f"typst_path: {expected_typ}" in written
-    # And rendercv's intermediate-dir mkdir was honoured.
-    assert expected_typ.parent.exists()
-    assert "dont_generate_markdown: true" in written
-    assert "dont_generate_html: true" in written
-    assert "dont_generate_png: true" in written
-    assert "dont_generate_typst: false" in written
-    assert "dont_generate_pdf: false" in written
-    # output_folder is the on-disk parent of the YAML.
-    assert f"output_folder: {on_disk.parent}" in written
-
-
-def test_prepare_render_settings_is_idempotent(tmp_path, monkeypatch, backend):
-    """Re-running the tool replaces the existing settings block instead of stacking."""
-    from backend.agents.career_agent.tools import make_prepare_render_settings
-
-    yaml_path = "/tailored_resume/tam-resume/aitomatic-jd.yaml"
-    on_disk = _seed_yaml(tmp_path, monkeypatch, relative=yaml_path, content=_MINIMAL_CV_YAML)
-
-    tool = make_prepare_render_settings(backend)
-    tool.invoke({"yaml_path": yaml_path})
-    first = on_disk.read_text()
-    tool.invoke({"yaml_path": yaml_path})
-    second = on_disk.read_text()
-
-    assert first == second
-    # Exactly one settings header in the file.
-    assert second.count("\nsettings:\n") == 1
-
-
-def test_prepare_render_settings_derives_paths_from_stem(tmp_path, monkeypatch, backend):
-    """The injected pdf/typ filenames track the YAML stem and resume sub-dir."""
-    from backend.agents.career_agent.tools import make_prepare_render_settings
-
-    yaml_path = "/tailored_resume/jane-doe-resume/google-staff-swe-jd.yaml"
-    on_disk = _seed_yaml(tmp_path, monkeypatch, relative=yaml_path, content=_MINIMAL_CV_YAML)
-
-    make_prepare_render_settings(backend).invoke({"yaml_path": yaml_path})
-
-    written = on_disk.read_text()
-    assert "pdf_path: OUTPUT_FOLDER/google-staff-swe-jd.pdf" in written
-    expected_typ = tmp_path / "render_intermediate" / "jane-doe-resume" / "google-staff-swe-jd.typ"
-    assert f"typst_path: {expected_typ}" in written
-
-
-@pytest.mark.parametrize(
-    "bad_path",
-    [
-        "/processed/x.yaml",  # outside /tailored_resume/
-        "tailored_resume/r/j.yaml",  # not absolute
-        "/tailored_resume/r/j.md",  # wrong extension
-        "/tailored_resume/r/j",  # no extension
-    ],
-)
-def test_prepare_render_settings_rejects_bad_paths(backend, bad_path):
-    from backend.agents.career_agent.tools import make_prepare_render_settings
-
-    result = make_prepare_render_settings(backend).invoke({"yaml_path": bad_path})
-    assert result.startswith("Error: invalid yaml_path")
-
-
-def test_prepare_render_settings_rejects_missing_file(tmp_path, monkeypatch, backend):
-    from backend.agents.career_agent import tools
-
-    monkeypatch.setattr(tools, "CAREER_AGENT_DIR", tmp_path)
-    result = tools.make_prepare_render_settings(backend).invoke(
-        {"yaml_path": "/tailored_resume/r/missing.yaml"},
-    )
-    assert result.startswith("Error reading /tailored_resume/r/missing.yaml")
-
-
-def test_prepare_render_settings_accepts_yml_extension(tmp_path, monkeypatch, backend):
-    from backend.agents.career_agent.tools import make_prepare_render_settings
-
-    yaml_path = "/tailored_resume/r/j.yml"
-    on_disk = _seed_yaml(tmp_path, monkeypatch, relative=yaml_path, content=_MINIMAL_CV_YAML)
-
-    result = make_prepare_render_settings(backend).invoke({"yaml_path": yaml_path})
-    assert f"Prepared for rendering: {yaml_path}" in result
-    assert "Ready to render now." in result
-    assert "settings:" in on_disk.read_text()

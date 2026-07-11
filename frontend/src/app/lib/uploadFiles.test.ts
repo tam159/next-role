@@ -49,7 +49,7 @@ describe("uploadAgentFiles", () => {
     expect(result).toEqual(response);
     expect(fetchMock).toHaveBeenCalledTimes(1);
     const [url, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
-    expect(url).toBe("/api/files/upload");
+    expect(url).toBe("/files/upload");
     expect(init.method).toBe("POST");
 
     const body = init.body as FormData;
@@ -97,9 +97,9 @@ describe("deleteAgentFile", () => {
     const fetchMock = vi.fn(async () => jsonResponse(null));
     vi.stubGlobal("fetch", fetchMock);
 
-    await expect(deleteAgentFile("upload/my cv.pdf")).resolves.toBeUndefined();
+    await expect(deleteAgentFile("/upload/my cv.pdf")).resolves.toBeUndefined();
     expect(fetchMock).toHaveBeenCalledExactlyOnceWith(
-      "/api/files/delete?path=upload%2Fmy%20cv.pdf",
+      "/files/delete?path=%2Fupload%2Fmy%20cv.pdf",
       { method: "DELETE" }
     );
   });
@@ -109,7 +109,7 @@ describe("deleteAgentFile", () => {
       "fetch",
       vi.fn(async () => jsonResponse({ error: "forbidden" }, { ok: false, status: 403 }))
     );
-    await expect(deleteAgentFile("upload/cv.pdf")).rejects.toThrow("forbidden");
+    await expect(deleteAgentFile("/upload/cv.pdf")).rejects.toThrow("forbidden");
   });
 
   it("falls back to a generic message when the error body is not JSON", async () => {
@@ -117,6 +117,6 @@ describe("deleteAgentFile", () => {
       "fetch",
       vi.fn(async () => nonJsonResponse(404))
     );
-    await expect(deleteAgentFile("upload/cv.pdf")).rejects.toThrow("Delete failed (404)");
+    await expect(deleteAgentFile("/upload/cv.pdf")).rejects.toThrow("Delete failed (404)");
   });
 });

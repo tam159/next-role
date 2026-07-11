@@ -224,15 +224,15 @@ export function useChat({
               source: "store",
               sourceKey: path,
             };
-          } else if (cfg?.disk) {
+          } else if (cfg?.artifacts) {
             const top = path.split("/")[1];
-            if (top && cfg.disk.includeDirs.includes(top)) {
+            if (top && cfg.artifacts.pathPrefixes.includes(`/${top}/`)) {
               synthesized = {
                 path,
                 content,
                 encoding: "utf-8",
-                source: "disk",
-                sourceKey: `/${cfg.disk.root}${path}`,
+                source: "artifact",
+                sourceKey: path,
               };
             }
           }
@@ -279,8 +279,8 @@ export function useChat({
     async (virtualPath: string) => {
       const file = extendedFilesRef.current.find((f) => f.path === virtualPath);
       if (!file) throw new Error(`File not found: ${virtualPath}`);
-      if (file.source !== "disk") {
-        throw new Error("Only disk-backed files can be deleted from the UI");
+      if (file.source !== "artifact") {
+        throw new Error("Only artifact files can be deleted from the UI");
       }
       await deleteAgentFile(file.sourceKey);
       await refreshFiles();
@@ -296,8 +296,8 @@ export function useChat({
         virtualPaths.map(async (vp) => {
           const file = extendedFilesRef.current.find((f) => f.path === vp);
           if (!file) throw new Error(`File not found: ${vp}`);
-          if (file.source !== "disk") {
-            throw new Error("Only disk-backed files can be deleted from the UI");
+          if (file.source !== "artifact") {
+            throw new Error("Only artifact files can be deleted from the UI");
           }
           await deleteAgentFile(file.sourceKey);
           return vp;

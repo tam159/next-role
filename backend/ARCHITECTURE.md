@@ -38,6 +38,12 @@ One image (`backend/Dockerfile`, `python:3.13-slim` + uv), two compose services:
   checkpoints, the KV `store` (DeepAgents' StoreBackend), crons.
 - **`redis`** — queue doorbell, streaming bus, control signals, caches/locks. Holds **no
   durable truth**: wiping it loses in-flight streams, never data.
+- **`object-store`** (SeaweedFS, S3 API on :8333 / host `${OBJECT_STORE_LOCAL_PORT}`) — binary
+  artifacts (uploads + rendered PDFs) under deterministic keys
+  (`users/default/career_agent/<area>/<relpath>`). The backend serves them over HTTP via a
+  small **files API** (`backend/agents/files_api.py`) mounted through the server's
+  `LANGGRAPH_HTTP` custom-app hook — no edits inside `server/`. In the cloud, swap the
+  endpoint for S3 / GCS / Azure via `OBJECT_STORE_*` env (`obstore` client).
 
 ```mermaid
 graph TB
@@ -48,12 +54,14 @@ graph TB
     end
     PG[("postgres (pgvector/pg18)<br/>system of record")]
     RD[("redis<br/>doorbell · pub/sub · locks")]
-    FE -->|"HTTP/SSE/WS :${LANGGRAPH_LOCAL_PORT}"| BE
+    OS[("object-store (SeaweedFS)<br/>S3 API · binary artifacts")]
+    FE -->|"HTTP/SSE/WS + /files/* :${LANGGRAPH_LOCAL_PORT}"| BE
     BE -->|gRPC| CS
     BE -. "checkpoints · store · state/history<br/>(direct psycopg)" .-> PG
     CS -->|SQL| PG
     CS --> RD
     BE -. "queue doorbell · stream subscribe" .-> RD
+    BE -. "obstore S3 client<br/>(agent backend + files API)" .-> OS
 ```
 
 The frontend talks to the backend **directly** (no Next.js proxy):
@@ -208,6 +216,8 @@ All read in `server/api/config/__init__.py` unless noted. The compose file sets 
 | `LSD_GRPC_SERVER_ADDRESS` ★ | `localhost:50052` | where the backend dials core-server |
 | `MIGRATIONS_PATH` ★ | `/storage/migrations` | must point at `backend/storage/migrations` |
 | `LANGSERVE_GRAPHS` ★ | — | JSON `{graph_id: "path.py:variable"}`; any source containing `/` is loaded as a file path (`server/api/graph.py`) |
+| `LANGGRAPH_HTTP` ★ | — | JSON `{"app": "path.py:app"}` — mounts a user Starlette/FastAPI app into the server (`load_custom_app`). Used for the artifact **files API** (`backend/agents/files_api.py`); `enable_custom_route_auth` puts it behind auth later |
+| `OBJECT_STORE_*` ★ | — | S3-compatible artifact storage: endpoint/bucket/region/creds/path-style. Local = SeaweedFS; cloud = S3 / GCS / Azure. Deliberately separate from `AWS_*` (Bedrock creds) |
 | `N_JOBS_PER_WORKER` | `10` | embedded worker concurrency; `0` = web-only, no queue |
 | `FF_CRONS_ENABLED` | `true` | cron scheduler in this process (keep exactly one) |
 | `FF_V2_EVENT_STREAMING` | `true` | v2 `/stream/events` + `/commands` routes |
@@ -256,7 +266,11 @@ commands/env):
 - Set worker `terminationGracePeriodSeconds ≥ BG_JOB_SHUTDOWN_GRACE_PERIOD_SECS`.
 
 Serverless containers (Cloud Run / Fargate / Container Apps) fit this workload with no code
-changes; FaaS does not (long runs, persistent gRPC, SSE).
+changes; FaaS does not (long runs, persistent gRPC, SSE). Binary artifacts already live behind
+an S3-compatible client (`OBJECT_STORE_*`), so in the cloud the SeaweedFS service is replaced
+by a managed bucket (S3 / GCS / Azure) — provision versioning/SSE/IAM there; no app changes.
+Renders use a throwaway `TemporaryDirectory`, so worker pods need only ordinary ephemeral
+`/tmp`.
 
 ## 10. Maintenance: generated code, pins & tests
 

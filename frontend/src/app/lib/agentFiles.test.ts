@@ -3,6 +3,7 @@ import { AGENT_FILE_SOURCES, type AgentFileSources } from "@/app/config/agentFil
 import {
   type AgentFile,
   fetchAgentFiles,
+  filesApiUrl,
   getAgentFileSources,
   isBinaryPath,
   isImagePath,
@@ -84,6 +85,25 @@ describe("isBinaryPath", () => {
   it("rejects text and extension-less paths", () => {
     expect(isBinaryPath("/processed/notes.md")).toBe(false);
     expect(isBinaryPath("no-extension")).toBe(false);
+  });
+});
+
+describe("filesApiUrl", () => {
+  it("returns a relative URL when no deployment URL is configured", () => {
+    // Node test env: no window, no NEXT_PUBLIC_* vars -> DEFAULT_CONFIG is null.
+    expect(filesApiUrl("/files/list?x=1")).toBe("/files/list?x=1");
+  });
+
+  it("prefixes the configured deployment URL, trimming trailing slashes", async () => {
+    vi.stubEnv("NEXT_PUBLIC_LANGGRAPH_DEPLOYMENT_URL", "http://127.0.0.1:8129/");
+    vi.stubEnv("NEXT_PUBLIC_LANGGRAPH_ASSISTANT_ID", "career_agent");
+    vi.resetModules();
+    const fresh = await import("./agentFiles");
+    expect(fresh.filesApiUrl("/files/read?path=%2Fupload%2Fcv.pdf")).toBe(
+      "http://127.0.0.1:8129/files/read?path=%2Fupload%2Fcv.pdf"
+    );
+    vi.unstubAllEnvs();
+    vi.resetModules();
   });
 });
 
@@ -184,7 +204,7 @@ describe("fetchAgentFiles", () => {
     expect(client.store.searchItems).not.toHaveBeenCalled();
   });
 
-  it("merges store, disk, and state files with state winning path collisions", async () => {
+  it("merges store, artifact, and state files with state winning path collisions", async () => {
     const client = makeClient();
     client.store.searchItems.mockImplementation(async (namespace: string[]) => {
       if (namespace.join("/") === "career_agent/processed") {
@@ -210,15 +230,15 @@ describe("fetchAgentFiles", () => {
     });
 
     const fetchMock = vi.fn(async (url: string) => {
-      if (url.startsWith("/api/files/list")) {
+      if (url.startsWith("/files/list")) {
         return jsonResponse({
           files: [
             {
-              path: "/backend/agents/career_agent/upload/cv.pdf",
+              path: "/upload/cv.pdf",
               isBinary: true,
               modifiedAt: "2026-01-03T00:00:00.000Z",
             },
-            { path: "/backend/agents/career_agent/upload/broken.md", isBinary: false },
+            { path: "/upload/broken.md", isBinary: false },
           ],
         });
       }
@@ -275,16 +295,16 @@ describe("fetchAgentFiles", () => {
       modifiedAt: undefined,
     });
 
-    // Disk file: root stripped from path, full repo path kept as sourceKey.
+    // Artifact file: virtual path is both the path and the write-back key.
     expect(byPath.get("/upload/cv.pdf")).toMatchObject({
-      source: "disk",
+      source: "artifact",
       content: "JVBERi0=",
       encoding: "base64",
-      sourceKey: "/backend/agents/career_agent/upload/cv.pdf",
+      sourceKey: "/upload/cv.pdf",
       modifiedAt: Date.parse("2026-01-03T00:00:00.000Z"),
     });
 
-    // The failed disk read is dropped entirely.
+    // The failed artifact read is dropped entirely.
     expect(byPath.has("/upload/broken.md")).toBe(false);
 
     // One store search per configured path prefix, with the page limit.
@@ -296,17 +316,18 @@ describe("fetchAgentFiles", () => {
       limit: 200,
     });
 
-    // Disk list call carries the configured root and dirs.
+    // Artifact list call carries the configured virtual prefixes.
     const listUrl = String(fetchMock.mock.calls[0][0]);
-    expect(listUrl).toContain("/api/files/list?");
-    expect(listUrl).toContain("root=backend%2Fagents%2Fcareer_agent");
-    expect(listUrl).toContain("dirs=upload%2Ctailored_resume%2Cinterview_battlecard");
+    expect(listUrl).toContain("/files/list?");
+    expect(listUrl).toContain(
+      `prefixes=${encodeURIComponent("/upload/,/tailored_resume/,/interview_battlecard/")}`
+    );
     expect(fetchMock).toHaveBeenCalledWith(
-      `/api/files/read?path=${encodeURIComponent("/backend/agents/career_agent/upload/cv.pdf")}`
+      `/files/read?path=${encodeURIComponent("/upload/cv.pdf")}`
     );
   });
 
-  it("still returns other sources when the disk fetch rejects", async () => {
+  it("still returns other sources when the artifact fetch rejects", async () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     const client = makeClient();
     client.store.searchItems.mockImplementation(async (namespace: string[]) => {
@@ -327,10 +348,10 @@ describe("fetchAgentFiles", () => {
     });
 
     expect(result.map((f) => f.path)).toEqual(["/memory/profile.md", "/state/todo.md"]);
-    expect(warn).toHaveBeenCalledWith("disk fetch failed", expect.any(Error));
+    expect(warn).toHaveBeenCalledWith("artifact fetch failed", expect.any(Error));
   });
 
-  it("treats a non-ok disk list response as an empty disk source", async () => {
+  it("treats a non-ok artifact list response as an empty artifact source", async () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     const client = makeClient();
     vi.stubGlobal(
@@ -345,22 +366,22 @@ describe("fetchAgentFiles", () => {
     });
 
     expect(result.map((f) => f.path)).toEqual(["/state/todo.md"]);
-    expect(warn).toHaveBeenCalledWith("disk list failed", 500, "boom");
+    expect(warn).toHaveBeenCalledWith("artifact list failed", 500, "boom");
   });
 
-  it("still returns disk and state files when every store search rejects", async () => {
+  it("still returns artifact and state files when every store search rejects", async () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     const client = makeClient();
     client.store.searchItems.mockRejectedValue(new Error("store down"));
     vi.stubGlobal(
       "fetch",
       vi.fn(async (url: string) => {
-        if (url.startsWith("/api/files/list")) {
+        if (url.startsWith("/files/list")) {
           return jsonResponse({
-            files: [{ path: "/backend/agents/career_agent/upload/cv.pdf", isBinary: true }],
+            files: [{ path: "/upload/cv.pdf", isBinary: true }],
           });
         }
-        return jsonResponse({ content: "disk content", encoding: "utf-8" });
+        return jsonResponse({ content: "artifact content", encoding: "utf-8" });
       })
     );
 
@@ -417,7 +438,7 @@ describe("writeAgentFile", () => {
     expect(client.store.putItem).not.toHaveBeenCalled();
   });
 
-  it("routes disk files to PUT /api/files/write with path, content, and encoding", async () => {
+  it("routes artifact files to PUT /files/write with path, content, and encoding", async () => {
     const fetchMock = vi.fn(async () => jsonResponse({ ok: true }));
     vi.stubGlobal("fetch", fetchMock);
     const client = makeClient();
@@ -427,24 +448,24 @@ describe("writeAgentFile", () => {
       threadId: null,
       graphId: "career_agent",
       file: file({
-        source: "disk",
-        sourceKey: "/backend/agents/career_agent/upload/cv.md",
-        content: "disk content",
+        source: "artifact",
+        sourceKey: "/upload/cv.md",
+        content: "artifact content",
       }),
     });
 
-    expect(fetchMock).toHaveBeenCalledExactlyOnceWith("/api/files/write", {
+    expect(fetchMock).toHaveBeenCalledExactlyOnceWith("/files/write", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        path: "/backend/agents/career_agent/upload/cv.md",
-        content: "disk content",
+        path: "/upload/cv.md",
+        content: "artifact content",
         encoding: "utf-8",
       }),
     });
   });
 
-  it("throws with status and body when the disk write fails", async () => {
+  it("throws with status and body when the artifact write fails", async () => {
     vi.stubGlobal(
       "fetch",
       vi.fn(async () => jsonResponse(null, { ok: false, status: 500, text: "boom" }))
@@ -454,9 +475,9 @@ describe("writeAgentFile", () => {
         client: asClient(makeClient()),
         threadId: null,
         graphId: "career_agent",
-        file: file({ source: "disk", sourceKey: "/backend/agents/career_agent/upload/cv.md" }),
+        file: file({ source: "artifact", sourceKey: "/upload/cv.md" }),
       })
-    ).rejects.toThrow("Disk write failed: 500 boom");
+    ).rejects.toThrow("Artifact write failed: 500 boom");
   });
 
   it("routes state files to threads.updateState, merging into the files map", async () => {

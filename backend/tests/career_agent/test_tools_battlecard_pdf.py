@@ -1,9 +1,9 @@
 """Unit tests for `render_battlecard_pdf`.
 
 Validation paths always run. The two tests that actually invoke weasyprint
-(`test_*_writes_pdf_to_disk`, `test_*_overwrites_existing_pdf`) are skipped on
-hosts where weasyprint can't load its system libs (Pango / GLib via cffi).
-They run in Docker and CI, where the libs are installed.
+(`test_*_publishes_to_artifact_store`, `test_*_overwrites_existing_pdf`) are
+skipped on hosts where weasyprint can't load its system libs (Pango / GLib via
+cffi). They run in Docker and CI, where the libs are installed.
 """
 
 import importlib.util
@@ -12,7 +12,9 @@ import shutil
 from pathlib import Path
 
 import pytest
+from backend.agents.career_agent.object_backend import ObjectStoreBackend
 from deepagents.backends import CompositeBackend, FilesystemBackend
+from obstore.store import MemoryStore
 
 
 def _weasyprint_importable() -> bool:
@@ -34,10 +36,20 @@ _render_only = pytest.mark.skipif(
 
 @pytest.fixture
 def backend(tmp_path: Path) -> CompositeBackend:
-    """A composite backed by a tmp dir, mirroring the production virtual_mode setup."""
+    """Production-shaped composite for the battlecard flow.
+
+    `/interview_battlecard/` lives in an in-memory object store; the default
+    stays a tmp-dir filesystem.
+    """
+    store = MemoryStore()
     return CompositeBackend(
         default=FilesystemBackend(root_dir=tmp_path, virtual_mode=True),
-        routes={},
+        routes={
+            "/interview_battlecard/": ObjectStoreBackend(
+                "interview_battlecard",
+                store_factory=lambda: store,
+            ),
+        },
     )
 
 
@@ -73,17 +85,16 @@ _MINIMAL_JSON: dict = {
 }
 
 
-def _seed_json(tmp_path: Path, content: str | None) -> str:
-    """Write a JSON file under `<tmp_path>/interview_battlecard/<r>/<j>.json`.
+def _seed_json(backend: CompositeBackend, content: str | None) -> str:
+    """Upload a battlecard JSON into the object-store route.
 
-    Pass `content=None` to skip writing — caller wants the missing-file case.
+    Pass `content=None` to skip seeding — caller wants the missing-file case.
     Returns the backend path the tool expects.
     """
     backend_path = "/interview_battlecard/tam-resume/acme-jd.json"
     if content is not None:
-        on_disk = tmp_path / backend_path.lstrip("/")
-        on_disk.parent.mkdir(parents=True, exist_ok=True)
-        on_disk.write_text(content)
+        responses = backend.upload_files([(backend_path, content.encode("utf-8"))])
+        assert responses[0].error is None
     return backend_path
 
 
@@ -119,7 +130,7 @@ def test_render_battlecard_pdf_errors_on_missing_file(tmp_path, monkeypatch, bac
     from backend.agents.career_agent.tools import make_render_battlecard_pdf
 
     _seed_templates_and_anchor(tmp_path, monkeypatch)
-    path = _seed_json(tmp_path, content=None)
+    path = _seed_json(backend, content=None)
 
     result = make_render_battlecard_pdf(backend).invoke({"json_path": path})
     assert result.startswith(f"Error reading {path}")
@@ -129,28 +140,30 @@ def test_render_battlecard_pdf_errors_on_malformed_json(tmp_path, monkeypatch, b
     from backend.agents.career_agent.tools import make_render_battlecard_pdf
 
     _seed_templates_and_anchor(tmp_path, monkeypatch)
-    path = _seed_json(tmp_path, content="{not valid json")
+    path = _seed_json(backend, content="{not valid json")
 
     result = make_render_battlecard_pdf(backend).invoke({"json_path": path})
     assert result.startswith(f"Error: {path} is not valid JSON")
 
 
 @_render_only
-def test_render_battlecard_pdf_writes_pdf_to_disk(tmp_path, monkeypatch, backend):
-    """Happy path: write JSON, run tool, assert a non-empty PDF lands beside the JSON."""
+def test_render_battlecard_pdf_publishes_to_artifact_store(tmp_path, monkeypatch, backend):
+    """Happy path: seed JSON, run tool, assert the PDF lands in the object store."""
     from backend.agents.career_agent.tools import make_render_battlecard_pdf
 
     _seed_templates_and_anchor(tmp_path, monkeypatch)
-    path = _seed_json(tmp_path, content=json.dumps(_MINIMAL_JSON))
+    path = _seed_json(backend, content=json.dumps(_MINIMAL_JSON))
 
     result = make_render_battlecard_pdf(backend).invoke({"json_path": path})
 
     assert result == "Rendered PDF to /interview_battlecard/tam-resume/acme-jd.pdf"
-    expected_pdf = tmp_path / "interview_battlecard" / "tam-resume" / "acme-jd.pdf"
-    assert expected_pdf.is_file()
-    pdf_bytes = expected_pdf.read_bytes()
+    download = backend.download_files(["/interview_battlecard/tam-resume/acme-jd.pdf"])
+    assert download[0].error is None
+    pdf_bytes = download[0].content or b""
     assert pdf_bytes.startswith(b"%PDF-")
     assert len(pdf_bytes) > 1000  # sanity: a real PDF, not a stub
+    # Nothing binary escaped to local disk.
+    assert not (tmp_path / "interview_battlecard").exists()
 
 
 @_render_only
@@ -159,16 +172,14 @@ def test_render_battlecard_pdf_overwrites_existing_pdf(tmp_path, monkeypatch, ba
     from backend.agents.career_agent.tools import make_render_battlecard_pdf
 
     _seed_templates_and_anchor(tmp_path, monkeypatch)
-    path = _seed_json(tmp_path, content=json.dumps(_MINIMAL_JSON))
+    path = _seed_json(backend, content=json.dumps(_MINIMAL_JSON))
+    pdf_path = "/interview_battlecard/tam-resume/acme-jd.pdf"
 
-    tool_obj = make_render_battlecard_pdf(backend)
-    tool_obj.invoke({"json_path": path})
+    stale = backend.upload_files([(pdf_path, b"stale stub")])
+    assert stale[0].error is None
 
-    pdf = tmp_path / "interview_battlecard" / "tam-resume" / "acme-jd.pdf"
-    pdf.write_bytes(b"stale stub")
-    assert pdf.read_bytes() == b"stale stub"
+    make_render_battlecard_pdf(backend).invoke({"json_path": path})
 
-    tool_obj.invoke({"json_path": path})
-    fresh = pdf.read_bytes()
+    fresh = backend.download_files([pdf_path])[0].content or b""
     assert fresh.startswith(b"%PDF-")
     assert fresh != b"stale stub"

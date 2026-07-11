@@ -1,6 +1,6 @@
 ---
 name: resume-tailor
-description: Rewrite a candidate's resume tailored to one specific JD using a hiring-recon report, emit it as a rendercv YAML, then render to PDF. Reorders jobs/bullets and adjusts language to incorporate JD keywords without inventing experience. Outputs one YAML (source of truth, user-editable) plus a .typ and .pdf rendered alongside.
+description: Rewrite a candidate's resume tailored to one specific JD using a hiring-recon report, emit it as a rendercv YAML, then render to PDF. Reorders jobs/bullets and adjusts language to incorporate JD keywords without inventing experience. Outputs one YAML (source of truth, user-editable) plus a .pdf published alongside it.
 ---
 
 # Resume Tailor
@@ -19,17 +19,20 @@ The caller passes exact paths in the task description:
 
 Read all input files in full with `read_file(path, limit=1000)`.
 
-## Workflow (4 steps, in order)
+## Workflow (3 steps, in order)
 
 1. **Decide theme and locale.**
    - If the user (in `intake_path` or the task description) explicitly named a built-in theme, honour it. Otherwise: scan the resume for engineering signals (engineer / developer / Python / SRE / MLOps / data / backend / frontend / DevOps / cloud architect / …). Engineering → `engineeringclassic`. Else → `classic`.
    - Detect resume language. If it matches a built-in locale, use it. If unsure or the language is not built-in, use `english`.
 2. **Write the YAML** to `yaml_path` via `overwrite_file`. Include `cv:`, `design:` (just `theme:`), and `locale:` (just `language:`). Prepend a `# changes:` comment block summarising what you tailored. **Do NOT write a `settings:` section** — the next step injects it.
-3. **Prepare render settings:** call `prepare_render_settings(yaml_path)`. This appends the canonical `settings:` block (pinning the `.pdf` next to the YAML, routing the intermediate `.typ` to `/render_intermediate/<resume>/<jd>.typ` outside the user-facing Workspace, and skipping markdown/html/png). Idempotent — safe to re-run.
-4. **Render to PDF:** call `execute("rendercv render <yaml_path>")` with the same backend path you wrote to in step 2 — virtual paths under `/tailored_resume/` are translated to on-disk paths automatically. If the command fails, read the stderr in the tool result, fix the YAML with `edit_file` or `overwrite_file`, re-run `prepare_render_settings` (still idempotent), then `execute` again.
+
+   **Quoting rule (the #1 render-failure source):** double-quote ANY string value that contains a colon followed by a space — headlines, summaries, highlights, titles, everywhere (`- "Strongest where AI meets execution: reusable patterns"`). Unquoted, YAML silently parses the entry as a mapping and rendercv fails with `Input should be a valid string`. Same for strings ending in `:` and bare numbers (`label: "2022"`, `phone: "+15551234567"`). When in doubt, quote — quoted strings are never wrong.
+3. **Render & publish:** call `render_resume_pdf(yaml_path)` with the same backend path you wrote to in step 2. One call does the whole pipeline — it injects the canonical `settings:` block into an internal render copy (never into your YAML), runs `rendercv render`, and publishes `<stem>.pdf` next to the YAML. Do NOT run `rendercv` via `execute` and do NOT write a `settings:` block yourself. If the result starts with `Error (render):`, read the rendercv output it contains, fix the YAML with `edit_file` or `overwrite_file`, then call `render_resume_pdf(yaml_path)` again (idempotent — the PDF is overwritten).
+
+   The tool auto-repairs the mechanical string defects (unquoted mid-string `: `, trailing `:`, bare numbers in bullet lists) in its internal render copy — a success result may note `auto-repaired N invalid string entries`; take that as a prompt to quote properly next time. Structural errors still need your fix. **When an error names one entry, sweep the ENTIRE YAML for the same pattern and fix every occurrence in one pass** — validation reports only what it reached, and fixing one at a time wastes render loops.
 
    Common rendercv validation errors and their fixes:
-   - **`mapping values are not allowed here`** → an unquoted `:` inside a string, anywhere. Quote the whole value: `title: "Catalytic Mechanisms: A New Approach"` or `title: "Streaming Data Pipelines on Cloud Platforms: AWS and GCP"`. The rule applies to titles, highlights, summaries, labels, details — every string field.
+   - **`mapping values are not allowed here`** OR **`Input should be a valid string`** on an entry containing a mid-string `: ` → an unquoted colon+space turned the string into a mapping. Quote the whole value: `title: "Catalytic Mechanisms: A New Approach"` or `- "Strongest where AI meets execution: reusable patterns"`. The rule applies to titles, highlights, summaries, labels, details — every string field.
    - **`highlights.N Input should be a valid string`** AND that highlight ends with `:` → a trailing colon turned the bullet into a YAML mapping (`{Utilize different approaches: null}`). Either drop the trailing colon or quote the whole highlight (`"- Utilize different approaches:"`).
    - **Skills section dropped categories from the source** OR `cv.sections.skills.N.highlights` doesn't match what you intended → you wrote a second `highlights:` block under one `- name:` entry instead of starting a new `- name:` for the next category. See the worked example in the entry-type mapping section. Each source category needs its own `- name:` line.
    - **`cv.phone` `Input should be a valid string`** → the phone is unquoted (e.g. `phone: +15551234567`). YAML parses leading-`+` numbers as ints. Quote it: `phone: "+15551234567"`.
@@ -113,7 +116,7 @@ Rules:
 - `cv:` accepts ONLY these top-level fields: `name`, `headline`, `location`, `email`, `photo`, `phone`, `website`, `social_networks`, `custom_connections`, `sections`. Anything else (`label`, `title`, `tagline`, `address`, `objective`, …) fails with `unknown for this object`. Put the role/tagline in `headline`; put narrative sections in `cv.sections`.
 - `cv.sections` keys are arbitrary strings. `snake_case` keys auto-capitalise (`work_experience` → "Work Experience"). Keys with spaces or uppercase are used verbatim.
 - Each section's entries MUST all be the SAME entry type (see table below). You cannot mix.
-- Do **NOT** include a `settings:` section. `prepare_render_settings` injects it deterministically.
+- Do **NOT** include a `settings:` section. `render_resume_pdf` injects it deterministically into its internal render copy; the YAML you author stays settings-free.
 
 ## Entry-type mapping
 
@@ -225,8 +228,7 @@ The processed resume usually contains formatting that rendercv cannot render. St
 ## Output contract
 
 - One YAML file written by you at `yaml_path` (`cv` + `design` + `locale` + the `# changes:` header).
-- `prepare_render_settings` appends the `settings:` block in-place.
-- `rendercv render` writes `<stem>.typ` and `<stem>.pdf` next to the YAML.
+- `render_resume_pdf` renders and publishes `<stem>.pdf` next to the YAML (a `.typ` typesetting intermediate is stored alongside — NEVER mention the `.typ` path in your replies).
 - Final reply is exactly one line, with the verb matching the mode:
   - Create: `Wrote tailored resume PDF to: <pdf_path>`
   - Update: `Updated tailored resume PDF at: <pdf_path>`
@@ -239,9 +241,9 @@ When the caller's task says "Update the existing tailored resume at …" (rather
 2. Identify the surgical change the caller named. The user's explicit request takes priority over the preservation defaults (skills, URLs, single-file output, length) — if they asked to drop a skill / link / section, do it, and only touch what they named. Truth/fabrication rules (don't invent skills, change metrics, claim untrue titles) still apply with user confirmation.
 3. Use `edit_file(yaml_path, old_string=..., new_string=...)` for targeted edits (a single bullet, one skill, a phone update, the `# changes:` header). Use `overwrite_file` only when restructuring most of the YAML.
 4. Append one line to the `# changes:` block describing what you just did (so the next update has a history).
-5. Re-run `prepare_render_settings(yaml_path)` then `execute("rendercv render <yaml_path>")` to refresh the `.pdf`. The intermediate `.typ` will refresh too. Skipping this leaves the PDF stale.
+5. Re-run `render_resume_pdf(yaml_path)` to refresh the `.pdf`. Skipping this leaves the PDF stale.
 6. Reply with the update-mode contract: `Updated tailored resume PDF at: <pdf_path>`.
 
 ## Rules
 
-- Do not write outside `/tailored_resume/`. The YAML is the only file you author; the typ + pdf are generated.
+- Do not write outside `/tailored_resume/`. The YAML is the only file you author; the pdf and typ are generated by the render tool.
