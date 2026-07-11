@@ -220,8 +220,17 @@ services:
       OBJECT_STORE_ENDPOINT: http://object-store:8333
       # Mounts the artifact files API (backend/agents/files_api.py) into the
       # agent server — the vendored server's designed custom-app hook.
+      # enable_custom_route_auth puts the mounted routes behind the server's
+      # auth middleware: a no-op under noop auth, required in multi-user mode.
       LANGGRAPH_HTTP: >-
-        {"app": "/deps/next-role/backend/agents/files_api.py:app"}
+        {"app": "/deps/next-role/backend/agents/files_api.py:app",
+         "enable_custom_route_auth": true}
+      # Multi-user auth verification targets (used only when LANGGRAPH_AUTH is
+      # set in .env; harmless otherwise). In-network JWKS URL — the backend
+      # verifies bearer JWTs minted by the frontend's Better Auth.
+      AUTH_JWKS_URL: http://frontend:3000/api/auth/jwks
+      AUTH_JWT_ISSUER: http://localhost:${FRONTEND_LOCAL_PORT}
+      AUTH_JWT_AUDIENCE: http://localhost:${FRONTEND_LOCAL_PORT}
       POSTGRES_URI: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
       # Selects the postgres backend in the runtime edition router
       # (hard-required — the router raises if unset).

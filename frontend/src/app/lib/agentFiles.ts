@@ -1,6 +1,7 @@
 import type { Client } from "@langchain/langgraph-sdk";
 import { AGENT_FILE_SOURCES, type AgentFileSources } from "@/app/config/agentFiles";
 import { getConfig } from "@/lib/config";
+import { authedFetch } from "@/lib/auth/token";
 
 export type AgentFileSource = "state" | "store" | "artifact";
 
@@ -169,7 +170,7 @@ async function fetchArtifactFiles(
   cfg: NonNullable<AgentFileSources["artifacts"]>
 ): Promise<AgentFile[]> {
   const params = new URLSearchParams({ prefixes: cfg.pathPrefixes.join(",") });
-  const listRes = await fetch(filesApiUrl(`/files/list?${params}`));
+  const listRes = await authedFetch(filesApiUrl(`/files/list?${params}`));
   if (!listRes.ok) {
     console.warn("artifact list failed", listRes.status, await listRes.text());
     return [];
@@ -181,7 +182,7 @@ async function fetchArtifactFiles(
   const reads = await Promise.all(
     listData.files.map(async (f): Promise<AgentFile | null> => {
       try {
-        const r = await fetch(filesApiUrl(`/files/read?path=${encodeURIComponent(f.path)}`));
+        const r = await authedFetch(filesApiUrl(`/files/read?path=${encodeURIComponent(f.path)}`));
         if (!r.ok) return null;
         const data = (await r.json()) as {
           content: string;
@@ -277,7 +278,7 @@ export async function writeAgentFile(args: {
   }
 
   if (file.source === "artifact") {
-    const res = await fetch(filesApiUrl("/files/write"), {
+    const res = await authedFetch(filesApiUrl("/files/write"), {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({

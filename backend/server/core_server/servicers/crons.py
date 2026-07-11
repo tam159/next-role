@@ -21,6 +21,7 @@ from psycopg.types.json import Jsonb
 
 from server.core_server import db
 from server.core_server._convert import json_bytes, loads, ts
+from server.core_server._filters import filters_clause
 from server.grpc_common.conversion.config import config_from_proto, config_to_proto
 from server.grpc_common.proto import core_api_pb2 as pb
 from server.grpc_common.proto import enum_cron_on_run_completed_pb2 as cron_orc_pb2
@@ -196,10 +197,13 @@ class CronsServicerImpl(CronsServicer):
         return cron_to_proto(row)
 
     async def Get(self, request: pb.GetCronRequest, context) -> pb.Cron:
+        params: dict = {"cid": request.cron_id.value}
+        fc = filters_clause(request.filters, params)
+        cond = f" AND {fc}" if fc else ""
         async with db.pool().connection() as conn, conn.cursor() as cur:
             await cur.execute(
-                "SELECT * FROM cron WHERE cron_id = %s",
-                (request.cron_id.value,),
+                f"SELECT * FROM cron WHERE cron_id = %(cid)s{cond}",
+                params,
             )
             row = await cur.fetchone()
         if row is None:
@@ -240,10 +244,12 @@ class CronsServicerImpl(CronsServicer):
             sets.append("metadata = %(metadata)s")
             params["metadata"] = Jsonb(loads(request.metadata_json))
         set_clause = (", " + ", ".join(sets)) if sets else ""
+        fc = filters_clause(request.filters, params)
+        cond = f" AND {fc}" if fc else ""
         async with db.pool().connection() as conn, conn.cursor() as cur:
             await cur.execute(
                 f"UPDATE cron SET updated_at = now(){set_clause} "
-                "WHERE cron_id = %(cron_id)s RETURNING *",
+                f"WHERE cron_id = %(cron_id)s{cond} RETURNING *",
                 params,
             )
             row = await cur.fetchone()
@@ -255,10 +261,13 @@ class CronsServicerImpl(CronsServicer):
         return cron_to_proto(row)
 
     async def Delete(self, request: pb.DeleteCronRequest, context) -> Empty:
+        params: dict = {"cid": request.cron_id.value}
+        fc = filters_clause(request.filters, params)
+        cond = f" AND {fc}" if fc else ""
         async with db.pool().connection() as conn, conn.cursor() as cur:
             await cur.execute(
-                "DELETE FROM cron WHERE cron_id = %s",
-                (request.cron_id.value,),
+                f"DELETE FROM cron WHERE cron_id = %(cid)s{cond}",
+                params,
             )
         return Empty()
 
@@ -282,6 +291,9 @@ class CronsServicerImpl(CronsServicer):
             if meta:
                 where.append("metadata @> %(meta)s")
                 params["meta"] = Jsonb(meta)
+        fc = filters_clause(request.filters, params)
+        if fc:
+            where.append(fc)
         params["limit"] = request.limit if request.HasField("limit") else 1000
         params["offset"] = request.offset if request.HasField("offset") else 0
         col = _SORT.get(request.sort_by, "created_at")
@@ -309,6 +321,9 @@ class CronsServicerImpl(CronsServicer):
             if meta:
                 where.append("metadata @> %(meta)s")
                 params["meta"] = Jsonb(meta)
+        fc = filters_clause(request.filters, params)
+        if fc:
+            where.append(fc)
         clause = (" WHERE " + " AND ".join(where)) if where else ""
         async with db.pool().connection() as conn, conn.cursor() as cur:
             await cur.execute(f"SELECT count(*) AS n FROM cron{clause}", params)

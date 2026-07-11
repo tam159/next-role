@@ -80,6 +80,7 @@ describe("useThreads", () => {
     expect(ClientMock).toHaveBeenCalledWith({
       apiUrl: "http://deploy:2024",
       defaultHeaders: { "X-Api-Key": "sk-ls" },
+      onRequest: expect.any(Function),
     });
     expect(searchMock).toHaveBeenCalledWith({
       limit: 20,
@@ -101,6 +102,7 @@ describe("useThreads", () => {
     expect(ClientMock).toHaveBeenCalledWith({
       apiUrl: "http://deploy:2024",
       defaultHeaders: {},
+      onRequest: expect.any(Function),
     });
     const args = searchMock.mock.calls[0][0];
     expect(args).not.toHaveProperty("metadata");

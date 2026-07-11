@@ -452,6 +452,19 @@ LANGGRAPH_AUTH = env(
     cast=_parse.parse_schema(AuthConfig),
     default=None,
 )
+# Deployment guard for multi-user mode: a cloud deployment sets
+# REQUIRE_AUTH=true so a misconfigured (auth-less) boot fails loudly instead
+# of serving every user's data to everyone. Local zero-login mode leaves both
+# unset.
+REQUIRE_AUTH = env("REQUIRE_AUTH", cast=bool, default=False)
+if REQUIRE_AUTH and not LANGGRAPH_AUTH:
+    raise RuntimeError(
+        "REQUIRE_AUTH is set but LANGGRAPH_AUTH is not configured — refusing "
+        "to start an unauthenticated multi-user deployment. Set LANGGRAPH_AUTH "
+        '(e.g. {"path": "/deps/next-role/backend/agents/auth.py:auth", '
+        '"disable_studio_auth": true}) or unset REQUIRE_AUTH for single-user use.',
+    )
+
 # Not in public docs: populated by langgraph.json config, not set as env var directly
 LANGGRAPH_ENCRYPTION = env(
     "LANGGRAPH_ENCRYPTION",

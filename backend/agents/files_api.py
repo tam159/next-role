@@ -27,6 +27,8 @@ from __future__ import annotations
 import asyncio
 import base64
 import binascii
+import functools
+import os
 from typing import TYPE_CHECKING, Any
 
 from backend.agents.career_agent.object_storage import (
@@ -50,6 +52,27 @@ if TYPE_CHECKING:
 
 _ALLOWED_UPLOAD_EXTS = {"pdf", "doc", "docx", "txt", "md"}
 _MAX_UPLOAD_BYTES = 10 * 1024 * 1024
+
+# Multi-user mode marker: when the server runs with custom auth, its
+# middleware wraps this app too (`enable_custom_route_auth` in LANGGRAPH_HTTP)
+# and populates request.scope["user"]. The guard below is belt-and-braces for
+# the misconfigured case (auth set but the custom-route flag missing).
+_AUTH_ENABLED = bool(os.environ.get("LANGGRAPH_AUTH"))
+
+
+def _authenticated(handler):  # noqa: ANN001, ANN202
+    """Reject unauthenticated requests with 401 in multi-user mode."""
+
+    @functools.wraps(handler)
+    async def wrapped(request: Request) -> JSONResponse:
+        if _AUTH_ENABLED:
+            user = request.scope.get("user")
+            if user is None or not getattr(user, "is_authenticated", False):
+                return JSONResponse({"error": "Unauthorized"}, status_code=401)
+        return await handler(request)
+
+    return wrapped
+
 
 # Extensions served as base64 (mirrors the frontend's former BINARY_EXTS).
 _BINARY_EXTS = {
@@ -254,10 +277,10 @@ async def delete_file(request: Request) -> JSONResponse:
 
 app = Starlette(
     routes=[
-        Route("/files/list", list_files, methods=["GET"]),
-        Route("/files/read", read_file, methods=["GET"]),
-        Route("/files/upload", upload_files, methods=["POST"]),
-        Route("/files/write", write_file, methods=["PUT"]),
-        Route("/files/delete", delete_file, methods=["DELETE"]),
+        Route("/files/list", _authenticated(list_files), methods=["GET"]),
+        Route("/files/read", _authenticated(read_file), methods=["GET"]),
+        Route("/files/upload", _authenticated(upload_files), methods=["POST"]),
+        Route("/files/write", _authenticated(write_file), methods=["PUT"]),
+        Route("/files/delete", _authenticated(delete_file), methods=["DELETE"]),
     ],
 )
