@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useMemo, ReactNode } from "react";
 import { Client } from "@langchain/langgraph-sdk";
+import { authOnRequest } from "@/lib/auth/token";
 
 interface ClientContextValue {
   client: Client;
@@ -23,6 +24,9 @@ export function ClientProvider({ children, deploymentUrl, apiKey }: ClientProvid
         "Content-Type": "application/json",
         "X-Api-Key": apiKey,
       },
+      // Multi-user mode: stamps Authorization: Bearer <JWT> on every request
+      // (REST + SSE). No-op in zero-login mode.
+      onRequest: authOnRequest,
     });
   }, [deploymentUrl, apiKey]);
 

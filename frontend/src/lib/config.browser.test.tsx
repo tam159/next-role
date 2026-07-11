@@ -89,6 +89,24 @@ describe("getConfig", () => {
       langsmithApiKey: undefined,
     });
   });
+
+  it("pins deploymentUrl/assistantId to env in auth mode, ignoring stored overrides", async () => {
+    vi.stubEnv("NEXT_PUBLIC_AUTH_ENABLED", "true");
+    window.localStorage.setItem(
+      CONFIG_KEY,
+      JSON.stringify({
+        deploymentUrl: "http://attacker.example:8123",
+        assistantId: "evil-assistant",
+        mainAgentModel: "model-big",
+      })
+    );
+    const mod = await loadConfigModule(ENV_DEFAULTS);
+    expect(mod.getConfig()).toEqual({
+      deploymentUrl: "http://env-host:2024", // pinned to env, not the stored value
+      assistantId: "env-assistant",
+      mainAgentModel: "model-big", // non-URL prefs still honored
+    });
+  });
 });
 
 describe("saveConfig", () => {

@@ -61,6 +61,11 @@ If a hook auto-fixes a file (ruff format, prettier, EOL fixer), re-read the file
 
 For a full repo sweep, use the `/quality` skill (runs `pre-commit run --all-files`).
 
+## Working agreement — commits & PRs
+
+- **Never commit, push, or open a PR unless I explicitly tell you to.** Make code changes in the working tree and leave them local so I can test first. When I'm ready I'll say "commit" / "open the PR".
+- **One PR per feature/requirement**, even a large one — do not split a single feature across multiple PRs. Structure the work as **separate commits per logical phase**. Example (the multi-user feature): one PR with commits for *Identity foundation* → *Backend authn + authz* → *Per-user storage* → *Hardening + docs*.
+
 ## Commits
 
 Conventional Commits: `feat:`, `fix:`, `chore:`, `docs:`, `refactor:`, `test:`. Lowercase subject, no trailing period. Match the style in `git log`.

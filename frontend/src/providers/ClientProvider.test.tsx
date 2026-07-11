@@ -33,6 +33,7 @@ describe("ClientProvider", () => {
         "Content-Type": "application/json",
         "X-Api-Key": "sk-test",
       },
+      onRequest: expect.any(Function),
     });
     expect(seenClients[0]).toBe(ClientMock.mock.instances[0]);
   });
@@ -73,6 +74,7 @@ describe("ClientProvider", () => {
         "Content-Type": "application/json",
         "X-Api-Key": "sk-other",
       },
+      onRequest: expect.any(Function),
     });
     expect(seenClients.at(-1)).not.toBe(seenClients[0]);
   });

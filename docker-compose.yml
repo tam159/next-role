@@ -22,6 +22,14 @@ services:
       NEXT_PUBLIC_LANGGRAPH_DEPLOYMENT_URL: ${NEXT_PUBLIC_LANGGRAPH_DEPLOYMENT_URL}
       NEXT_PUBLIC_LANGGRAPH_ASSISTANT_ID: ${NEXT_PUBLIC_LANGGRAPH_ASSISTANT_ID}
       NEXT_PUBLIC_LANGSMITH_API_KEY: ${NEXT_PUBLIC_LANGSMITH_API_KEY}
+      # --- Multi-user auth (opt-in; unset keeps zero-login single-user mode) ---
+      NEXT_PUBLIC_AUTH_ENABLED: ${AUTH_ENABLED:-false}
+      NEXT_PUBLIC_AUTH_GOOGLE_ENABLED: ${AUTH_GOOGLE_ENABLED:-false}
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:-}
+      BETTER_AUTH_URL: http://localhost:${FRONTEND_LOCAL_PORT}
+      AUTH_DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      GOOGLE_AUTH_CLIENT_ID: ${GOOGLE_AUTH_CLIENT_ID:-}
+      GOOGLE_AUTH_CLIENT_SECRET: ${GOOGLE_AUTH_CLIENT_SECRET:-}
       # Pin pnpm's content-addressed store inside the container layer so it
       # doesn't spill into the bind-mounted project as `.pnpm-store/`. (pnpm
       # falls back to a project-local store when its default location is on a
@@ -212,8 +220,17 @@ services:
       OBJECT_STORE_ENDPOINT: http://object-store:8333
       # Mounts the artifact files API (backend/agents/files_api.py) into the
       # agent server — the vendored server's designed custom-app hook.
+      # enable_custom_route_auth puts the mounted routes behind the server's
+      # auth middleware: a no-op under noop auth, required in multi-user mode.
       LANGGRAPH_HTTP: >-
-        {"app": "/deps/next-role/backend/agents/files_api.py:app"}
+        {"app": "/deps/next-role/backend/agents/files_api.py:app",
+         "enable_custom_route_auth": true}
+      # Multi-user auth verification targets (used only when LANGGRAPH_AUTH is
+      # set in .env; harmless otherwise). In-network JWKS URL — the backend
+      # verifies bearer JWTs minted by the frontend's Better Auth.
+      AUTH_JWKS_URL: http://frontend:3000/api/auth/jwks
+      AUTH_JWT_ISSUER: http://localhost:${FRONTEND_LOCAL_PORT}
+      AUTH_JWT_AUDIENCE: http://localhost:${FRONTEND_LOCAL_PORT}
       POSTGRES_URI: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
       # Selects the postgres backend in the runtime edition router
       # (hard-required — the router raises if unset).

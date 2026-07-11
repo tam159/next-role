@@ -110,6 +110,33 @@ def test_area_key_prefix():
 
 
 # ---------------------------------------------------------------------------
+# per-user scoping
+# ---------------------------------------------------------------------------
+
+
+def test_scoped_keys_isolate_users():
+    a = key_for_area("upload", "/cv.pdf", "alice")
+    b = key_for_area("upload", "/cv.pdf", "bob")
+    assert a == "users/alice/career_agent/upload/cv.pdf"
+    assert b == "users/bob/career_agent/upload/cv.pdf"
+    assert a != b
+
+
+def test_scoped_virtual_path_builders_agree():
+    key = key_for_virtual_path("/tailored_resume/r/j.yaml", "alice")
+    assert key == "users/alice/career_agent/tailored_resume/r/j.yaml"
+    assert area_key_prefix("tailored_resume", "alice") == "users/alice/career_agent/tailored_resume"
+    # Round-trips only under the same scope; a mismatched scope rejects the key.
+    assert virtual_path_for_key(key, "alice") == "/tailored_resume/r/j.yaml"
+    assert virtual_path_for_key(key, "bob") is None
+
+
+def test_scoped_keys_still_reject_traversal():
+    assert key_for_area("upload", "../x", "alice") is None
+    assert key_for_virtual_path("/upload/../processed/x.md", "alice") is None
+
+
+# ---------------------------------------------------------------------------
 # byte helpers (MemoryStore)
 # ---------------------------------------------------------------------------
 

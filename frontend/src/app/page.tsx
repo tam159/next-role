@@ -16,6 +16,7 @@ import { ChatProvider } from "@/providers/ChatProvider";
 import { FilePreviewProvider } from "@/providers/FilePreviewProvider";
 import { ChatInterface } from "@/app/components/ChatInterface";
 import { Workspace } from "@/app/components/Workspace";
+import { SessionGate } from "@/app/components/auth/SessionGate";
 import { cn } from "@/lib/utils";
 
 interface HomePageInnerProps {
@@ -299,7 +300,9 @@ export default function HomePage() {
         </div>
       }
     >
-      <HomePageContent />
+      <SessionGate>
+        <HomePageContent />
+      </SessionGate>
     </Suspense>
   );
 }

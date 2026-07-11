@@ -23,6 +23,7 @@ from server.core_server._convert import (
     assistant_version_to_proto,
     loads,
 )
+from server.core_server._filters import filters_clause
 from server.grpc_common.conversion.config import config_from_proto
 from server.grpc_common.proto import core_api_pb2 as pb
 from server.grpc_common.proto.core_api_pb2_grpc import AssistantsServicer
@@ -76,13 +77,16 @@ def _merge_config_context(config: dict, context: dict) -> tuple[dict, dict]:
 class AssistantsServicerImpl(AssistantsServicer):
     async def Get(self, request: pb.GetAssistantRequest, context) -> pb.Assistant:
         graphs = _registered_graphs()
-        sql = "SELECT * FROM assistant WHERE assistant_id = %s"
-        args: list = [request.assistant_id]
+        sql = "SELECT * FROM assistant WHERE assistant_id = %(aid)s"
+        params: dict = {"aid": request.assistant_id}
         if graphs is not None:
-            sql += " AND graph_id = ANY(%s)"
-            args.append(list(graphs))
+            sql += " AND graph_id = ANY(%(graphs)s)"
+            params["graphs"] = list(graphs)
+        fc = filters_clause(request.filters, params)
+        if fc:
+            sql += f" AND {fc}"
         async with db.pool().connection() as conn, conn.cursor() as cur:
-            await cur.execute(sql, args)
+            await cur.execute(sql, params)
             row = await cur.fetchone()
         if row is None:
             await context.abort(
@@ -255,6 +259,9 @@ class AssistantsServicerImpl(AssistantsServicer):
             if meta:
                 where.append("metadata @> %(meta)s")
                 params["meta"] = Jsonb(meta)
+        fc = filters_clause(request.filters, params)
+        if fc:
+            where.append(fc)
         params["limit"] = request.limit if request.HasField("limit") else 1000
         params["offset"] = request.offset if request.HasField("offset") else 0
         col = _sort_col(request.sort_by) if request.HasField("sort_by") else "created_at"
@@ -346,6 +353,9 @@ class AssistantsServicerImpl(AssistantsServicer):
             if meta:
                 where.append("metadata @> %(meta)s")
                 params["meta"] = Jsonb(meta)
+        fc = filters_clause(request.filters, params)
+        if fc:
+            where.append(fc)
         clause = (" WHERE " + " AND ".join(where)) if where else ""
         async with db.pool().connection() as conn, conn.cursor() as cur:
             await cur.execute(f"SELECT count(*) AS n FROM assistant{clause}", params)

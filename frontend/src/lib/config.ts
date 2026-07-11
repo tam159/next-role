@@ -1,3 +1,5 @@
+import { isAuthEnabled } from "@/lib/auth/enabled";
+
 export interface StandaloneConfig {
   deploymentUrl: string;
   assistantId: string;
@@ -23,11 +25,24 @@ export function getConfig(): StandaloneConfig | null {
   const stored = localStorage.getItem(CONFIG_KEY);
   if (!stored) return DEFAULT_CONFIG;
 
+  let parsed: StandaloneConfig;
   try {
-    return JSON.parse(stored);
+    parsed = JSON.parse(stored);
   } catch {
     return DEFAULT_CONFIG;
   }
+
+  // In multi-user mode, pin the backend URL/assistant to the deployment env.
+  // A stored deploymentUrl override would let injected page script redirect
+  // bearer tokens to an attacker-controlled origin; model/UI prefs stay local.
+  if (isAuthEnabled() && DEFAULT_CONFIG) {
+    return {
+      ...parsed,
+      deploymentUrl: DEFAULT_CONFIG.deploymentUrl,
+      assistantId: DEFAULT_CONFIG.assistantId,
+    };
+  }
+  return parsed;
 }
 
 export function saveConfig(config: StandaloneConfig): void {

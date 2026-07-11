@@ -6,6 +6,7 @@ import { isHumanMessage } from "@langchain/core/messages";
 import { Check, ChevronDown, MessageSquare, Moon, Plus, Settings, Sun } from "lucide-react";
 import { Assistant } from "@langchain/langgraph-sdk";
 import { LogoMark } from "@/app/components/LogoMark";
+import { UserMenu } from "@/app/components/auth/UserMenu";
 import { Button } from "@/components/ui/button";
 import { useChatContext } from "@/providers/ChatProvider";
 import { extractStringFromMessageContent } from "@/app/utils/utils";
@@ -173,6 +174,8 @@ export function TopBar({
         <button onClick={onOpenSettings} title="Settings" className={ICON_BTN}>
           <Settings className="size-[18px]" strokeWidth={1.7} />
         </button>
+
+        <UserMenu />
 
         <Button
           variant="primary"

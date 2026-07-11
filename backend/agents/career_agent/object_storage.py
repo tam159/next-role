@@ -6,15 +6,16 @@ local dev via docker compose; S3 / GCS / Azure or any S3-compatible service in
 the cloud — `obstore` speaks all of them). Postgres keeps only text artifacts;
 renders use a throwaway temp dir, so no artifact ever lives on local disk.
 
-Object keys are a pure function of the virtual path — there is no database
-registry. `/upload/cv.pdf` maps to `users/default/career_agent/upload/cv.pdf`;
-the `users/default/` segment is the future multi-user seam (inject a real
-identity here and every artifact is scoped without a key migration).
+Object keys are a pure function of the virtual path and the caller's scope —
+there is no database registry. `/upload/cv.pdf` maps to
+`users/<scope>/career_agent/upload/cv.pdf`; `<scope>` is the authenticated
+identity in multi-user mode and `default` otherwise (see `scope.object_scope`).
 
 Everything here is shared by two consumers: `ObjectStoreBackend` (the
 deepagents filesystem backend mounted as CompositeBackend routes) and
 `backend/agents/files_api.py` (the HTTP file surface for the frontend), so the
-path↔key mapping exists exactly once.
+path↔key mapping exists exactly once. Both pass the resolved `scope` — the
+agent backend from the run's runtime, the files API from the request user.
 """
 
 from __future__ import annotations
@@ -23,14 +24,17 @@ import functools
 from pathlib import PurePosixPath
 from typing import TYPE_CHECKING, Any
 
+from backend.agents.career_agent.scope import object_scope
 from obstore.store import S3Store
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 if TYPE_CHECKING:
     from obstore.store import ObjectStore
 
-# The multi-user seam: swap "default" for an authenticated identity later.
-KEY_SCOPE = "users/default/career_agent"
+# Single-user / unauthenticated key prefix (identity == "default"). Kept as a
+# module constant for the default layout; multi-user callers pass an explicit
+# `scope` to the key builders below.
+KEY_SCOPE = object_scope(None)
 
 # Artifact areas routed to object storage. Keep in sync with the
 # CompositeBackend routes in agents.py and the files-API allowlist.
@@ -101,24 +105,28 @@ def _safe_relative(path: str) -> str | None:
     return "/".join(parts)
 
 
-def area_key_prefix(area: str) -> str:
-    """Object-key prefix (no trailing slash) holding everything in `area`."""
-    return f"{KEY_SCOPE}/{area}"
+def area_key_prefix(area: str, scope: str | None = None) -> str:
+    """Object-key prefix (no trailing slash) holding everything in `area`.
+
+    `scope` is the caller's identity; omitted/`None` uses the default
+    single-user layout (`object_scope` resolves it).
+    """
+    return f"{object_scope(scope)}/{area}"
 
 
-def key_for_area(area: str, rel_path: str) -> str | None:
+def key_for_area(area: str, rel_path: str, scope: str | None = None) -> str | None:
     """Map a composite-stripped path within `area` to its object key.
 
-    `area="upload"`, `rel_path="/cv.pdf"` → `users/default/career_agent/upload/cv.pdf`.
+    `area="upload"`, `rel_path="/cv.pdf"` → `users/<scope>/career_agent/upload/cv.pdf`.
     Returns `None` for unsafe paths.
     """
     rel = _safe_relative(rel_path)
     if rel is None:
         return None
-    return f"{KEY_SCOPE}/{area}/{rel}"
+    return f"{object_scope(scope)}/{area}/{rel}"
 
 
-def key_for_virtual_path(path: str) -> str | None:
+def key_for_virtual_path(path: str, scope: str | None = None) -> str | None:
     """Map a full virtual path (e.g. `/upload/cv.pdf`) to its object key.
 
     Returns `None` when the path is unsafe or its first segment is not a
@@ -130,12 +138,12 @@ def key_for_virtual_path(path: str) -> str | None:
     area, _, remainder = rel.partition("/")
     if area not in AREAS or not remainder:
         return None
-    return f"{KEY_SCOPE}/{rel}"
+    return f"{object_scope(scope)}/{rel}"
 
 
-def virtual_path_for_key(key: str) -> str | None:
+def virtual_path_for_key(key: str, scope: str | None = None) -> str | None:
     """Invert `key_for_virtual_path`: object key → `/area/...` virtual path."""
-    prefix = f"{KEY_SCOPE}/"
+    prefix = f"{object_scope(scope)}/"
     if not key.startswith(prefix):
         return None
     rel = key[len(prefix) :]

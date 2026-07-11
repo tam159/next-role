@@ -1,4 +1,5 @@
 import { filesApiUrl } from "@/app/lib/agentFiles";
+import { authedFetch } from "@/lib/auth/token";
 
 export type UploadResponse = {
   uploaded: { path: string; size: number }[];
@@ -14,7 +15,7 @@ export async function uploadAgentFiles(args: {
   form.append("path", targetDir);
   for (const f of files) form.append("file", f, f.name);
 
-  const res = await fetch(filesApiUrl("/files/upload"), { method: "POST", body: form });
+  const res = await authedFetch(filesApiUrl("/files/upload"), { method: "POST", body: form });
   const data = (await res.json().catch(() => null)) as UploadResponse | { error?: string } | null;
 
   if (!res.ok) {
@@ -29,9 +30,12 @@ export async function uploadAgentFiles(args: {
 export const CAREER_AGENT_UPLOAD_DIR = "/upload";
 
 export async function deleteAgentFile(virtualPath: string): Promise<void> {
-  const res = await fetch(filesApiUrl(`/files/delete?path=${encodeURIComponent(virtualPath)}`), {
-    method: "DELETE",
-  });
+  const res = await authedFetch(
+    filesApiUrl(`/files/delete?path=${encodeURIComponent(virtualPath)}`),
+    {
+      method: "DELETE",
+    }
+  );
   if (!res.ok) {
     const data = (await res.json().catch(() => null)) as { error?: string } | null;
     const reason = data?.error ?? `Delete failed (${res.status})`;

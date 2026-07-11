@@ -7,6 +7,7 @@ in-band errors, and prefix-stripped path semantics under `CompositeBackend`.
 """
 
 import base64
+from unittest.mock import patch
 
 import pytest
 from backend.agents.career_agent.object_backend import ObjectStoreBackend
@@ -37,6 +38,36 @@ def test_keys_carry_the_scoped_area_prefix(backend, mem_store):
 
     keys = [str(m["path"]) for m in mem_store.list().collect()]
     assert keys == [f"{KEY_SCOPE}/upload/cv.yaml"]
+
+
+def test_backend_scopes_keys_to_the_runtime_identity(backend, mem_store):
+    """With an authenticated run, keys land under `users/<identity>/…`.
+
+    The backend resolves identity at call time via `object_storage`'s builders,
+    which read `scope.current_identity()`; patch it to simulate two users.
+    """
+    import backend.agents.career_agent.scope as scope_mod
+
+    with patch.object(scope_mod, "current_identity", return_value="alice"):
+        backend.write("/cv.yaml", "name: Alice")
+    with patch.object(scope_mod, "current_identity", return_value="bob"):
+        backend.write("/cv.yaml", "name: Bob")
+
+    keys = sorted(str(m["path"]) for m in mem_store.list().collect())
+    assert keys == [
+        "users/alice/career_agent/upload/cv.yaml",
+        "users/bob/career_agent/upload/cv.yaml",
+    ]
+
+    # Each user reads only their own object.
+    with patch.object(scope_mod, "current_identity", return_value="alice"):
+        alice_read = backend.read("/cv.yaml")
+    with patch.object(scope_mod, "current_identity", return_value="bob"):
+        bob_read = backend.read("/cv.yaml")
+    assert alice_read.file_data is not None
+    assert alice_read.file_data["content"] == "name: Alice"
+    assert bob_read.file_data is not None
+    assert bob_read.file_data["content"] == "name: Bob"
 
 
 # ---------------------------------------------------------------------------

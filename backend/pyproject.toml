@@ -85,7 +85,9 @@ dependencies = [
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-pythonpath = [".."]
+# Repo root for `backend.agents.*` namespace imports; "." for the server
+# top-level packages (server.core_server, ...) — mirrors [tool.ty.environment].
+pythonpath = ["..", "."]
 asyncio_mode = "auto"
 addopts = "--import-mode=importlib -m 'not integration and not eval'"
 markers = [

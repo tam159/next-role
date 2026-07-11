@@ -22,6 +22,7 @@ from server.core_server._convert import (
     loads,
     thread_to_proto,
 )
+from server.core_server._filters import filters_clause
 from server.core_server.redis_db import channel_run_stream, get_redis, stream_thread_events
 from server.grpc_common.proto import core_api_pb2 as pb
 from server.grpc_common.proto import enum_thread_stream_mode_pb2 as etsm
@@ -63,10 +64,13 @@ def _sort_dir(value: int) -> str:
 
 class ThreadsServicerImpl(ThreadsServicer):
     async def Get(self, request: pb.GetThreadRequest, context) -> pb.Thread:
+        params: dict = {"tid": request.thread_id.value}
+        fc = filters_clause(request.filters, params)
+        cond = f" AND {fc}" if fc else ""
         async with db.pool().connection() as conn, conn.cursor() as cur:
             await cur.execute(
-                "SELECT * FROM thread WHERE thread_id = %s",
-                (request.thread_id.value,),
+                f"SELECT * FROM thread WHERE thread_id = %(tid)s{cond}",
+                params,
             )
             row = await cur.fetchone()
         if row is None:
@@ -100,19 +104,35 @@ class ThreadsServicerImpl(ThreadsServicer):
                         grpc.StatusCode.ALREADY_EXISTS,
                         f"Thread {tid} already exists",
                     )
-                await cur.execute("SELECT * FROM thread WHERE thread_id = %s", (tid,))
+                # Re-select respecting auth filters: a conflicting thread the
+                # caller doesn't own reports a conflict, never silent adoption.
+                params: dict = {"tid": tid}
+                fc = filters_clause(request.filters, params)
+                cond = f" AND {fc}" if fc else ""
+                await cur.execute(
+                    f"SELECT * FROM thread WHERE thread_id = %(tid)s{cond}",
+                    params,
+                )
                 row = await cur.fetchone()
+                if row is None:
+                    await context.abort(
+                        grpc.StatusCode.ALREADY_EXISTS,
+                        f"Thread {tid} already exists",
+                    )
         return thread_to_proto(row)
 
     async def Patch(self, request: pb.PatchThreadRequest, context) -> pb.Thread:
         meta = loads(request.metadata_json) if request.HasField("metadata_json") else {}
+        params: dict = {"meta": Jsonb(meta), "tid": request.thread_id.value}
+        fc = filters_clause(request.filters, params)
+        cond = f" AND {fc}" if fc else ""
         async with db.pool().connection() as conn, conn.cursor() as cur:
             await cur.execute(
-                """
-                UPDATE thread SET metadata = metadata || %s, updated_at = now()
-                WHERE thread_id = %s RETURNING *
+                f"""
+                UPDATE thread SET metadata = metadata || %(meta)s, updated_at = now()
+                WHERE thread_id = %(tid)s{cond} RETURNING *
                 """,
-                (Jsonb(meta), request.thread_id.value),
+                params,
             )
             row = await cur.fetchone()
         if row is None:
@@ -125,6 +145,20 @@ class ThreadsServicerImpl(ThreadsServicer):
     async def Delete(self, request: pb.DeleteThreadRequest, context) -> pb.UUID:
         tid = request.thread_id.value
         async with db.pool().connection() as conn, conn.transaction(), conn.cursor() as cur:
+            # Ownership check before the FK-less cascade below touches
+            # anything: an unowned thread must look exactly like a missing one.
+            params: dict = {"tid": tid}
+            fc = filters_clause(request.filters, params)
+            if fc:
+                await cur.execute(
+                    f"SELECT 1 FROM thread WHERE thread_id = %(tid)s AND {fc}",
+                    params,
+                )
+                if await cur.fetchone() is None:
+                    await context.abort(
+                        grpc.StatusCode.NOT_FOUND,
+                        f"Thread {tid} not found",
+                    )
             for table in (
                 "checkpoint_writes",
                 "checkpoint_blobs",
@@ -168,6 +202,9 @@ class ThreadsServicerImpl(ThreadsServicer):
         if request.ids:
             where.append("thread_id = ANY(%(ids)s)")
             params["ids"] = [u.value for u in request.ids]
+        fc = filters_clause(request.filters, params)
+        if fc:
+            where.append(fc)
         params["limit"] = request.limit if request.HasField("limit") else 1000
         params["offset"] = request.offset if request.HasField("offset") else 0
         col = _SORT.get(request.sort_by, "created_at")
@@ -197,6 +234,9 @@ class ThreadsServicerImpl(ThreadsServicer):
         if request.HasField("status"):
             where.append("status = %(status)s")
             params["status"] = THREAD_STATUS_FROM_PB.get(request.status, "idle")
+        fc = filters_clause(request.filters, params)
+        if fc:
+            where.append(fc)
         clause = (" WHERE " + " AND ".join(where)) if where else ""
         async with db.pool().connection() as conn, conn.cursor() as cur:
             await cur.execute(f"SELECT count(*) AS n FROM thread{clause}", params)
@@ -326,7 +366,10 @@ class ThreadsServicerImpl(ThreadsServicer):
         tid = request.thread_id.value
         new_tid = str(uuid.uuid4())
         async with db.pool().connection() as conn, conn.transaction(), conn.cursor() as cur:
-            await cur.execute("SELECT 1 FROM thread WHERE thread_id = %s", (tid,))
+            params: dict = {"tid": tid}
+            fc = filters_clause(request.filters, params)
+            cond = f" AND {fc}" if fc else ""
+            await cur.execute(f"SELECT 1 FROM thread WHERE thread_id = %(tid)s{cond}", params)
             if await cur.fetchone() is None:
                 await context.abort(grpc.StatusCode.NOT_FOUND, f"Thread {tid} not found")
             await cur.execute(
@@ -393,6 +436,24 @@ class ThreadsServicerImpl(ThreadsServicer):
         executed but their events had no subscriber.
         """
         tid = request.thread_id.value
+
+        # Ownership gate before any subscription: without it, any
+        # authenticated caller could stream another user's live events
+        # (including token-by-token message content) by thread id.
+        params: dict = {"tid": tid}
+        fc = filters_clause(request.filters, params)
+        if fc:
+            async with db.pool().connection() as conn, conn.cursor() as cur:
+                await cur.execute(
+                    f"SELECT 1 FROM thread WHERE thread_id = %(tid)s AND {fc}",
+                    params,
+                )
+                if await cur.fetchone() is None:
+                    await context.abort(
+                        grpc.StatusCode.NOT_FOUND,
+                        f"Thread {tid} not found",
+                    )
+
         modes = {etsm.ThreadStreamMode.Name(m) for m in request.stream_modes}
 
         def should_filter(event_name: str, message: bytes) -> bool:

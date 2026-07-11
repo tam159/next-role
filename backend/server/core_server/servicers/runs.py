@@ -20,6 +20,7 @@ from psycopg.types.json import Jsonb
 
 from server.core_server import db
 from server.core_server._convert import json_bytes, loads, ts
+from server.core_server._filters import filters_clause, thread_owner_clause
 from server.core_server.redis_db import (
     LIST_RUN_QUEUE,
     THREAD_EVENTS_MAXLEN,
@@ -150,10 +151,13 @@ def run_to_proto(row: dict) -> pb.Run:
 
 class RunsServicerImpl(RunsServicer):
     async def Get(self, request: pb.GetRunRequest, context) -> pb.Run:
+        params: dict = {"rid": request.run_id.value, "tid": request.thread_id.value}
+        toc = thread_owner_clause(request.filters, params, thread_id_expr="run.thread_id")
+        cond = f" AND {toc}" if toc else ""
         async with db.pool().connection() as conn, conn.cursor() as cur:
             await cur.execute(
-                "SELECT * FROM run WHERE run_id = %s AND thread_id = %s",
-                (request.run_id.value, request.thread_id.value),
+                f"SELECT * FROM run WHERE run_id = %(rid)s AND thread_id = %(tid)s{cond}",
+                params,
             )
             row = await cur.fetchone()
         if row is None:
@@ -169,6 +173,9 @@ class RunsServicerImpl(RunsServicer):
         if request.HasField("status"):
             where.append("status = %(status)s")
             params["status"] = RUN_STATUS_FROM_PB.get(request.status, "pending")
+        toc = thread_owner_clause(request.filters, params, thread_id_expr="run.thread_id")
+        if toc:
+            where.append(toc)
         params["limit"] = request.limit if request.HasField("limit") else 10
         params["offset"] = request.offset if request.HasField("offset") else 0
         async with db.pool().connection() as conn, conn.cursor() as cur:
@@ -194,10 +201,14 @@ class RunsServicerImpl(RunsServicer):
         return pb.CountResponse(count=n)
 
     async def Delete(self, request: pb.DeleteRunRequest, context) -> pb.UUID:
+        params: dict = {"rid": request.run_id.value, "tid": request.thread_id.value}
+        toc = thread_owner_clause(request.filters, params, thread_id_expr="run.thread_id")
+        cond = f" AND {toc}" if toc else ""
         async with db.pool().connection() as conn, conn.cursor() as cur:
             await cur.execute(
-                "DELETE FROM run WHERE run_id = %s AND thread_id = %s RETURNING run_id",
-                (request.run_id.value, request.thread_id.value),
+                f"DELETE FROM run WHERE run_id = %(rid)s AND thread_id = %(tid)s{cond} "
+                "RETURNING run_id",
+                params,
             )
             row = await cur.fetchone()
         if row is None:
@@ -316,26 +327,36 @@ class RunsServicerImpl(RunsServicer):
             "after_seconds": f"{int(after_seconds)} seconds",
         }
 
+        # Auth filters (empty in single-user mode → conditions collapse to ""):
+        # thread_filters gate attaching runs to an existing thread the caller
+        # doesn't own; assistant_filters gate the assistant join. A filtered-out
+        # row means the CTEs produce nothing → no run row → NOT_FOUND upstream.
+        tf = filters_clause(request.thread_filters, params, column="thread.metadata")
+        tf_cond = f" AND {tf}" if tf else ""
+        af = filters_clause(request.assistant_filters, params, column="assistant.metadata")
+        af_cond = f" AND {af}" if af else ""
+
         if create_thread:
-            thread_cte = """WITH inserted_thread AS (
+            thread_cte = f"""WITH inserted_thread AS (
                 INSERT INTO thread (thread_id, status, metadata, config, state_updated_at)
                 SELECT %(thread_id)s, 'busy',
                     jsonb_build_object('graph_id', assistant.graph_id, 'assistant_id', assistant.assistant_id) || %(metadata)s::jsonb,
                     assistant.config || %(config)s::jsonb || jsonb_build_object('configurable',
-                        coalesce((assistant.config -> 'configurable'), '{}'::jsonb) || coalesce(%(config)s::jsonb -> 'configurable', '{}'::jsonb)),
+                        coalesce((assistant.config -> 'configurable'), '{{}}'::jsonb) || coalesce(%(config)s::jsonb -> 'configurable', '{{}}'::jsonb)),
                     now()
-                FROM assistant WHERE assistant_id = %(assistant_id)s
+                FROM assistant WHERE assistant_id = %(assistant_id)s{af_cond}
                 ON CONFLICT (thread_id) DO NOTHING
                 RETURNING *
             ),
             run_thread AS (
-                SELECT * FROM thread WHERE thread_id = %(thread_id)s
+                SELECT * FROM thread WHERE thread_id = %(thread_id)s{tf_cond}
                 UNION ALL
                 SELECT * FROM inserted_thread
             ),"""
         else:
             thread_cte = (
-                "WITH run_thread AS (SELECT * FROM thread WHERE thread_id = %(thread_id)s),"
+                "WITH run_thread AS "
+                f"(SELECT * FROM thread WHERE thread_id = %(thread_id)s{tf_cond}),"
             )
 
         query = (
@@ -372,7 +393,8 @@ class RunsServicerImpl(RunsServicer):
                 FROM run_thread CROSS JOIN assistant
                 WHERE run_thread.thread_id = %(thread_id)s AND assistant.assistant_id = %(assistant_id)s
             """
-            + ("AND NOT EXISTS (SELECT 1 FROM inflight_runs)" if prevent else "")
+            + af_cond
+            + (" AND NOT EXISTS (SELECT 1 FROM inflight_runs)" if prevent else "")
             + """
                 RETURNING run.*
             ),
@@ -615,6 +637,20 @@ class RunsServicerImpl(RunsServicer):
                     (statuses,),
                 )
                 targets = [(str(x["thread_id"]), str(x["run_id"])) for x in await cur.fetchall()]
+
+            # Ownership gate: drop targets on threads the caller can't see —
+            # otherwise any authenticated user could interrupt/rollback
+            # another user's runs by id.
+            fparams: dict = {}
+            fc = filters_clause(request.filters, fparams)
+            if fc and targets:
+                fparams["tids"] = list({tid for tid, _rid in targets})
+                await cur.execute(
+                    f"SELECT thread_id FROM thread WHERE thread_id = ANY(%(tids)s) AND {fc}",
+                    fparams,
+                )
+                owned = {str(x["thread_id"]) for x in await cur.fetchall()}
+                targets = [(tid, rid) for tid, rid in targets if tid in owned]
 
             r = get_redis()
             run_ids = [rid for _tid, rid in targets]
