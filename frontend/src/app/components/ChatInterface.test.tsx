@@ -1,6 +1,7 @@
-import { render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import React from "react";
+import { toast } from "sonner";
 import { AIMessage, HumanMessage, ToolMessage, type BaseMessage } from "@langchain/core/messages";
 import type { Assistant } from "@langchain/langgraph-sdk";
 import type { ToolCall } from "@/app/types/types";
@@ -19,10 +20,18 @@ const resumeInterrupt = vi.fn();
 const refreshFiles = vi.fn(async () => {});
 const appendUploadNote = vi.fn();
 
-const ctx: { messages: BaseMessage[]; isLoading: boolean; isThreadLoading: boolean } = {
+const ctx: {
+  messages: BaseMessage[];
+  isLoading: boolean;
+  isThreadLoading: boolean;
+  files: Record<string, string>;
+  filesReady: boolean;
+} = {
   messages: [],
   isLoading: false,
   isThreadLoading: false,
+  files: {},
+  filesReady: true,
 };
 
 function useMockChatContext() {
@@ -32,6 +41,8 @@ function useMockChatContext() {
     messages: ctx.messages,
     isLoading: ctx.isLoading,
     isThreadLoading: ctx.isThreadLoading,
+    files: ctx.files,
+    filesReady: ctx.filesReady,
     interrupt: undefined,
     sendMessage,
     stopStream,
@@ -56,10 +67,10 @@ vi.mock("sonner", () => ({
 const uploadAgentFilesMock = vi.hoisted(() =>
   vi.fn(async () => ({ uploaded: [] as { path: string; size: number }[], errors: [] }))
 );
-vi.mock("@/app/lib/uploadFiles", () => ({
-  CAREER_AGENT_UPLOAD_DIR: "backend/agents/career_agent/upload",
-  uploadAgentFiles: uploadAgentFilesMock,
-}));
+vi.mock("@/app/lib/uploadFiles", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/app/lib/uploadFiles")>();
+  return { ...actual, uploadAgentFiles: uploadAgentFilesMock };
+});
 
 vi.mock("@/app/components/ChatMessage", () => ({
   ChatMessage: ({
@@ -100,9 +111,12 @@ const composer = () => screen.getByPlaceholderText(/Message NextRole/);
 
 beforeEach(() => {
   vi.clearAllMocks();
+  localStorage.clear();
   ctx.messages = [];
   ctx.isLoading = false;
   ctx.isThreadLoading = false;
+  ctx.files = {};
+  ctx.filesReady = true;
 });
 
 // ---------------------------------------------------------------------------
@@ -197,16 +211,60 @@ describe("ChatInterface", () => {
   });
 
   // COMPOSER_ATTACH_ENABLED is hardcoded to false in the component, so the
-  // hidden file input never renders and the uploadAgentFiles/appendUploadNote
-  // path is unreachable from the composer. Documented here as the flag-off
-  // behavior; the upload flow itself lives in Workspace > Files.
+  // paperclip button never renders. The hidden file input DOES render — it's
+  // shared with the hero upload CTA — but nothing in the composer reaches it.
   it("renders no attach control while the composer paperclip flag is off", () => {
     renderChat();
 
     expect(screen.queryByTitle("Attach a file")).not.toBeInTheDocument();
-    expect(document.querySelector('input[type="file"]')).toBeNull();
+    expect(document.querySelector('input[type="file"]')).not.toBeNull();
     expect(uploadAgentFilesMock).not.toHaveBeenCalled();
     expect(appendUploadNote).not.toHaveBeenCalled();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// First-run upload CTA (hero dropzone)
+// ---------------------------------------------------------------------------
+
+describe("ChatInterface first-run upload CTA", () => {
+  const cta = () => screen.queryByRole("button", { name: /add your resume or a job description/i });
+
+  it("features the upload card in the hero for a fresh user", () => {
+    renderChat();
+    expect(cta()).toBeInTheDocument();
+  });
+
+  it("hides the card until the file list is ready (no returning-user flash)", () => {
+    ctx.filesReady = false;
+    renderChat();
+    expect(screen.getByRole("heading", { name: /land your next role/i })).toBeInTheDocument();
+    expect(cta()).not.toBeInTheDocument();
+  });
+
+  it("hides the card once the user has an upload", () => {
+    ctx.files = { "/upload/cv.pdf": "…" };
+    renderChat();
+    expect(cta()).not.toBeInTheDocument();
+  });
+
+  it("keeps the card when only agent-generated files exist", () => {
+    ctx.files = { "/tailored_resume/v1.md": "…" };
+    renderChat();
+    expect(cta()).toBeInTheDocument();
+  });
+
+  it("uploads accepted files on drop and reports skipped ones", async () => {
+    renderChat();
+    const pdf = new File(["x"], "cv.pdf", { type: "application/pdf" });
+    const exe = new File(["x"], "setup.exe", { type: "application/octet-stream" });
+
+    fireEvent.drop(cta()!, { dataTransfer: { files: [pdf, exe] } });
+
+    await waitFor(() => expect(uploadAgentFilesMock).toHaveBeenCalledTimes(1));
+    expect(uploadAgentFilesMock).toHaveBeenCalledWith({ files: [pdf], targetDir: "/upload" });
+    expect(toast.error).toHaveBeenCalledWith(expect.stringContaining("Skipped 1 unsupported file"));
+    await act(async () => {});
   });
 });
 

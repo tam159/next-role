@@ -1,7 +1,7 @@
-import { act, render, screen, waitFor, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { TodoItem } from "@/app/types/types";
-import { TasksFilesSidebar } from "./TasksFilesSidebar";
+import { FilesPopover, TasksFilesSidebar } from "./TasksFilesSidebar";
 
 // ---------------------------------------------------------------------------
 // Mocks
@@ -275,5 +275,58 @@ describe("TasksFilesSidebar", () => {
     } finally {
       consoleError.mockRestore();
     }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// FilesPopover upload-files tile (persistent upload affordance in the grid)
+// ---------------------------------------------------------------------------
+
+describe("FilesPopover upload-files tile", () => {
+  const baseProps = {
+    files: { [PATH_UPLOAD]: "cv body" },
+    setFiles: vi.fn(async () => {}),
+    removeFile,
+    removeFiles,
+    editDisabled: false,
+  };
+
+  it("renders the tile alongside file cards and forwards clicks", async () => {
+    const onAddFiles = vi.fn();
+    const user = userEvent.setup();
+    render(<FilesPopover {...baseProps} onAddFiles={onAddFiles} />);
+
+    const tile = screen.getByRole("button", { name: /upload files/i });
+    await user.click(tile);
+    expect(onAddFiles).toHaveBeenCalledTimes(1);
+  });
+
+  it("omits the tile when onAddFiles is not provided", () => {
+    render(<FilesPopover {...baseProps} />);
+    expect(screen.queryByRole("button", { name: /upload files/i })).not.toBeInTheDocument();
+  });
+
+  it("disables the tile and shows progress while uploading", () => {
+    render(<FilesPopover {...baseProps} onAddFiles={vi.fn()} uploading />);
+    expect(screen.getByRole("button", { name: /uploading/i })).toBeDisabled();
+  });
+
+  it("disables the tile while the agent is streaming (editDisabled)", () => {
+    render(<FilesPopover {...baseProps} onAddFiles={vi.fn()} editDisabled />);
+    expect(screen.getByRole("button", { name: /upload files/i })).toBeDisabled();
+  });
+
+  it("uploads accepted files dropped on the tile and reports skipped ones", async () => {
+    const onDropFiles = vi.fn();
+    render(<FilesPopover {...baseProps} onAddFiles={vi.fn()} onDropFiles={onDropFiles} />);
+
+    const pdf = new File(["x"], "jd.pdf", { type: "application/pdf" });
+    const exe = new File(["x"], "setup.exe", { type: "application/octet-stream" });
+    fireEvent.drop(screen.getByRole("button", { name: /upload files/i }), {
+      dataTransfer: { files: [pdf, exe] },
+    });
+
+    await waitFor(() => expect(onDropFiles).toHaveBeenCalledWith([pdf]));
+    expect(toast.error).toHaveBeenCalledWith(expect.stringContaining("Skipped 1 unsupported file"));
   });
 });

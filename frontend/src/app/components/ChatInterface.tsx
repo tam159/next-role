@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useRef, useCallback, useMemo, useEffect, useState, FormEvent } from "react";
+import React, { useRef, useCallback, useMemo, useEffect, FormEvent } from "react";
 import {
   Square,
   ArrowUp,
@@ -10,8 +10,8 @@ import {
   Search,
   ClipboardList,
   GraduationCap,
+  Upload,
 } from "lucide-react";
-import { toast } from "sonner";
 import { ChatMessage } from "@/app/components/ChatMessage";
 import { LogoMark } from "@/app/components/LogoMark";
 import type { ToolCall, ActionRequest, ReviewConfig } from "@/app/types/types";
@@ -25,7 +25,9 @@ import {
 } from "@langchain/core/messages";
 import { extractStringFromMessageContent, parsePartialArgs } from "@/app/utils/utils";
 import { useChatContext } from "@/providers/ChatProvider";
-import { CAREER_AGENT_UPLOAD_DIR, uploadAgentFiles } from "@/app/lib/uploadFiles";
+import { useFileUpload, useUploadDrop } from "@/app/hooks/useFileUpload";
+import { useUploadCue } from "@/app/hooks/useUploadCue";
+import { UPLOAD_ACCEPT } from "@/app/lib/uploadFiles";
 import { useStickToBottom } from "use-stick-to-bottom";
 import { cn } from "@/lib/utils";
 
@@ -65,7 +67,9 @@ const COMPOSER_ATTACH_ENABLED = false;
 export const ChatInterface = React.memo<ChatInterfaceProps>(({ assistant }) => {
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const attachInputRef = useRef<HTMLInputElement | null>(null);
-  const [uploading, setUploading] = useState(false);
+  const { uploading, uploadFiles, onInputChange } = useFileUpload();
+  const { dragActive, dropHandlers } = useUploadDrop(uploadFiles, uploading);
+  const { showUploadCta } = useUploadCue();
 
   const { scrollRef, contentRef } = useStickToBottom();
 
@@ -81,8 +85,6 @@ export const ChatInterface = React.memo<ChatInterfaceProps>(({ assistant }) => {
     input,
     setInput,
     focusComposerNonce,
-    refreshFiles,
-    appendUploadNote,
   } = useChatContext();
 
   const submitDisabled = isLoading || !assistant;
@@ -158,35 +160,6 @@ export const ChatInterface = React.memo<ChatInterfaceProps>(({ assistant }) => {
       });
     },
     [setInput]
-  );
-
-  // Attach (paperclip) — reuses the same upload path as Workspace > Files.
-  const handleAttach = useCallback(
-    async (e: React.ChangeEvent<HTMLInputElement>) => {
-      const list = e.target.files;
-      if (!list || list.length === 0) return;
-      const picked = Array.from(list);
-      e.target.value = "";
-      setUploading(true);
-      try {
-        const res = await uploadAgentFiles({ files: picked, targetDir: CAREER_AGENT_UPLOAD_DIR });
-        if (res.uploaded.length > 0) {
-          toast.success(
-            `Uploaded ${res.uploaded.length} file${res.uploaded.length > 1 ? "s" : ""}`
-          );
-          appendUploadNote(
-            res.uploaded.map((u) => u.path.split("/").pop()).filter((n): n is string => !!n)
-          );
-        }
-        for (const err of res.errors) toast.error(`${err.name}: ${err.reason}`);
-        await refreshFiles?.();
-      } catch (err) {
-        toast.error(err instanceof Error ? err.message : "Upload failed");
-      } finally {
-        setUploading(false);
-      }
-    },
-    [appendUploadNote, refreshFiles]
   );
 
   // Cache stable references for finalized ToolCall objects and per-message
@@ -393,6 +366,15 @@ export const ChatInterface = React.memo<ChatInterfaceProps>(({ assistant }) => {
 
   return (
     <div className="flex flex-1 flex-col overflow-hidden bg-canvas">
+      {/* Shared picker for the hero upload CTA and the composer paperclip. */}
+      <input
+        ref={attachInputRef}
+        type="file"
+        multiple
+        accept={UPLOAD_ACCEPT}
+        className="hidden"
+        onChange={onInputChange}
+      />
       <div className="flex-1 overflow-x-hidden overflow-y-auto overscroll-contain" ref={scrollRef}>
         <div ref={contentRef}>
           {isThreadLoading ? (
@@ -417,7 +399,42 @@ export const ChatInterface = React.memo<ChatInterfaceProps>(({ assistant }) => {
                 Drop in your resume and a job post. NextRole tailors your application, researches
                 the company, and preps you for every round — all in one workspace.
               </p>
-              <div className="mt-7 flex max-w-[560px] flex-wrap justify-center gap-2.5">
+              {showUploadCta && (
+                <button
+                  type="button"
+                  onClick={() => attachInputRef.current?.click()}
+                  disabled={uploading}
+                  {...dropHandlers}
+                  className={cn(
+                    "mt-8 flex w-full max-w-[480px] items-center gap-3.5 rounded-2xl border border-dashed border-border2 bg-surface-raised/70 px-5 py-4 text-left shadow-sm transition-colors hover:border-brand-strong hover:bg-brand-accent-soft/40 disabled:opacity-60",
+                    dragActive && "border-brand-strong bg-brand-accent-soft/40"
+                  )}
+                >
+                  <span className="grid size-10 shrink-0 place-items-center rounded-[9px] bg-brand-accent-soft text-brand-accent">
+                    {uploading ? (
+                      <Loader2 size={18} className="animate-spin" />
+                    ) : (
+                      <Upload size={18} />
+                    )}
+                  </span>
+                  <span className="min-w-0">
+                    <span className="block text-[14px] font-semibold text-primary">
+                      Add your resume or a job description
+                    </span>
+                    <span className="mt-0.5 block text-[12.5px] text-tertiary">
+                      {uploading
+                        ? "Uploading…"
+                        : "Click to browse or drop files — PDF, DOC, DOCX, TXT, MD"}
+                    </span>
+                  </span>
+                </button>
+              )}
+              <div
+                className={cn(
+                  "flex max-w-[560px] flex-wrap justify-center gap-2.5",
+                  showUploadCta ? "mt-5" : "mt-7"
+                )}
+              >
                 {SUGGESTIONS.map((s) => (
                   <button
                     key={s.label}
@@ -482,29 +499,19 @@ export const ChatInterface = React.memo<ChatInterfaceProps>(({ assistant }) => {
               <div className="flex items-center justify-between gap-2 px-3 pb-3">
                 <div className="flex min-w-0 items-center gap-1.5">
                   {COMPOSER_ATTACH_ENABLED && (
-                    <>
-                      <input
-                        ref={attachInputRef}
-                        type="file"
-                        multiple
-                        accept=".pdf,.doc,.docx,.txt,.md"
-                        className="hidden"
-                        onChange={handleAttach}
-                      />
-                      <button
-                        type="button"
-                        title="Attach a file"
-                        onClick={() => attachInputRef.current?.click()}
-                        disabled={uploading || submitDisabled}
-                        className="grid size-9 shrink-0 place-items-center rounded-full text-tertiary transition-colors hover:bg-surface3 hover:text-primary disabled:opacity-50"
-                      >
-                        {uploading ? (
-                          <Loader2 size={16} className="animate-spin" />
-                        ) : (
-                          <Paperclip size={16} />
-                        )}
-                      </button>
-                    </>
+                    <button
+                      type="button"
+                      title="Attach a file"
+                      onClick={() => attachInputRef.current?.click()}
+                      disabled={uploading || submitDisabled}
+                      className="grid size-9 shrink-0 place-items-center rounded-full text-tertiary transition-colors hover:bg-surface3 hover:text-primary disabled:opacity-50"
+                    >
+                      {uploading ? (
+                        <Loader2 size={16} className="animate-spin" />
+                      ) : (
+                        <Paperclip size={16} />
+                      )}
+                    </button>
                   )}
                   <span className="truncate text-xs text-tertiary">
                     Enter to send · Shift+Enter for newline

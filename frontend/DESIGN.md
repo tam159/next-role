@@ -466,7 +466,9 @@ Depth is **color-block first** — surface contrast (canvas → surface → surf
 
 ### Conversation
 
-**`hero`** — centered empty state: glowing brand mark, `{typography.hero}` headline with the accent italic emphasis, a `{colors.text-2}` subtitle, and a row of `{component.suggestion-chip}` that fill the composer.
+**`hero`** — centered empty state: glowing brand mark, `{typography.hero}` headline with the accent italic emphasis, a `{colors.text-2}` subtitle, then (first-run only) `{component.upload-dropzone}`, and a row of `{component.suggestion-chip}` that fill the composer.
+
+**`upload-dropzone`** — the first-run featured action: a dashed-hairline `{rounded.card}`-scale card (`{colors.surface-2}` at 70%) with a `{component.card-icon-chip}`, a bold one-line ask ("Add your resume or a job description") and a `{colors.text-3}` sub-line; click opens the file picker, drag-over/drop uploads in place (accent border + `{colors.accent-soft}` wash while dragging). Renders only while the user has **zero uploads** (`filesReady && !hasUploads` from `useUploadCue`) — it retires permanently on the first upload, never via a dismiss control.
 
 **`suggestion-chip`** — icon + label, `{colors.surface-2}` + hairline, hover lifts + accent border. Order: Research → Tailor → Prepare for an interview → Build a battlecard.
 
@@ -493,6 +495,12 @@ Depth is **color-block first** — surface contrast (canvas → surface → surf
 **`progress-bar`** (Plan) — `{colors.surface-3}` track, `{colors.accent}` fill, 10px, `{rounded.pill}`, with a moving sheen while active. Below it, a todo timeline mirrors the tool rail: done = struck-through check, active = spinner, todo = hollow circle.
 
 **`file-card`** — `{colors.surface-2}` + hairline, `{rounded.file-card}`, hover lifts + accent border. Top row: a type squircle + a `{component.badge-type}` (format label, colored by `{colors.cat-*}`). Then the file name (`{typography.title}`) and a mono dir `{typography.path}`.
+
+**`files-empty-state`** — the Files card with zero entries: centered `{component.card-icon-chip}` with an Upload glyph, "No files yet" title, one supporting line, and a `{component.button-primary}` "Upload files" CTA wired to the same picker as the header Upload button (the header action is `{component.button-outline}` — one primary per card).
+
+**`file-add-tile`** — the last item in the file grid, always present while the card has files: a dashed-hairline tile matching `{component.file-card}` footprint, accent Upload glyph, "Upload files" label, mono format hint. It is the persistent upload affordance once the empty states retire — uploads #2+ happen where the files live. Click opens the picker; drag-over swaps the label to "Drop to upload" with accent border + `{colors.accent-soft}` wash (same drop filtering as `{component.upload-dropzone}`); disabled while uploading or the agent streams. **Label rule:** every upload affordance uses the "Upload" verb ("Upload" header action, "Upload files" empty-state CTA and tile) — one action, one name.
+
+**`upload-cue-dot`** — first-run hotspot on the Files header Upload button: an 8px `{colors.accent}` dot ringed in `{colors.surface-2}`, pulsing via `motion-safe:animate-pulse` (static but visible under reduced motion). Shows while `filesReady && !dismissed` — it survives the first upload (a hero-card upload doesn't teach where the button is) and only retires when the user clicks a panel upload trigger (header button, empty-state CTA, add-files tile), persisted as localStorage `nr-upload-cue-dismissed-v2`. The dot is the **only** dismissible guidance piece — never add arrows, coach marks, or tours.
 
 **`source-row`** — square letter badge + title + domain (`{colors.text-3}`) + external-link icon; hover `{colors.surface-3}`.
 
