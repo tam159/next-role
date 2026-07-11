@@ -270,16 +270,22 @@ Set `LANGCHAIN_API_KEY` and `LANGCHAIN_TRACING_V2=true` in `.env`, and every run
 - 📊 **Agent evaluation** — LangSmith evals over the workflow (the `@pytest.mark.eval` marker is already reserved).
 - 🎨 **Enhanced UI** — richer artifact editing, diff views, and inline regeneration.
 - 🔌 **MCP / A2A examples** — sample integrations driving `career_agent` from external agents and IDEs.
-- 🧵 **Per-thread / multi-user scoping** — namespace artifacts per user instead of the current global layout (object keys already carry a `users/<scope>/` segment, so this is an auth + key-mapping change, not a migration).
-- ☁️ **Cloud deployment** — binary artifacts already live in S3-compatible object storage (SeaweedFS locally; point `OBJECT_STORE_*` at S3 / GCS / Azure). Remaining: managed bucket provisioning (versioning, SSE, IAM), auth on the files API, and presigned-URL delivery.
+- ☁️ **Cloud deployment** — binary artifacts already live in S3-compatible object storage (SeaweedFS locally; point `OBJECT_STORE_*` at S3 / GCS / Azure). Remaining: managed bucket provisioning (versioning, SSE, IAM) and presigned-URL delivery.
 - 🌐 **More sources & ATS-aware tailoring** — pluggable retrievers + keyword/ATS optimization passes.
+
+## Authentication & multi-user
+
+NextRole runs **zero-login single-user by default** — `docker compose up` and start prepping, no accounts. Flip on **multi-user mode** for a shared or cloud deployment and every user gets private threads, files, and memory.
+
+- **Login** — Google OAuth and/or email + password, via self-hosted [Better Auth](https://better-auth.com) inside the Next.js app (its tables live in your Postgres; no third-party auth vendor).
+- **Isolation** — the agent server verifies a short-lived JWT (JWKS) on every request; threads/runs/crons are owner-scoped in SQL (unowned → `404`), and store namespaces + object keys are scoped per user (`users/<id>/…`).
+- **Enable it** — set `AUTH_ENABLED=true`, generate `BETTER_AUTH_SECRET`, run the one-time Better Auth schema migration, and set `LANGGRAPH_AUTH` on the backend. In the cloud also set `REQUIRE_AUTH=true` (the backend refuses to boot unauthenticated) and pin `CORS_ALLOW_ORIGINS`. Full variable reference and the migration command are in **[`.env.example`](.env.example)**.
 
 ## Limitations
 
-> NextRole is built for **local, single-user, trusted use** today.
+> Multi-user mode isolates data, but the shell sandbox below is still the gate before opening signups to untrusted users.
 
-- 🔒 **Local shell execution** — `VirtualPathShellBackend` runs render commands via `subprocess` on the host. Safe locally; **not** hardened for multi-tenant production (needs sandboxing — see roadmap).
-- 👤 **Global file scoping** — uploads and artifacts share one global key layout in the object store; re-uploading a filename overwrites. No per-user isolation yet (the `users/default/` key segment is the prepared seam).
+- 🔒 **Local shell execution** — `VirtualPathShellBackend` runs render commands via `subprocess` on the host. Safe locally and for a trusted team; **not** hardened for untrusted multi-tenant use (needs sandboxing — see roadmap). Isolate render/shell steps before exposing public signup.
 - 🧪 **LLM evals deferred** — current tests are unit + local-DB integration; automated quality evals aren't wired up yet.
 - 🧠 **Personalization is preferences-only** — the agent persists and auto-applies the preferences you *state* across sessions, but doesn't yet infer your style/history on its own or consolidate memory over time (see [roadmap](#roadmap)).
 - ⏱️ **Latency** — a full run makes several LLM and tool calls across multiple agents; expect minutes, not seconds.

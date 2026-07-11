@@ -61,6 +61,18 @@ source) and run in CI's required `frontend-tests` check — deliberately not in 
 - `prettier-plugin-tailwindcss` reorders class names — don't fight it manually.
 - ESLint allows `@typescript-eslint/no-explicit-any`; underscore-prefixed unused vars are fine.
 
+## Authentication (multi-user, opt-in)
+
+Off by default (`NEXT_PUBLIC_AUTH_ENABLED` unset → today's zero-login single-user app). When on, [Better Auth](https://better-auth.com) runs inside this app (Google OAuth + email/password + JWT plugin), tables in the shared Postgres.
+
+- **Gate on `isAuthEnabled()`** (`src/lib/auth/enabled.ts`) everywhere auth-specific code runs — every auth component/module must render/behave as a no-op when it returns false, so the zero-login path is byte-for-byte unchanged. Same for `isGoogleAuthEnabled()` (the Google button).
+- **Files**: `src/lib/auth/server.ts` (server config, server-only — lazily imported by the route so zero-login never needs a DB pool/secret), `client.ts` (`authClient`), `token.ts` (bearer plumbing), `src/app/api/auth/[...all]/route.ts` (handler, 404s when disabled), `src/app/login/page.tsx`, `src/app/components/auth/{SessionGate,UserMenu}.tsx`.
+- **Backend calls carry the JWT** via `authOnRequest` (SDK `onRequest` hook on both `Client` sites) and `authedFetch` (the 5 raw `/files/*` calls). Both are **no-ops without a token** — `authedFetch` passes the request through untouched, so tests that assert exact `fetch(...)` arity still pass. The token is cached and refreshed on expiry/401 (`getBearerToken`/`clearBearerToken`).
+- **Contract for the backend**: `GET /api/auth/token` mints an EdDSA JWT (`sub` = user id, 15-min TTL); `/api/auth/jwks` publishes keys. The backend (`backend/agents/auth.py`) verifies against JWKS.
+- **Config override is pinned in auth mode**: `getConfig()` (`src/lib/config.ts`) ignores a stored `deploymentUrl`/`assistantId` when auth is on (XSS bearer-exfil guard) — model/UI prefs stay local.
+- **Store namespaces need no per-user handling here**: the FE keeps sending logical `["career_agent", …]`; the backend's `@auth.on.store` rewrite prepends identity. Don't add the user segment on the FE.
+- **Testing auth code**: `vi.stubEnv("NEXT_PUBLIC_AUTH_ENABLED", ...)` per test; mock `@/lib/auth/client`. `token.ts` holds module-level cache state, so re-import it fresh (`vi.resetModules`) after stubbing env (see `token.test.ts`).
+
 ## Stack notes
 
 - UI primitives are Radix (`@radix-ui/*`) + Tailwind, not a single component library.
