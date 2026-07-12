@@ -10,6 +10,7 @@ import {
   Trash2,
   Loader2,
   Check,
+  Upload,
 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
@@ -23,6 +24,7 @@ import {
 import { toast } from "sonner";
 import type { TodoItem, FileItem } from "@/app/types/types";
 import { useChatContext } from "@/providers/ChatProvider";
+import { useUploadDrop } from "@/app/hooks/useFileUpload";
 import { cn } from "@/lib/utils";
 import { FileViewDialog } from "@/app/components/FileViewDialog";
 import { getFileCategory, splitBasename, splitFilePath } from "@/app/lib/fileCategories";
@@ -132,6 +134,9 @@ export function FilesPopover({
   removeFile,
   removeFiles,
   editDisabled,
+  onAddFiles,
+  onDropFiles,
+  uploading = false,
 }: {
   files: Record<string, string>;
   setFiles: (files: Record<string, string>) => Promise<void>;
@@ -140,6 +145,11 @@ export function FilesPopover({
     virtualPaths: string[]
   ) => Promise<{ deleted: string[]; errors: { path: string; reason: string }[] }>;
   editDisabled: boolean;
+  /** Renders a persistent "Upload files" tile in the grid that opens the upload picker. */
+  onAddFiles?: () => void;
+  /** Enables drag-and-drop onto the tile; receives the accepted dropped files. */
+  onDropFiles?: (files: File[]) => void | Promise<void>;
+  uploading?: boolean;
 }) {
   const [selectedFile, setSelectedFile] = useState<FileItem | null>(null);
   const [pendingDelete, setPendingDelete] = useState<string[] | null>(null);
@@ -147,6 +157,7 @@ export function FilesPopover({
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [anchor, setAnchor] = useState<string | null>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
+  const { dragActive, dropHandlers } = useUploadDrop(onDropFiles ?? (() => {}), uploading);
 
   const filePaths = useMemo(() => Object.keys(files), [files]);
 
@@ -339,6 +350,28 @@ export function FilesPopover({
                 />
               );
             })}
+            {onAddFiles && (
+              <button
+                type="button"
+                onClick={onAddFiles}
+                disabled={uploading || editDisabled}
+                {...(onDropFiles ? dropHandlers : {})}
+                className={cn(
+                  "flex min-h-[110px] cursor-pointer flex-col items-center justify-center gap-1.5 rounded-xl border border-dashed border-border2 px-3 py-3 text-center transition-colors hover:border-brand-strong hover:bg-brand-accent-soft/30 disabled:pointer-events-none disabled:opacity-60",
+                  dragActive && "border-brand-strong bg-brand-accent-soft/30"
+                )}
+              >
+                {uploading ? (
+                  <Loader2 size={17} className="animate-spin text-brand-accent" />
+                ) : (
+                  <Upload size={17} className="text-brand-accent" />
+                )}
+                <span className="text-[12.5px] font-semibold text-foreground">
+                  {uploading ? "Uploading…" : dragActive ? "Drop to upload" : "Upload files"}
+                </span>
+                <span className="font-mono text-[10.5px] text-tertiary">PDF · DOC · TXT · MD</span>
+              </button>
+            )}
           </div>
         </div>
       )}

@@ -29,6 +29,18 @@ export async function uploadAgentFiles(args: {
 /** Virtual artifact path for user uploads (backend files API contract). */
 export const CAREER_AGENT_UPLOAD_DIR = "/upload";
 
+/** Accepted upload types — file-picker `accept` attribute and drag-drop filter. */
+export const UPLOAD_ACCEPT = ".pdf,.doc,.docx,.txt,.md";
+
+const UPLOAD_ACCEPT_EXTS = new Set(UPLOAD_ACCEPT.split(","));
+
+/** True when a filename carries one of the accepted upload extensions. */
+export function isAcceptedUploadName(name: string): boolean {
+  const dot = name.lastIndexOf(".");
+  if (dot < 0) return false;
+  return UPLOAD_ACCEPT_EXTS.has(name.slice(dot).toLowerCase());
+}
+
 export async function deleteAgentFile(virtualPath: string): Promise<void> {
   const res = await authedFetch(
     filesApiUrl(`/files/delete?path=${encodeURIComponent(virtualPath)}`),

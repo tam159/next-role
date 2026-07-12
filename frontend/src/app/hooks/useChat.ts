@@ -114,6 +114,10 @@ export function useChat({
 
   // Files surfaced to the UI: state files + (per-agent) store + disk files.
   const [extendedFiles, setExtendedFiles] = useState<AgentFile[]>([]);
+  // True once refreshFiles has run with a resolved graphId — i.e. a fetch that
+  // could actually see artifact uploads. First-run guidance (hero upload CTA,
+  // pulse cue) gates on this so returning users get no first-paint flash.
+  const [filesReady, setFilesReady] = useState(false);
   const extendedFilesRef = useRef<AgentFile[]>([]);
   extendedFilesRef.current = extendedFiles;
 
@@ -165,6 +169,9 @@ export function useChat({
     } catch (e) {
       console.warn("fetchAgentFiles failed", e);
     }
+    // Flip on failure too: the Files panel then shows the same (empty) picture,
+    // so the first-run guidance stays consistent with it.
+    if (graphId) setFilesReady(true);
   }, [client, graphId, stateFilesSig]);
 
   useEffect(() => {
@@ -354,6 +361,7 @@ export function useChat({
     email: stream.values.email,
     setFiles,
     refreshFiles,
+    filesReady,
     removeFile,
     removeFiles,
     input,

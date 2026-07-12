@@ -1,13 +1,13 @@
 "use client";
 
-import React, { useRef, useState } from "react";
+import { useRef } from "react";
 import { FileText, Loader2, Upload } from "lucide-react";
-import { toast } from "sonner";
 import { FilesPopover } from "@/app/components/TasksFilesSidebar";
 import { WorkspaceCard } from "@/app/components/workspace/WorkspaceCard";
 import { Button } from "@/components/ui/button";
-import { CAREER_AGENT_UPLOAD_DIR, uploadAgentFiles } from "@/app/lib/uploadFiles";
-import { useChatContext } from "@/providers/ChatProvider";
+import { useFileUpload } from "@/app/hooks/useFileUpload";
+import { useUploadCue } from "@/app/hooks/useUploadCue";
+import { UPLOAD_ACCEPT } from "@/app/lib/uploadFiles";
 
 interface FilesSectionProps {
   files: Record<string, string>;
@@ -21,8 +21,6 @@ interface FilesSectionProps {
   onToggle: () => void;
 }
 
-const UPLOAD_ACCEPT = ".pdf,.doc,.docx,.txt,.md";
-
 export function FilesSection({
   files,
   setFiles,
@@ -34,33 +32,14 @@ export function FilesSection({
 }: FilesSectionProps) {
   const count = Object.keys(files).length;
   const inputRef = useRef<HTMLInputElement | null>(null);
-  const [uploading, setUploading] = useState(false);
-  const { refreshFiles, appendUploadNote } = useChatContext();
+  const { uploading, uploadFiles, onInputChange } = useFileUpload();
+  const { showPulseCue, dismissCue } = useUploadCue();
 
-  const handleSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const list = e.target.files;
-    if (!list || list.length === 0) return;
-    const picked = Array.from(list);
-    e.target.value = "";
-
-    setUploading(true);
-    try {
-      const res = await uploadAgentFiles({ files: picked, targetDir: CAREER_AGENT_UPLOAD_DIR });
-      if (res.uploaded.length > 0) {
-        toast.success(`Uploaded ${res.uploaded.length} file${res.uploaded.length > 1 ? "s" : ""}`);
-        appendUploadNote(
-          res.uploaded.map((u) => u.path.split("/").pop()).filter((n): n is string => !!n)
-        );
-      }
-      for (const err of res.errors) {
-        toast.error(`${err.name}: ${err.reason}`);
-      }
-      await refreshFiles?.();
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Upload failed");
-    } finally {
-      setUploading(false);
-    }
+  // Dismiss on click, not on upload: opening the picker proves the user found
+  // the button, which is all the cue exists for — cancelling still counts.
+  const openPicker = () => {
+    dismissCue();
+    inputRef.current?.click();
   };
 
   const uploadButton = (
@@ -71,19 +50,27 @@ export function FilesSection({
         multiple
         accept={UPLOAD_ACCEPT}
         className="hidden"
-        onChange={handleSelect}
+        onChange={onInputChange}
       />
-      <Button
-        type="button"
-        variant="ghost"
-        size="sm"
-        className="gap-1.5"
-        disabled={uploading || editDisabled}
-        onClick={() => inputRef.current?.click()}
-      >
-        {uploading ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />}
-        <span>Upload</span>
-      </Button>
+      <span className="relative inline-flex">
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="gap-1.5"
+          disabled={uploading || editDisabled}
+          onClick={openPicker}
+        >
+          {uploading ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />}
+          <span>Upload</span>
+        </Button>
+        {showPulseCue && (
+          <span
+            aria-hidden="true"
+            className="pointer-events-none absolute -top-0.5 -right-0.5 size-2 rounded-full bg-brand-accent ring-2 ring-surface-raised motion-safe:animate-pulse"
+          />
+        )}
+      </span>
     </>
   );
 
@@ -97,9 +84,28 @@ export function FilesSection({
       headerAction={uploadButton}
     >
       {count === 0 ? (
-        <p className="py-2 text-sm text-muted-foreground">
-          No files yet. Upload your CV or job description to get started.
-        </p>
+        <div className="flex flex-col items-center gap-3 py-6 text-center">
+          <span className="flex size-10 items-center justify-center rounded-[9px] bg-brand-accent-soft text-brand-accent">
+            <Upload size={18} />
+          </span>
+          <div>
+            <p className="text-sm font-semibold text-foreground">No files yet</p>
+            <p className="mx-auto mt-1 max-w-[280px] text-sm text-muted-foreground">
+              Add your resume or a job description and NextRole will tailor everything to it.
+            </p>
+          </div>
+          <Button
+            type="button"
+            variant="primary"
+            size="sm"
+            className="gap-1.5"
+            disabled={uploading || editDisabled}
+            onClick={openPicker}
+          >
+            {uploading ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />}
+            Upload files
+          </Button>
+        </div>
       ) : (
         <FilesPopover
           files={files}
@@ -107,6 +113,9 @@ export function FilesSection({
           removeFile={removeFile}
           removeFiles={removeFiles}
           editDisabled={editDisabled}
+          onAddFiles={openPicker}
+          onDropFiles={uploadFiles}
+          uploading={uploading}
         />
       )}
     </WorkspaceCard>
