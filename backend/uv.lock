@@ -1,5 +1,5 @@
 version = 1
-revision = 2
+revision = 3
 requires-python = ">=3.13"
 
 [[package]]
@@ -1332,7 +1332,7 @@ otel = [
 
 [[package]]
 name = "llama-cloud"
-version = "2.9.1"
+version = "2.11.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "anyio" },
@@ -1342,9 +1342,9 @@ dependencies = [
     { name = "sniffio" },
     { name = "typing-extensions" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/f6/50/e15281031dcd846fc9f6d0caf721a41551ed1b6767b818a84a4318806385/llama_cloud-2.9.1.tar.gz", hash = "sha256:f7b88642bdd687491c88c51c760a5a0c1214b60c11afc80ca03ca3b7fcfdb6d1", size = 3571437, upload-time = "2026-06-25T22:18:53.976Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/a2/54/edbd47c182c1c1a1e0e7fe35594c1a7bbfdce17e864652d7daf580fcb761/llama_cloud-2.11.0.tar.gz", hash = "sha256:befc984b9bf137670c108100cbcdaa7753c2c61fd361c0ce2fa622be48cdf5cd", size = 3573759, upload-time = "2026-07-09T18:26:47.124Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/16/ba/ce392068cb70be48baf669f2bc16b0ff21e451fe63049f6db6950225fefb/llama_cloud-2.9.1-py3-none-any.whl", hash = "sha256:78136257984eea9a012c9ade54881e4e7718e60b07d055ceff1f6fedc0651856", size = 472504, upload-time = "2026-06-25T22:18:52.479Z" },
+    { url = "https://files.pythonhosted.org/packages/e1/1b/7cf78831e6f427db56019a7fcd6405a43f0bf4a6cfb2e9ffcdd8f0dd01e0/llama_cloud-2.11.0-py3-none-any.whl", hash = "sha256:ff3f669f98f8f76769ca7560a4ad5dedf1a857692f19fcacc94226dab35dd951", size = 475036, upload-time = "2026-07-09T18:26:45.309Z" },
 ]
 
 [[package]]
@@ -1610,7 +1610,7 @@ requires-dist = [
     { name = "langgraph-runtime-inmem", specifier = ">=0.30.0,<0.31.0" },
     { name = "langgraph-sdk", specifier = ">=0.4.2" },
     { name = "langsmith", extras = ["otel"], specifier = ">=0.8.5" },
-    { name = "llama-cloud", specifier = ">=2.9.1" },
+    { name = "llama-cloud", specifier = ">=2.11.0" },
     { name = "obstore", specifier = ">=0.11.0" },
     { name = "opentelemetry-api", specifier = ">=1.41.1" },
     { name = "opentelemetry-exporter-otlp-proto-http", specifier = ">=1.41.1" },
