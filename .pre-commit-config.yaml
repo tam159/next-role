@@ -4,10 +4,12 @@ repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v6.0.0
     hooks:
+      # .ua/ is a generated knowledge graph — keep it byte-identical to what
+      # the generator wrote (gitleaks & large-file checks still cover it).
       - id: trailing-whitespace
-        exclude: '\.(svg|csv)$'
+        exclude: '\.(svg|csv)$|^\.ua/'
       - id: end-of-file-fixer
-        exclude: '\.(svg|csv)$'
+        exclude: '\.(svg|csv)$|^\.ua/'
       - id: check-yaml
       - id: check-added-large-files
         args: ["--maxkb=2500"]

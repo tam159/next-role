@@ -1,0 +1,25 @@
+# .understandignore — patterns for files/dirs to exclude from analysis
+# Syntax: same as .gitignore (globs, # comments, ! negation, trailing / for dirs)
+#
+# Scope: EVERYTHING (user-selected) — all hand-authored code + config + docs,
+# including the full vendored backend/server. Only generated artifacts and
+# tool caches are excluded below.
+#
+# Built-in defaults (always excluded unless negated):
+#   node_modules/, .git/, dist/, build/, obj/, *.lock, *.min.js, etc.
+
+# --- Generated artifacts (not authored source) ---
+# gRPC/protobuf stubs — linguist-generated; excluded from ruff & pre-commit.
+backend/server/grpc_common/proto/
+# Build info / compiled output
+frontend/tsconfig.tsbuildinfo
+frontend/.next/
+
+# --- Tool caches ---
+.ruff_cache/
+.pytest_cache/
+.ua/
+.understand-anything/
+
+# --- Secrets / local-only (never analyze) ---
+.env
