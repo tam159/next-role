@@ -4,16 +4,16 @@
 
 ## Why
 
-The main agent and every declarative subagent were hardcoded — `_MODEL = "openai:gpt-5.4"` in `agents.py` and `model: openai:gpt-5.4-mini` per entry in `subagents.yaml`. Trying a different provider (Anthropic via Bedrock, Google, etc.) meant editing source and rebuilding the backend image. Cheap A/B experiments — "does Sonnet-4.6 produce a better tailored resume than gpt-5.4?" — were too expensive to attempt casually, so they didn't happen.
+The main agent and every declarative subagent were hardcoded — `_MODEL = "openai:gpt-5.6-terra"` in `agents.py` and `model: openai:gpt-5.6-luna` per entry in `subagents.yaml`. Trying a different provider (Anthropic via Bedrock, Google, etc.) meant editing source and rebuilding the backend image. Cheap A/B experiments — "does Sonnet 5 produce a better tailored resume than gpt-5.6-terra?" — were too expensive to attempt casually, so they didn't happen.
 
 ## What the user sees
 
 A new **Models (Optional)** section in the Configuration dialog, divided from the deployment fields by a horizontal rule. Two free-text inputs:
 
-- **Main agent** — placeholder `openai:gpt-5.4`.
-- **Subagents** — placeholder `openai:gpt-5.4-mini` (one value applied to all declarative subagents).
+- **Main agent** — placeholder `openai:gpt-5.6-terra`.
+- **Subagents** — placeholder `openai:gpt-5.6-luna` (one value applied to all declarative subagents).
 
-Above them, one shared help line: `Format <provider>:<model> — e.g. anthropic:claude-sonnet-4.6. Leave blank to use the default. See all supported providers.` — the trailing link opens the `init_chat_model` reference docs in a new tab.
+Above them, one shared help line: `Format <provider>:<model> — e.g. anthropic:claude-sonnet-5. Leave blank to use the default. See all supported providers.` — the trailing link opens the `init_chat_model` reference docs in a new tab.
 
 Blank field → the agent's bake-time default still wins. Settings persist in `localStorage` under the existing `deep-agent-config` key. A typo (`not-a-real-provider:foo`) does not crash the run — the backend logs a warning and falls back to the default.
 
@@ -58,7 +58,7 @@ Blank field → the agent's bake-time default still wins. Settings persist in `l
 
 1. `docker compose up -d`; grab the frontend host port from `docker ps`.
 2. Open the Settings dialog. Leave both Model fields blank, send a message, confirm normal completion. LangSmith trace (or container logs) shows the bake-time defaults on every model call.
-3. Set **Main agent** to `bedrock_converse:global.anthropic.claude-sonnet-4-6`, save, start a fresh thread, send a message. Trace: main agent runs Anthropic; any subagent it spawns (e.g. `hiring-recon`) still runs `openai:gpt-5.4-mini`.
+3. Set **Main agent** to `bedrock_converse:global.anthropic.claude-sonnet-5`, save, start a fresh thread, send a message. Trace: main agent runs Anthropic; any subagent it spawns (e.g. `hiring-recon`) still runs `openai:gpt-5.6-luna`.
 4. Set **Subagents** to a different model (e.g. `bedrock_converse:global.anthropic.claude-haiku-4-5-20251001-v1:0`), trigger a subagent. Subagent now runs Haiku; main agent still on Sonnet.
 5. Set **Main agent** to `not-a-real-provider:foo`, send a message. Run completes (fallback to default); `docker compose logs backend | grep ModelOverrideMiddleware` shows the warning.
 6. Refresh the browser, reopen Settings — both fields still populated from `localStorage`.

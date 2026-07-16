@@ -66,7 +66,7 @@ ones on every run, and fold them into subagent task descriptions.
 class EnsurePreferencesFileMiddleware(AgentMiddleware):
     """Guarantee the always-loaded preferences file exists before the model runs.
 
-    gpt-5.4 reliably *appends* a preference to `/memory/preferences.md` when the
+    The model reliably *appends* a preference to `/memory/preferences.md` when the
     file already exists, but won't reliably *create* it on a clean slate — it
     fumbles toward CAREER_AGENT.md or starts the intake workflow instead. So we seed
     the scaffold here in `before_agent`: a single cheap store write — no model
@@ -144,7 +144,7 @@ def _without_streaming(model: BaseChatModel) -> BaseChatModel:
     under parallel large tool-call args.
 
     `model_copy` leaves the shared/cached instance untouched — the main agent
-    may use the same `provider:model` string (`openai:gpt-5.4` is shared with
+    may use the same `provider:model` string (shared with
     `resume-tailor`) and must keep streaming.
     """
     try:

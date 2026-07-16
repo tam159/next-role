@@ -83,7 +83,7 @@ def _apply_prompt_overrides() -> None:
 _apply_prompt_overrides()
 
 
-_MODEL = "openai:gpt-5.4"
+_MODEL = "openai:gpt-5.6-terra"
 
 _backend = CompositeBackend(
     default=VirtualPathShellBackend(

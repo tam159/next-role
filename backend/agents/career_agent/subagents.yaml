@@ -5,7 +5,7 @@ hiring-recon:
     (market context, salary range bracketed by location), then produce a match
     analysis. The caller MUST pass: resume_path, jd_path, intake_path (optional),
     output_path. Output is one markdown file at the output path.
-  model: openai:gpt-5.4-mini
+  model: openai:gpt-5.6-luna
   tools:
     - web_search
     - web_extract
@@ -32,7 +32,7 @@ resume-tailor:
     resume_path, jd_path, intake_path (optional), research_path, yaml_path. The
     YAML is written to yaml_path and the .pdf sibling is published next to it
     under `/tailored_resume/<resume>/`.
-  model: openai:gpt-5.4
+  model: openai:gpt-5.6-terra
   tools:
     - render_resume_pdf
   skills:
@@ -59,7 +59,7 @@ interview-coach:
     round info and timeline), and the hiring-recon report. Caller MUST pass:
     resume_path, jd_path, intake_path, research_path, output_path. Output is one
     markdown file at `/interview_coach/<resume>/<jd>.md`.
-  model: openai:gpt-5.4-mini
+  model: openai:gpt-5.6-luna
   skills:
     - skills/interview-coach/
   system_prompt: |

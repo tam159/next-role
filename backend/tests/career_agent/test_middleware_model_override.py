@@ -66,7 +66,7 @@ def test_main_agent_override_invokes_init_chat_model(middleware):
     fake_model = _FakeModel(name="main-override")
 
     config = {
-        "configurable": {"main_agent_model": "anthropic:claude-sonnet-4.6"},
+        "configurable": {"main_agent_model": "anthropic:claude-sonnet-5"},
         "metadata": {},
     }
     with (
@@ -81,7 +81,7 @@ def test_main_agent_override_invokes_init_chat_model(middleware):
     ):
         result = middleware.wrap_model_call(request, _fake_handler(received))
 
-    mocked_init.assert_called_once_with("anthropic:claude-sonnet-4.6")
+    mocked_init.assert_called_once_with("anthropic:claude-sonnet-5")
     # Main agent: plain swap, streaming left intact (no model_copy).
     assert captured["model"] is fake_model
     assert fake_model.disable_streaming is False
@@ -100,8 +100,8 @@ def test_subagent_override_disables_streaming_when_default_on(middleware, monkey
 
     config = {
         "configurable": {
-            "main_agent_model": "anthropic:claude-sonnet-4.6",
-            "subagent_model": "openai:gpt-5.4-mini",
+            "main_agent_model": "anthropic:claude-sonnet-5",
+            "subagent_model": "openai:gpt-5.6-luna",
         },
         "metadata": {"lc_agent_name": "hiring-recon"},
     }
@@ -117,7 +117,7 @@ def test_subagent_override_disables_streaming_when_default_on(middleware, monkey
     ):
         middleware.wrap_model_call(request, _fake_handler(received))
 
-    mocked_init.assert_called_once_with("openai:gpt-5.4-mini")
+    mocked_init.assert_called_once_with("openai:gpt-5.6-luna")
     overridden = captured["model"]
     assert overridden is not fake_model  # a model_copy, not the cached instance
     assert overridden.disable_streaming is True
@@ -178,7 +178,7 @@ def test_reenabled_subagent_still_gets_model_override(middleware):
 
     config = {
         "configurable": {
-            "subagent_model": "openai:gpt-5.4-mini",
+            "subagent_model": "openai:gpt-5.6-luna",
             "disable_subagent_streaming": False,
         },
         "metadata": {"lc_agent_name": "hiring-recon"},
@@ -192,7 +192,7 @@ def test_reenabled_subagent_still_gets_model_override(middleware):
     ):
         middleware.wrap_model_call(request, _fake_handler(received))
 
-    mocked_init.assert_called_once_with("openai:gpt-5.4-mini")
+    mocked_init.assert_called_once_with("openai:gpt-5.6-luna")
     assert captured["model"] is fake_model  # plain override, not a streaming-disabled copy
     assert fake_model.disable_streaming is False
 
@@ -316,7 +316,7 @@ def test_resolved_model_is_cached(middleware):
     received: dict = {}
     fake_model = _FakeModel(name="cached")
     config = {
-        "configurable": {"main_agent_model": "openai:gpt-5.4"},
+        "configurable": {"main_agent_model": "openai:gpt-5.6-terra"},
         "metadata": {},
     }
     with (
@@ -333,7 +333,7 @@ def test_resolved_model_is_cached(middleware):
             request, _captured = _fake_request()
             middleware.wrap_model_call(request, _fake_handler(received))
 
-    mocked_init.assert_called_once_with("openai:gpt-5.4")
+    mocked_init.assert_called_once_with("openai:gpt-5.6-terra")
 
 
 def test_get_config_outside_runnable_context_is_safe(middleware):
@@ -361,7 +361,7 @@ async def test_async_path_also_overrides(middleware):
         return "OK"
 
     config = {
-        "configurable": {"main_agent_model": "openai:gpt-5.4"},
+        "configurable": {"main_agent_model": "openai:gpt-5.6-terra"},
         "metadata": {},
     }
     with (

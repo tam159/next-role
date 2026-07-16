@@ -52,7 +52,7 @@ subagents=[
     {
         "name": "researcher",
         "description": "Research topics before writing...",
-        "model": "anthropic:claude-sonnet-4-6",
+        "model": "anthropic:claude-sonnet-5",
         "system_prompt": "You are a research assistant. Read the `web-research` skill for the full workflow, then execute it using user inputs.",
         "tools": [web_search],
         "skills": ["skills/researcher/"],

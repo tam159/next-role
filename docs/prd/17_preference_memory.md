@@ -31,7 +31,7 @@ discovery flow — see below.
 
 - **One always-loaded file, not per-file + index.** The original plan mirrored Claude Code: a file per
   preference (`/memory/<slug>.md`) plus an always-loaded `MEMORY.md` index. Live testing killed it —
-  gpt-5.4 would not maintain that shape by prompting alone: it wrote the preference into `CAREER_AGENT.md`,
+  gpt-5.6-terra would not maintain that shape by prompting alone: it wrote the preference into `CAREER_AGENT.md`,
   wrote nothing (just acknowledged), or — once the index was seeded — collapsed everything into the
   single index file and skipped the per-slug file. The model strongly gravitates to *one* file. So
   preferences live in a single `/memory/preferences.md`, sectioned by stage. Retrieval and application
@@ -67,7 +67,7 @@ discovery flow — see below.
 
 - **Single-file won because the model wouldn't cooperate with per-file, not because it's simpler.** The
   user explicitly chose per-file first (granularity/auditability); we switched only after four live
-  attempts proved gpt-5.4 won't bootstrap or maintain it by prompt. If per-file is ever wanted, the
+  attempts proved gpt-5.6-terra won't bootstrap or maintain it by prompt. If per-file is ever wanted, the
   reliable path is a `save_preference(slug, description, body)` helper tool that writes the file and the
   index in one Python step — moving the fragile two-write dance out of the LLM.
 - **Saving had to be made imperative *and* exempt from "don't write files yet."** A soft "save
