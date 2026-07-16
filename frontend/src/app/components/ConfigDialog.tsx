@@ -80,7 +80,7 @@ export function ConfigDialog({ open, onOpenChange, onSave, initialConfig }: Conf
               </Label>
               <Input
                 id="mainAgentModel"
-                placeholder="openai:gpt-5.4"
+                placeholder="openai:gpt-5.6-terra"
                 value={mainAgentModel}
                 onChange={(e) => setMainAgentModel(e.target.value)}
               />
@@ -91,7 +91,7 @@ export function ConfigDialog({ open, onOpenChange, onSave, initialConfig }: Conf
               </Label>
               <Input
                 id="subagentModel"
-                placeholder="openai:gpt-5.4-mini"
+                placeholder="openai:gpt-5.6-luna"
                 value={subagentModel}
                 onChange={(e) => setSubagentModel(e.target.value)}
               />

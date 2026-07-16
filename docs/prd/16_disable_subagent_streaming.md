@@ -52,7 +52,7 @@ per-step cadence reads as "stepped," not broken.
   reads `self.disable_streaming` off the model attribute, so `.bind(disable_streaming=…)`
   (which only adds call-kwargs) would silently do nothing. `model_copy` returns a fresh instance
   so the shared/cached model keeps streaming for the main agent — critical because the main
-  agent and `resume-tailor` share `openai:gpt-5.4` and the same `_MODEL_CACHE` entry.
+  agent and `resume-tailor` share `openai:gpt-5.6-terra` and the same `_MODEL_CACHE` entry.
 - **Ship it behind a default-on toggle, not hardcoded.** The behavior is gated by
   `DISABLE_SUBAGENT_STREAMING` (module default `True`) with an optional per-run
   `configurable.disable_subagent_streaming` override — mirroring how `_MODEL` (bake default)

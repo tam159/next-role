@@ -146,7 +146,7 @@ def test_existing_fields_still_mapped(tmp_path: Path) -> None:
         """\
 hiring-recon:
   description: recon
-  model: openai:gpt-5.4-mini
+  model: openai:gpt-5.6-luna
   tools:
     - web_search
     - web_extract
@@ -161,7 +161,7 @@ hiring-recon:
     assert spec["name"] == "hiring-recon"
     assert spec["description"] == "recon"
     assert spec["system_prompt"] == "do the thing"
-    assert spec["model"] == "openai:gpt-5.4-mini"
+    assert spec["model"] == "openai:gpt-5.6-luna"
     assert len(spec["tools"]) == 2
     assert spec["tools"] == [_fake_search, _fake_extract]
     assert spec["skills"] == ["skills/hiring-recon/"]

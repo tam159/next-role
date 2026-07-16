@@ -111,9 +111,9 @@ Secrets live only in `.env` (gitignored); `gitleaks` runs on every commit.
 
 <br/>
 
-Models are swappable **at runtime** — no rebuild. Open the in-app **Configuration** dialog and set **Main agent** / **Subagents** to a `<provider>:<model>` string (e.g. `anthropic:claude-sonnet-4.6`); leave blank to use the defaults. Settings persist in your browser's local storage.
+Models are swappable **at runtime** — no rebuild. Open the in-app **Configuration** dialog and set **Main agent** / **Subagents** to a `<provider>:<model>` string (e.g. `anthropic:claude-sonnet-5`); leave blank to use the defaults. Settings persist in your browser's local storage.
 
-**Recommended:** Claude Sonnet 4.x, GPT-5.x, or Gemini 3.x — e.g. `anthropic:claude-sonnet-4.6`, `openai:gpt-5.4`, `google_genai:gemini-3.5-flash`.
+**Recommended:** Claude Sonnet 5, GPT-5.x, or Gemini 3.x — e.g. `anthropic:claude-sonnet-5`, `openai:gpt-5.6-terra`, `google_genai:gemini-3.5-flash`.
 
 **Run it for free or fully local:**
 
