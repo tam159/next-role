@@ -2,3 +2,8 @@
 .ruff_cache
 CLAUDE.local.md
 .claude/settings.local.json
+
+# Understand-Anything graph: ship the graph, not its rebuild artifacts
+.ua/intermediate/
+.ua/diff-overlay.json
+.ua/.trash-*/

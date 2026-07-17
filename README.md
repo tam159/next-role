@@ -226,6 +226,47 @@ Mapped to memory types:
 
 </details>
 
+<a name="authentication--multi-user"></a>
+
+<details>
+<summary><b>Authentication &amp; multi-user</b> — opt-in login &amp; per-user isolation</summary>
+
+<br/>
+
+NextRole runs **zero-login single-user by default** — `docker compose up` and start prepping, no accounts. Flip on **multi-user mode** for a shared or cloud deployment and every user gets private threads, files, and memory.
+
+- **Login** — Google OAuth and/or email + password, via self-hosted [Better Auth](https://better-auth.com) inside the Next.js app (its tables live in your Postgres; no third-party auth vendor).
+- **Isolation** — the agent server verifies a short-lived JWT (JWKS) on every request; threads/runs/crons are owner-scoped in SQL (unowned → `404`), and store namespaces + object keys are scoped per user (`users/<id>/…`). Design details in [`backend/ARCHITECTURE.md` §8](backend/ARCHITECTURE.md#8-authentication--multi-user).
+
+**Enable it** — set these in `.env`, then `docker compose up -d frontend backend`:
+
+1. `AUTH_ENABLED=true` and `BETTER_AUTH_SECRET=$(openssl rand -base64 32)`.
+2. Create the Better Auth tables once (it owns `user` / `session` / `account` / `jwks`, separate from `backend/storage/migrations/`):
+   ```bash
+   AUTH_DATABASE_URL="postgresql://<POSTGRES_USER>:<POSTGRES_PASSWORD>@localhost:<POSTGRES_LOCAL_PORT>/<POSTGRES_DB>" \
+   BETTER_AUTH_SECRET=<same secret> \
+     pnpm --dir frontend dlx @better-auth/cli@latest migrate --config src/lib/auth/server.ts
+   ```
+3. `LANGGRAPH_AUTH={"path": "/deps/next-role/backend/agents/auth.py:auth", "disable_studio_auth": true}` — turns on backend enforcement. (Login without this is fine for trying the UI, but provides no isolation.)
+4. *Optional Google sign-in:* `AUTH_GOOGLE_ENABLED=true` + `GOOGLE_AUTH_CLIENT_ID` / `GOOGLE_AUTH_CLIENT_SECRET` (OAuth client redirect URI `http://localhost:<FRONTEND_LOCAL_PORT>/api/auth/callback/google`). Email + password works without it.
+
+<details>
+<summary><b>Cloud hardening checklist</b> — beyond enabling auth</summary>
+
+<br/>
+
+- **`REQUIRE_AUTH=true`** — the backend refuses to boot if `LANGGRAPH_AUTH` is missing, so a misconfigured deploy fails loudly instead of serving everyone's data.
+- **HTTPS everywhere** — set `BETTER_AUTH_URL` / `AUTH_JWT_ISSUER` / `AUTH_JWT_AUDIENCE` to the public https origin, and `AUTH_JWKS_URL` to the in-network frontend URL the backend can reach.
+- **Pin CORS** — `CORS_ALLOW_ORIGINS=https://your-frontend.example` (the default `*` is local-only).
+- **Block the unauthenticated meta routes** at the ingress — `/metrics` leaks thread/run counts; also `/docs`, `/openapi.json`, `/info`.
+- **Gate MCP / A2A** — authentication-only today (no per-resource authz), so disable via `LANGGRAPH_HTTP` `"disable_mcp": true` / `"disable_a2a": true` until audited.
+- **Close the Studio backdoors** — never set `LANGSMITH_LANGGRAPH_API_VARIANT=local_dev` in production; `disable_studio_auth: true` (above) closes the header-based one.
+- **Reverse proxy** must never forward a client-controlled root_path (the in-process `/noauth` loopback bypass stays internal-only).
+
+</details>
+
+</details>
+
 <details>
 <summary><b>Tech stack</b></summary>
 
@@ -278,40 +319,6 @@ Set `LANGCHAIN_API_KEY` and `LANGCHAIN_TRACING_V2=true` in `.env`, and every run
 - ☁️ **Cloud deployment** — binary artifacts already live in S3-compatible object storage (SeaweedFS locally; point `OBJECT_STORE_*` at S3 / GCS / Azure). Remaining: managed bucket provisioning (versioning, SSE, IAM) and presigned-URL delivery.
 - 🌐 **More sources & ATS-aware tailoring** — pluggable retrievers + keyword/ATS optimization passes.
 
-## Authentication & multi-user
-
-NextRole runs **zero-login single-user by default** — `docker compose up` and start prepping, no accounts. Flip on **multi-user mode** for a shared or cloud deployment and every user gets private threads, files, and memory.
-
-- **Login** — Google OAuth and/or email + password, via self-hosted [Better Auth](https://better-auth.com) inside the Next.js app (its tables live in your Postgres; no third-party auth vendor).
-- **Isolation** — the agent server verifies a short-lived JWT (JWKS) on every request; threads/runs/crons are owner-scoped in SQL (unowned → `404`), and store namespaces + object keys are scoped per user (`users/<id>/…`). Design details in [`backend/ARCHITECTURE.md` §8](backend/ARCHITECTURE.md#8-authentication--multi-user).
-
-**Enable it** — set these in `.env`, then `docker compose up -d frontend backend`:
-
-1. `AUTH_ENABLED=true` and `BETTER_AUTH_SECRET=$(openssl rand -base64 32)`.
-2. Create the Better Auth tables once (it owns `user` / `session` / `account` / `jwks`, separate from `backend/storage/migrations/`):
-   ```bash
-   AUTH_DATABASE_URL="postgresql://<POSTGRES_USER>:<POSTGRES_PASSWORD>@localhost:<POSTGRES_LOCAL_PORT>/<POSTGRES_DB>" \
-   BETTER_AUTH_SECRET=<same secret> \
-     pnpm --dir frontend dlx @better-auth/cli@latest migrate --config src/lib/auth/server.ts
-   ```
-3. `LANGGRAPH_AUTH={"path": "/deps/next-role/backend/agents/auth.py:auth", "disable_studio_auth": true}` — turns on backend enforcement. (Login without this is fine for trying the UI, but provides no isolation.)
-4. *Optional Google sign-in:* `AUTH_GOOGLE_ENABLED=true` + `GOOGLE_AUTH_CLIENT_ID` / `GOOGLE_AUTH_CLIENT_SECRET` (OAuth client redirect URI `http://localhost:<FRONTEND_LOCAL_PORT>/api/auth/callback/google`). Email + password works without it.
-
-<details>
-<summary><b>Cloud hardening checklist</b> — beyond enabling auth</summary>
-
-<br/>
-
-- **`REQUIRE_AUTH=true`** — the backend refuses to boot if `LANGGRAPH_AUTH` is missing, so a misconfigured deploy fails loudly instead of serving everyone's data.
-- **HTTPS everywhere** — set `BETTER_AUTH_URL` / `AUTH_JWT_ISSUER` / `AUTH_JWT_AUDIENCE` to the public https origin, and `AUTH_JWKS_URL` to the in-network frontend URL the backend can reach.
-- **Pin CORS** — `CORS_ALLOW_ORIGINS=https://your-frontend.example` (the default `*` is local-only).
-- **Block the unauthenticated meta routes** at the ingress — `/metrics` leaks thread/run counts; also `/docs`, `/openapi.json`, `/info`.
-- **Gate MCP / A2A** — authentication-only today (no per-resource authz), so disable via `LANGGRAPH_HTTP` `"disable_mcp": true` / `"disable_a2a": true` until audited.
-- **Close the Studio backdoors** — never set `LANGSMITH_LANGGRAPH_API_VARIANT=local_dev` in production; `disable_studio_auth: true` (above) closes the header-based one.
-- **Reverse proxy** must never forward a client-controlled root_path (the in-process `/noauth` loopback bypass stays internal-only).
-
-</details>
-
 ## Limitations
 
 > Multi-user mode isolates data, but the shell sandbox below is still the gate before opening signups to untrusted users.
@@ -320,6 +327,30 @@ NextRole runs **zero-login single-user by default** — `docker compose up` and 
 - 🧪 **LLM evals deferred** — current tests are unit + local-DB integration; automated quality evals aren't wired up yet.
 - 🧠 **Personalization is preferences-only** — the agent persists and auto-applies the preferences you *state* across sessions, but doesn't yet infer your style/history on its own or consolidate memory over time (see [roadmap](#roadmap)).
 - ⏱️ **Latency** — a full run makes several LLM and tool calls across multiple agents; expect minutes, not seconds.
+
+## 🗺️ Explore the codebase graph
+
+This repo ships a pre-built architecture knowledge graph in [`.ua/`](.ua) — the whole codebase mapped by [Understand-Anything](https://github.com/Egonex-AI/Understand-Anything) into 1,100+ nodes across 10 architectural layers, with a guided tour. Browse it as an interactive dashboard:
+
+<details>
+<summary><b>Open the dashboard</b> — one command, nothing to install</summary>
+
+<br/>
+
+```bash
+# From the repo root — needs only Node.js (no install, no clone, no build):
+npx --yes "https://github.com/Egonex-AI/Understand-Anything/releases/latest/download/understand-anything-viewer.tgz" .
+```
+
+Open the printed `🔑 Dashboard URL` (include the `?token=…` — the plain URL hits an access gate).
+
+> Using Claude Code? Install the [understand-anything](https://github.com/Egonex-AI/Understand-Anything) plugin and run `/understand-dashboard` in this repo instead.
+
+The graph is **for humans**: AI coding assistants are configured to ignore `.ua/` (Claude Code deny rules, `.cursorignore`, a `CLAUDE.md` instruction) so they keep reading the real source instead of a large generated snapshot.
+
+![NextRole codebase knowledge graph — architectural layers, dependencies, and project stats in the Understand-Anything dashboard](docs/images/next-role-understand-anything.png)
+
+</details>
 
 ## Contributing
 

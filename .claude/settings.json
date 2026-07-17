@@ -1,4 +1,7 @@
 {
+  "permissions": {
+    "deny": ["Read(/.ua/**)"]
+  },
   "hooks": {
     "PostToolUse": [
       {
