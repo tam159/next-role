@@ -348,6 +348,8 @@ Open the printed `🔑 Dashboard URL` (include the `?token=…` — the plain UR
 
 The graph is **for humans**: AI coding assistants are configured to ignore `.ua/` (Claude Code deny rules, `.cursorignore`, a `CLAUDE.md` instruction) so they keep reading the real source instead of a large generated snapshot.
 
+![NextRole codebase knowledge graph — architectural layers, dependencies, and project stats in the Understand-Anything dashboard](docs/images/next-role-understand-anything.png)
+
 </details>
 
 ## Contributing
