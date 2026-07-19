@@ -1,14 +1,23 @@
-# PRD: Multi-Turn Updates to Career-Agent Artifacts (v1)
+---
+type: PRD
+title: "Multi-Turn Updates to Career-Agent Artifacts"
+description: "After the one-shot pipeline, users can ask for in-place updates to any artifact — routed to the owning subagent in update mode with edit-by-default."
+tags: [agent, workflow]
+timestamp: '2026-05-26T11:45:46+07:00'
+status: "shipped"
+scope: "career_agent only"
+version: v1
+---
 
-**Status:** shipped · **Scope:** career_agent only · **Extends:** [Career-Agent Workflow Orchestration (v2)](08_agent_workflow.md), [Interview Battlecard PDF (v1)](11_interview_battlecard_pdf.md)
+**Extends:** [Career-Agent Workflow Orchestration (v2)](08_agent_workflow.md), [Interview Battlecard PDF (v1)](11_interview_battlecard_pdf.md)
 
-## Why
+# Why
 
 The v2 workflow takes the user from intake to a finished interview kit (research report, tailored resume PDF, interview prep doc, battlecard PDF) in one autonomous pass. After that pass, users want to iterate without restarting: "add a 4th round to the battlecard", "add React to my resume skills", "drop the Twitter link", "expand the research on team org structure", "add common questions to round 2 of my prep doc".
 
 Before this change, the prompts and skills assumed a one-shot pipeline. Every subagent's system_prompt was stamped *"Single-shot — do not call `write_todos`. Your final reply MUST be exactly one line: `Wrote <X> to: <path>`"*; every skill described a from-scratch authoring workflow; `CAREER_AGENT.md` had no follow-up path. Only the battlecard SKILL.md had a single sentence about user-edits-then-re-render. The agent would either refuse update requests or quietly recreate artifacts from scratch, losing user intent and ignoring prior tailoring.
 
-## What the user sees
+# What the user sees
 
 After all five stages are done, the user can ask in chat for any in-place change to any artifact, and the agent applies it without re-running upstream stages:
 
@@ -23,7 +32,7 @@ Skill-level preservation defaults that previously read as absolute (*"Never drop
 
 No frontend changes — the entire surface is conversational.
 
-## How — the key architectural choices
+# How — the key architectural choices
 
 **Route by file owner, not by user-intent classifier.** Each artifact already has a clear owner from the v2 workflow: the battlecard JSON is the main agent's (no subagent exists for it); the research report, tailored resume, and interview prep doc each have a dedicated subagent that already encapsulates the skill needed to author them. Updates route to the same owner. The main agent does not try to classify "is this trivial enough to do myself" — it owns battlecard edits because there's no subagent to delegate to, and it delegates everything else. Considered a generic "update_file" tool the main agent calls directly for all artifacts; rejected because each subagent already carries the domain skill (resume YAML validation, rendercv re-render, STAR-story preservation, falsifiable-fact discipline) and bypassing them would either duplicate that skill in the main prompt or silently lose it.
 
@@ -35,7 +44,7 @@ No frontend changes — the entire surface is conversational.
 
 **User requests override skill preservation defaults; truth rules stay absolute.** Each SKILL.md splits its "Hard rules" / "Unacceptable" block into two sub-blocks: *Absolute* (no fabrication — applies to resume-tailor's "don't claim untrue titles" and "don't change metrics", hiring-recon's "Unknown — no public signal", interview-coach's "every STAR story traces to the candidate's resume", battlecard's "company_facts must be falsifiable") vs *Default* (preservation rules the user can override per-item — "don't drop a skill", "don't drop a URL", "no extra JSON keys", "single output file", length caps, single self-introduction). Considered keeping all rules absolute and asking the user to confirm any override; rejected because it makes the agent feel uncooperative — the user's stated preference about *their own resume* should win without a confirmation dance.
 
-## Files of interest
+# Files of interest
 
 | Concern | Path |
 |---|---|
@@ -48,7 +57,7 @@ No frontend changes — the entire surface is conversational.
 | Interview-prep update flow + Rules split | `backend/app/career_agent/skills/interview-coach/interview-coach/SKILL.md` (`## Updates`, `## Rules`) |
 | README pointer to Stage 6 | `backend/app/career_agent/README.md` (`## Multi-turn updates`) |
 
-## Decisions worth remembering
+# Decisions worth remembering
 
 - **Reply verb distinguishes create vs update.** Subagents reply `Wrote <artifact> to: <path>` on creation, `Updated <artifact> at: <path>` on in-place edit — note the verb *and* the preposition (`to:` → `at:`). The main agent's chat history sees only task input + this one line; the verb is how it knows what to tell the user. Considered collapsing back to one wording for simplicity; rejected because the user-facing summary then loses signal about whether existing work was preserved or replaced.
 - **The main agent does not run `write_todos` for single-file updates.** The `SYSTEM_PROMPT` already excluded "easy follow-ups about work already produced" from the TODO checklist; Stage 6 reinforces this. A single-artifact update is a one- or two-tool-call task; the TODO middleware's overhead would dominate.
@@ -58,7 +67,7 @@ No frontend changes — the entire surface is conversational.
 - **Updates section appended to each SKILL.md, not woven into the existing workflow.** Each `## Updates` subsection sits between the create-mode procedure and the final `## Rules` block. Two reasons: skim-friendly for a future reader (the create flow is the dominant path on first read), and additive so the existing create flow stays exactly as v2 documented it — no regression risk on the first-run path.
 - **README has one paragraph, not a duplicate procedure.** The README's new `## Multi-turn updates` block is six lines and points at `CAREER_AGENT.md` Stage 6 for detail. Duplicating Stage 6's task-input templates in the README would create a second source of truth that drifts.
 
-## Deferred (intentional non-goals for v1)
+# Deferred (intentional non-goals for v1)
 
 - **Cascading update prompts.** Stage 6 says "ask the user once whether to refresh the battlecard" after an upstream update, but the agent has no structured detector for *when* a refresh is warranted. Today it relies on the LLM's judgment; if this turns out to miss obvious cascades (renamed top skill, new salary signal), add explicit triggers in Stage 6.
 - **Diff preview before applying.** The agent edits the file directly. A "here's what I'm about to change — confirm?" preview was considered for high-blast-radius edits (full-file overwrites, schema-shape changes) but rejected for v1 — the user can always revert via Workspace > Files or ask the agent to undo in the next turn.
@@ -67,11 +76,11 @@ No frontend changes — the entire surface is conversational.
 - **Structured `mode:` field in the task spawn.** Phrasing-as-contract is enough today; revisit if subagents start misclassifying create vs update.
 - **A battlecard subagent.** The battlecard stays main-agent-owned for both create (Stage 5) and update (Stage 6). The skill is short, the JSON is small, and spawning a subagent for what's effectively a single `edit_file` + `render_battlecard_pdf` would add latency without isolating useful context.
 
-## How to verify end-to-end
+# How to verify end-to-end
 
 1. `docker compose up -d`. Open a thread that already has a full Stages 1→5 run for one resume × JD pair (all artifacts visible in Workspace > Files: processed CV/JD, intake, research, tailored resume YAML+PDF, interview prep doc, battlecard JSON+PDF).
 2. **Battlecard update (main agent owns it).** Send: *"Add a 4th round — Tech deep-dive, 60 min."* In the LangGraph trace, confirm the main agent: (a) calls `read_file("/interview_battlecard/<r>/<j>.json", limit=1000)`, (b) calls `edit_file` (or `overwrite_file` if the round insertion forces a restructure) on the same path, (c) calls `render_battlecard_pdf("/interview_battlecard/<r>/<j>.json")`. The PDF in Workspace > Files refreshes; rounds 1–3 are unchanged.
 3. **Research update (`hiring-recon`).** Send: *"Add a subsection on the team's org structure under Maya Chen in the research report."* Confirm a single `task` call to `hiring-recon` with task input containing *"Update the existing research report at /research/<r>/<j>.md"* + the named change. Subagent's one-line reply is `Updated research report at: /research/<r>/<j>.md`. The `## Hiring team` section grows; `## Company snapshot`, `## Match analysis`, etc. are byte-identical to before.
 4. **Resume update with user-override (`resume-tailor`).** Send: *"Drop the Twitter / X link from my resume."* Confirm `task` spawns `resume-tailor` in update mode. Subagent's trace shows it `read_file`s the YAML, removes only the Twitter `social_networks` (or `custom_connections`) entry, re-runs `prepare_render_settings`, then `execute("rendercv render …")`. Reply: `Updated tailored resume PDF at: /tailored_resume/<r>/<j>.pdf`. The PDF re-renders without the link; every other skill, bullet, and URL survives.
 5. **Interview-prep update (`interview-coach`).** Send: *"Add 3 common behavioral questions with short model answers under Round 2 of my prep doc."* Confirm `task` to `interview-coach` in update mode; reply is `Updated interview prep doc at: /interview_coach/<r>/<j>.md`. Round 2 grows; the self-introduction at the top and other rounds are unchanged.
-6. **No regression on first-run flow.** In a fresh thread with a fresh CV+JD pair, run all 5 stages end-to-end as in PRD 08's verification — every stage emits exactly its original `Wrote …` reply, every output lands at its original path, no Stage-6 paths are touched.
+6. **No regression on first-run flow.** In a fresh thread with a fresh CV+JD pair, run all 5 stages end-to-end as in [PRD 08](08_agent_workflow.md)'s verification — every stage emits exactly its original `Wrote …` reply, every output lands at its original path, no Stage-6 paths are touched.

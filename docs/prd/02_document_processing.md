@@ -1,12 +1,19 @@
-# PRD: Document Processing (v1)
+---
+type: PRD
+title: "Document Processing"
+description: "Convert uploaded CVs/JDs into clean markdown with LlamaParse, persisted by the tool itself so the LLM never re-emits document bodies."
+tags: [agent, files, pdf]
+timestamp: '2026-05-07T12:22:39+07:00'
+status: "shipped"
+scope: "career_agent only"
+version: v1
+---
 
-**Status:** shipped · **Scope:** career_agent only
-
-## Why
+# Why
 
 File Upload (v1) lets the user drop CVs/JDs onto disk, but the agent only sees filenames — it can't read PDF/DOCX bytes. Step 2 of the career agent flow (`backend/app/career_agent/README.md`) is converting those uploads into clean markdown the LLM can reason over, so downstream steps (research, custom resume, interview prep) have something to chew on. CVs and JDs are visually rich (multi-column layouts, tables, embedded charts) — naive text extraction loses structure that the agent needs.
 
-## What the user sees
+# What the user sees
 
 After uploading via the paperclip or Workspace > Files, the chat composer auto-injects `Uploaded: <names>`. The user hits Send and:
 
@@ -16,7 +23,7 @@ After uploading via the paperclip or Workspace > Files, the chat composer auto-i
 
 In Workspace > Files, processed markdown shows up at `/processed/<slug>.md` — clickable, viewable, sorted newest-first alongside raw uploads. Re-uploading the same source file under the same slug overwrites the processed copy in place.
 
-## How — the key architectural choices
+# How — the key architectural choices
 
 **Tool persists the file itself; the LLM never re-emits the markdown.** The naive flow — tool returns the parsed string, agent emits a `write_file(path, content)` call — would push thousands of tokens of markdown back through the model on every parse, doubling latency and cost. We avoid it by closing the agent's `CompositeBackend` over the tool via a small factory (`make_parse_document(backend)` in `tools.py`) and calling `backend.write(...)` directly. The route `/processed` is mapped to a `StoreBackend` (postgres-backed langgraph store) so the file is reachable from any future thread without disk persistence concerns.
 
@@ -30,7 +37,7 @@ In Workspace > Files, processed markdown shows up at `/processed/<slug>.md` — 
 
 **Frontend store listing iterates configured `pathPrefixes`.** Original `fetchStoreFiles` queried a single namespace `[...namespacePrefix, assistantId]` — wrong shape for any agent whose backend uses per-route namespaces. Rewritten to derive namespace per `pathPrefix` by mirroring the backend's `CompositeBackend` route-stripping. Same helper (`resolveStoreLocation`) drives both list and write, so they always hit the same rows.
 
-## Robustness extensions (v1.1)
+# Robustness extensions (v1.1)
 
 The happy path above assumes LlamaParse succeeds and the user has nothing to add. Three follow-ups close the gaps.
 
@@ -42,7 +49,7 @@ The happy path above assumes LlamaParse succeeds and the user has nothing to add
 
 **Side-channel context lives at the tail of the same `/processed/<slug>.md`.** After a successful parse or extract, the agent asks once per artifact whether the user has more context — recruiter notes, team size, comp band, interview format that won't be in the JD/CV file. If yes, the agent appends a `## Additional context` section via `edit_file` using a small terminal anchor, so only the anchor + appended note re-flow as output tokens (not the whole CV). For multi-page additions, the agent redirects the user to upload as `.txt` instead.
 
-## Files of interest
+# Files of interest
 
 | Concern | Path |
 |---|---|
@@ -57,7 +64,7 @@ The happy path above assumes LlamaParse succeeds and the user has nothing to add
 | LlamaCloud SDK | `llama-cloud>=2.4.1` (already in `backend/pyproject.toml`) |
 | API key | `LLAMA_CLOUD_API_KEY` in `.env` (template at `.env.example:14`) |
 
-## Decisions worth remembering
+# Decisions worth remembering
 
 - **LlamaParse over local extraction.** PyPDF/pdfplumber chokes on multi-column resumes and JD tables. LlamaCloud's agentic tier handles them out of the box and gives 10K free credits/month — comfortable for solo use. The `cost_optimizer` flag routes plain pages to a cheaper tier automatically, so a typical resume costs a fraction of a credit.
 - **Sync client, sync tool.** `client.parsing.parse()` blocks until the job finishes (LlamaCloud SDK polls for us). LangGraph runs sync tools in a thread executor that propagates contextvars, so `StoreBackend`'s lazy `langgraph.config.get_store()` lookup still works. No async plumbing needed.
@@ -67,7 +74,7 @@ The happy path above assumes LlamaParse succeeds and the user has nothing to add
 - **Re-parse over migration.** When we renamed `/upload/processed/` → `/processed/`, old store rows under namespace `("career_agent", "upload", "processed")` orphaned. Re-parse on next upload (idempotent via `_upsert`) was cheaper than writing a one-shot migration script for a handful of rows.
 - **Image references stripped client-side.** LlamaParse emits `![alt](page_X_image_Y.jpg)` in `markdown_full` for embedded images even when extraction is disabled — the Workspace UI then 404s loading those filenames. The v2 `ParsingCreateParams` API has no flag that suppresses these refs (verified against the [Configure Parse](https://developers.llamaindex.ai/llamaparse/parse/guides/configuring-parse/) doc and the generated schema). `images_to_save: []` only stops extraction; `inline_images: true` swaps filenames for huge base64 blobs; the legacy `disable_image_extraction` lives on the v1-shape `LlamaParseParametersParam` and isn't exposed on `parsing.parse()`. So we set `images_to_save: []` (saves credits + smaller payload) **and** post-process with `_strip_image_filenames` (`tools.py`) — regex `r"!(\[[^\]]*\])\([^)]*\)"` → `\1`, turning `![check mark](page_3_image_23_v2.jpg)` into `[check mark]`. Plain markdown links are untouched (no leading `!`).
 
-## Deferred (intentional non-goals for v1)
+# Deferred (intentional non-goals for v1)
 
 - **Pre-flight cost preview.** No "this will cost N credits, proceed?" UI before the parse fires. Solo user; small docs; trust the cost optimizer.
 - **DOC (legacy Word) and exotic formats.** LlamaParse accepts them but we haven't validated end-to-end. The accepted-extensions list in `frontend/src/app/api/files/upload/route.ts` already gates this at upload time.
@@ -76,7 +83,7 @@ The happy path above assumes LlamaParse succeeds and the user has nothing to add
 - **Editing parsed markdown in-place from the UI.** `writeAgentFile` already routes correctly to the store via `resolveStoreLocation`, but the workspace-side editor flow hasn't been QA'd against store-source files yet.
 - **Deleting processed files from the UI.** `useChat.ts:removeFile` explicitly throws "Only disk-backed files can be deleted from the UI". Add `client.store.deleteItem(...)` when a real need arrives.
 
-## How to verify end-to-end
+# How to verify end-to-end
 
 1. `docker compose up -d` and confirm `LLAMA_CLOUD_API_KEY` is set in `.env`.
 2. Upload a CV (PDF) via the chat paperclip. Composer auto-fills `Uploaded: <name>.pdf`.

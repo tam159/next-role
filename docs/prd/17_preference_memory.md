@@ -1,18 +1,25 @@
-# PRD: Long-term user-preference memory (v1)
+---
+type: PRD
+title: "Long-term user-preference memory"
+description: "A single always-loaded /memory/preferences.md persists durable user preferences across threads — saving is one edit_file, applying costs zero tool calls."
+tags: [backend, agent, memory]
+timestamp: '2026-06-06T15:57:38+07:00'
+status: "shipped"
+scope: "Backend (career-agent memory)"
+version: v1
+---
 
-**Status:** shipped · **Scope:** Backend (career-agent memory)
-
-## Why
+# Why
 
 The career agent is configured by files — `CAREER_AGENT.md` (procedure + brand voice) is always loaded as
-memory (PRD 08). But that memory is *repo-owned* and identical for everyone; there was no per-user
+memory ([PRD 08](08_agent_workflow.md)). But that memory is *repo-owned* and identical for everyone; there was no per-user
 **personalization**. A user who wanted salary ranges in research, AI skills emphasized in the resume,
 predicted Q&A in interview prep, or a terse battlecard had to re-state it on every prep run. We wanted
 Claude-Code-style auto memory: notice a durable preference once, persist it, and apply it on every
 future run — as a low-latency *add-on*, not a feature that taxes every turn. Only the main agent owns
 memory; subagents stay stateless and receive the relevant preferences in their task input.
 
-## What the user sees
+# What the user sees
 
 No new UI — it's behavioral. When the user states a standing preference ("from now on keep my
 battlecards concise", "always include the company's salary range", or an explicit "remember…"), the
@@ -27,7 +34,7 @@ anything derivable from the CV/JD, and pair-specific notes (those stay in `/proc
 file). And deliberately *not built*: a per-fact memory store, a new tool/button, or an `ls`/`grep`
 discovery flow — see below.
 
-## How — the key architectural choices
+# How — the key architectural choices
 
 - **One always-loaded file, not per-file + index.** The original plan mirrored Claude Code: a file per
   preference (`/memory/<slug>.md`) plus an always-loaded `MEMORY.md` index. Live testing killed it —
@@ -48,11 +55,11 @@ discovery flow — see below.
   saving reliable: the model only ever has to edit.
 - **Apply by folding preferences into subagent task descriptions.** Subagents have no memory; the main
   agent copies the relevant preference lines into each subagent's task input (which subagents already
-  treat as user instructions, per PRD 06). The battlecard, which the main agent builds itself, applies
+  treat as user instructions, per [PRD 06](06_subagents_with_skills.md)). The battlecard, which the main agent builds itself, applies
   them directly. `CAREER_AGENT.md` Stage 3/4/6 templates carry a `User preferences:` reminder at each
   delegation point.
 
-## Files of interest
+# Files of interest
 
 | Concern | Path |
 |---|---|
@@ -63,7 +70,7 @@ discovery flow — see below.
 | `User preferences:` reminders at the delegation points | `backend/agents/career_agent/CAREER_AGENT.md` (Stage 3 / Stage 4 / Stage 6) |
 | Guards: `MEMORY.format()`, override reaches middleware, seeder | `backend/tests/career_agent/test_prompts.py`, `test_middleware.py` |
 
-## Decisions worth remembering
+# Decisions worth remembering
 
 - **Single-file won because the model wouldn't cooperate with per-file, not because it's simpler.** The
   user explicitly chose per-file first (granularity/auditability); we switched only after four live
@@ -91,7 +98,7 @@ discovery flow — see below.
   "remove a preference" is just editing out its bullet — which sidesteps the orphaned-tombstone problem
   a per-file design would have hit.
 
-## Deferred (intentional non-goals for v1)
+# Deferred (intentional non-goals for v1)
 
 - **Per-user namespacing.** The memory namespace is the constant `("career_agent","memory")` → a single
   global store. Correct for a solo-user product (preferences persist across every thread). Multi-tenant
@@ -105,7 +112,7 @@ discovery flow — see below.
   orchestrator's context, and the CAREER_AGENT.md templates wire the hand-off.
 - **A `delete_file` tool.** Unnecessary while single-file. Worth adding only alongside a per-file design.
 
-## How to verify end-to-end
+# How to verify end-to-end
 
 1. `cd backend && uv run pytest tests/career_agent/test_prompts.py tests/career_agent/test_middleware.py` — green.
 2. `pre-commit run --files backend/agents/career_agent/{agents,prompts,middleware}.py backend/agents/career_agent/CAREER_AGENT.md` — ruff + `ty` pass.

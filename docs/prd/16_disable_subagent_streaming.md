@@ -1,18 +1,28 @@
-# PRD: Disable token streaming for subagents (v1)
+---
+type: PRD
+title: "Disable token streaming for subagents"
+description: "Backend middleware flips disable_streaming on subagent models to kill an O(n²) SDK concat that froze the chat during parallel subagent runs."
+tags: [backend, streaming, subagents, superseded]
+timestamp: '2026-06-11T10:59:37+07:00'
+status: "superseded by 18_langchain_react_migration"
+scope: "Backend (career-agent model middleware)"
+version: v1
+---
 
-**Status:** superseded by [18_langchain_react_migration](18_langchain_react_migration.md) —
-default flipped to `False` (subagents stream again) after the frontend migrated to
-`@langchain/react`'s v2 stream runtime, whose fragment-array accumulation + per-tick batched
-flushes remove the O(n²) concat this PRD worked around. The toggle machinery is kept
-verbatim as the rollback lever (`DISABLE_SUBAGENT_STREAMING = True` or per-run
-`configurable.disable_subagent_streaming`). · **Scope:** Backend (career-agent model middleware) ·
+> **Superseded by [18_langchain_react_migration](18_langchain_react_migration.md)** —
+> default flipped to `False` (subagents stream again) after the frontend migrated to
+> `@langchain/react`'s v2 stream runtime, whose fragment-array accumulation + per-tick batched
+> flushes remove the O(n²) concat this PRD worked around. The toggle machinery is kept
+> verbatim as the rollback lever (`DISABLE_SUBAGENT_STREAMING = True` or per-run
+> `configurable.disable_subagent_streaming`).
+
 **Extends:** [05_chat_streaming_throttle](05_chat_streaming_throttle.md)
 
-## Why
+# Why
 
 The chat UI hangs when **two or more subagents run in parallel and each streams a large
 tool-call argument** — the canonical case is `resume-tailor` + `interview-coach` both writing
-a full file body into `overwrite_file`'s `new_content`. PRD 05 added an 80 ms render throttle
+a full file body into `overwrite_file`'s `new_content`. [PRD 05](05_chat_streaming_throttle.md) added an 80 ms render throttle
 that fixed the *rendering* rate, and explicitly deferred a "content-skip placeholder" as the
 next lever. But the hang came back as payloads grew, and the deferred lever turned out to be
 the wrong one.
@@ -25,7 +35,7 @@ Tracing it end-to-end, the cost is **inside the LangGraph SDK, upstream of the t
 per file, ×N parallel subagents. No frontend render change can fix work that happens before
 rendering. So the fix moved to the backend: stop subagents from streaming tokens at all.
 
-## What the user sees
+# What the user sees
 
 During the parallel-subagent phase the chat surface stays responsive — no freeze, clicks land.
 The trade-off, accepted deliberately: **subagent output no longer streams token-by-token.** A
@@ -34,7 +44,7 @@ instead of letter-by-letter. The **main agent is unchanged** — its narration a
 calls still stream live. In practice subagents mostly emit tool calls with little prose, so the
 per-step cadence reads as "stepped," not broken.
 
-## How — the key architectural choices
+# How — the key architectural choices
 
 - **Disable streaming on the subagent *model*, not in the frontend.** `disable_streaming`
   makes the model defer `astream` → `ainvoke`, so LangGraph emits one complete `messages` event
@@ -62,7 +72,7 @@ per-step cadence reads as "stepped," not broken.
   logic. No new settings module or env var was introduced — the backend has none, and this
   middleware already reads `configurable`, so the toggle lives where its siblings do.
 
-## Files of interest
+# Files of interest
 
 | Concern | Path |
 |---|---|
@@ -74,9 +84,9 @@ per-step cadence reads as "stepped," not broken.
 | Unit tests (override + streaming, copy-not-mutation) | `backend/tests/career_agent/test_middleware_model_override.py` |
 | Root-cause O(n²) concat (SDK, for reference) | `node_modules/@langchain/langgraph-sdk/dist/ui/messages.js:85` |
 
-## Decisions worth remembering
+# Decisions worth remembering
 
-- **The hang is an SDK bug, upstream of the PRD 05 throttle.** This is the non-obvious fact the
+- **The hang is an SDK bug, upstream of the [PRD 05](05_chat_streaming_throttle.md) throttle.** This is the non-obvious fact the
   code can't show: the throttle (and any render-side placeholder) gate work that happens *after*
   the SDK's per-token `concat`. We confirmed `useStream` (LGP path, `react/stream.lgp.js`) routes
   through `MessageTupleManager`, so the O(n²) is on the hot path. Don't re-attempt a frontend
@@ -95,22 +105,22 @@ per-step cadence reads as "stepped," not broken.
   ever raises (e.g. an unexpected configurable-wrapper model), log and return the model unchanged
   rather than crash a live run over a streaming tweak.
 
-## Deferred (intentional non-goals for v1)
+# Deferred (intentional non-goals for v1)
 
 - **Preserving live subagent token streaming.** The `DISABLE_SUBAGENT_STREAMING` toggle
   re-enables it instantly, but the hang returns until the underlying O(n²) is fixed — either the
   SDK `concat` patch (accumulate fragments, join lazily → O(n)) or an upstream fix. Flipping the
   toggle back on is the *point* of the toggle: do it once the FE/SDK fix lands. Also revisit if a
   single **main-agent** large tool-arg write starts hanging — the main agent still streams, so it
-  still pays the SDK O(n²) for one stream (mitigated today by the PRD 05 throttle).
+  still pays the SDK O(n²) for one stream (mitigated today by the [PRD 05](05_chat_streaming_throttle.md) throttle).
 - **A frontend Settings switch for the toggle.** `configurable.disable_subagent_streaming` is
   already honored, so wiring a UI control is just adding it to `buildSubmitConfig` in
-  `useChat.ts` next to the model selectors (PRD 15). Not built — it's an operator/dev knob today,
+  `useChat.ts` next to the model selectors ([PRD 15](15_configurable_llm_models.md)). Not built — it's an operator/dev knob today,
   not an end-user one.
 - **Upstream fix.** The O(n²) `concat` is a LangGraph SDK bug worth reporting to
   `langchain-ai/langgraph`; a merged fix would let us drop this middleware branch entirely.
 
-## How to verify end-to-end
+# How to verify end-to-end
 
 1. `cd backend && uv run pytest tests/career_agent/test_middleware_model_override.py` — green
    (covers subagent-default, subagent-override, main-agent-untouched, copy-not-mutation).

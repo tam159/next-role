@@ -1,25 +1,32 @@
-# PRD: Career-agent Stages 3–5 — recon, tailor, coach, battlecard
+---
+type: PRD
+title: "Career-agent Stages 3–5 — recon, tailor, coach, battlecard"
+description: "Ship workflow stages 3–5: hiring-recon, resume-tailor, and interview-coach subagents plus the interview-battlecard skill."
+tags: [agent, subagents, workflow]
+timestamp: '2026-05-23T11:57:56+07:00'
+status: "shipped"
+scope: "career_agent only"
+version: v1
+---
 
-**Status:** shipped · **Scope:** career_agent only
-
-## Why
+# Why
 
 The 5-stage career-agent workflow (intake → process → research → customize/prep → cheat sheet) had Stages 1–2 implemented in `CAREER_AGENT.md`; Stages 3–5 were `_Not yet implemented — placeholder._`. The main agent could parse a CV + JD and had nothing to do next. Also, after parsing it was reading only the first 100 lines of each processed file (the login-wall verification skim), which left it without enough substance to write good subagent task descriptions for delegation.
 
-## What ships
+# What ships
 
 Three subagents, one skill, and the per-stage procedure to orchestrate them:
 
 - **`hiring-recon`** (`openai:gpt-5.6-luna`, `web_search` + `web_extract`) — gathers company snapshot, financial/hiring signals, reputation, hiring team, and role market context (with a salary range bracketed by candidate/JD location), then produces a match analysis. Single output: `/research/<resume>/<jd>.md`.
-- **`resume-tailor`** (`openai:gpt-5.6-luna`, `prepare_render_settings`) — rewrites the resume tailored to one JD using the recon report, then renders it to PDF via `rendercv`. Carries the truth-vs-tailoring guardrail and the three reorder/swap/keyword strategies. Outputs: `/tailored_resume/<resume>/<jd>.yaml` (rendercv source, hand-editable) + `/tailored_resume/<resume>/<jd>.pdf` (rendered PDF) + `/render_intermediate/<resume>/<jd>.typ` (intermediate, hidden from UI). See PRD 07.
+- **`resume-tailor`** (`openai:gpt-5.6-luna`, `prepare_render_settings`) — rewrites the resume tailored to one JD using the recon report, then renders it to PDF via `rendercv`. Carries the truth-vs-tailoring guardrail and the three reorder/swap/keyword strategies. Outputs: `/tailored_resume/<resume>/<jd>.yaml` (rendercv source, hand-editable) + `/tailored_resume/<resume>/<jd>.pdf` (rendered PDF) + `/render_intermediate/<resume>/<jd>.typ` (intermediate, hidden from UI). See [PRD 07](07_tailored_resume_pdf.md).
 - **`interview-coach`** (`openai:gpt-5.6-luna`, filesystem only) — structured prep doc with a top-level Self-introduction (60s + 30s, reused across rounds), optional `## Triage` when the timeline is short, and per-round STAR + questions-to-ask + watch-outs. Output: `/interview_coach/<resume>/<jd>.md`.
 - **`interview-battlecard` skill** — Stage-5 workflow that the main agent applies directly (no subagent). Day-of one-pager with exactly four sections per round (Stories ready / Company facts to drop / Questions to ask / Watch-outs), pages separated by `\n---\n`. Output: `/interview_battlecard/<resume>/<jd>.md` (FilesystemBackend).
 
-Each subagent's workflow lives in its own `skills/<subagent>/<subagent>/SKILL.md` (see PRD 06); the YAML system_prompt is a ~7-line pointer to the skill plus the single-shot rule and the exact one-line final-reply contract back to the main agent. The `interview-battlecard` skill sits under `skills/career-agent/interview-battlecard/` (the main agent's consumer grouping).
+Each subagent's workflow lives in its own `skills/<subagent>/<subagent>/SKILL.md` (see [PRD 06](06_subagents_with_skills.md)); the YAML system_prompt is a ~7-line pointer to the skill plus the single-shot rule and the exact one-line final-reply contract back to the main agent. The `interview-battlecard` skill sits under `skills/career-agent/interview-battlecard/` (the main agent's consumer grouping).
 
 `CAREER_AGENT.md` Stages 3–5 now carry concrete delegation procedures with full task-input templates. Stage 2 gained a "Load full context before delegating" step (read both processed files in full with `limit=1000`). The CompositeBackend route `/interview_prep/` was renamed to `/interview_coach/`; all other routes unchanged.
 
-## How — the key choices
+# How — the key choices
 
 **Nested `<resume>/<jd>.md`, not flat.** Picked over `<resume>-<jd>.md` because the eventual binary artifacts (PDF resumes, PDF battlecards) want to sit next to their markdown sources in the same per-resume folder, and the user already had this layout drafted in the README.
 
@@ -33,7 +40,7 @@ Each subagent's workflow lives in its own `skills/<subagent>/<subagent>/SKILL.md
 
 **Stage 4 spawns both subagents in parallel.** CAREER_AGENT.md's Stage 4 instructs the main agent to spawn `resume-tailor` and `interview-coach` "in parallel so they can run concurrently" and lists the five shared paths each subagent receives in its task input. The main agent doesn't need to read the recon report itself — it just forwards `research_path` to both subagents.
 
-## Files of interest
+# Files of interest
 
 | Concern | Path |
 |---|---|
@@ -46,19 +53,19 @@ Each subagent's workflow lives in its own `skills/<subagent>/<subagent>/SKILL.md
 | Battlecard skill (main agent) | `backend/app/career_agent/skills/career-agent/interview-battlecard/SKILL.md` |
 | Flow + File Structure resync | `backend/app/career_agent/README.md` |
 
-## Decisions worth remembering
+# Decisions worth remembering
 
 - **Names matter; rename cascades.** First pass used `researcher` / `custom-resume` / `interview-prep` / `interview-cheat-sheet`. User correction: too generic. Final names — `hiring-recon` / `resume-tailor` / `interview-coach` / `interview-battlecard` — were chosen for thematic coherence (recon → tailor → coach → battlecard reads as a single kit). The rename cascaded into directory names, the `/interview_coach/` backend route, the README, and the SYSTEM_PROMPT. Budget for that whenever naming changes.
 - **Full-file read before delegating.** The 100-line read in Stage 2's login-wall check was being mis-applied as the agent's only context for Stage 3 delegation. Fixed by adding an explicit "Load full context" step at the end of Stage 2 with `limit=1000`.
 - **Subagents take exact paths in the task input.** Subagents run in a fresh context. The main agent's job is to construct a task description that contains every path the subagent needs — the subagent does not hunt for files. Stated as the standard pattern in CAREER_AGENT.md Stages 3 and 4.
 
-## Followups that shipped
+# Followups that shipped
 
-- **Workflows as shareable units** → **PRD 06.** Subagent workflows moved out of inline `system_prompt:` into per-consumer `skills/<subagent>/<subagent>/SKILL.md`. The YAML system_prompt collapsed to a ~7-line pointer + single-shot rule + final-reply contract.
-- **PDF rendering for the tailored resume** → **PRD 07.** `resume-tailor` now writes a rendercv YAML and renders to `.pdf` (with a hidden `.typ` intermediate under `/render_intermediate/`). The battlecard is still `.md` — `/interview_battlecard/` stays on FilesystemBackend so its eventual PDF output has somewhere to land.
+- **Workflows as shareable units** → **[PRD 06](06_subagents_with_skills.md).** Subagent workflows moved out of inline `system_prompt:` into per-consumer `skills/<subagent>/<subagent>/SKILL.md`. The YAML system_prompt collapsed to a ~7-line pointer + single-shot rule + final-reply contract.
+- **PDF rendering for the tailored resume** → **[PRD 07](07_tailored_resume_pdf.md).** `resume-tailor` now writes a rendercv YAML and renders to `.pdf` (with a hidden `.typ` intermediate under `/render_intermediate/`). The battlecard is still `.md` — `/interview_battlecard/` stays on FilesystemBackend so its eventual PDF output has somewhere to land.
 - **Consolidated post-refactor snapshot** → **PRD 08.** [Career-Agent Workflow Orchestration (v2)](08_agent_workflow.md) folds this PRD plus the two follow-ups above into a single canonical reference for how the 5-stage workflow currently runs end-to-end.
 
-## How to verify end-to-end
+# How to verify end-to-end
 
 1. `pre-commit run --files $(git ls-files --modified --others --exclude-standard)` — clean.
 2. Loader smoke test (tool pool now owned by `agents.py`, so pass it in):

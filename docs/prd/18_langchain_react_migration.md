@@ -1,12 +1,19 @@
-# PRD: @langchain/react migration + subagent streaming re-enable (v1)
+---
+type: PRD
+title: "@langchain/react migration + subagent streaming re-enable"
+description: "Swap the frontend to @langchain/react's v2 stream runtime — killing the O(n²) token concat — and flip subagent streaming back on."
+tags: [frontend, streaming, subagents]
+timestamp: '2026-06-11T10:59:37+07:00'
+status: "shipped (PR #12)"
+scope: "Frontend chat surface (stream runtime swap) + backend career-agent middleware (toggle flip)"
+version: v1
+---
 
-**Status:** shipped (PR #12) · **Scope:** Frontend chat surface (stream runtime swap) + backend
-career-agent middleware (toggle flip) · **Supersedes:** [16_disable_subagent_streaming](16_disable_subagent_streaming.md),
-partially [05_chat_streaming_throttle](05_chat_streaming_throttle.md)
+**Supersedes:** [16_disable_subagent_streaming](16_disable_subagent_streaming.md), partially [05_chat_streaming_throttle](05_chat_streaming_throttle.md)
 
-## Why
+# Why
 
-PRD 16 disabled subagent token streaming because the legacy `@langchain/langgraph-sdk/react`
+[PRD 16](16_disable_subagent_streaming.md) disabled subagent token streaming because the legacy `@langchain/langgraph-sdk/react`
 `useStream` re-ran an O(n²) per-token `concat` (`MessageTupleManager.add` →
 `AIMessageChunk.concat`), freezing the browser whenever `resume-tailor` + `interview-coach`
 streamed large tool-call args in parallel. That PRD's stated endgame was "flip the toggle back
@@ -17,7 +24,7 @@ structurally gone, verified by reading the installed dist before migrating. Two 
 migrate the frontend onto the new runtime, then re-enable subagent streaming and prove in a real
 browser that the freeze is dead.
 
-## What the user sees
+# What the user sees
 
 Subagent output streams live again: nested tool boxes inside a subagent card appear while the
 LLM is still emitting their args, and the args grow incrementally instead of landing whole per
@@ -28,9 +35,9 @@ hard-reload hydration. One server-side caveat: main-agent *prose* now arrives pe
 rather than per token (see Decisions) — tool args, the payload that caused the freeze, stream
 fine.
 
-## How — the key architectural choices
+# How — the key architectural choices
 
-- **Migrate to the v2 runtime instead of patching the legacy SDK.** PRD 16 had already rejected
+- **Migrate to the v2 runtime instead of patching the legacy SDK.** [PRD 16](16_disable_subagent_streaming.md) had already rejected
   `pnpm patch` of the O(n²) `concat` as fragile. `@langchain/react` is the upstream fix: a
   different protocol (`POST /threads/{id}/stream/events`, channels `values`/`messages`/`tools`/
   `lifecycle`), supported by our `langchain/langgraph-api:3.13` image (0.9.0 — confirmed live via
@@ -56,7 +63,7 @@ fine.
   `LoadExternalComponent` path was unreachable (backend never emits `values.ui`). Rebuilding any
   of these later means raw `client.runs.*` / `useMessageMetadata`, not the old options.
 
-## Files of interest
+# Files of interest
 
 | Concern | Path |
 |---|---|
@@ -71,7 +78,7 @@ fine.
 | Toggle flip + rollback-lever comments | `backend/app/career_agent/middleware.py` (`DISABLE_SUBAGENT_STREAMING`) |
 | Default/rollback test matrix | `backend/tests/career_agent/test_middleware_model_override.py` |
 
-## Decisions worth remembering
+# Decisions worth remembering
 
 - **Pin the direct `@langchain/langgraph-sdk` to the exact version `@langchain/react` bundles**
   (1.9.20, plus `@langchain/core` `^1.1.48` per peers). Installing `@langchain/react` alone left
@@ -87,7 +94,7 @@ fine.
   `/stream/events` showed all `content-block-delta`s carry tool-call `args` fields (550–1189 per
   run); narration text arrives whole per block. Per-block prose cadence is server behavior — don't
   chase it in the FE; re-check on langgraph-api upgrades and consider an upstream report.
-- **PRD 05 is only *partially* superseded.** The 80 ms throttle existed to slow the legacy SDK's
+- **[PRD 05](05_chat_streaming_throttle.md) is only *partially* superseded.** The 80 ms throttle existed to slow the legacy SDK's
   per-token churn; the v2 runtime batches flushes itself, so the throttle died. But the same
   commit's hardening stays: `ToolCall` identity caches (a store flush still fires several times
   per second mid-stream — without the caches every completed message re-renders per flush),
@@ -102,18 +109,18 @@ fine.
   `client` is passed (headers live on the `Client`); the `x-auth-scheme` header was never sent.
   Dropped rather than ported.
 
-## Deferred (intentional non-goals for v1)
+# Deferred (intentional non-goals for v1)
 
 - **Per-token main-agent prose.** Blocked on the server bridge emitting text deltas (see
   Decisions); nothing to do in the FE today.
 - **Step-mode / GenUI rebuild.** Deleted as dead code; if either returns, build on
   `client.runs.*` (interrupt_before) / `useMessageMetadata` / the v2 `Client` re-exports — the
   removed implementations targeted APIs that no longer exist.
-- **Frontend Settings switch for the rollback toggle.** Carried over from PRD 16:
+- **Frontend Settings switch for the rollback toggle.** Carried over from [PRD 16](16_disable_subagent_streaming.md):
   `configurable.disable_subagent_streaming` is honored per-run; wiring it into `buildSubmitConfig`
   is trivial if it ever needs to be user-facing. Operator knob today.
 
-## How to verify end-to-end
+# How to verify end-to-end
 
 1. `cd backend && uv run pytest tests/career_agent/test_middleware_model_override.py` — 13 green
    (default pass-through + module/per-run rollback paths).

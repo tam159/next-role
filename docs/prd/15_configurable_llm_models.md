@@ -1,12 +1,19 @@
-# PRD: Configurable LLM Models (v1)
+---
+type: PRD
+title: "Configurable LLM Models"
+description: "Settings-dialog overrides for main-agent and subagent models via configurable keys and a shared ModelOverrideMiddleware."
+tags: [backend, frontend, llm]
+timestamp: '2026-05-27T08:25:34+07:00'
+status: "shipped"
+scope: "career_agent (backend) + Settings dialog (frontend)"
+version: v1
+---
 
-**Status:** shipped · **Scope:** career_agent (backend) + Settings dialog (frontend)
-
-## Why
+# Why
 
 The main agent and every declarative subagent were hardcoded — `_MODEL = "openai:gpt-5.6-terra"` in `agents.py` and `model: openai:gpt-5.6-luna` per entry in `subagents.yaml`. Trying a different provider (Anthropic via Bedrock, Google, etc.) meant editing source and rebuilding the backend image. Cheap A/B experiments — "does Sonnet 5 produce a better tailored resume than gpt-5.6-terra?" — were too expensive to attempt casually, so they didn't happen.
 
-## What the user sees
+# What the user sees
 
 A new **Models (Optional)** section in the Configuration dialog, divided from the deployment fields by a horizontal rule. Two free-text inputs:
 
@@ -17,7 +24,7 @@ Above them, one shared help line: `Format <provider>:<model> — e.g. anthropic:
 
 Blank field → the agent's bake-time default still wins. Settings persist in `localStorage` under the existing `deep-agent-config` key. A typo (`not-a-real-provider:foo`) does not crash the run — the backend logs a warning and falls back to the default.
 
-## How — the key architectural choices
+# How — the key architectural choices
 
 **`@wrap_model_call` middleware that reads `configurable.{main_agent_model,subagent_model}` and calls `request.override(model=init_chat_model(...))`.** Picked over LangGraph's typed `context_schema=` channel because the JS SDK 1.9.2 (`@langchain/langgraph-sdk`) doesn't expose a top-level `context` parameter on remote `stream.submit` calls — only `config.configurable`. Going with `context_schema` would have forced the frontend into an undocumented workaround. The middleware reads `RunnableConfig` via `langgraph.config.get_config()` (the `Runtime` injected into middleware deliberately does not include `config` — only `context`/`store`/etc.).
 
@@ -25,7 +32,7 @@ Blank field → the agent's bake-time default still wins. Settings persist in `l
 
 **Main vs subagent routing via `metadata.lc_agent_name`.** Deepagents stamps that key onto every subagent runnable (`with_config({"metadata": {"lc_agent_name": name}})`). Absent in the runtime config → it's a main-agent call → use `main_agent_model`. Present → use `subagent_model`. No separate middleware classes needed.
 
-## Files of interest
+# Files of interest
 
 | Concern | Path |
 |---|---|
@@ -36,7 +43,7 @@ Blank field → the agent's bake-time default still wins. Settings persist in `l
 | Persisted config shape | `frontend/src/lib/config.ts` (`mainAgentModel`, `subagentModel` on `StandaloneConfig`) |
 | Per-submit config builder | `frontend/src/app/hooks/useChat.ts` (`buildSubmitConfig`, used by all five `stream.submit` sites) |
 
-## Decisions worth remembering
+# Decisions worth remembering
 
 - **`configurable` channel, not `context_schema`.** The LangGraph v1 docs recommend `context_schema=` for new code, but the JS SDK 1.9.2 doesn't carry a top-level `context` arg on `runs.stream` / `useStream().submit`. We use `config.configurable` — still the supported legacy path — and read it via `get_config()` inside middleware. Revisit once the JS SDK exposes `context` first-class.
 - **Middleware on the main agent isn't inherited by declarative subagents.** Documented in this PRD because nothing in the deepagents docs warns about it, and the failure mode is silent (override accepted by the SDK, ignored by the subagent's own `create_agent`). The `default_middleware=` param on `load_subagents` mirrors the existing `default_tools=` shape so a future contributor sees the pattern.
@@ -46,7 +53,7 @@ Blank field → the agent's bake-time default still wins. Settings persist in `l
 - **"Models" as a grouped section, not two inline rows.** First draft put each model input as a peer of the LangSmith API Key field with its own duplicated help line + link. Visually noisy and DRY-violating. Final: divider + section heading + one shared help line, then the two inputs with short labels.
 - **Soft failure on bad strings.** `_resolve_model` returns `None` on any `init_chat_model` exception; the middleware passes the request through unchanged. A typo in Settings logs a warning and falls back — it does not brick the run.
 
-## Deferred (intentional non-goals for v1)
+# Deferred (intentional non-goals for v1)
 
 - **Per-subagent model overrides.** Two slots cover the dominant use case; the middleware is ready to branch by `lc_agent_name` when someone needs it.
 - **Migrating to `context_schema=`.** Will happen when `@langchain/langgraph-sdk` documents `context` on the remote SDK call surface.
@@ -54,7 +61,7 @@ Blank field → the agent's bake-time default still wins. Settings persist in `l
 - **Cross-device sync.** Stored in `localStorage` like every other field on this dialog; not worth a backend persistence API for a personal tool.
 - **Client-side validation of the `provider:model` string.** Backend handles bad strings gracefully; a regex would just drift from `init_chat_model`'s actual grammar.
 
-## How to verify end-to-end
+# How to verify end-to-end
 
 1. `docker compose up -d`; grab the frontend host port from `docker ps`.
 2. Open the Settings dialog. Leave both Model fields blank, send a message, confirm normal completion. LangSmith trace (or container logs) shows the bake-time defaults on every model call.

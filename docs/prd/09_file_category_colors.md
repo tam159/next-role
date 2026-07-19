@@ -1,12 +1,19 @@
-# PRD: Color-coded Workspace File Cards (v1)
+---
+type: PRD
+title: "Color-coded Workspace File Cards"
+description: "Tint each Workspace file card's icon by its root folder so users can spot the right artifact at a glance."
+tags: [frontend, ui, files]
+timestamp: '2026-05-23T11:57:56+07:00'
+status: "shipped"
+scope: "Workspace > Files panel"
+version: v1
+---
 
-**Status:** shipped · **Scope:** Workspace > Files panel
-
-## Why
+# Why
 
 The Workspace > Files panel renders every agent-produced file as a visually identical white card in an auto-fill grid. As the agent produces output across `/tailored_resume/`, `/interview_battlecard/`, `/research/`, `/processed/`, `/interview_coach/`, and `/upload/`, users end up scanning ~10 uniform tiles to find the artifact they want. The full file path is already in the card label, but reading 10 long paths to spot the one battlecard for a given role is slow. A subtle visual cue per category would let users land on the right file in one glance — without breaking the cream/teal calm of the existing theme.
 
-## What the user sees
+# What the user sees
 
 Each file card's icon is tinted by its root folder, the prefix path (e.g. `/research/`) is rendered in a muted tertiary text color while the filename stays in normal foreground, and long paths truncate with an ellipsis. The card itself, padding, hover, and delete control are unchanged. The full path remains on hover via the existing `title` tooltip.
 
@@ -21,7 +28,7 @@ Six categories get a distinct icon color; system folders (`/memory/`, `/workspac
 | `processed` | `--color-success` | green |
 | `upload` | `--color-category-clay` | warm clay |
 
-## How — the key architectural choices
+# How — the key architectural choices
 
 **Mapping is purely a frontend concern, derived from the existing virtual path string.** No backend changes, no schema work, no new API. The 6 colored categories are listed in one module that the Files component consults per render.
 
@@ -31,7 +38,7 @@ Why this shape:
 - **Color the icon, nothing else.** An early design used a 3px left accent bar plus icon tint; user review said the bar was redundant once the icon carried the signal. Final design uses icon tint alone — quieter, no extra DOM, full card padding preserved.
 - **Hues chosen for separability at icon size, not brand fidelity.** Initial palette reused `--color-primary`, `--color-secondary`, `--text-brand-tertiary`, and `--color-success` — all teal-family. At small icon sizes they read as "four greens." Final palette keeps the two non-teal semantic tokens (warning amber, success green) and adds three new tokens (plum, slate, clay) at low saturation. Six hues, each ≥40° apart on the wheel.
 
-## Files of interest
+# Files of interest
 
 | Concern | Path |
 |---|---|
@@ -39,7 +46,7 @@ Why this shape:
 | New palette tokens (light + dark) | `frontend/src/app/globals.css` (`--color-category-plum`, `--color-category-slate`, `--color-category-clay`) |
 | File card render | `frontend/src/app/components/TasksFilesSidebar.tsx` (`FilesPopover`) |
 
-## Decisions worth remembering
+# Decisions worth remembering
 
 - **Icon-only color, no badges, no group headers, no tinted backgrounds.** User explicitly chose the quietest option. Future requests to "make categories more prominent" should start by reconsidering whether the calm theme is still the right goal — not by stacking treatments on top of this one.
 - **Three new CSS tokens, not reassignment of `--color-error`.** Reds remain reserved for the destructive delete action so the category palette never collides with destructive UI semantics.
@@ -48,7 +55,7 @@ Why this shape:
 - **`getFileCategory` matches only the first path segment.** Disk-backed sources like `/tailored_resume/<role>/<file>.yaml` produce a long virtual path, but the root segment is what matters for the color decision. Nested folders are reflected in the dimmed prefix text, not the icon color.
 - **Iteration order preserved.** The grid still renders files in the order they appear in the `files` record (chronological-ish). No regrouping or sorting by category — that's a bigger UX change worth its own PRD.
 
-## Deferred (intentional non-goals for v1)
+# Deferred (intentional non-goals for v1)
 
 - **Pixel-accurate middle-truncation that always preserves the file extension.** Would need canvas `measureText()` plus a `ResizeObserver` on the card. Worth doing only if losing the extension on long paths turns out to actually hurt usage.
 - **Group-by-category view with section headers.** Stronger structure, bigger UX change. Possible follow-up if users start producing >10 files per session.
@@ -56,7 +63,7 @@ Why this shape:
 - **Per-category icon glyphs** (e.g., briefcase for battlecard, magnifier for research). Color alone is the lighter touch; revisit if users want stronger differentiation.
 - **Light/dark accessibility audit beyond informal contrast checks.** All six tokens were eyeballed against both surface colors but not run through a WCAG checker.
 
-## How to verify end-to-end
+# How to verify end-to-end
 
 1. `docker compose up -d` and open the frontend.
 2. Trigger the agent to produce files across at least four of the six categories — e.g. ask for a tailored resume, a battlecard, a research note, and process an upload. Confirm each card's icon matches the palette table above.

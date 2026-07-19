@@ -1,12 +1,19 @@
-# PRD: Multi-Select Delete for Workspace Files (v1)
+---
+type: PRD
+title: "Multi-Select Delete for Workspace Files"
+description: "Hover checkboxes, shift-click ranges, and a bulk action bar fan one confirmation across many file deletions with a single refresh."
+tags: [frontend, files, ui]
+timestamp: '2026-05-26T17:00:18+07:00'
+status: "shipped"
+scope: "Workspace > Files panel"
+version: v1
+---
 
-**Status:** shipped · **Scope:** Workspace > Files panel
-
-## Why
+# Why
 
 The Workspace > Files panel lets users delete files one at a time — hover a card, click the trash icon, confirm the dialog, wait for the refresh. After a run with the [Multi-Turn Updates](12_multi_turn_updates.md) workflow a thread typically accumulates 10+ artifacts (processed CV/JD/intake, research, tailored resume YAML+PDF, interview-prep doc, battlecard JSON+PDF, plus the original uploads), and cleaning house between iterations means N click-confirm cycles. The single-delete path is fine for the one-off; what's missing is a way to fan out a single confirmation across many files.
 
-## What the user sees
+# What the user sees
 
 A subtle checkbox appears in the top-left corner of each file card on hover, mirroring the existing trash-icon affordance in the top-right. Clicking the checkbox selects the card — the checkbox stays visible, and the card gets a ring outline. The card body itself still opens the file preview; selection and open are separate click targets.
 
@@ -22,7 +29,7 @@ Confirming a bulk delete opens the same Radix `Dialog` used by the single-file p
 
 The bar's `Delete` button is disabled while the agent is streaming (`editDisabled`), matching the per-card trash icon. The checkboxes themselves stay enabled — users can stage a selection while the agent thinks and fire it once the run lands.
 
-## How — the key architectural choices
+# How — the key architectural choices
 
 **Drive-style hover checkboxes, not an explicit "Select" mode toggle.** Three patterns were on the table: (a) hover-revealed checkboxes with no mode switch (Drive, Dropbox), (b) an explicit "Select" button in the section header that flips the whole panel into bulk mode (iOS Photos), (c) invisible-but-Cmd-click-discoverable selection (Finder power-user). The Drive shape scales from 1→many with zero ceremony — there is no mode to enter and exit, and the card body click still opens the file in the same gesture model as v0. The Photos shape was rejected because it adds an extra click and a state the user has to remember to leave; the Finder shape was rejected because the affordance is invisible.
 
@@ -32,7 +39,7 @@ The bar's `Delete` button is disabled while the agent is streaming (`editDisable
 
 **One delete dialog for 1-or-many.** `pendingDelete` widened from `string | null` to `string[] | null`. The single-card trash icon now calls `setPendingDelete([path])`; the bulk-bar Delete calls `setPendingDelete([...selected])`. The dialog title and body branch on `pendingDelete.length`. Considered keeping a separate `pendingBulkDelete` state — rejected because the two paths share the same loading state, same Cancel semantics, and same `editDisabled` gate; two dialogs would have meant two of every prop.
 
-## Files of interest
+# Files of interest
 
 | Concern | Path |
 |---|---|
@@ -42,26 +49,26 @@ The bar's `Delete` button is disabled while the agent is streaming (`editDisable
 | Threads `removeFiles` through props | `frontend/src/app/components/workspace/FilesSection.tsx`, `Workspace.tsx` |
 | Reused per-file delete primitive | `frontend/src/app/lib/uploadFiles.ts` (`deleteAgentFile`) |
 
-## Decisions worth remembering
+# Decisions worth remembering
 
 - **Shift-click extends, plain click toggles, anchor only moves on plain click.** A pure "selection range from anchor → current" without anchor stability means a second shift-click would re-anchor mid-range; users expect successive shift-clicks to pivot from the *first* anchor (Finder behavior). Plain clicks set the anchor; shift-clicks read it but don't move it.
 - **Selection auto-focuses the wrapper once `selected.size > 0`.** The wrapper has `tabIndex={-1}` and an `onKeyDown` for Esc / Cmd+A. Without the auto-focus, the first checkbox click leaves focus on the checkbox button and `keydown` bubbles up correctly — but if the user clicks the card *body* of a selected file to open it and then dismisses the viewer, focus may be elsewhere. Calling `wrapperRef.current?.focus()` whenever the selection grows from zero keeps the shortcuts live without forcing the user to click into empty grid space.
 - **Partial-failure UX narrows the selection to the failures, doesn't clear.** After a bulk delete with errors, the surviving selection equals the set of paths that didn't delete. The bar still says `N selected` (= remaining failures) and the cards still show their checkmarks. The user can immediately retry just those, see why they failed in the toast, or `Clear` and walk away. Clearing entirely on partial success would lose the "what's left" signal.
 - **`useEffect` prunes the selection on `files` change.** When `refreshFiles` returns and the `files` map drops a path (deleted-by-this-action, or deleted out-of-band by the agent), the selection Set could keep a stale entry that would never be reachable to deselect. The effect compares the Set against the new keys and drops anything missing, but only sets state if something actually changed (no-op re-renders are avoided by the `changed` flag).
 - **Sticky action bar inside the scroll wrapper, not anchored to the panel header.** `position: sticky; top: 0` on the bar means it pins to the top of the file grid as the user scrolls a long list, but it lives *inside* `FilesPopover` so it disappears when the Files section is collapsed (`filesOpen=false`) — no orphan bar on a hidden grid.
-- **Reply / toast wording matches the rest of the app.** Single delete keeps `Deleted <basename>`; bulk full-success says `Deleted N files`; partial says `Deleted X of N (Y failed)` (toast level `warning`). Total failure is a single `error`. The wording mirrors the `Wrote / Updated` distinction from PRD 12 — concrete count + outcome.
+- **Reply / toast wording matches the rest of the app.** Single delete keeps `Deleted <basename>`; bulk full-success says `Deleted N files`; partial says `Deleted X of N (Y failed)` (toast level `warning`). Total failure is a single `error`. The wording mirrors the `Wrote / Updated` distinction from [PRD 12](12_multi_turn_updates.md) — concrete count + outcome.
 - **Checkbox button stops propagation; the card body click is independent.** `e.stopPropagation()` on the checkbox `onClick` is what keeps a checkbox click from also opening the file preview. Without it, the same click would toggle selection *and* fire the surrounding `onOpen`, which is hostile.
 
-## Deferred (intentional non-goals for v1)
+# Deferred (intentional non-goals for v1)
 
 - **Backend bulk-delete endpoint.** N parallel HTTP `DELETE`s with a single refresh is fast enough at the file counts we see (10–20 typical, 100s at the high end is hypothetical). If we ever batch-clean thousands, a bulk endpoint becomes worth the LangGraph customization.
 - **Drag-to-select / marquee.** Density is low (cards are ~220px wide, ~10 visible at once); the checkbox + shift-click pair covers the same intent without a new gesture.
 - **Touch / long-press selection.** Workspace is desktop-first; no mobile signal yet.
-- **Undo / trash bin.** The backend `DELETE` is hard — files are unlinked from disk. The two-step confirmation dialog is the only safety net. If we start seeing "I deleted the wrong file" reports, a per-thread snapshot folder (sibling to PRD 12's deferred snapshot idea) becomes the natural follow-up for both single and bulk delete.
+- **Undo / trash bin.** The backend `DELETE` is hard — files are unlinked from disk. The two-step confirmation dialog is the only safety net. If we start seeing "I deleted the wrong file" reports, a per-thread snapshot folder (sibling to [PRD 12](12_multi_turn_updates.md)'s deferred snapshot idea) becomes the natural follow-up for both single and bulk delete.
 - **Selection persistence across panel collapse / thread switch.** Collapsing the Files section unmounts `FilesPopover` and drops the selection. Acceptable for a destructive action — re-selecting after navigating away is a small price for not leaving a loaded "delete N files" gun cocked.
 - **`Cmd+Click` / `Ctrl+Click` on the card body to toggle without the checkbox.** Power-user shortcut; not requested, and the always-visible-on-hover checkbox makes it redundant for discovery.
 
-## How to verify end-to-end
+# How to verify end-to-end
 
 1. `docker compose up -d`; grab the frontend host port from `docker ps`. Open Workspace > Files in a thread with ≥3 files.
 2. Hover a card → corner checkbox appears top-left. Click it → card shows a ring, checkbox stays visible. The action bar appears above the grid: `1 selected · Select all · Clear · Delete`.

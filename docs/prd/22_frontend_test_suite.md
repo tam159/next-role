@@ -1,16 +1,23 @@
-# PRD: Frontend Test Suite + Required CI Check (v1)
+---
+type: PRD
+title: "Frontend Test Suite + Required CI Check"
+description: "A 367-test Vitest suite with a third required CI check (frontend-tests) that skip-passes on backend-only and docs-only changes."
+tags: [frontend, testing, infra]
+timestamp: '2026-07-07T07:55:57+07:00'
+status: "shipped"
+scope: "frontend + CI + upgrade-frontend-deps skill"
+version: v1
+---
 
-**Status:** shipped · **Scope:** frontend + CI + `upgrade-frontend-deps` skill
-
-## Why
+# Why
 
 The backend has had pytest and a required `backend-tests` check since early on; the frontend had literally zero test infrastructure — no runner, no `test` script. Every frontend change (including the dependency-upgrade waves the `upgrade-frontend-deps` skill automates) was verified only by type-check + lint + build + manual browser checks, which catch API drift but not behavior regressions in the parsing/routing logic the app has accumulated (source extraction, tool-error parsing, agent-file routing, path-traversal guards). This ships a 367-test Vitest suite, wires it in as a third required CI check, and adds tests to the skill's per-wave gate ("Gate G").
 
-## What the user sees
+# What the user sees
 
 Developer-facing only. `pnpm test` / `test:watch` / `test:coverage` in `frontend/`; test files colocated next to their source (`foo.test.ts(x)`); a `frontend-tests` check on every PR that **skip-passes on backend-only and docs-only changes**. The PR template's test checklist now names both stacks, and testing docs live in `frontend/CLAUDE.md#testing` (conventions), `CONTRIBUTING.md#testing` (workflow), and `frontend/README.md`. Deliberately absent: tests do **not** run in pre-commit (matches the backend convention — tests are CI's job, hooks stay fast) and there is no coverage threshold gate.
 
-## How — the key architectural choices
+# How — the key architectural choices
 
 **Vitest 4, not Jest.** The app depends on ESM-only packages (`react-markdown@10`, `remark-gfm@4`, deep-ESM `react-syntax-highlighter` imports) and is itself `"type": "module"`; Jest would need `transformIgnorePatterns` surgery and ESM flags. Vitest handles ESM natively, and the repo already ships Vitest 4 in `backend/server/api/js`.
 
@@ -20,7 +27,7 @@ Developer-facing only. `pnpm test` / `test:watch` / `test:coverage` in `frontend
 
 **Required check via detect-job + job-level `if`.** `frontend-tests.yml` clones `backend-tests.yml`'s shape (paths-filter detect job feeding a job `if:`) — never `on:`-level path filtering, which leaves a required check stuck "Expected" (see PRD-less lesson recorded in the workflow headers and `.claude` memory from PR #32).
 
-## Files of interest
+# Files of interest
 
 | Concern | Path |
 |---|---|
@@ -32,7 +39,7 @@ Developer-facing only. `pnpm test` / `test:watch` / `test:coverage` in `frontend
 | Required check workflow | `.github/workflows/frontend-tests.yml` |
 | Gate G now includes `pnpm test` | `.claude/skills/upgrade-frontend-deps/SKILL.md` (§2, §8) |
 
-## Decisions worth remembering
+# Decisions worth remembering
 
 - **Colocated tests, not a `tests/` mirror tree.** Deliberate divergence from the backend's convention (user's call): it's the frontend-ecosystem norm, imports stay short, and the filename extension doubles as the environment switch. The Next.js build ignores colocated non-route files, verified via `pnpm build`.
 - **`globals: true`.** RTL's auto-cleanup only activates when a global `afterEach` exists; globals give it for free and jest-dom extends the global `expect` via one setup import. Cost is one tsconfig `types` entry (`vitest/globals`).
@@ -42,7 +49,7 @@ Developer-facing only. `pnpm test` / `test:watch` / `test:coverage` in `frontend
 - **Never enable global `restoreMocks`** — it silently undoes `beforeAll` spies (the sandbox's `process.cwd` spy) after the first test.
 - **Tests follow code, not the plan.** Writing them surfaced real quirks, asserted as-is rather than "fixed": an unreachable state-routing branch in `useChat.setFiles`, two distinct `useThreads` fallback titles (`Untitled Thread` vs `Thread <id8>`), delete's `EISDIR` branch being Linux-only (darwin throws `EPERM`, so it's covered via a mocked `unlink`), and the composer attach button being dead code behind `COMPOSER_ATTACH_ENABLED = false`.
 
-## Deferred (intentional non-goals for v1)
+# Deferred (intentional non-goals for v1)
 
 - **Playwright/browser E2E.** The `agent-browser` skill already covers visual + full-flow verification (and the upgrade skill's baseline-screenshot workflow); a second browser harness isn't worth the CI weight until component tests prove insufficient.
 - **Coverage thresholds.** `pnpm test:coverage` reports (text + html); gating on a number invites threshold-gaming before the suite's shape has settled.
@@ -50,7 +57,7 @@ Developer-facing only. `pnpm test` / `test:watch` / `test:coverage` in `frontend
 - **`page.tsx` / `layout.tsx` tests.** Whole-app integration (and `next/font` mocking) for near-zero logic — agent-browser territory.
 - **Minor skipped branches** — clipboard copy (no `navigator.clipboard` in jsdom), shift-range file selection, docx error states.
 
-## How to verify end-to-end
+# How to verify end-to-end
 
 1. `cd frontend && pnpm test` — 33 files / 367 tests green in ~2s, reporter shows both `node` and `jsdom` project labels.
 2. `pnpm test:coverage` — report renders; `coverage/` stays untracked (gitignored) and unlinted.
