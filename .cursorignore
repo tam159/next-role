@@ -2,3 +2,7 @@
 # dashboard (README → "Explore the codebase graph"), not for AI context.
 # Assistants should read the real source and docs instead.
 .ua/
+
+# Generated PRD-bundle graph (docs/prd/README.md) — human-facing viewer, not AI context.
+# Assistants read docs/prd/index.md + the PRD files instead.
+docs/prd/viz.html

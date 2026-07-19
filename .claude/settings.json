@@ -1,6 +1,6 @@
 {
   "permissions": {
-    "deny": ["Read(/.ua/**)"]
+    "deny": ["Read(/.ua/**)", "Read(/docs/prd/viz.html)"]
   },
   "hooks": {
     "PostToolUse": [

@@ -162,7 +162,7 @@ A five-stage pipeline. Stage 4 runs the resume tailor and interview coach **in p
 5. **Battlecard** — the main agent assembles a one-page-per-round JSON and renders it to a day-of PDF via WeasyPrint.
 6. **Multi-turn updates** — ask for changes in chat; the owning agent reads the existing file, preserves everything you didn't name, and re-renders.
 
-The full procedure (file layout, update routing, source-of-truth conventions) lives in **[`backend/agents/career_agent/README.md`](backend/agents/career_agent/README.md)**. Per-feature design docs are in **[`docs/prd/`](docs/prd/)**.
+The full procedure (file layout, update routing, source-of-truth conventions) lives in **[`backend/agents/career_agent/README.md`](backend/agents/career_agent/README.md)**. Per-feature design docs are in **[`docs/prd/`](docs/prd/)** — an OKF knowledge bundle you can render as an interactive graph; see [`docs/prd/README.md`](docs/prd/README.md).
 
 </details>
 
@@ -351,6 +351,8 @@ The graph is **for humans**: AI coding assistants are configured to ignore `.ua/
 ![NextRole codebase knowledge graph — architectural layers, dependencies, and project stats in the Understand-Anything dashboard](docs/images/next-role-understand-anything.png)
 
 </details>
+
+The same treatment exists for the product's *design history*: every feature ships with a PRD in [`docs/prd/`](docs/prd/) — an [OKF](https://github.com/GoogleCloudPlatform/knowledge-catalog/tree/main/okf) knowledge bundle whose committed interactive graph (`docs/prd/viz.html`) maps how features extend and supersede each other. The codebase graph maps the *code*; the PRD graph maps the *decisions*. See [`docs/prd/README.md`](docs/prd/README.md) to browse or regenerate it.
 
 ## Contributing
 

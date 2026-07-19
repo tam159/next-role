@@ -16,6 +16,14 @@ Monorepo with two top-level apps. Each has its own `CLAUDE.md` with stack-specif
 
 `.ua/` holds a generated [Understand-Anything](https://github.com/Egonex-AI/Understand-Anything) knowledge graph that humans browse in a dashboard (README → "Explore the codebase graph"). Never read, grep, glob, or index anything under `.ua/` — it is megabytes of generated JSON that wastes context and goes stale. Answer from the real source code and the checked-in `*.md` docs instead. Claude Code additionally hard-blocks it via the `Read(/.ua/**)` deny rule in `.claude/settings.json`, and Cursor via `.cursorignore`; for tools with no enforced ignore mechanism (e.g. Codex, which loads this file through `project_doc_fallback_filenames`), this instruction is the only guard.
 
+## `docs/prd/` — feature PRDs (OKF knowledge bundle)
+
+Per-feature design docs are an [OKF](https://github.com/GoogleCloudPlatform/knowledge-catalog/tree/main/okf) bundle: markdown + YAML frontmatter (`type`, `title`, `description`, `tags`, `status`, …). Read them with progressive disclosure to save tokens:
+
+1. Start at `docs/prd/index.md` — one line per PRD (title + description). Don't bulk-read the folder.
+2. Open only the PRDs relevant to your task; follow their relative `Extends:`/`Supersedes:` links for lineage.
+3. Never read `docs/prd/viz.html` — the generated human-facing graph (guarded like `.ua/` via a deny rule and `.cursorignore`; for tools without an enforced ignore, this instruction is the guard). Humans view/regenerate it per `docs/prd/README.md`.
+
 ## Local development
 
 The local stack runs in Docker via `docker compose up -d`. To find host ports for any running service:
