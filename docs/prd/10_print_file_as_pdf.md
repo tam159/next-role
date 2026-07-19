@@ -1,18 +1,25 @@
-# PRD: Print Workspace File as PDF (v1)
+---
+type: PRD
+title: "Print Workspace File as PDF"
+description: "A Print button in the file viewer renders markdown/code/DOCX into a hidden iframe and calls window.print() for a save-as-PDF flow with no PDF library."
+tags: [frontend, pdf, files]
+timestamp: '2026-05-23T10:16:32+07:00'
+status: "shipped"
+scope: "Workspace > Files viewer"
+version: v1
+---
 
-**Status:** shipped · **Scope:** Workspace > Files viewer
-
-## Why
+# Why
 
 The Workspace > Files viewer lets users **Download** a file as its raw source. For markdown, code, and DOCX files the viewer already renders into formatted HTML (headings, links, syntax-highlighted code, tables), raw source is rarely what the user actually wants — they want a polished, shareable artifact (e.g. send a rendered interview battlecard to a recruiter). Without this, "save a nice copy of this file" is a manual copy-paste + reformat job.
 
-## What the user sees
+# What the user sees
 
 A new **Print** button next to **Download** in the file preview dialog (`FileViewDialog`). One click opens the browser's native print dialog overlaid on the current tab — the workspace and the file preview stay put. The user picks "Save as PDF" (or a physical printer) from the OS dialog. The default filename is the file's path with slashes turned to dashes and the extension stripped, e.g. `/interview_battlecard/tam-nguyen-lead-ai-ml-resume/within-ai-engineer-jd.md` → `interview_battlecard-tam-nguyen-lead-ai-ml-resume-within-ai-engineer-jd.pdf`.
 
 The button is shown for **markdown, text/code, and DOCX**. It's hidden for already-PDF files (Download is enough), images, and unknown binaries. For DOCX it stays disabled until `mammoth` finishes the in-browser conversion.
 
-## How — the key architectural choice
+# How — the key architectural choice
 
 **Render the file content into a hidden, same-origin iframe pointing at a dedicated `/print/file` route, then auto-call `window.print()`.**
 
@@ -22,7 +29,7 @@ Why this shape rather than a PDF library or printing the dialog directly:
 - **Iframe, not new tab.** A new tab loses focus from the workspace; the user said so explicitly during review. A 0×0 hidden iframe keeps the user in place — the browser's print dialog overlays the current tab. Same-origin iframes share `sessionStorage` with the parent, so passing the rendered content needs no API call.
 - **Dedicated print route.** Radix `Dialog` lives in a portal inside a `max-h-[80vh]` ScrollArea — printing the dialog itself would clip content. The `/print/file` route reuses `MarkdownContent` and `SyntaxHighlighter` so we don't duplicate rendering; it applies its own print CSS in isolation.
 
-## Files of interest
+# Files of interest
 
 | Concern | Path |
 |---|---|
@@ -32,7 +39,7 @@ Why this shape rather than a PDF library or printing the dialog directly:
 | Reused DOCX → HTML conversion (already done in dialog state) | `FileViewDialog.tsx` (`docxHtml` via `mammoth`) |
 | Theme CSS variables overridden for print | `frontend/src/app/globals.css` (light values mirrored under `.print-root` in `page.tsx`) |
 
-## Decisions worth remembering
+# Decisions worth remembering
 
 - **`sessionStorage` for the iframe payload, not query string or API.** Same-origin iframes share the parent's `sessionStorage`; the payload (`{path, content, kind, language?}`) lands under a fixed key (`nextrole:print-file`) and the print page clears it immediately after read. No server round-trip, no URL size limit, no leakage across origins.
 - **Light theme is *redeclared*, not class-toggled.** `globals.css` flips theme via `@media (prefers-color-scheme: dark)` on `:root`. There is no `.light`/`.dark` class wired up. A `.light` wrapper would do nothing. Instead the print page re-declares the light values on `.print-root` — a more-specific selector — so dark-mode users still get a printable light PDF.
@@ -42,7 +49,7 @@ Why this shape rather than a PDF library or printing the dialog directly:
 - **`await document.fonts.ready` + one `requestAnimationFrame` before `window.print()`.** Without these the print preview can fire mid-paint and render the first page un-fonted.
 - **iframe cleanup on `afterprint`.** The parent's listener on `iframe.contentWindow` removes the iframe whether the user saved or cancelled. The print page's own `window.close()` on `afterprint` is a no-op inside an iframe (browsers block `close()` on windows the script didn't open) — kept as belt-and-suspenders for the case someone navigates to `/print/file` directly.
 
-## Deferred (intentional non-goals for v1)
+# Deferred (intentional non-goals for v1)
 
 - **Server-side / headless PDF rendering** (Playwright, Puppeteer). Browser print is good enough; revisit only if WYSIWYG drift across browsers becomes a problem.
 - **Custom cover page / header / footer / page numbers.** Out of scope; not requested.
@@ -50,7 +57,7 @@ Why this shape rather than a PDF library or printing the dialog directly:
 - **PDF export for already-PDF files** — existing Download already saves the PDF bytes; no value in re-printing.
 - **PDF export for images / unrecognized binaries** — out of scope.
 
-## How to verify end-to-end
+# How to verify end-to-end
 
 1. `docker compose up -d` and grab the frontend host port from `docker ps`.
 2. Open Workspace > Files, click a `.md` file. **Print** appears next to **Download**.

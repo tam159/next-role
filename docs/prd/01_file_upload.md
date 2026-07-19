@@ -1,12 +1,19 @@
-# PRD: File Upload (v1)
+---
+type: PRD
+title: "File Upload"
+description: "Upload a CV and optional JD into the career agent's workspace — the entry point for the whole agent flow."
+tags: [frontend, files]
+timestamp: '2026-05-03T12:43:38+07:00'
+status: "shipped"
+scope: "career_agent only"
+version: v1
+---
 
-**Status:** shipped · **Scope:** career_agent only
-
-## Why
+# Why
 
 The career agent's flow (`backend/app/career_agent/README.md`) starts with the user uploading a CV and optional JD into `upload/`. Without this entry point, nothing else (process → research → custom resume → interview prep) can run. This is the first user-facing feature on the agent.
 
-## What the user sees
+# What the user sees
 
 **One upload surface: the Upload button in Workspace > Files** (`FilesSection.tsx`). The Files section is always visible (even empty) so the affordance is discoverable. After a successful upload, an `Uploaded: <names>\n` note is appended into the chat composer with the cursor parked on a fresh line — so the user can immediately type their instruction and Send.
 
@@ -21,7 +28,7 @@ Accepted: `.pdf`, `.doc`, `.docx`, `.txt`, `.md`. Max 10 MB each. Re-uploading t
 
 Both open the same `Delete file?` confirmation (filename in mono, destructive-styled Delete button). No undo-toast pattern; the confirm step is the only friction. The dialog is reused (`@radix-ui/react-dialog` via `components/ui/dialog.tsx`) — no new primitive added.
 
-## How — the key architectural choice
+# How — the key architectural choice
 
 **The frontend writes directly to the agent's on-disk path; no Python HTTP endpoint exists.**
 
@@ -29,7 +36,7 @@ Both open the same `Delete file?` confirmation (filename in mono, destructive-st
 
 The path allowlist that gates writes lives in `frontend/src/app/config/agentFiles.ts` under `AGENT_FILE_SOURCES.career_agent.disk` — the existing `resolveSafe()` in `frontend/src/app/api/files/_lib.ts` enforces it.
 
-## Files of interest
+# Files of interest
 
 | Concern | Path |
 |---|---|
@@ -45,7 +52,7 @@ The path allowlist that gates writes lives in `frontend/src/app/config/agentFile
 | Agent's filesystem-backed root | `backend/app/career_agent/agents.py` (CompositeBackend default) |
 | Privacy-gated gitignore | `backend/.gitignore` (free-floating `upload/`, etc.) |
 
-## Decisions worth remembering
+# Decisions worth remembering
 
 - **Global file scoping**, not per-thread — uploads land at `upload/<filename>` flat. Matches the README, simpler for a solo user. Revisit if multi-thread workflows emerge.
 - **No backend HTTP endpoint** — would need a custom langgraph-api route or a sibling FastAPI app; not justified when the bind-mount path already works.
@@ -54,14 +61,14 @@ The path allowlist that gates writes lives in `frontend/src/app/config/agentFile
 - **Mammoth for DOCX preview** — runs in browser via dynamic import. Types stub at `frontend/src/types/mammoth.d.ts` since the package ships none.
 - **No chat paperclip** — see "What the user sees" above. Industry pattern (paperclip = ephemeral attachment for one turn) doesn't match our model (persistent agent filesystem). Workspace is the canonical entry point.
 
-## Deferred (intentional non-goals for v1)
+# Deferred (intentional non-goals for v1)
 
 - **Document processing** — extracting text from PDF/DOCX into `/processed/` is step 2 of the agent flow, a separate feature. v1 only stores raw bytes.
 - **`.doc` (legacy Word) preview** — no good in-browser parser; falls back to download.
 - **Per-thread upload scoping** — see decisions above.
 - **Drag-and-drop** — only file picker for v1.
 
-## How to verify end-to-end
+# How to verify end-to-end
 
 1. `docker compose up -d` and grab the frontend host port from `docker ps`.
 2. Open the UI, upload a PDF and a DOCX via either surface, watch toast + file appearing in Files.

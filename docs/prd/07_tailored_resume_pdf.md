@@ -1,14 +1,21 @@
-# PRD: Tailored Resume — YAML + PDF via rendercv
+---
+type: PRD
+title: "Tailored Resume — YAML + PDF via rendercv"
+description: "resume-tailor writes a rendercv YAML as the editable source of truth and renders the recruiter-ready PDF via the execute tool."
+tags: [agent, pdf, subagents]
+timestamp: '2026-05-23T11:57:56+07:00'
+status: "shipped"
+scope: "career_agent / `resume-tailor` subagent"
+version: v1
+---
 
-**Status:** shipped · **Scope:** career_agent / `resume-tailor` subagent
-
-## Why
+# Why
 
 Stage 4.1 of the agent workflow previously had `resume-tailor` write a plain markdown file (`/tailored_resume/<resume>/<jd>.md`). Users want the actual deliverable they hand to a recruiter — a typeset PDF — not raw markdown they have to convert themselves. `rendercv[full]>=2.8` is already a backend dep, so we wire it in rather than reinvent layout.
 
 We also want the YAML to be a **first-class, editable source of truth**: if the user tweaks a bullet, the agent can re-render the PDF without re-tailoring.
 
-## What the user sees
+# What the user sees
 
 For each `<resume>` × `<jd>` pair, the Workspace > Files view now shows two artifacts under `/tailored_resume/<resume>/`:
 
@@ -19,7 +26,7 @@ The `<jd>.typ` intermediate file is written to `/render_intermediate/<resume>/<j
 
 After the agent finishes, the subagent replies one line: `Wrote tailored resume PDF to: <pdf_path>`. To regenerate after the user edits the YAML, the main agent (which also has `prepare_render_settings`) re-runs `prepare_render_settings(yaml_path)` then `execute("rendercv render <abs_path>")` — no re-tailoring.
 
-## How — the key architectural choices
+# How — the key architectural choices
 
 **Three-step subagent flow.** (1) LLM writes the YAML (`cv:`, `design:`, `locale:` only — no `settings:`). (2) LLM calls `prepare_render_settings(yaml_path)` — a new custom tool that deterministically appends a canonical `settings:` block (pinning output paths, skipping md/html/png) and returns the on-disk absolute path to use. (3) LLM calls `execute("rendercv render <abs_path>")` from `LocalShellBackend`'s inherited shell tool. Split chosen because (a) the LLM shouldn't reason about render settings, (b) we don't want it constructing long CLI override argv, and (c) the YAML must stay user-editable so a wrapper-around-rendercv tool would hide the settings.
 
@@ -29,7 +36,7 @@ After the agent finishes, the subagent replies one line: `Wrote tailored resume 
 
 **Filesystem-tool guidance moved up.** Added to `prompts.py` Block 5b: *"Do NOT use `execute` to create or edit files"* — applies to every agent that has shell access, not just resume-tailor.
 
-## Files of interest
+# Files of interest
 
 | Concern | Path |
 |---|---|
@@ -45,7 +52,7 @@ After the agent finishes, the subagent replies one line: `Wrote tailored resume 
 | Unit tests (settings injection, idempotency, path validation, mkdir) | `backend/tests/career_agent/test_tools.py` |
 | Updated `load_subagents` tests (`tools=`, `default_tools=`) | `backend/tests/career_agent/test_utils.py` |
 
-## Decisions worth remembering
+# Decisions worth remembering
 
 - **YAML is the source of truth, PDF is the deliverable, .typ is hidden.** The split avoids cluttering the UI with an intermediate file users don't review, while preserving it on disk for debugging.
 - **Flat sibling layout** (`<jd>.yaml`, `<jd>.pdf`) under `/tailored_resume/<resume>/`, matching the prior `<jd>.md` convention. Nested per-JD folders rejected as unnecessary.

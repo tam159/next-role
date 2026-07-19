@@ -1,6 +1,14 @@
-# PRD: Own the agent server — drop the `langchain/langgraph-api` base image (v1)
+---
+type: PRD
+title: "Own the agent server — drop the langchain/langgraph-api base image"
+description: "Move the whole agent server in-repo on a python-slim image — replacing the closed langgraph-api base image with our own API, runtime, and core-server."
+tags: [backend, infra, streaming]
+timestamp: '2026-07-06T18:19:47+07:00'
+status: "shipped"
+scope: "Backend (server platform, Docker/compose, migrations, streaming)"
+version: v1
+---
 
-**Status:** shipped · **Scope:** Backend (server platform, Docker/compose, migrations, streaming) ·
 **Extends:** [18_langchain_react_migration](18_langchain_react_migration.md)
 
 > Design, topology, config knobs, and maintenance rules live in
@@ -8,7 +16,7 @@
 > [`backend/README.md`](../../backend/README.md). This PRD records only the why and the
 > decisions those documents don't explain.
 
-## Why
+# Why
 
 The backend image was `FROM langchain/langgraph-api:3.13` — a closed base image owning the
 HTTP/SSE API, run queue, checkpointing, migrations, and process lifecycle. NextRole is open
@@ -17,7 +25,7 @@ was the single biggest dependency risk in the repo. This change moves the entire
 in-repo (`backend/server/`), builds our own `python:3.13-slim` + `uv` image, and replaces the
 official image's in-process Go data-plane sidecar with a Python `core-server` compose service.
 
-## What the user sees
+# What the user sees
 
 Nothing changes at the product surface — same endpoints (`/docs`, `/mcp`, `/a2a/{assistant}`),
 same port, same deterministic `career_agent` assistant id, existing threads intact. What
@@ -27,7 +35,7 @@ and two UX regressions found during the swap are fixed *better than before*: mul
 streaming survives idle gaps and SDK stream rotations, and subagent history panes now restore
 complete, ordered tool activity from durable checkpoints instead of showing nothing.
 
-## How — the key architectural choices
+# How — the key architectural choices
 
 - **Two compose services from one image, not a faithful single-container clone.** The official
   image hides a Go gRPC data plane inside the container; we run the Python reimplementation
@@ -48,7 +56,7 @@ complete, ordered tool activity from durable checkpoints instead of showing noth
   the cap. Getting this split wrong twice (idle-exit killing streams; XREAD-only delivery
   dropping chunks) produced the two worst regressions of the migration — see Decisions.
 
-## Files of interest
+# Files of interest
 
 | Concern | Path |
 |---|---|
@@ -62,7 +70,7 @@ complete, ordered tool activity from durable checkpoints instead of showing noth
 | Agent-shell PATH fix (venv tools resolvable) | `backend/agents/career_agent/shell_backend.py` (`default_shell_env`) |
 | Server smoke tests (regression net) | `backend/tests/server/test_smoke.py` |
 
-## Decisions worth remembering
+# Decisions worth remembering
 
 - **Docs are provenance-free by request.** `ARCHITECTURE.md`/`README.md` present the server as
   NextRole's own; license machinery was excised entirely (call sites in `api/metadata.py` and
@@ -93,7 +101,7 @@ complete, ordered tool activity from durable checkpoints instead of showing noth
   content dirs (`**/upload/`, `**/tailored_resume/`, …) from image layers — a latent exposure
   in the previous `ADD . /deps/next-role` build, fixed en passant.
 
-## Deferred (intentional non-goals for v1)
+# Deferred (intentional non-goals for v1)
 
 - **FE: subagent panes in long threads.** All subagent conversations are stored and servable
   (verified via `POST /threads/{id}/history` with `checkpoint.checkpoint_ns`), but the SDK's
@@ -105,7 +113,7 @@ complete, ordered tool activity from durable checkpoints instead of showing noth
 - **Renaming the `LANGGRAPH_*` env/config surface.** Hundreds of keys in `api/config`; kept
   verbatim for SDK compatibility. Revisit only if the SDK contract itself changes.
 
-## How to verify end-to-end
+# How to verify end-to-end
 
 1. `docker compose up -d` — `backend` and `core-server` report healthy; backend logs show
    migrations no-op and "gRPC server is ready".
