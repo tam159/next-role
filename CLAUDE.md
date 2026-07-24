@@ -50,7 +50,7 @@ Frontend and backend hot-reload on source edits — frontend via `pnpm dev` (Tur
 Restart (`docker compose restart <service>`) when:
 
 - Adding a frontend dependency (`pnpm --dir frontend add ...` — boot self-heals `node_modules` from the new lockfile).
-- Changing `.env` values (env vars are read at container start).
+- Changing `.env` values — use `docker compose up -d <service>`, **not** `restart`: env vars are baked in when the container is created, and `restart` reuses the old container, so only a recreate picks them up.
 - Editing `docker-compose.yml` (use `docker compose up -d` to apply the diff).
 - Editing `backend/server/core_server/` or `backend/server/grpc_common/` — **core-server has no hot reload**; run `docker compose restart core-server`.
 
