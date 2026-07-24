@@ -46,6 +46,26 @@ def test_info_reports_server_version() -> None:
     assert payload["host"]["kind"] == "self-hosted"
 
 
+def test_openapi_spec_keeps_builtin_docs_with_custom_app() -> None:
+    """`/openapi.json` serves the documented spec plus the mounted files API.
+
+    Regression: with a custom HTTP app mounted (LANGGRAPH_HTTP), the server
+    generated a skeleton spec from every route — built-ins included — and
+    merged it over server/openapi.json with precedence, wiping each operation
+    to `{}`; /docs rendered a flat, detail-less endpoint list.
+    """
+    response = httpx.get(f"{_base_url()}/openapi.json", timeout=10)
+
+    assert response.status_code == 200
+    paths = response.json()["paths"]
+    create_assistant = paths["/assistants"]["post"]
+    assert create_assistant["tags"] == ["Assistants"]
+    assert create_assistant["summary"] == "Create Assistant"
+    assert "requestBody" in create_assistant
+    # The custom app's own routes must still be merged into the served spec.
+    assert "/files/list" in paths
+
+
 def test_store_roundtrip() -> None:
     """PUT → GET → search → DELETE through the KV store (DeepAgents memory path)."""
     base = _base_url()

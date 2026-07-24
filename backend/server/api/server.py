@@ -183,6 +183,12 @@ if user_router:
     _store_access_middleware = [Middleware(EnsureStoreAccessible)]
     # Merge routes
     app = user_router
+    # Build the custom-app OpenAPI spec before the built-in routes are merged
+    # into this app: at this point app.routes contains only the user's own
+    # routes. After the merge, the schema-generator fallback below would walk
+    # every built-in route too, emitting empty skeleton entries that override
+    # the documented spec in openapi.json when the two are merged.
+    update_openapi_spec(app)
     if auth_before_custom_middleware:
         # Authentication middleware is only applied to protected routes--
         # it is *not* global middleware. This means that by default,
@@ -221,8 +227,6 @@ if user_router:
         + apply_middleware(shadowable_meta_routes, route_level_custom_middleware)
         + [protected_mount]
     )
-
-    update_openapi_spec(app)
 
     # Merge lifespans (base + user)
     user_lifespan = app.router.lifespan_context
