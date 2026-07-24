@@ -247,7 +247,13 @@ NextRole runs **zero-login single-user by default** — `docker compose up` and 
    BETTER_AUTH_SECRET=<same secret> \
      pnpm --dir frontend dlx @better-auth/cli@latest migrate --config src/lib/auth/server.ts
    ```
-3. `LANGGRAPH_AUTH={"path": "/deps/next-role/backend/agents/auth.py:auth", "disable_studio_auth": true}` — turns on backend enforcement. (Login without this is fine for trying the UI, but provides no isolation.)
+3. `LANGGRAPH_AUTH` — turns on backend enforcement. (Login without this is fine for trying the UI, but provides no isolation.) One line:
+
+   ```env
+   LANGGRAPH_AUTH={"path": "/deps/next-role/backend/agents/auth.py:auth", "disable_studio_auth": true, "openapi": {"securitySchemes": {"bearerAuth": {"type": "http", "scheme": "bearer", "bearerFormat": "JWT", "description": "Better Auth session JWT. While signed in, the frontend's GET /api/auth/token returns one."}}, "security": [{"bearerAuth": []}], "paths": {"/ok": {"GET": []}, "/info": {"GET": []}, "/metrics": {"GET": []}, "/docs": {"GET": []}}}}
+   ```
+
+   The optional `"openapi"` block documents auth in the API reference: `/docs` gets a Bearer Token field for authenticated Test Requests (paste a JWT from the frontend's `GET /api/auth/token`), while the public meta endpoints (`/ok`, `/info`, `/metrics`, `/docs`) stay marked auth-free.
 4. *Optional Google sign-in:* `AUTH_GOOGLE_ENABLED=true` + `GOOGLE_AUTH_CLIENT_ID` / `GOOGLE_AUTH_CLIENT_SECRET` (OAuth client redirect URI `http://localhost:<FRONTEND_LOCAL_PORT>/api/auth/callback/google`). Email + password works without it.
 
 <details>
