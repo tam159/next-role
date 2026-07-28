@@ -282,8 +282,10 @@ class ThreadsServicerImpl(ThreadsServicer):
             "state_updated_at = now()",
             "interrupts = %(interrupts)s",
             "error = %(error)s",
-            "status = CASE WHEN EXISTS (SELECT 1 FROM run WHERE thread_id = %(tid)s "
-            "AND status IN ('pending','running')) THEN 'busy' ELSE %(base)s END",
+            (
+                "status = CASE WHEN EXISTS (SELECT 1 FROM run WHERE thread_id = %(tid)s "
+                "AND status IN ('pending','running')) THEN 'busy' ELSE %(base)s END"
+            ),
         ]
         if cp is not None:
             sets.append("values = %(values)s")
@@ -350,8 +352,11 @@ class ThreadsServicerImpl(ThreadsServicer):
                 "metadata = jsonb_set(metadata, '{graph_id}', to_jsonb(%(graph_id)s::text))",
                 "interrupts = %(interrupts)s",
                 "error = %(error)s",
-                "status = CASE WHEN %(active)s OR EXISTS (SELECT 1 FROM run WHERE "
-                "thread_id = %(tid)s AND status IN ('pending','running')) THEN 'busy' ELSE %(base)s END",
+                (
+                    "status = CASE WHEN %(active)s OR EXISTS (SELECT 1 FROM run WHERE "
+                    "thread_id = %(tid)s AND status IN ('pending','running')) "
+                    "THEN 'busy' ELSE %(base)s END"
+                ),
             ]
             if cp is not None:
                 sets.append("values = %(values)s")

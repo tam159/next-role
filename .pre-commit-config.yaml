@@ -20,7 +20,7 @@ repos:
       - id: gitleaks
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.15.20
+    rev: v0.16.0
     hooks:
       # Generated protobuf/gRPC stubs are excluded here as well as in ruff's own
       # config: pre-commit passes filenames explicitly, which bypasses
