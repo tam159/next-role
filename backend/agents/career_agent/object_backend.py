@@ -265,6 +265,8 @@ class ObjectStoreBackend(BackendProtocol):
         pattern: str,
         path: str | None = None,
         glob: str | None = None,
+        *,
+        max_count: int | None = None,
     ) -> GrepResult:
         """Search text objects for a literal pattern (downloads candidates)."""
         try:
@@ -297,7 +299,7 @@ class ObjectStoreBackend(BackendProtocol):
                 "encoding": "utf-8",
                 "modified_at": _iso_modified(meta),
             }
-        return grep_matches_from_files(files, pattern, path, glob)
+        return grep_matches_from_files(files, pattern, path, glob, max_count=max_count)
 
     def upload_files(self, files: list[tuple[str, bytes]]) -> list[FileUploadResponse]:
         """Store raw bytes per path (system publish path; overwrites allowed)."""

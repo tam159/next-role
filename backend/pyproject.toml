@@ -1,12 +1,12 @@
 [dependency-groups]
 dev = [
-  "ruff>=0.15.20",
+  "ruff>=0.16.1",
   "pytest>=9.1.1",
   "pytest-asyncio>=1.4.0",
   "pytest-cov>=7.1.0",
-  "pre-commit>=4.6.0",
+  "pre-commit>=4.6.1",
   "toml-sort>=0.24.4",
-  "ty>=0.0.54",
+  "ty>=0.0.65",
   # Regenerates grpc_common/proto stubs; exact-pinned to match
   # GRPC_GENERATED_VERSION baked into the generated *_pb2_grpc.py files.
   "grpcio-tools==1.80.0"
@@ -22,58 +22,58 @@ authors = [
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
-  "langchain>=1.3.11",
-  "langchain-aws>=1.6.1",
-  "langchain-openai>=1.3.3",
-  "langchain-anthropic>=1.4.7",
-  "langchain-google-genai>=4.2.6",
+  "langchain>=1.3.14",
+  "langchain-aws>=1.6.4",
+  "langchain-openai>=1.4.1",
+  "langchain-anthropic>=1.5.3",
+  "langchain-google-genai>=4.3.2",
   "langchain-tavily>=0.2.18",
-  "langgraph>=1.2.6,<2",
-  "deepagents>=0.6.12",
-  "llama-cloud>=2.9.1",
+  "langgraph>=1.2.10,<2",
+  "deepagents>=0.7.1",
+  "llama-cloud>=2.13.0",
   "pydantic-settings>=2.14.2",
   "python-dotenv>=1.2.2",
-  "tavily-python>=0.7.26",
+  "tavily-python>=0.7.27",
   "rendercv[full]>=2.8",
   "weasyprint>=69.0",
-  "types-python-dateutil>=2.9.0.20260518",
-  "types-pyyaml>=6.0.12.20260518",
-  "types-requests>=2.33.0.20260518",
+  "types-python-dateutil>=2.9.0.20260716",
+  "types-pyyaml>=6.0.12.20260724",
+  "types-requests>=2.33.0.20260712",
   # --- Agent server runtime (backend/ARCHITECTURE.md) ---
   # Upper bounds are compat pins required by the server code, not staleness:
   # grpcio band must match the generated proto stubs (GRPC_GENERATED_VERSION).
-  "croniter>=6.2.2",
+  "croniter>=6.2.4",
   "cloudpickle>=3.1.2",
-  "cryptography>=48.0.0",
-  "google-auth>=2.53.0",
+  "cryptography>=50.0.0",
+  "google-auth>=2.56.2",
   "grpcio>=1.80.0,<1.81.0",
   "grpcio-health-checking>=1.80.0,<1.81.0",
   "httptools>=0.7.1; platform_system != 'Windows'",
   "httpx>=0.28.1",
   "jsonschema-rs>=0.44.1,<0.45",
-  "langchain-core>=1.4.6",
+  "langchain-core>=1.5.3",
   # v2 streaming wire format; >=0.0.18 matches the frontend SDK's bundled version
   "langchain-protocol>=0.0.18,<0.1",
   "langgraph-checkpoint>=4.1.0,<5",
-  "langgraph-checkpoint-postgres>=3.1.0",
-  "langgraph-runtime-inmem>=0.30.0,<0.31.0",
+  "langgraph-checkpoint-postgres>=3.1.1",
+  "langgraph-runtime-inmem>=0.30.3,<0.31.0",
   "langgraph-sdk>=0.4.2",
-  "langsmith[otel]>=0.8.5",
-  "opentelemetry-api>=1.41.1",
-  "opentelemetry-exporter-otlp-proto-http>=1.41.1",
-  "opentelemetry-sdk>=1.41.1",
+  "langsmith[otel]>=0.10.15",
+  "opentelemetry-api>=1.44.0",
+  "opentelemetry-exporter-otlp-proto-http>=1.44.0",
+  "opentelemetry-sdk>=1.44.0",
   "orjson>=3.11.9",
   "protobuf>=6.33.6,<7.0.0",
   "psycopg[binary,pool]>=3.3.4",
   "pyjwt>=2.12.1",
-  "redis>=7.4.0",
+  "redis>=8.1.0",
   "sse-starlette>=3.3.4,<3.4.0",
   "starlette>=1.0.1",
   "structlog>=25.5.0,<26",
   "tenacity>=9.1.4",
   "truststore>=0.10.4",
-  "uuid-utils>=0.15.0",
-  "uvicorn>=0.47.0",
+  "uuid-utils>=0.17.0",
+  "uvicorn>=0.52.0",
   "uvloop>=0.22.1; platform_system != 'Windows'",
   "watchfiles>=1.2.0",
   "websockets>=15.0.1",
@@ -147,6 +147,7 @@ ignore = [
   # "B008", # Function call in argument defaults - OK for FastAPI Depends()
   "BLE001", # Blind exception catching - OK for health checks and error handlers
   # "C901", # Function is too complex - OK for data preparation functions
+  "CPY001", # Copyright notice at top of file - no such convention in this repo (new in ruff 0.16)
   # "COM812", # "Trailing comma missing". If black is happy, I'm happy.
   "D104", # "Missing docstring in public package"
   # "D107", # "Missing docstring in __init__"
@@ -207,6 +208,8 @@ max-complexity = 10
   "FURB",
   "G",
   "INP",
+  "ISC004",
+  "LOG004",
   "N",
   "PERF",
   "PIE",
