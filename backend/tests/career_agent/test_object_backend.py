@@ -217,6 +217,19 @@ def test_grep_scopes_to_path(seeded):
     assert seeded.grep("hello", path="/elsewhere").matches == []
 
 
+def test_grep_max_count_caps_total_matches(seeded):
+    seeded.write("/sub/more.md", "hello again")
+
+    capped = seeded.grep("hello", max_count=1)
+    assert capped.error is None
+    assert len(capped.matches or []) == 1
+    assert capped.truncated is True
+
+    uncapped = seeded.grep("hello")
+    assert len(uncapped.matches or []) == 2
+    assert uncapped.truncated is False
+
+
 # ---------------------------------------------------------------------------
 # upload_files / download_files
 # ---------------------------------------------------------------------------
