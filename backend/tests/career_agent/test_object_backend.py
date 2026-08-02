@@ -1,8 +1,8 @@
 """Contract tests for `ObjectStoreBackend` against an in-memory object store.
 
 These lock in the deepagents `BackendProtocol` conventions the rest of the
-system depends on: the overwrite-refusal error literal (`_upsert`'s
-write→edit fallback), base64 `FileData` for binary reads (multimodal blocks),
+system depends on: write-or-replace `write` semantics (the 0.7 contract),
+recursive `delete`, base64 `FileData` for binary reads (multimodal blocks),
 in-band errors, and prefix-stripped path semantics under `CompositeBackend`.
 """
 
@@ -71,27 +71,56 @@ def test_backend_scopes_keys_to_the_runtime_identity(backend, mem_store):
 
 
 # ---------------------------------------------------------------------------
-# write / edit (the `_upsert` contract)
+# write / edit / delete
 # ---------------------------------------------------------------------------
 
 
-def test_write_then_refuse_overwrite_then_edit(backend):
+def test_write_overwrites_existing_file(backend):
+    """Deepagents 0.7 write-or-replace contract: no refusal, no error."""
     first = backend.write("/cv.yaml", "name: Tam")
     assert first.error is None
     assert first.path == "/cv.yaml"
 
-    second = backend.write("/cv.yaml", "other")
-    assert second.error is not None
-    # Exact framework literal — tools._upsert falls back to edit() on it.
-    assert "already exists. Read and then make an edit" in second.error
-
-    edited = backend.edit("/cv.yaml", "Tam", "Tam NGUYEN")
-    assert edited.error is None
-    assert edited.occurrences == 1
+    second = backend.write("/cv.yaml", "name: Tam NGUYEN")
+    assert second.error is None
 
     read = backend.read("/cv.yaml")
     assert read.file_data is not None
     assert read.file_data["content"] == "name: Tam NGUYEN"
+
+    edited = backend.edit("/cv.yaml", "NGUYEN", "N.")
+    assert edited.error is None
+    assert edited.occurrences == 1
+
+
+def test_delete_removes_single_file(backend):
+    backend.write("/cv.yaml", "name: Tam")
+    backend.write("/keep.md", "stays")
+
+    result = backend.delete("/cv.yaml")
+
+    assert result.error is None
+    assert result.path == "/cv.yaml"
+    assert backend.read("/cv.yaml").error is not None
+    assert backend.read("/keep.md").error is None
+
+
+def test_delete_removes_directory_recursively(backend):
+    backend.write("/old-run/report.md", "a")
+    backend.write("/old-run/nested/notes.md", "b")
+    backend.write("/keep.md", "stays")
+
+    result = backend.delete("/old-run")
+
+    assert result.error is None
+    assert backend.read("/old-run/report.md").error is not None
+    assert backend.read("/old-run/nested/notes.md").error is not None
+    assert backend.read("/keep.md").error is None
+
+
+def test_delete_missing_path_reports_not_found(backend):
+    result = backend.delete("/ghost.yaml")
+    assert result.error == "Error: File '/ghost.yaml' not found"
 
 
 def test_write_rejects_unsafe_path(backend):

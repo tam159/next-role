@@ -35,8 +35,8 @@ def _fake_list_files(path: str) -> str:
 
 
 @tool
-def _fake_overwrite(path: str, content: str) -> str:
-    """Stub overwrite_file (a default tool)."""
+def _fake_scratch(path: str, content: str) -> str:
+    """Stub second default tool (exercises multi-entry default_tools)."""
     return f"{path}:{content}"
 
 
@@ -45,7 +45,7 @@ _TOOL_POOL = {
     "web_extract": _fake_extract,
 }
 
-_DEFAULTS = [_fake_list_files, _fake_overwrite]
+_DEFAULTS = [_fake_list_files, _fake_scratch]
 
 
 def _write_yaml(tmp_path: Path, text: str) -> Path:
@@ -130,11 +130,11 @@ with-tools:
     by_name = {s["name"]: s for s in specs}
 
     # Subagent with no `tools:` still gets the defaults.
-    assert by_name["no-tools"]["tools"] == [_fake_list_files, _fake_overwrite]
+    assert by_name["no-tools"]["tools"] == [_fake_list_files, _fake_scratch]
     # Defaults come first; opt-ins concatenate after.
     assert by_name["with-tools"]["tools"] == [
         _fake_list_files,
-        _fake_overwrite,
+        _fake_scratch,
         _fake_search,
     ]
 

@@ -12,11 +12,12 @@ filesystem; see `render_resume_pdf` in `tools.py` for the hydrate→render→
 publish flow).
 
 Conventions mirrored from the built-in backends (see `StoreBackend` /
-`FilesystemBackend` in deepagents 0.6.x):
+`FilesystemBackend` in deepagents 0.7):
 
 - errors are returned in-band via each result's `error` field, never raised;
-- `write` refuses to overwrite (the `_upsert` helper in `tools.py` relies on
-  that exact error to fall back to `edit`);
+- `write` creates or overwrites (the 0.7 write-or-replace contract; 0.6's
+  refuse-on-exists behavior is gone framework-wide);
+- `delete` removes the exact object, or a directory subtree recursively;
 - binary reads return base64 `FileData`, which the filesystem middleware
   renders as a multimodal content block (PDFs surface as `file` blocks);
 - bytes flow only through `upload_files`/`download_files`.
@@ -33,15 +34,16 @@ from typing import TYPE_CHECKING, Any
 import obstore.exceptions
 from backend.agents.career_agent.object_storage import (
     area_key_prefix,
+    delete_key,
     get_bytes,
     get_store,
-    head_meta,
     key_for_area,
     list_meta,
     put_bytes,
 )
 from deepagents.backends.protocol import (
     BackendProtocol,
+    DeleteResult,
     EditResult,
     FileData,
     FileDownloadResponse,
@@ -177,23 +179,39 @@ class ObjectStoreBackend(BackendProtocol):
         return ReadResult(file_data=FileData(content=sliced, encoding="utf-8"))
 
     def write(self, file_path: str, content: str) -> WriteResult:
-        """Create a new text file; refuses overwrite per framework contract."""
+        """Write a text file, creating it or overwriting it (0.7 write-or-replace)."""
         key = self._key(file_path)
         if key is None:
             return WriteResult(error=f"Invalid path {file_path!r}")
         try:
-            store = self._store_factory()
-            if head_meta(store, key) is not None:
-                return WriteResult(
-                    error=(
-                        f"Cannot write to {file_path} because it already exists. "
-                        "Read and then make an edit, or write to a new path."
-                    ),
-                )
-            put_bytes(store, key, content.encode("utf-8"))
+            put_bytes(self._store_factory(), key, content.encode("utf-8"))
         except _STORE_ERRORS as e:
             return WriteResult(error=f"Error writing {file_path}: {e}")
         return WriteResult(path=file_path)
+
+    def delete(self, file_path: str) -> DeleteResult:
+        """Delete the exact object at `file_path`, or a directory subtree recursively.
+
+        Mirrors `StoreBackend.delete`: the exact key plus every key nested
+        under `file_path` + "/" is removed; an error is returned when nothing
+        matches.
+        """
+        base = file_path.rstrip("/")
+        prefix = base + "/"
+        try:
+            store = self._store_factory()
+            doomed = [
+                str(meta["path"])
+                for meta in self._area_files()
+                if meta["vpath"] == base or meta["vpath"].startswith(prefix)
+            ]
+            if not doomed:
+                return DeleteResult(error=f"Error: File '{file_path}' not found")
+            for key in doomed:
+                delete_key(store, key)
+        except _STORE_ERRORS as e:
+            return DeleteResult(error=f"Error deleting {file_path}: {e}")
+        return DeleteResult(path=file_path)
 
     def edit(
         self,

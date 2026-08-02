@@ -52,8 +52,10 @@ def test_backend_contract_against_real_emulator(store):
     text_path = f"/tests-{marker}/notes.md"
     pdf_path = f"/tests-{marker}/cv.pdf"
     try:
+        assert backend.write(text_path, "hello emulator v1").error is None
+        # deepagents 0.7 write-or-replace contract: second write overwrites.
         assert backend.write(text_path, "hello emulator").error is None
-        assert "already exists" in (backend.write(text_path, "again").error or "")
+        assert (backend.read(text_path).file_data or {}).get("content") == "hello emulator"
         assert backend.upload_files([(pdf_path, b"%PDF-1.4")])[0].error is None
 
         read = backend.read(pdf_path)

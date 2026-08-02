@@ -28,7 +28,7 @@ Two siblings on disk; the JSON is the source of truth (LLM-written, user-editabl
 
 Two-step flow, in this exact order:
 
-1. `overwrite_file("/interview_battlecard/<resume>/<jd>.json", <json string>)` — write the JSON source.
+1. `write_file("/interview_battlecard/<resume>/<jd>.json", <json string>)` — write the JSON source.
 2. `render_battlecard_pdf("/interview_battlecard/<resume>/<jd>.json")` — render the PDF beside it.
 
 See the "## Updates" section below for follow-up edits (adding a round, swapping a story, re-rendering after a user hand-edit).
@@ -164,7 +164,7 @@ The battlecard is the main agent's own artifact — no subagent is involved. Whe
 2. Identify the surgical change the user named. The user's explicit request takes priority over the default rules above — if they asked for full-sentence intros, a longer story body, or an extra key, comply for the items they named.
 3. Apply the change:
    - **`edit_file(path, old_string=..., new_string=...)`** for inserting/replacing a single round, story, fact, question, or watch-out. The new content must still satisfy the schema (round order matches the prep doc, JSON object shape, types).
-   - **`overwrite_file(path, <new json>)`** only when restructuring most of the file (e.g. the user reordered every round, or you're rewriting from a refreshed interview-coach doc).
+   - **`write_file(path, <new json>)`** only when restructuring most of the file (e.g. the user reordered every round, or you're rewriting from a refreshed interview-coach doc).
    - **No JSON change** if the user only asked to re-render after editing in Workspace; skip straight to step 4.
 4. `render_battlecard_pdf("/interview_battlecard/<resume>/<jd>.json")` — mandatory after any JSON change, and on a re-render-only request. The tool is idempotent.
 5. Report back with one line per the CAREER_AGENT.md update phrasing convention (`Updated battlecard at: <pdf_path>` or similar). Don't dump the JSON.

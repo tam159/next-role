@@ -22,7 +22,7 @@ Read every input file in full with `read_file(path, limit=1000)`. Do not skim. N
 
 - `web_search(query, max_results=5, topic="general"|"news"|"finance")` — primary research
 - `web_extract(urls, content_format="markdown")` — pull a single high-value page (careers, About, press release, levels.fyi or local equivalent) when a search snippet is too thin
-- filesystem tools (`read_file`, `overwrite_file`, `edit_file`, `ls`, `glob`, `grep`)
+- filesystem tools (`read_file`, `write_file`, `edit_file`, `ls`, `glob`, `grep`)
 
 Plan 3-5 targeted searches, then optionally one or two `web_extract` calls. Quality over quantity.
 
@@ -37,7 +37,7 @@ Plan 3-5 targeted searches, then optionally one or two `web_extract` calls. Qual
 
 ## Output format
 
-Write a single markdown file to `output_path` via `overwrite_file`, with these section headings, in this exact order:
+Write a single markdown file to `output_path` via `write_file`, with these section headings, in this exact order:
 
 ```
 # <Company> — <Role> recon
@@ -70,7 +70,7 @@ When the caller's task says "Update the existing report at …" (rather than cre
 
 1. `read_file(output_path, limit=1000)` first — your context is fresh; you have no memory of the prior version.
 2. Identify the surgical change the caller named. The user's explicit request takes priority over the preservation defaults below — if they asked to remove or replace a section, do it; only touch what they named.
-3. Use `edit_file(path, old_string=..., new_string=...)` for targeted insertions or replacements (e.g. adding a subsection under `## Hiring team`, updating the salary bullet). Use `overwrite_file` only when restructuring most of the report.
+3. Use `edit_file(path, old_string=..., new_string=...)` for targeted insertions or replacements (e.g. adding a subsection under `## Hiring team`, updating the salary bullet). Use `write_file` only when restructuring most of the report.
 4. Preserve every other section, bullet, and source URL the user did not mention. The no-fabrication rule still applies — if a newly-requested fact is not findable, write `Unknown — no public signal`.
 5. Reply with the update-mode contract: `Updated research report at: <output_path>`.
 

@@ -11,7 +11,6 @@ from typing import Any, Literal
 from urllib.parse import urlparse
 
 from deepagents.backends import CompositeBackend
-from deepagents.backends.protocol import WriteResult
 from langchain_core.tools import BaseTool, tool
 
 CAREER_AGENT_DIR: Path = Path(__file__).parent
@@ -140,76 +139,6 @@ def make_list_files(backend: CompositeBackend) -> BaseTool:
     return list_files
 
 
-def _upsert(backend: CompositeBackend, path: str, content: str) -> WriteResult:
-    """Write `content` to `path`, replacing any existing file at the same path.
-
-    Why this wrapper exists: deepagents' `BackendProtocol.write()` refuses to
-    overwrite by design (it expects a "read-then-edit" workflow). For the
-    parse_document flow we want overwrite — re-uploading the same CV/JD
-    should refresh the parsed copy. There is no `delete` API on the
-    BackendProtocol, so we implement upsert via two public-API calls:
-    try `write`; on the already-exists error, fall back to `edit` with the
-    current content as `old_string`.
-    """
-    res = backend.write(path, content)
-    if not res.error:
-        return res
-
-    read_res = backend.read(path, offset=0, limit=10**9)
-    if read_res.error or not read_res.file_data:
-        return res
-
-    existing = read_res.file_data.get("content", "")
-    if isinstance(existing, list):
-        existing = "\n".join(existing)
-    if existing == content:
-        return WriteResult(path=path)
-    if not existing:
-        return WriteResult(error=f"{path} exists but is empty; cannot overwrite via edit")
-
-    edit_res = backend.edit(path, old_string=existing, new_string=content)
-    if edit_res.error:
-        return WriteResult(error=f"Overwrite failed for {path}: {edit_res.error}")
-    return WriteResult(path=path)
-
-
-def make_overwrite_file(backend: CompositeBackend) -> BaseTool:
-    """Build the `overwrite_file` tool, closed over the agent's backend."""
-
-    @tool
-    def overwrite_file(file_path: str, new_content: str) -> str:
-        """Replace the entire contents of a file (or create it if missing).
-
-        Parent directories are created automatically — do NOT run `mkdir`
-        (or any other shell command) to create them first.
-
-        Use this when:
-        - You need to fully replace the body of an existing file.
-        - You need to write a file at a path that may or may not already exist
-          and you don't care which.
-
-        Prefer `edit_file` for small targeted edits or appends to existing
-        files where a unique anchor substring is enough — those are cheaper
-        and safer than a full overwrite.
-        Prefer `write_file` when you want to create a new file.
-
-        Args:
-            file_path: Absolute path.
-            new_content: The new full body of the file.
-
-        Returns:
-            Short confirmation string with the saved path and content length,
-            or `Error: ...` on failure.
-
-        """
-        result = _upsert(backend, file_path, new_content)
-        if result.error:
-            return f"Error overwriting {file_path}: {result.error}"
-        return f"Saved {file_path} ({len(new_content)} chars)"
-
-    return overwrite_file
-
-
 def _materialize_source(backend: CompositeBackend, source_path: str) -> Path | str:
     """Download `source_path` through the backend into a temp file for LlamaCloud.
 
@@ -300,7 +229,9 @@ def make_parse_document(backend: CompositeBackend) -> BaseTool:
             if not markdown:
                 return f"Error: LlamaParse returned no markdown for {source_path}"
             markdown = _strip_image_filenames(markdown)
-            write_result = _upsert(backend, output_path, markdown)
+            # write-or-replace (deepagents 0.7): re-parsing the same source
+            # refreshes the processed copy in place.
+            write_result = backend.write(output_path, markdown)
             if write_result.error:
                 return f"Error writing {output_path}: {write_result.error}"
         except Exception as e:
@@ -546,7 +477,7 @@ def make_render_resume_pdf(backend: CompositeBackend) -> BaseTool:
         render copy.
 
         On a rendercv failure the result contains its output — fix the YAML
-        (`edit_file`/`overwrite_file`) and call this tool again. Idempotent:
+        (`edit_file`/`write_file`) and call this tool again. Idempotent:
         re-rendering overwrites the previous outputs.
 
         Args:
@@ -713,7 +644,9 @@ def make_extract_jd(backend: CompositeBackend) -> BaseTool:
             body = _strip_image_filenames(raw_markdown)
             header = f"# {title}\n\n" if title else ""
             content = f"{header}_Source: {url}_\n\n{body}"
-            write_result = _upsert(backend, dest, content)
+            # write-or-replace (deepagents 0.7): re-extracting the same slug
+            # refreshes the processed copy in place.
+            write_result = backend.write(dest, content)
             if write_result.error:
                 return f"Error writing {dest}: {write_result.error}"
         except Exception as e:
