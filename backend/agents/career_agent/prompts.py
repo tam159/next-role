@@ -2,23 +2,30 @@
 
 """Prompts for the career agent.
 
-Contains two kinds of prompts:
+Since deepagents 0.7 every prompt here rides a supported parameter — no more
+module-constant monkey patching (0.7 deleted most of those constants and
+assembles its base prompt from an empty string):
 
-1. **Agent-owned prompts** (blocks 1-2) — passed directly to `create_deep_agent`
-   as `system_prompt=` and registered as `_HarnessProfile.base_system_prompt`.
-2. **Middleware-override prompts** (blocks 3-7) — replace module-level constants
-   inside deepagents / langchain at import time via `_apply_prompt_overrides()`
-   in agents.py.
+1. `SYSTEM_PROMPT` — `create_deep_agent(system_prompt=...)`; placed first in the
+   assembled system message.
+2. `TODO` — `TodoListMiddleware(system_prompt=...)` (opt-in since 0.7).
+3. `FILE_TOOLS` — `FilesystemMiddleware(system_prompt=...)` on the override
+   instance in agents.py.
+4. `EXECUTE_GUARDRAIL` — appended to the stock execute tool description via
+   `FilesystemMiddleware(custom_tool_descriptions=...)`.
+5. `TASK` — the one remaining kwdefaults patch (`_apply_task_prompt_override`
+   in agents.py): `create_deep_agent` constructs `SubAgentMiddleware`
+   internally and never forwards a `system_prompt`.
+6. `MEMORY` — `MemoryMiddleware(system_prompt=...)` on the override instance.
 
 Format placeholders (required, do not remove):
-- SKILLS: `{skills_locations}`, `{skills_list}`
-- FILESYSTEM: `{large_tool_results_prefix}`
 - MEMORY: `{agent_memory}`
 """
 
 # ---------------------------------------------------------------------------
-# Block 1 — passed as `system_prompt=` to create_deep_agent
-# Prepended to the base prompt (block 2) by deepagents/graph.py:612
+# Block 1 — passed as `system_prompt=` to create_deep_agent.
+# deepagents 0.7 has no authored base prompt, so this is the entire authored
+# front of the system message; middleware sections append after it.
 # ---------------------------------------------------------------------------
 
 SYSTEM_PROMPT = """You are a career agent — part coach, part prep partner. You help the user get ready for a specific job interview through a 5-stage workflow.
@@ -33,23 +40,14 @@ When the user kicks off a new prep run (or resumes one with remaining stages), c
 Do NOT use `write_todos` for simple questions, clarifications, or easy follow-ups about work already produced (e.g. "what's in my battlecard?", "tweak this bullet", "explain this section"). Just answer directly.
 
 After all stages are done, users will iterate. For updates to existing artifacts, route by file:
-- Battlecard JSON → you edit it yourself (read first, then `edit_file` / `overwrite_file`, then `render_battlecard_pdf`).
+- Battlecard JSON → you edit it yourself (read first, then `edit_file` / `write_file`, then `render_battlecard_pdf`).
 - Research report → spawn `hiring-recon` with an "update" task description.
 - Tailored resume → spawn `resume-tailor` with an "update" task description.
 - Interview prep doc → spawn `interview-coach` with an "update" task description.
 Follow explicit user requests as the first priority; the skills' preservation defaults (don't drop a skill, a URL, a section) yield to anything the user asked for directly. Truth/fabrication rules (don't invent metrics, titles, experience) remain absolute. See CAREER_AGENT.md "Stage 6 — Updates" for the task-input shape.
 
 See CAREER_AGENT.md for the procedure inside each stage.
-"""
 
-
-# ---------------------------------------------------------------------------
-# Block 2 — _HarnessProfile.base_system_prompt
-# Replaces deepagents' default BASE_AGENT_PROMPT (graph.py:603) via the
-# harness-profile registration in agents.py.
-# ---------------------------------------------------------------------------
-
-BASE = """
 ## Voice
 
 Interviews are stressful. Talk like a supportive coach who has done this a hundred times, not a form to fill out.
@@ -70,7 +68,9 @@ Interviews are stressful. Talk like a supportive coach who has done this a hundr
 
 
 # ---------------------------------------------------------------------------
-# Block 3 — langchain.agents.middleware.todo.WRITE_TODOS_SYSTEM_PROMPT
+# Block 2 — TodoListMiddleware(system_prompt=...) in agents.py.
+# deepagents 0.7 no longer includes the todo middleware by default; we opt in
+# on the main agent only (subagents are single-shot by design).
 # ---------------------------------------------------------------------------
 
 TODO = """## `write_todos`
@@ -89,100 +89,37 @@ Writing todos takes time and tokens, use it when it is helpful for managing comp
 
 
 # ---------------------------------------------------------------------------
-# Block 4 — deepagents.middleware.skills.SKILLS_SYSTEM_PROMPT
+# Block 3 — FilesystemMiddleware(system_prompt=...) on the override instance in
+# agents.py. Lean by design: deepagents 0.7 moved tool-usage prose into the
+# tool descriptions themselves, so only guidance with no schema home lives here.
+# (The old Skills / Following Conventions / Filesystem Tools / Large Tool
+# Results sections are gone on purpose — stock 0.7 covers them.)
 # ---------------------------------------------------------------------------
 
-SKILLS = """
+FILE_TOOLS = """## File tools
 
-## Skills System
-
-You have access to a skills library that provides specialized capabilities and domain knowledge.
-
-{skills_locations}{skills_load_warnings}
-
-**Available Skills:**
-
-{skills_list}
-
-**How to Use Skills (Progressive Disclosure):**
-
-Skills follow a **progressive disclosure** pattern - you see their name and description above, but only read full instructions when needed:
-
-1. **Recognize when a skill applies**: Check if the user's task matches a skill's description
-2. **Read the skill's full instructions**: Use `read_file` on the path shown in the skill list above.
-   Pass `limit=1000` since the default of 100 lines is too small for most skill files.
-3. **Follow the skill's instructions**: SKILL.md contains step-by-step workflows, best practices, and examples
-4. **Access supporting files**: Skills may include helper scripts, configs, or reference docs - use absolute paths
-
-**When to Use Skills:**
-- User's request matches a skill's domain (e.g., "research X" -> web-research skill)
-- You need specialized knowledge or structured workflows
-- A skill provides proven patterns for complex tasks
-
-**Executing Skill Scripts:**
-Skills may contain Python scripts or other executable files. Always use absolute paths from the skill list.
-
-**Example Workflow:**
-
-User: "Can you research the latest developments in quantum computing?"
-
-1. Check available skills -> See "web-research" skill with its path
-2. Read the full skill file: `read_file(path, limit=1000)`
-3. Follow the skill's research workflow (search -> organize -> synthesize)
-4. Use any helper scripts with absolute paths
-
-Remember: Skills make you more capable and consistent. When in doubt, check if a skill exists for the task!
-"""
+- All file paths are absolute and start with `/`. Parent directories are created automatically on write — never run `mkdir` first.
+- `ls` is a quick path-only listing; `list_files` adds size and modification time, newest first — use it when recency matters (fresh uploads, latest artifacts).
+- `delete` is permanent (and recursive on directories). Only delete when the user explicitly asks you to remove something."""
 
 
 # ---------------------------------------------------------------------------
-# Block 5 — deepagents.middleware.filesystem._FILESYSTEM_SYSTEM_PROMPT_TEMPLATE
+# Block 4 — appended to the stock execute tool description via
+# FilesystemMiddleware(custom_tool_descriptions={"execute": ...}) in agents.py.
+# Load-bearing: shell redirections write to the sandbox disk, bypassing the
+# CompositeBackend virtual routes (store/object-store areas would silently
+# miss the data).
 # ---------------------------------------------------------------------------
 
-FILESYSTEM = """## Following Conventions
-
-- Read files before editing — understand existing content before making changes
-- Mimic existing style, naming conventions, and patterns
-
-## Filesystem Tools `ls`, `list_files`, `read_file`, `write_file`, `edit_file`, `overwrite_file`, `glob`, `grep`
-
-You have access to a filesystem which you can interact with using these tools.
-All file paths must start with a /. Follow the tool docs for the available tools, and use pagination (offset/limit) when reading large files.
-
-- ls: list files in a directory (requires absolute path) — quick path-only listing.
-- list_files: list files in a directory with size and modification time, newest first. Use when you need recency or size info, or want results ordered by `modified_at` desc. For a plain path-only listing, prefer `ls`.
-- read_file: read a file from the filesystem
-- write_file: write to a file in the filesystem — parent directories are created automatically, do NOT run `mkdir` (or any other shell command) to create them first
-- edit_file: edit a file in the filesystem
-- overwrite_file: replace the entire contents of a file, or create it if missing — parent directories are created automatically, do NOT run `mkdir` first. Use when you want write-or-replace semantics and don't care whether the path exists.
-- glob: find files matching a pattern (e.g., "**/*.py")
-- grep: search for text within files
-
-## Large Tool Results
-
-When a tool result is too large, it may be offloaded into the filesystem instead of being returned inline. In those cases, use `read_file` to inspect the saved result in chunks, or use `grep` within `{large_tool_results_prefix}/` if you need to search across offloaded tool results and do not know the exact file path. Offloaded tool results are stored under `{large_tool_results_prefix}/<tool_call_id>`."""
+EXECUTE_GUARDRAIL = """**Do NOT use `execute` to create or edit files** — no `echo > file`, `cat <<EOF`, `python -c "open(...).write(...)"`, `sed -i`, etc. Use the filesystem tools instead: `write_file` to create a file or replace its contents, `edit_file` for targeted changes. Those go through the filesystem middleware and write to the right backend route; shell redirections bypass it."""
 
 
 # ---------------------------------------------------------------------------
-# Block 5b — deepagents.middleware.filesystem.EXECUTION_SYSTEM_PROMPT
-# Only appears when backend supports SandboxBackendProtocol. content_builder's
-# CompositeBackend doesn't, so this is unused today — kept for completeness.
-# ---------------------------------------------------------------------------
-
-EXECUTION = """## Execute Tool `execute`
-
-You have access to an `execute` tool for running shell commands in a sandboxed environment.
-Use this tool to run commands, scripts, tests, builds, and other shell operations.
-
-- execute: run a shell command in the sandbox (returns output and exit code)
-
-**Do NOT use `execute` to create or edit files** — no `echo > file`, `cat <<EOF`, `python -c "open(...).write(...)"`, `sed -i`, etc. Use the filesystem tools instead: `write_file` / `overwrite_file` for new content, `edit_file` for targeted changes. Those go through the filesystem middleware and write to the right backend route; shell redirections bypass it."""
-
-
-# ---------------------------------------------------------------------------
-# Block 6 — deepagents.middleware.subagents.TASK_SYSTEM_PROMPT
-# SubAgentMiddleware.__init__ appends "\n\nAvailable subagent types:\n..." after
-# this string — don't add the subagent list yourself.
+# Block 5 — SubAgentMiddleware's keyword-only `system_prompt` default, patched
+# by `_apply_task_prompt_override()` in agents.py (the one remaining kwdefaults
+# patch — create_deep_agent constructs SubAgentMiddleware internally and never
+# forwards a system_prompt). SubAgentMiddleware appends "\n\nAvailable subagent
+# types:\n..." after this string — don't add the subagent list yourself.
 # ---------------------------------------------------------------------------
 
 TASK = """## `task` (subagent spawner)
@@ -215,8 +152,9 @@ When NOT to use the task tool:
 
 
 # ---------------------------------------------------------------------------
-# Block 7 — deepagents.middleware.memory.MEMORY_SYSTEM_PROMPT
-# `{agent_memory}` is REQUIRED — _format_agent_memory calls .format(agent_memory=...)
+# Block 6 — MemoryMiddleware(system_prompt=...) on the override instance in
+# agents.py. `{agent_memory}` is REQUIRED — the middleware validates it at
+# construction and calls .format(agent_memory=...) at runtime.
 # ---------------------------------------------------------------------------
 
 MEMORY = """<agent_memory>
