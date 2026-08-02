@@ -72,7 +72,7 @@ Deliberate negative space: the **assistant pill is a read-only "team" roster, no
 1. `docker compose up -d`; open the frontend host port from `docker ps`. (After pulling, restart the frontend once — `next-themes` was added and `next.config.ts` changed, both read at boot.)
 2. Empty state shows the serif hero + chips; a chip fills the composer; there is **no paperclip** and **no "N" dev indicator** bottom-left.
 3. Open Settings → toggle Light/Dark/System and click each accent swatch; the whole app re-tints live and **persists across reload with no flash**. Default accent is emerald.
-4. Open a thread with tool activity: the tool rail shows status nodes + mono names; `write_todos`/`overwrite_file` use the write icon, `read_file` a book, `execute` a terminal; expanding a row shows the mono detail. The assistant logo avatar appears once at the top of the turn.
+4. Open a thread with tool activity: the tool rail shows status nodes + mono names; `write_todos`/`write_file` use the write icon, `read_file` a book, `execute` a terminal; expanding a row shows the mono detail. The assistant logo avatar appears once at the top of the turn.
 5. Open the threads drawer, **select a thread → it loads and the drawer closes**. Re-open, click **pin** → it docks as a persistent column and **stays open** when switching threads.
 6. Ask the agent to list the files it created; the paths render as emerald links — clicking one opens the file preview. A made-up path renders as plain text.
 7. Send a fresh message and watch it stream (working indicator → Stop button → avatar + streamed reply); confirm via React DevTools that only the streaming row re-renders (streaming perf intact).

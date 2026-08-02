@@ -36,7 +36,7 @@ interface ToolCallBoxProps {
 
 const TOOL_ICON_MAP: Array<[RegExp, LucideIcon]> = [
   [/^(read_file|read|open_file|cat)$/i, BookOpen],
-  [/^(write_file|overwrite_file|edit_file|create_file|patch|write_todos)$/i, FilePenLine],
+  [/^(write_file|edit_file|create_file|patch|write_todos)$/i, FilePenLine],
   [/^(ls|list|list_files)$/i, FolderTree],
   [/^(execute|run|bash|shell|exec)$/i, SquareTerminal],
   [/(search|grep|rg|web)/i, Search],

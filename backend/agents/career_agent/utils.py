@@ -30,8 +30,8 @@ def load_subagents(
         tools: Name -> BaseTool pool that subagents may opt into via their
             `tools:` list in YAML.
         default_tools: BaseTools every subagent gets unconditionally — typically
-            generic filesystem utilities (`list_files`, `overwrite_file`) that
-            most subagents need but shouldn't have to re-declare per-entry.
+            generic filesystem utilities (`list_files`) that most subagents
+            need but shouldn't have to re-declare per-entry.
         default_middleware: AgentMiddlewares every subagent gets unconditionally.
             Required for any middleware whose behavior must run inside a
             subagent's own model call (e.g. per-request model overrides) —

@@ -13,7 +13,7 @@ version: v1
 
 # Why
 
-`LocalShellBackend(root_dir=CAREER_AGENT_DIR, virtual_mode=True)` makes the filesystem tools (`read_file`, `write_file`, `edit_file`, `overwrite_file`, `list_files`) speak in **virtual paths** — `/tailored_resume/foo.yaml` resolves to `<CAREER_AGENT_DIR>/tailored_resume/foo.yaml`. The `execute` tool injected by deepagents' `FilesystemMiddleware` does no such translation: the command string is handed verbatim to `subprocess.run(..., cwd=root_dir, shell=True)`. So `rendercv render /tailored_resume/foo.yaml` is read as a real absolute path on container disk and fails with `FileNotFoundError`.
+`LocalShellBackend(root_dir=CAREER_AGENT_DIR, virtual_mode=True)` makes the filesystem tools (`read_file`, `write_file`, `edit_file`, `list_files`) speak in **virtual paths** — `/tailored_resume/foo.yaml` resolves to `<CAREER_AGENT_DIR>/tailored_resume/foo.yaml`. The `execute` tool injected by deepagents' `FilesystemMiddleware` does no such translation: the command string is handed verbatim to `subprocess.run(..., cwd=root_dir, shell=True)`. So `rendercv render /tailored_resume/foo.yaml` is read as a real absolute path on container disk and fails with `FileNotFoundError`.
 
 [PRD 07](07_tailored_resume_pdf.md) papered over this with two crutches: `prepare_render_settings` returning a real on-disk path so the LLM could paste it verbatim into `execute`, plus a long SKILL.md lecture instructing the LLM to switch path conventions. It worked, but the dual convention (virtual paths everywhere except inside `execute`) periodically confused the LLM into pasting the wrong path. The goal here is a single path convention end-to-end and the SKILL.md lecture gone.
 

@@ -178,7 +178,7 @@ The agent's behavior is configured by files, not hardcoded — making it easy to
 | **Memory** | `CAREER_AGENT.md` | Per-stage procedure manual (semantic memory) | Always (system prompt) |
 | **Skills** | `skills/<consumer>/<name>/SKILL.md` | Task workflows (procedural memory) | On demand, per consumer |
 | **Subagents** | `subagents.yaml` | Specialist delegates → the `task` tool | Always |
-| **Tools** | `tools.py` + DeepAgents built-ins | `parse_document`, `extract_jd`, `render_resume_pdf`, `render_battlecard_pdf`, `list_files`, `overwrite_file`, plus `read/write/edit_file`, `ls/glob/grep`, `execute` | — |
+| **Tools** | `tools.py` + DeepAgents built-ins | `parse_document`, `extract_jd`, `render_resume_pdf`, `render_battlecard_pdf`, `list_files`, plus `read/write/edit_file`, `ls/glob/grep`, `delete`, `execute` | — |
 | **Filesystem** | `CompositeBackend` | Routes virtual paths to the right store (see below) | — |
 | **Middleware** | `middleware.py` | `ModelOverrideMiddleware` (runtime LLM swap) + `UtcDatetimeMiddleware` | — |
 

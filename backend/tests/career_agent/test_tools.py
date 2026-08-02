@@ -511,56 +511,7 @@ def test_extract_jd_overwrites_existing_processed_file(tmp_path, backend):
     assert "first" not in written
 
 
-# ---------------------------------------------------------------------------
-# overwrite_file
-# ---------------------------------------------------------------------------
-
-
-def test_overwrite_file_writes_new_file(tmp_path, backend):
-    from backend.agents.career_agent.tools import make_overwrite_file
-
-    result = make_overwrite_file(backend).invoke(
-        {"file_path": "/processed/fresh.md", "new_content": "# Fresh\nbody"},
-    )
-
-    assert "Saved /processed/fresh.md" in result
-    assert "(12 chars)" in result
-    assert (tmp_path / "processed" / "fresh.md").read_text() == "# Fresh\nbody"
-
-
-def test_overwrite_file_replaces_existing_content(tmp_path, backend):
-    from backend.agents.career_agent.tools import make_overwrite_file
-
-    processed = tmp_path / "processed"
-    processed.mkdir(parents=True)
-    (processed / "stale.md").write_text("old login page content")
-
-    tool = make_overwrite_file(backend)
-    result = tool.invoke(
-        {
-            "file_path": "/processed/stale.md",
-            "new_content": "_Source: https://example.com/jd_\n\nReal JD body.",
-        },
-    )
-
-    assert "Saved /processed/stale.md" in result
-    written = (processed / "stale.md").read_text()
-    assert "_Source: https://example.com/jd_" in written
-    assert "Real JD body." in written
-    assert "login page" not in written
-
-
-def test_overwrite_file_surfaces_upsert_error(backend):
-    """Pass-through: if `_upsert` returns an error, the tool reports it."""
-    from backend.agents.career_agent import tools
-    from deepagents.backends.protocol import WriteResult
-
-    def _fake_upsert(_backend, _path, _content):
-        return WriteResult(error="disk full")
-
-    with patch.object(tools, "_upsert", _fake_upsert):
-        result = tools.make_overwrite_file(backend).invoke(
-            {"file_path": "/processed/x.md", "new_content": "anything"},
-        )
-
-    assert result == "Error overwriting /processed/x.md: disk full"
+# The old `overwrite_file` tool (and its `_upsert` fallback) are gone:
+# deepagents 0.7's built-in `write_file` has write-or-replace semantics, so
+# parse_document/extract_jd persist via a plain `backend.write` — covered by
+# the re-parse/re-extract overwrite tests above.

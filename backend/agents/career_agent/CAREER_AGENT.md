@@ -43,7 +43,7 @@ If the user gives a JD as a URL (no upload), call `extract_jd(url=<url>, save_as
 If `parse_document` returns a string starting with `Error:`, don't stop. Tell the user the parse failed in one short line (include the error message), then offer two options in the same reply:
 
 1. **Recommended — save the content as a `.txt` file and re-upload via the Workspace Files.** When they do, run the upload reconciliation again and call `parse_document` with the **same `output_path`** (i.e. `/processed/<slug>.md`) so the processed file is overwritten cleanly. Cheaper because the doc body never re-flows through the model.
-2. **Alternative — paste the CV/JD text directly into chat.** If they pick this, persist with `overwrite_file("/processed/<save_as>.md", <pasted text>)`.
+2. **Alternative — paste the CV/JD text directly into chat.** If they pick this, persist with `write_file("/processed/<save_as>.md", <pasted text>)`.
 
 Let the user choose. Don't decide for them.
 
@@ -64,7 +64,7 @@ When that happens:
 1. Tell the user the URL is auth-walled, naming the site, in one short line.
 2. Offer two options in the same reply:
    - **Recommended — save the JD as a `.txt` file and upload it.** When they do, call `parse_document(source_path="/upload/<the txt>", output_path="/processed/<same slug as the failed extract>.md")` so the bad page is overwritten with the real JD body. Then prepend the original source URL with `edit_file(path, old_string="<first line of the freshly-parsed file>", new_string="_Source: <original url>_\n\n<first line>")` so the artifact still records where the URL came from.
-   - **Alternative — paste the JD content directly into chat.** If they pick this, replace the bad page with `overwrite_file(path, "_Source: <original url>_\n\n<pasted text>")`. The new content already includes the source line.
+   - **Alternative — paste the JD content directly into chat.** If they pick this, replace the bad page with `write_file(path, "_Source: <original url>_\n\n<pasted text>")`. The new content already includes the source line.
 
 ### Slug naming and reply style
 
@@ -76,7 +76,7 @@ After parsing, reply with one short line per saved path. Don't dump the markdown
 
 Once parsing is done and `/processed/<jd-slug>.md` + `/processed/<resume-slug>.md` exist, write the answers the user gave back in Stage 1 into the right files. You now know the slugs, so the paths are concrete:
 
-- **Prep timeline + extra context about the role / company / team / interview process** → write to `/processed/<resume-slug>-<jd-slug>-intake.md` via `overwrite_file`. One file per resume×JD pair — the same JD targeted with two CV variants can carry different timelines or notes. Suggested format:
+- **Prep timeline + extra context about the role / company / team / interview process** → write to `/processed/<resume-slug>-<jd-slug>-intake.md` via `write_file`. One file per resume×JD pair — the same JD targeted with two CV variants can carry different timelines or notes. Suggested format:
 
   ```
   # Intake — <resume-slug> × <jd-slug>
@@ -140,7 +140,7 @@ Once all five stages have run, users will ask to iterate ("add a 4th round to th
 ### Battlecard updates (you own this — no subagent)
 
 1. `read_file("/interview_battlecard/<resume-slug>/<jd-slug>.json", limit=1000)` first, even if you think you remember the contents. Your chat history may have been compacted, and the user may have edited the JSON in Workspace > Files between turns.
-2. Apply the change: use `edit_file(path, old_string=..., new_string=...)` for adding/replacing a round, story, or fact; use `overwrite_file(path, ...)` only when restructuring most of the file. Keep the JSON shape valid (the `interview-battlecard` skill documents it).
+2. Apply the change: use `edit_file(path, old_string=..., new_string=...)` for adding/replacing a round, story, or fact; use `write_file(path, ...)` only when restructuring most of the file. Keep the JSON shape valid (the `interview-battlecard` skill documents it).
 3. Call `render_battlecard_pdf("/interview_battlecard/<resume-slug>/<jd-slug>.json")` to refresh the `.pdf` sibling. Skipping this leaves the PDF stale.
 
 ### Research-report updates → `hiring-recon`
@@ -163,7 +163,7 @@ Spawn `interview-coach` via `task`:
 
 ### Processed resume/JD/intake updates (you own these)
 
-These already use `edit_file` / `overwrite_file` per the Stage 2 procedure. Re-running `parse_document` or `extract_jd` with the same `output_path` / `save_as` overwrites cleanly when the user provides a fresh source file.
+These already use `edit_file` / `write_file` per the Stage 2 procedure. Re-running `parse_document` or `extract_jd` with the same `output_path` / `save_as` overwrites cleanly when the user provides a fresh source file.
 
 ### Cascading updates
 

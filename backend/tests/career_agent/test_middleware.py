@@ -1,4 +1,4 @@
-"""Tests for the career-agent UTC date middleware."""
+"""Tests for the career-agent custom middleware (UTC date, preferences seeding)."""
 
 import re
 from datetime import UTC, datetime, tzinfo
@@ -6,7 +6,9 @@ from types import SimpleNamespace
 from typing import Self
 
 import pytest
+from deepagents.backends import CompositeBackend, StateBackend, StoreBackend
 from langchain_core.messages import SystemMessage
+from langgraph.store.memory import InMemoryStore
 
 
 @pytest.fixture
@@ -96,28 +98,49 @@ def test_middleware_uses_same_date_for_different_times_on_same_day(middleware, m
 _STORE_DOWN = RuntimeError("store unavailable")
 
 
-class _RecordingBackend:
-    """Stand-in backend that records write/awrite calls.
+class _ExplodingBackend:
+    """Stand-in backend where every call raises, mimicking a store outage."""
 
-    `fail=True` raises to mimic a store outage, so we can assert the middleware
-    swallows it rather than crashing the run.
-    """
+    def read(self, path: str):
+        raise _STORE_DOWN
 
-    def __init__(self, *, fail: bool = False) -> None:
-        self.fail = fail
-        self.writes: list[tuple[str, str]] = []
+    async def aread(self, path: str):
+        raise _STORE_DOWN
 
     def write(self, path: str, content: str):
-        if self.fail:
-            raise _STORE_DOWN
-        self.writes.append((path, content))
-        return SimpleNamespace(error=None, path=path)
+        raise _STORE_DOWN
 
     async def awrite(self, path: str, content: str):
-        if self.fail:
-            raise _STORE_DOWN
-        self.writes.append((path, content))
-        return SimpleNamespace(error=None, path=path)
+        raise _STORE_DOWN
+
+
+def _memory_backend() -> CompositeBackend:
+    """A real composite stack for `/memory/`, like production but in-memory.
+
+    Exercises the same code path the agent uses (prefix routing into a
+    StoreBackend), so it inherits deepagents' real write semantics — under
+    0.7 `write()` overwrites, which is exactly what the regression tests below
+    must observe.
+    """
+    return CompositeBackend(
+        default=StateBackend(),
+        routes={
+            "/memory/": StoreBackend(
+                namespace=lambda _rt: ("test", "memory"),
+                store=InMemoryStore(),
+            ),
+        },
+    )
+
+
+# A preferences file with real user content and deliberately WITHOUT the
+# scaffold's other section headings, so a scaffold overwrite is detectable.
+_SAVED_PREFERENCES = """# Saved preferences
+
+## Research
+
+- Always include the company's typical salary range.
+"""
 
 
 def test_ensure_preferences_seeds_scaffold_when_missing():
@@ -126,21 +149,48 @@ def test_ensure_preferences_seeds_scaffold_when_missing():
         EnsurePreferencesFileMiddleware,
     )
 
-    backend = _RecordingBackend()
+    backend = _memory_backend()
     EnsurePreferencesFileMiddleware(backend).before_agent(state={}, runtime=None)
 
-    assert len(backend.writes) == 1
-    path, content = backend.writes[0]
-    assert path == PREFERENCES_PATH
+    result = backend.read(PREFERENCES_PATH)
+    assert result.error is None
+    assert result.file_data is not None
+    content = result.file_data["content"]
     assert content.startswith("# Saved preferences")
     assert "## Battlecard" in content  # section headings the model appends under
+
+
+def test_ensure_preferences_preserves_existing_content():
+    """Regression: deepagents 0.7 `write()` overwrites, so seeding must probe first.
+
+    Under 0.6 the backend refused to overwrite and the unconditional seed write
+    was a harmless no-op; under 0.7 it would wipe saved preferences on every
+    turn unless the middleware checks for the file before writing.
+    """
+    from backend.agents.career_agent.middleware import (
+        PREFERENCES_PATH,
+        EnsurePreferencesFileMiddleware,
+    )
+
+    backend = _memory_backend()
+    assert backend.write(PREFERENCES_PATH, _SAVED_PREFERENCES).error is None
+
+    middleware = EnsurePreferencesFileMiddleware(backend)
+    middleware.before_agent(state={}, runtime=None)
+    middleware.before_agent(state={}, runtime=None)  # every turn re-runs this hook
+
+    result = backend.read(PREFERENCES_PATH)
+    assert result.file_data is not None
+    content = result.file_data["content"]
+    assert "Always include the company's typical salary range." in content
+    assert "## Battlecard" not in content  # scaffold did not replace user content
 
 
 def test_ensure_preferences_swallows_backend_errors():
     from backend.agents.career_agent.middleware import EnsurePreferencesFileMiddleware
 
-    # A failing store write must never crash the agent run.
-    EnsurePreferencesFileMiddleware(_RecordingBackend(fail=True)).before_agent(
+    # A failing store probe/write must never crash the agent run.
+    EnsurePreferencesFileMiddleware(_ExplodingBackend()).before_agent(
         state={},
         runtime=None,
     )
@@ -153,9 +203,42 @@ async def test_ensure_preferences_async_path_seeds():
         EnsurePreferencesFileMiddleware,
     )
 
-    backend = _RecordingBackend()
+    backend = _memory_backend()
     await EnsurePreferencesFileMiddleware(backend).abefore_agent(state={}, runtime=None)
 
-    assert len(backend.writes) == 1
-    assert backend.writes[0][0] == PREFERENCES_PATH
-    assert backend.writes[0][1].startswith("# Saved preferences")
+    result = await backend.aread(PREFERENCES_PATH)
+    assert result.error is None
+    assert result.file_data is not None
+    assert result.file_data["content"].startswith("# Saved preferences")
+
+
+@pytest.mark.asyncio
+async def test_ensure_preferences_async_path_preserves_existing_content():
+    """Async twin of the overwrite regression test."""
+    from backend.agents.career_agent.middleware import (
+        PREFERENCES_PATH,
+        EnsurePreferencesFileMiddleware,
+    )
+
+    backend = _memory_backend()
+    assert (await backend.awrite(PREFERENCES_PATH, _SAVED_PREFERENCES)).error is None
+
+    middleware = EnsurePreferencesFileMiddleware(backend)
+    await middleware.abefore_agent(state={}, runtime=None)
+    await middleware.abefore_agent(state={}, runtime=None)
+
+    result = await backend.aread(PREFERENCES_PATH)
+    assert result.file_data is not None
+    content = result.file_data["content"]
+    assert "Always include the company's typical salary range." in content
+    assert "## Battlecard" not in content
+
+
+@pytest.mark.asyncio
+async def test_ensure_preferences_async_swallows_backend_errors():
+    from backend.agents.career_agent.middleware import EnsurePreferencesFileMiddleware
+
+    await EnsurePreferencesFileMiddleware(_ExplodingBackend()).abefore_agent(
+        state={},
+        runtime=None,
+    )
