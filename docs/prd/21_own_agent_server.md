@@ -120,7 +120,7 @@ complete, ordered tool activity from durable checkpoints instead of showing noth
 2. `curl localhost:${LANGGRAPH_LOCAL_PORT}/ok` → `{"ok":true}`; `/docs` renders; `/mcp`
    answers an `initialize` handshake; `/a2a/career_agent` speaks JSON-RPC.
 3. In the UI: send a message, then a follow-up after >10 s idle — both stream. Ask for a file
-   write and watch the `overwrite_file` card appear mid-run with its args growing (the
+   write and watch the `write_file` card appear mid-run with its args growing (the
    tool-arg streaming this migration twice broke and fixed).
 4. Run a full prep (parallel subagents), then cold-reload the thread: every subagent card
    shows complete, ordered tool activity.

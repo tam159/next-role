@@ -73,6 +73,6 @@ After rendering, the agent emits one short handoff line: `Battlecard saved — N
 1. `docker compose up -d` (the user's standard local-dev stack — weasyprint's Pango/GLib system libs are baked into `next-role-backend`).
 2. From `backend/`: `docker exec next-role-backend-1 bash -lc 'cd /deps/next-role/backend && uv run pytest tests/career_agent/test_tools_battlecard_pdf.py -v'` — 6/6 pass in the container. On the macOS host, `uv run pytest tests/career_agent/test_tools_battlecard_pdf.py` shows 4 passed, 2 skipped.
 3. In the frontend, kick off Stage 5 for an existing resume × JD pair that already has a tailored resume + interview-coach prep doc.
-4. Watch the agent call `overwrite_file("/interview_battlecard/<r>/<j>.json", …)` then `render_battlecard_pdf("/interview_battlecard/<r>/<j>.json")`. The tool replies `Rendered PDF to /interview_battlecard/<r>/<j>.pdf` — backend-relative.
+4. Watch the agent call `write_file("/interview_battlecard/<r>/<j>.json", …)` then `render_battlecard_pdf("/interview_battlecard/<r>/<j>.json")`. The tool replies `Rendered PDF to /interview_battlecard/<r>/<j>.pdf` — backend-relative.
 5. In Workspace > Files, both `<jd>.json` and `<jd>.pdf` appear under `/interview_battlecard/<resume>/`. Click the PDF — A4 landscape, one page per round, five colored section cards, FiraSans.
 6. Edit the JSON in Workspace > Files (e.g. drop a watch-out), ask the agent to re-render → PDF refreshes in place; JSON is unchanged otherwise.

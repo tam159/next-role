@@ -8,6 +8,7 @@
 * [Collapsible Threads Panel](24_collapsible_threads_panel.md) - One always-mounted Threads panel — docked on desktop, overlay on mobile — replaces the drawer/dock split; pinning is just persistence.
 * [Color-coded Workspace File Cards](09_file_category_colors.md) - Tint each Workspace file card's icon by its root folder so users can spot the right artifact at a glance.
 * [Configurable LLM Models](15_configurable_llm_models.md) - Settings-dialog overrides for main-agent and subagent models via configurable keys and a shared ModelOverrideMiddleware.
+* [deepagents 0.7 Behavioral Migration](28_deepagents_v07_migration.md) - Move prompt customization from monkey patches to deepagents 0.7's supported parameters, restore the opt-in write_todos, fix the silent per-turn preferences wipe, and align write-or-replace semantics — retiring overwrite_file.
 * [Disable token streaming for subagents](16_disable_subagent_streaming.md) - Backend middleware flips disable_streaming on subagent models to kill an O(n²) SDK concat that froze the chat during parallel subagent runs.
 * [Document Processing](02_document_processing.md) - Convert uploaded CVs/JDs into clean markdown with LlamaParse, persisted by the tool itself so the LLM never re-emits document bodies.
 * [File Upload](01_file_upload.md) - Upload a CV and optional JD into the career agent's workspace — the entry point for the whole agent flow.

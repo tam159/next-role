@@ -52,7 +52,10 @@ discovery flow — see below.
   starts the intake workflow). `EnsurePreferencesFileMiddleware` writes the scaffold in
   `before_agent`/`abefore_agent` — a single cheap store write (no model round-trip → no added latency),
   idempotent because the backend's `write` refuses to overwrite an existing file. This is what makes
-  saving reliable: the model only ever has to edit.
+  saving reliable: the model only ever has to edit. *(The refusal premise broke in deepagents 0.7 —
+  `write` now overwrites — and would have silently wiped saved preferences every turn; the 0.7
+  migration restored idempotency with an explicit existence probe (read-before-write) in the
+  middleware, locked by regression tests in `test_middleware.py`.)*
 - **Apply by folding preferences into subagent task descriptions.** Subagents have no memory; the main
   agent copies the relevant preference lines into each subagent's task input (which subagents already
   treat as user instructions, per [PRD 06](06_subagents_with_skills.md)). The battlecard, which the main agent builds itself, applies
