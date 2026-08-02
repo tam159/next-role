@@ -68,12 +68,12 @@ class EnsurePreferencesFileMiddleware(AgentMiddleware):
 
     The model reliably *appends* a preference to `/memory/preferences.md` when the
     file already exists, but won't reliably *create* it on a clean slate — it
-    fumbles toward CAREER_AGENT.md or starts the intake workflow instead. So we seed
-    the scaffold here in `before_agent`: a single cheap store write — no model
-    round trip, so no added response latency — and idempotent, because the
-    backend's `write` refuses to overwrite an existing file. This keeps the
-    preferences memory source present on every deployment without relying on the
-    LLM to bootstrap it.
+    fumbles toward CAREER_AGENT.md or starts the intake workflow instead. So we
+    seed the scaffold here in `before_agent`, gated on an explicit existence
+    probe: one cheap store read per run, one write ever. The probe is what makes
+    this idempotent — deepagents 0.7 `write()` overwrites existing files (0.6
+    refused, which used to be the guard), so an unconditional write would wipe
+    the user's saved preferences on every turn.
 
     Main-agent only — subagents have no memory and never touch this file.
     """
@@ -85,14 +85,18 @@ class EnsurePreferencesFileMiddleware(AgentMiddleware):
     def before_agent(self, state: Any, runtime: Any) -> dict[str, Any] | None:  # noqa: ANN401, ARG002
         """Seed the scaffold if missing (sync invocation path)."""
         try:
-            self._backend.write(PREFERENCES_PATH, _PREFERENCES_SCAFFOLD)
+            # `error is None` ⇒ the file exists; never overwrite saved preferences.
+            if self._backend.read(PREFERENCES_PATH).error is not None:
+                self._backend.write(PREFERENCES_PATH, _PREFERENCES_SCAFFOLD)
         except Exception:  # never break a run over preference seeding
             logger.debug("ensure preferences file (sync) skipped", exc_info=True)
 
     async def abefore_agent(self, state: Any, runtime: Any) -> dict[str, Any] | None:  # noqa: ANN401, ARG002
         """Seed the scaffold if missing (async invocation path)."""
         try:
-            await self._backend.awrite(PREFERENCES_PATH, _PREFERENCES_SCAFFOLD)
+            # `error is None` ⇒ the file exists; never overwrite saved preferences.
+            if (await self._backend.aread(PREFERENCES_PATH)).error is not None:
+                await self._backend.awrite(PREFERENCES_PATH, _PREFERENCES_SCAFFOLD)
         except Exception:  # never break a run over preference seeding
             logger.debug("ensure preferences file (async) skipped", exc_info=True)
 
