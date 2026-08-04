@@ -31,6 +31,21 @@ def test_memory_prompt_keeps_required_placeholder() -> None:
     assert "{agent_memory}" in prompts.MEMORY
 
 
+def test_todo_prompt_still_matches_stock() -> None:
+    """`prompts.TODO` is (for now) a verbatim copy of langchain's stock prompt.
+
+    It lives in prompts.py as an owned tuning seam. Until it deliberately
+    diverges, keep it in lockstep with upstream so langchain bumps surface
+    wording drift here instead of silently shipping a stale fork. The day TODO
+    is customized on purpose, delete this test and the sync note on the
+    constant — it becomes product text.
+    """
+    from backend.agents.career_agent import prompts
+    from langchain.agents.middleware.todo import WRITE_TODOS_SYSTEM_PROMPT
+
+    assert prompts.TODO == WRITE_TODOS_SYSTEM_PROMPT
+
+
 def test_memory_sources_and_prompt_wired_via_constructor(monkeypatch) -> None:
     """The override MemoryMiddleware must carry our prompt and the `memory=` sources.
 

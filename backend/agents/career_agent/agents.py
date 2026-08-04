@@ -175,10 +175,11 @@ def build_career_agent(
         # deepagents 0.7 dropped TodoListMiddleware from the default stack,
         # so planning todos (the write_todos tool + `todos` state channel the
         # frontend Plan panel reads) are opt-in. Main agent only — subagents
-        # are single-shot by design. Stock langchain prompt (career-specific
+        # are single-shot by design. prompts.TODO starts as a verbatim copy of
+        # the stock langchain prompt — an owned tuning seam (career-specific
         # usage gates live in SYSTEM_PROMPT). Keep it before
         # UtcDatetimeMiddleware so its section lands ahead of the date line.
-        TodoListMiddleware(),
+        TodoListMiddleware(system_prompt=_prompts.TODO),
         UtcDatetimeMiddleware(),
         # Name-matched overrides — these replace the corresponding defaults
         # in place (positions in this list don't matter):

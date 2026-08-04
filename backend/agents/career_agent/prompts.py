@@ -4,18 +4,18 @@
 
 Since deepagents 0.7 every prompt here rides a supported parameter — no monkey
 patching (0.7 deleted the old module constants and assembles its base prompt
-from an empty string). Mirrors of upstream text are gone too: the todo section
-uses langchain's stock `TodoListMiddleware()` prompt, and there is no `## task`
-section at all — 0.7 carries subagent usage (and the subagent list) in the
-`task` tool description instead.
+from an empty string). There is deliberately no `## task` section — 0.7 carries
+subagent usage (and the subagent list) in the `task` tool description instead.
 
 1. `SYSTEM_PROMPT` — `create_deep_agent(system_prompt=...)`; placed first in the
    assembled system message.
-2. `FILE_TOOLS` — `FilesystemMiddleware(system_prompt=...)` on the override
+2. `TODO` — `TodoListMiddleware(system_prompt=...)`; starts as a verbatim copy
+   of langchain's stock prompt, kept as an owned constant as the tuning seam.
+3. `FILE_TOOLS` — `FilesystemMiddleware(system_prompt=...)` on the override
    instance in agents.py.
-3. `EXECUTE_GUARDRAIL` — appended to the stock execute tool description via
+4. `EXECUTE_GUARDRAIL` — appended to the stock execute tool description via
    `FilesystemMiddleware(custom_tool_descriptions=...)`.
-4. `MEMORY` — `MemoryMiddleware(system_prompt=...)` on the override instance.
+5. `MEMORY` — `MemoryMiddleware(system_prompt=...)` on the override instance.
 
 Format placeholders (required, do not remove):
 - MEMORY: `{agent_memory}`
@@ -67,7 +67,36 @@ Interviews are stressful. Talk like a supportive coach who has done this a hundr
 
 
 # ---------------------------------------------------------------------------
-# Block 2 — FilesystemMiddleware(system_prompt=...) on the override instance in
+# Block 2 — TodoListMiddleware(system_prompt=...) in agents.py (opt-in since
+# 0.7; main agent only). Currently a VERBATIM copy of langchain 1.3's
+# WRITE_TODOS_SYSTEM_PROMPT, kept as an owned constant so the todo behavior can
+# be tuned here without patching. While it stays unmodified, re-diff against
+# the stock constant on langchain bumps and re-sync; once it diverges on
+# purpose, drop that ritual and treat it as product text.
+# ---------------------------------------------------------------------------
+
+TODO = """## `write_todos`
+
+You have access to the `write_todos` tool to help you manage and plan complex objectives.
+Use this tool for complex objectives to ensure that you are tracking each necessary step.
+This tool is very helpful for planning complex objectives, and for breaking down these larger complex objectives into smaller steps.
+
+It is critical that you mark todos as completed as soon as you are done with a step. Do not batch up multiple steps before marking them as completed.
+For simple objectives that only require a few steps, it is better to just complete the objective directly and NOT use this tool.
+Writing todos takes time and tokens, use it when it is helpful for managing complex many-step problems! But not for simple few-step requests.
+
+## Important To-Do List Usage Notes to Remember
+
+- The `write_todos` tool should never be called multiple times in parallel.
+- Don't be afraid to revise the To-Do list as you go. New information may reveal new tasks that need to be done, or old tasks that are irrelevant.
+
+## Finishing a task
+
+When you finish all work, write your final answer in the message AFTER your last `write_todos` call — not in the same turn as that call. Start the final message with the substantive content the user asked for — the data, computation, summary, or analysis. The user wants the result, not confirmation that the work is done."""
+
+
+# ---------------------------------------------------------------------------
+# Block 3 — FilesystemMiddleware(system_prompt=...) on the override instance in
 # agents.py. Lean by design: deepagents 0.7 moved tool-usage prose into the
 # tool descriptions themselves, so only guidance with no schema home lives here.
 # (The old Skills / Following Conventions / Filesystem Tools / Large Tool
@@ -82,7 +111,7 @@ FILE_TOOLS = """## File tools
 
 
 # ---------------------------------------------------------------------------
-# Block 3 — appended to the stock execute tool description via
+# Block 4 — appended to the stock execute tool description via
 # FilesystemMiddleware(custom_tool_descriptions={"execute": ...}) in agents.py.
 # Load-bearing: shell redirections write to the sandbox disk, bypassing the
 # CompositeBackend virtual routes (store/object-store areas would silently
@@ -93,7 +122,7 @@ EXECUTE_GUARDRAIL = """**Do NOT use `execute` to create or edit files** — no `
 
 
 # ---------------------------------------------------------------------------
-# Block 4 — MemoryMiddleware(system_prompt=...) on the override instance in
+# Block 5 — MemoryMiddleware(system_prompt=...) on the override instance in
 # agents.py. `{agent_memory}` is REQUIRED — the middleware validates it at
 # construction and calls .format(agent_memory=...) at runtime.
 # ---------------------------------------------------------------------------
