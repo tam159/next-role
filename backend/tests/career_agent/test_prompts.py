@@ -50,21 +50,22 @@ def test_memory_sources_and_prompt_wired_via_constructor(monkeypatch) -> None:
     assert agents._memory_middleware.system_prompt == prompts.MEMORY  # noqa: SLF001
 
 
-def test_task_prompt_override_reaches_subagent_middleware(monkeypatch) -> None:
-    """The one remaining kwdefaults patch must keep feeding SubAgentMiddleware.
+def test_no_prompt_monkey_patching_remains(monkeypatch) -> None:
+    """SubAgentMiddleware's kwdefault must stay pristine — no `## task` section.
 
-    create_deep_agent constructs SubAgentMiddleware internally without a
-    `system_prompt` (its keyword-only default is None → no section at all), so
-    the patched default is the only channel for the custom `## task` section.
+    The task section was retired with the deepagents 0.7 alignment: subagent
+    usage guidance and the subagent list live in the `task` TOOL description
+    ({available_agents}), not the system prompt. If this default is ever
+    non-None again, someone reintroduced a patch — the snapshot test below
+    asserts the section stays out of the assembled prompt too.
     """
     monkeypatch.setenv("OPENAI_API_KEY", "test-key")
 
-    import backend.agents.career_agent.agents  # noqa: F401  # import applies the override
+    import backend.agents.career_agent.agents  # noqa: F401  # import must not patch anything
     import deepagents.middleware.subagents as sub
-    from backend.agents.career_agent import prompts
 
     kwdefaults = sub.SubAgentMiddleware.__init__.__kwdefaults__ or {}
-    assert kwdefaults["system_prompt"] == prompts.TASK
+    assert kwdefaults["system_prompt"] is None
 
 
 def test_todos_channel_registered(monkeypatch) -> None:
@@ -147,16 +148,22 @@ def test_assembled_prompt_and_tools_snapshot(monkeypatch) -> None:
         "## Skills System",
         "## File tools",
         "## Shell paths vs. virtual paths",
-        "## `task` (subagent spawner)",
-        "Available subagent types:",
         "<memory_guidelines>",
         "Current UTC date:",
     )
     for expected in expected_sections:
         assert expected in system_text, f"missing section: {expected}"
 
-    # Lean on purpose — prose that 0.7 moved into tool schemas must not come back.
-    removed_sections = ("## Following Conventions", "## Large Tool Results", "## Execute Tool")
+    # Lean on purpose — prose that 0.7 moved into tool schemas must not come
+    # back. The task section is gone too: subagent usage and the subagent list
+    # ride the `task` tool description, not the system prompt.
+    removed_sections = (
+        "## Following Conventions",
+        "## Large Tool Results",
+        "## Execute Tool",
+        "## `task`",
+        "Available subagent types:",
+    )
     for gone in removed_sections:
         assert gone not in system_text, f"unexpectedly restored: {gone}"
 
@@ -183,3 +190,9 @@ def test_assembled_prompt_and_tools_snapshot(monkeypatch) -> None:
 
     execute_description = _tool_description(fake.captured_tools[0], "execute")
     assert "Do NOT use `execute` to create or edit files" in execute_description
+
+    # With no `## task` prompt section, the subagent roster must reach the
+    # model through the task tool description ({available_agents}).
+    task_description = _tool_description(fake.captured_tools[0], "task")
+    for subagent in ("general-purpose", "hiring-recon", "resume-tailor", "interview-coach"):
+        assert subagent in task_description, f"subagent missing from task description: {subagent}"

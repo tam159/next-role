@@ -2,7 +2,6 @@
 
 from typing import Any
 
-import deepagents.middleware.subagents as _sub_mw
 from backend.agents.career_agent import prompts as _prompts
 from backend.agents.career_agent.middleware import (
     PREFERENCES_PATH,
@@ -33,29 +32,11 @@ from langchain_core.language_models import BaseChatModel
 from langgraph.graph.state import CompiledStateGraph
 from langgraph.store.base import BaseStore
 
-
-def _apply_task_prompt_override() -> None:
-    """Install the custom `## task` section via SubAgentMiddleware's kwdefault.
-
-    Every other prompt customization rides a supported deepagents 0.7 parameter
-    (the `system_prompt=` constructor args on the middleware instances below).
-    `SubAgentMiddleware` is the one exception: `create_deep_agent` constructs it
-    internally around the already-compiled subagent graphs and never forwards a
-    `system_prompt`, so building our own instance would mean re-implementing
-    subagent compilation. Its keyword-only `system_prompt` default is `None`
-    (no section at all); patching the kwdefault makes the internal construction
-    pick up our TASK text, and the middleware itself appends the
-    "Available subagent types:" list after it.
-
-    Must run before `create_deep_agent()`. Process-global side effect — any
-    other deep agent instantiated in the same Python process after this runs
-    will also see this prompt.
-    """
-    _sub_mw.SubAgentMiddleware.__init__.__kwdefaults__["system_prompt"] = _prompts.TASK  # type: ignore # noqa: PGH003
-
-
-_apply_task_prompt_override()
-
+# No prompt monkey patching remains: every customization rides a supported
+# deepagents 0.7 parameter. There is deliberately no `## task` prompt section —
+# SubAgentMiddleware's `system_prompt` defaults to None, and 0.7 carries
+# subagent usage guidance plus the subagent list in the `task` TOOL description
+# ({available_agents}); CAREER_AGENT.md adds the per-stage task-input templates.
 
 _MODEL = "openai:gpt-5.6-terra"
 
@@ -194,9 +175,10 @@ def build_career_agent(
         # deepagents 0.7 dropped TodoListMiddleware from the default stack,
         # so planning todos (the write_todos tool + `todos` state channel the
         # frontend Plan panel reads) are opt-in. Main agent only — subagents
-        # are single-shot by design. Keep it before UtcDatetimeMiddleware so
-        # its prompt section lands ahead of the date line.
-        TodoListMiddleware(system_prompt=_prompts.TODO),
+        # are single-shot by design. Stock langchain prompt (career-specific
+        # usage gates live in SYSTEM_PROMPT). Keep it before
+        # UtcDatetimeMiddleware so its section lands ahead of the date line.
+        TodoListMiddleware(),
         UtcDatetimeMiddleware(),
         # Name-matched overrides — these replace the corresponding defaults
         # in place (positions in this list don't matter):
