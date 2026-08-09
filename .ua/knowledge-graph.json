@@ -33,7 +33,7 @@
    "GitHub Actions"
   ],
   "description": "NextRole is a GenAI career assistant that turns a CV and a target job description into a tailored resume PDF, a researched interview-prep doc, and a day-of battlecard, produced by a multi-agent system with long-term memory.",
-  "analyzedAt": "2026-08-09T13:50:08.344Z",
+  "analyzedAt": "2026-08-09T16:45:16.670Z",
   "gitCommitHash": "395ba7847c4b6ab7b1cf74d7dd3c261383fbbd3d"
  },
  "nodes": [
@@ -15880,22 +15880,6 @@
     "namespace"
    ],
    "complexity": "simple"
-  },
-  {
-   "id": "file:backend/server/api/grpc/generated/core_api_pb2.pyi",
-   "type": "file",
-   "name": "core_api_pb2.pyi",
-   "filePath": "backend/server/api/grpc/generated/core_api_pb2.pyi",
-   "summary": "Generated protobuf type-stub for the core API gRPC service, declaring 85 message classes and enums covering assistants, threads, runs, crons, checkpoints, auth filters, and streaming.",
-   "tags": [
-    "generated",
-    "grpc",
-    "protobuf",
-    "type-stub",
-    "schema-definition"
-   ],
-   "complexity": "complex",
-   "languageNotes": "Auto-generated .pyi stub (grpcio-tools); each message class exposes *_FIELD_NUMBER constants plus typed fields. Never hand-edit — regenerate from the .proto instead."
   },
   {
    "id": "file:backend/server/api/js/__init__.py",
@@ -39441,7 +39425,6 @@
     "file:backend/server/api/auth/__init__.py",
     "file:backend/server/api/auth/langsmith/__init__.py",
     "file:backend/server/api/event_streaming/__init__.py",
-    "file:backend/server/api/grpc/generated/core_api_pb2.pyi",
     "file:backend/server/api/js/__init__.py",
     "file:backend/server/api/js/build.mts",
     "file:backend/server/api/js/client.http.mts",

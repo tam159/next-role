@@ -11,6 +11,7 @@
 # --- Generated artifacts (not authored source) ---
 # gRPC/protobuf stubs — linguist-generated; excluded from ruff & pre-commit.
 backend/server/grpc_common/proto/
+backend/server/api/grpc/generated/
 # Build info / compiled output
 frontend/tsconfig.tsbuildinfo
 frontend/.next/
