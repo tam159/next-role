@@ -51,15 +51,15 @@ The agent maintains a `write_todos` checklist of remaining stages from turn one,
 
 | Concern | Path |
 |---|---|
-| 5-stage workflow + `write_todos` invariant | `backend/app/career_agent/prompts.py` (`SYSTEM_PROMPT`) |
+| 5-stage workflow + `write_todos` invariant | `backend/agents/career_agent/prompts.py` (`SYSTEM_PROMPT`) |
 | Per-stage procedure manual (loaded via `memory=["CAREER_AGENT.md"]`) | `backend/agents/career_agent/CAREER_AGENT.md` |
-| Agent wiring — `memory`, `skills`, `tools`, `subagents`, `backend` routes | `backend/app/career_agent/agents.py` |
-| Subagent definitions (`hiring-recon`, `resume-tailor`, `interview-coach`) | `backend/app/career_agent/subagents.yaml` |
-| Stage 3 skill | `backend/app/career_agent/skills/hiring-recon/hiring-recon/SKILL.md` |
-| Stage 4 skills | `backend/app/career_agent/skills/resume-tailor/resume-tailor/SKILL.md`, `backend/app/career_agent/skills/interview-coach/interview-coach/SKILL.md` |
-| Stage 5 skill (main agent) | `backend/app/career_agent/skills/career-agent/interview-battlecard/SKILL.md` |
+| Agent wiring — `memory`, `skills`, `tools`, `subagents`, `backend` routes | `backend/agents/career_agent/agents.py` |
+| Subagent definitions (`hiring-recon`, `resume-tailor`, `interview-coach`) | `backend/agents/career_agent/subagents.yaml` |
+| Stage 3 skill | `backend/agents/career_agent/skills/hiring-recon/hiring-recon/SKILL.md` |
+| Stage 4 skills | `backend/agents/career_agent/skills/resume-tailor/resume-tailor/SKILL.md`, `backend/agents/career_agent/skills/interview-coach/interview-coach/SKILL.md` |
+| Stage 5 skill (main agent) | `backend/agents/career_agent/skills/career-agent/interview-battlecard/SKILL.md` |
 | File upload route | `frontend/src/app/api/files/upload/route.ts`, allowlist in `frontend/src/app/config/agentFiles.ts` |
-| `rendercv` driver | `prepare_render_settings` tool in `backend/app/career_agent/tools.py` |
+| `rendercv` driver | `prepare_render_settings` tool in `backend/agents/career_agent/tools.py` |
 
 # Decisions worth remembering
 

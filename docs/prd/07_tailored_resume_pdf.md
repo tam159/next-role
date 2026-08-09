@@ -40,14 +40,14 @@ After the agent finishes, the subagent replies one line: `Wrote tailored resume 
 
 | Concern | Path |
 |---|---|
-| New `prepare_render_settings` tool factory | `backend/app/career_agent/tools.py` |
-| Tool pool + `default_tools` + main-agent wiring | `backend/app/career_agent/agents.py` |
-| `load_subagents(tools=, default_tools=)` | `backend/app/career_agent/utils.py` |
-| `resume-tailor` subagent declaration | `backend/app/career_agent/subagents.yaml` |
-| Full rewrite (rendercv workflow + pitfalls + common errors) | `backend/app/career_agent/skills/resume-tailor/resume-tailor/SKILL.md` |
-| `EXECUTION` prompt: "don't write files via execute" | `backend/app/career_agent/prompts.py` |
+| New `prepare_render_settings` tool factory | `backend/agents/career_agent/tools.py` |
+| Tool pool + `default_tools` + main-agent wiring | `backend/agents/career_agent/agents.py` |
+| `load_subagents(tools=, default_tools=)` | `backend/agents/career_agent/utils.py` |
+| `resume-tailor` subagent declaration | `backend/agents/career_agent/subagents.yaml` |
+| Full rewrite (rendercv workflow + pitfalls + common errors) | `backend/agents/career_agent/skills/resume-tailor/resume-tailor/SKILL.md` |
+| `EXECUTION` prompt: "don't write files via execute" | `backend/agents/career_agent/prompts.py` |
 | Stage-4 description + new yaml/pdf paths | `backend/agents/career_agent/CAREER_AGENT.md` |
-| File-structure block + flow description | `backend/app/career_agent/README.md` |
+| File-structure block + flow description | `backend/agents/career_agent/README.md` |
 | `/render_intermediate/` gitignore | `backend/.gitignore` |
 | Unit tests (settings injection, idempotency, path validation, mkdir) | `backend/tests/career_agent/test_tools.py` |
 | Updated `load_subagents` tests (`tools=`, `default_tools=`) | `backend/tests/career_agent/test_utils.py` |

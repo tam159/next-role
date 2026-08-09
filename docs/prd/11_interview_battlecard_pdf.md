@@ -32,21 +32,21 @@ After rendering, the agent emits one short handoff line: `Battlecard saved — N
 
 **One-step in-process render, not the rendercv-style two-step CLI handshake.** Tailored resumes use `prepare_render_settings` + `execute("rendercv render …")` because rendercv is a CLI binary. weasyprint is a pure-Python library, so the new tool reads the JSON via the backend, runs jinja2 + weasyprint inline, and writes the PDF — one tool call, no shell, no settings-block injection. The LLM doesn't reason about render config at all.
 
-**Template assets bundled in-tree as a self-contained unit.** `backend/app/career_agent/templates/battlecard/` holds the `.html.j2`, `.css`, and five FiraSans `.ttf` files (~2.2 MB). The CSS references fonts via relative `url(FiraSans-*.ttf)`; weasyprint resolves them through `base_url=<template_dir>`. Co-locating means a single `base_url` works and the template directory is portable. System fonts were rejected for reproducibility — fonts must match across dev host, container, and future deploys.
+**Template assets bundled in-tree as a self-contained unit.** `backend/agents/career_agent/templates/battlecard/` holds the `.html.j2`, `.css`, and five FiraSans `.ttf` files (~2.2 MB). The CSS references fonts via relative `url(FiraSans-*.ttf)`; weasyprint resolves them through `base_url=<template_dir>`. Co-locating means a single `base_url` works and the template directory is portable. System fonts were rejected for reproducibility — fonts must match across dev host, container, and future deploys.
 
 **Lazy weasyprint import, after path validation.** weasyprint's `cffi` pulls Pango/GLib at import time. The user's macOS host doesn't have those native libs (the Docker container does). Moving `from weasyprint import HTML` *inside* the tool function — and *below* the path-prefix / extension validation — keeps `tools.py` import-safe everywhere and lets the validation-only unit tests run on the host without system deps.
 
-**Backend-relative return string.** The tool returns `Rendered PDF to /interview_battlecard/<r>/<j>.pdf`, not the on-disk path (which would be `/deps/next-role/backend/app/career_agent/interview_battlecard/…` inside the container). The container mount prefix is noise to the LLM and confuses follow-up tool calls that expect backend-absolute paths.
+**Backend-relative return string.** The tool returns `Rendered PDF to /interview_battlecard/<r>/<j>.pdf`, not the on-disk path (which would be `/deps/next-role/backend/agents/career_agent/interview_battlecard/…` inside the container). The container mount prefix is noise to the LLM and confuses follow-up tool calls that expect backend-absolute paths.
 
 # Files of interest
 
 | Concern | Path |
 |---|---|
-| New tool factory | `backend/app/career_agent/tools.py` (`make_render_battlecard_pdf`) |
-| Tool wired into main agent only (not subagents) | `backend/app/career_agent/agents.py` |
-| Template, CSS, five FiraSans fonts | `backend/app/career_agent/templates/battlecard/` |
-| Skill rewrite: JSON shape contract + two-step flow | `backend/app/career_agent/skills/career-agent/interview-battlecard/SKILL.md` |
-| Flow step 5 + File Structure block updated | `backend/app/career_agent/README.md` |
+| New tool factory | `backend/agents/career_agent/tools.py` (`make_render_battlecard_pdf`) |
+| Tool wired into main agent only (not subagents) | `backend/agents/career_agent/agents.py` |
+| Template, CSS, five FiraSans fonts | `backend/agents/career_agent/templates/battlecard/` |
+| Skill rewrite: JSON shape contract + two-step flow | `backend/agents/career_agent/skills/career-agent/interview-battlecard/SKILL.md` |
+| Flow step 5 + File Structure block updated | `backend/agents/career_agent/README.md` |
 | Unit tests (validation + render; render-only tests skip on no-deps hosts) | `backend/tests/career_agent/test_tools_battlecard_pdf.py` |
 
 # Decisions worth remembering

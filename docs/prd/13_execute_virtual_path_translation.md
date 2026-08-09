@@ -19,7 +19,7 @@ version: v1
 
 # What the user sees
 
-Nothing user-visible. Same Workspace outputs (`<jd>.yaml`, `<jd>.pdf`, `<jd>.typ`), same chat-level replies. The only observable change is that the agent's `execute("rendercv render …")` calls now carry virtual paths (`/tailored_resume/<r>/<j>.yaml`) instead of real container paths (`/deps/next-role/backend/app/career_agent/tailored_resume/<r>/<j>.yaml`); the rendered PDF lands at the same place either way.
+Nothing user-visible. Same Workspace outputs (`<jd>.yaml`, `<jd>.pdf`, `<jd>.typ`), same chat-level replies. The only observable change is that the agent's `execute("rendercv render …")` calls now carry virtual paths (`/tailored_resume/<r>/<j>.yaml`) instead of real container paths (`/deps/next-role/backend/agents/career_agent/tailored_resume/<r>/<j>.yaml`); the rendered PDF lands at the same place either way.
 
 # How — the key architectural choice
 
@@ -36,10 +36,10 @@ Why this shape rather than the obvious alternatives:
 
 | Concern | Path |
 |---|---|
-| `VirtualPathShellBackend` subclass (translation + execute override) | `backend/app/career_agent/shell_backend.py` |
-| Backend wiring swap | `backend/app/career_agent/agents.py` (`_backend = CompositeBackend(default=VirtualPathShellBackend(...))`) |
-| `prepare_render_settings` returns verbatim execute command with virtual path | `backend/app/career_agent/tools.py` (`make_prepare_render_settings`, return line) |
-| SKILL.md drops the "use on-disk path NOT backend path" lecture (steps 4 + Updates step 5) | `backend/app/career_agent/skills/resume-tailor/resume-tailor/SKILL.md` |
+| `VirtualPathShellBackend` subclass (translation + execute override) | `backend/agents/career_agent/shell_backend.py` |
+| Backend wiring swap | `backend/agents/career_agent/agents.py` (`_backend = CompositeBackend(default=VirtualPathShellBackend(...))`) |
+| `prepare_render_settings` returns verbatim execute command with virtual path | `backend/agents/career_agent/tools.py` (`make_prepare_render_settings`, return line) |
+| SKILL.md drops the "use on-disk path NOT backend path" lecture (steps 4 + Updates step 5) | `backend/agents/career_agent/skills/resume-tailor/resume-tailor/SKILL.md` |
 | Unit tests: translate / passthrough / `..`-escape / quoted args / end-to-end execute | `backend/tests/career_agent/test_shell_backend.py` |
 | Existing prepare_render_settings tests retargeted to the new return string | `backend/tests/career_agent/test_tools.py` |
 

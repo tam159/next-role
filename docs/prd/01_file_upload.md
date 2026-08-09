@@ -11,7 +11,7 @@ version: v1
 
 # Why
 
-The career agent's flow (`backend/app/career_agent/README.md`) starts with the user uploading a CV and optional JD into `upload/`. Without this entry point, nothing else (process → research → custom resume → interview prep) can run. This is the first user-facing feature on the agent.
+The career agent's flow (`backend/agents/career_agent/README.md`) starts with the user uploading a CV and optional JD into `upload/`. Without this entry point, nothing else (process → research → custom resume → interview prep) can run. This is the first user-facing feature on the agent.
 
 # What the user sees
 
@@ -32,7 +32,7 @@ Both open the same `Delete file?` confirmation (filename in mono, destructive-st
 
 **The frontend writes directly to the agent's on-disk path; no Python HTTP endpoint exists.**
 
-`docker-compose.yml` already mounts the entire repo into the frontend container (`.:/deps/next-role`), so a Next.js API route running in the FE container can `fs.writeFile` to `backend/app/career_agent/upload/<filename>`. The agent's `FilesystemBackend(root_dir=CAREER_AGENT_DIR)` (in `agents.py`) reads the same path on its next tool call. No LangGraph custom routes, no FastAPI sibling, no PDF parser shipped in v1.
+`docker-compose.yml` already mounts the entire repo into the frontend container (`.:/deps/next-role`), so a Next.js API route running in the FE container can `fs.writeFile` to `backend/agents/career_agent/upload/<filename>`. The agent's `FilesystemBackend(root_dir=CAREER_AGENT_DIR)` (in `agents.py`) reads the same path on its next tool call. No LangGraph custom routes, no FastAPI sibling, no PDF parser shipped in v1.
 
 The path allowlist that gates writes lives in `frontend/src/app/config/agentFiles.ts` under `AGENT_FILE_SOURCES.career_agent.disk` — the existing `resolveSafe()` in `frontend/src/app/api/files/_lib.ts` enforces it.
 
@@ -49,7 +49,7 @@ The path allowlist that gates writes lives in `frontend/src/app/config/agentFile
 | File grid + trash icon + confirm dialog | `frontend/src/app/components/TasksFilesSidebar.tsx` (`FilesPopover`) |
 | Preview rendering (PDF/DOCX/MD/text) + Delete button | `frontend/src/app/components/FileViewDialog.tsx` |
 | `removeFile` callback (resolves virtual → disk path) | `frontend/src/app/hooks/useChat.ts` |
-| Agent's filesystem-backed root | `backend/app/career_agent/agents.py` (CompositeBackend default) |
+| Agent's filesystem-backed root | `backend/agents/career_agent/agents.py` (CompositeBackend default) |
 | Privacy-gated gitignore | `backend/.gitignore` (free-floating `upload/`, etc.) |
 
 # Decisions worth remembering
@@ -72,6 +72,6 @@ The path allowlist that gates writes lives in `frontend/src/app/config/agentFile
 
 1. `docker compose up -d` and grab the frontend host port from `docker ps`.
 2. Open the UI, upload a PDF and a DOCX via either surface, watch toast + file appearing in Files.
-3. From the host: `ls backend/app/career_agent/upload/` shows the bytes.
+3. From the host: `ls backend/agents/career_agent/upload/` shows the bytes.
 4. In chat, ask the agent `List the files in /upload/` — its `ls` tool should return them.
-5. `git add -A --dry-run backend/app/career_agent/` should stage nothing under `upload/`.
+5. `git add -A --dry-run backend/agents/career_agent/` should stage nothing under `upload/`.

@@ -36,9 +36,9 @@ The processed file shows up in Workspace > Files alongside parsed uploads. Re-pa
 
 | Concern | Path |
 |---|---|
-| `extract_jd` factory + `_tavily_extract_one` helper | `backend/app/career_agent/tools.py` |
-| Tool registration on the main agent | `backend/app/career_agent/agents.py` |
-| URL-handling block (parallel to upload block) | `backend/app/career_agent/prompts.py` (`SYSTEM_PROMPT`) |
+| `extract_jd` factory + `_tavily_extract_one` helper | `backend/agents/career_agent/tools.py` |
+| Tool registration on the main agent | `backend/agents/career_agent/agents.py` |
+| URL-handling block (parallel to upload block) | `backend/agents/career_agent/prompts.py` (`SYSTEM_PROMPT`) |
 | Unit tests (Tavily mocked) | `backend/tests/career_agent/test_tools.py` |
 | Tavily SDK | `tavily-python` (already in `backend/pyproject.toml`) |
 | API key | `TAVILY_API_KEY` in `.env` |

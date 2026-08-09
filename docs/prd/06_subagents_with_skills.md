@@ -29,10 +29,10 @@ No user-visible change — same flow, same outputs, same delegation tree. Intern
 
 | Concern | Path |
 |---|---|
-| Skills passthrough in subagent loader | `backend/app/career_agent/utils.py` (`load_subagents`) |
-| Subagent specs (now short) + `skills:` field | `backend/app/career_agent/subagents.yaml` |
-| Main agent's source path | `backend/app/career_agent/agents.py` (`skills=["skills/career-agent/"]`) |
-| Filesystem-tool prompt — `mkdir` warning for `write_file` / `overwrite_file` | `backend/app/career_agent/prompts.py` (`FILESYSTEM` block) |
+| Skills passthrough in subagent loader | `backend/agents/career_agent/utils.py` (`load_subagents`) |
+| Subagent specs (now short) + `skills:` field | `backend/agents/career_agent/subagents.yaml` |
+| Main agent's source path | `backend/agents/career_agent/agents.py` (`skills=["skills/career-agent/"]`) |
+| Filesystem-tool prompt — `mkdir` warning for `write_file` / `overwrite_file` | `backend/agents/career_agent/prompts.py` (`FILESYSTEM` block) |
 | Moved skill | `skills/career-agent/interview-battlecard/SKILL.md` |
 | New skills | `skills/{hiring-recon,resume-tailor,interview-coach}/<same>/SKILL.md` |
 | Unit tests | `backend/tests/career_agent/test_utils.py` |

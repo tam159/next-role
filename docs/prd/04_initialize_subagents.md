@@ -44,14 +44,14 @@ Each subagent's workflow lives in its own `skills/<subagent>/<subagent>/SKILL.md
 
 | Concern | Path |
 |---|---|
-| Subagent specs (thin pointers to skills) | `backend/app/career_agent/subagents.yaml` |
-| Subagent loader (tool whitelist + `skills:` passthrough) | `backend/app/career_agent/utils.py` (`load_subagents`) |
-| Tool pool + StoreBackend route rename | `backend/app/career_agent/agents.py` (`_SUBAGENT_TOOLS`, `_SUBAGENT_DEFAULT_TOOLS`; `/interview_prep/` → `/interview_coach/`) |
+| Subagent specs (thin pointers to skills) | `backend/agents/career_agent/subagents.yaml` |
+| Subagent loader (tool whitelist + `skills:` passthrough) | `backend/agents/career_agent/utils.py` (`load_subagents`) |
+| Tool pool + StoreBackend route rename | `backend/agents/career_agent/agents.py` (`_SUBAGENT_TOOLS`, `_SUBAGENT_DEFAULT_TOOLS`; `/interview_prep/` → `/interview_coach/`) |
 | Stages 3–5 procedures + Stage 2 full-context read | `backend/agents/career_agent/CAREER_AGENT.md` |
-| 5-stage summary in main agent system prompt | `backend/app/career_agent/prompts.py` (`SYSTEM_PROMPT`) |
-| Subagent workflows | `backend/app/career_agent/skills/{hiring-recon,resume-tailor,interview-coach}/<same>/SKILL.md` |
-| Battlecard skill (main agent) | `backend/app/career_agent/skills/career-agent/interview-battlecard/SKILL.md` |
-| Flow + File Structure resync | `backend/app/career_agent/README.md` |
+| 5-stage summary in main agent system prompt | `backend/agents/career_agent/prompts.py` (`SYSTEM_PROMPT`) |
+| Subagent workflows | `backend/agents/career_agent/skills/{hiring-recon,resume-tailor,interview-coach}/<same>/SKILL.md` |
+| Battlecard skill (main agent) | `backend/agents/career_agent/skills/career-agent/interview-battlecard/SKILL.md` |
+| Flow + File Structure resync | `backend/agents/career_agent/README.md` |
 
 # Decisions worth remembering
 
@@ -74,7 +74,7 @@ Each subagent's workflow lives in its own `skills/<subagent>/<subagent>/SKILL.md
    from backend.app.career_agent.agents import _SUBAGENT_TOOLS, _SUBAGENT_DEFAULT_TOOLS
    from backend.app.career_agent.utils import load_subagents
    from pathlib import Path
-   subs = load_subagents(Path('backend/app/career_agent/subagents.yaml'), tools=_SUBAGENT_TOOLS, default_tools=_SUBAGENT_DEFAULT_TOOLS)
+   subs = load_subagents(Path('backend/agents/career_agent/subagents.yaml'), tools=_SUBAGENT_TOOLS, default_tools=_SUBAGENT_DEFAULT_TOOLS)
    print([(s['name'], s.get('skills')) for s in subs])"
    ```
    prints three entries: `('hiring-recon', ['skills/hiring-recon/'])`, `('resume-tailor', ['skills/resume-tailor/'])`, `('interview-coach', ['skills/interview-coach/'])`.
