@@ -14,6 +14,8 @@ backend/server/grpc_common/proto/
 # Build info / compiled output
 frontend/tsconfig.tsbuildinfo
 frontend/.next/
+# Generated PRD knowledge graph (human-facing; regenerate per docs/prd/README.md)
+docs/prd/viz.html
 
 # --- Tool caches ---
 .ruff_cache/

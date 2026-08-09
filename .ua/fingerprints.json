@@ -1,7 +1,7 @@
 {
   "version": "1.0.0",
-  "gitCommitHash": "2ee2741559e406f300dcb173384684daa3437a99",
-  "generatedAt": "2026-07-15T10:13:20.323Z",
+  "gitCommitHash": "395ba7847c4b6ab7b1cf74d7dd3c261383fbbd3d",
+  "generatedAt": "2026-08-09T13:50:56.902Z",
   "files": {
     ".agents/skills/agent-browser/SKILL.md": {
       "filePath": ".agents/skills/agent-browser/SKILL.md",
@@ -105,12 +105,12 @@
     },
     ".agents/skills/write-prd/SKILL.md": {
       "filePath": ".agents/skills/write-prd/SKILL.md",
-      "contentHash": "f613625edd2a17d2c5de598c484c8a7504c8619936038cbf237249de2f4ed97c",
+      "contentHash": "2a3716ad30d961041cb2cf59966e700234a12ed36e0ca3db255d1bb1d23ba2c3",
       "functions": [],
       "classes": [],
       "imports": [],
       "exports": [],
-      "totalLines": 86,
+      "totalLines": 115,
       "hasStructuralAnalysis": true
     },
     ".claude/rules/context7.md": {
@@ -125,12 +125,12 @@
     },
     ".claude/settings.json": {
       "filePath": ".claude/settings.json",
-      "contentHash": "c9f6332dda84121ea72da453ed3677fb0ff9c46d864a59c437922ca934a6b6e7",
+      "contentHash": "766a7e634342a66393b74704bdef6864f08ad9ad97389c5580373609087216ce",
       "functions": [],
       "classes": [],
       "imports": [],
       "exports": [],
-      "totalLines": 19,
+      "totalLines": 22,
       "hasStructuralAnalysis": true
     },
     ".claude/skills/agent-browser/SKILL.md": {
@@ -205,12 +205,12 @@
     },
     ".claude/skills/write-prd/SKILL.md": {
       "filePath": ".claude/skills/write-prd/SKILL.md",
-      "contentHash": "f613625edd2a17d2c5de598c484c8a7504c8619936038cbf237249de2f4ed97c",
+      "contentHash": "2a3716ad30d961041cb2cf59966e700234a12ed36e0ca3db255d1bb1d23ba2c3",
       "functions": [],
       "classes": [],
       "imports": [],
       "exports": [],
-      "totalLines": 86,
+      "totalLines": 115,
       "hasStructuralAnalysis": true
     },
     ".codex/config.toml": {
@@ -253,14 +253,24 @@
       "totalLines": 28,
       "hasStructuralAnalysis": false
     },
-    ".env.example": {
-      "filePath": ".env.example",
-      "contentHash": "46ab74ddfa0951d582ef8875369082e0f8176046038e1f52b8fe5a30ea55f270",
+    ".cursorignore": {
+      "filePath": ".cursorignore",
+      "contentHash": "2d2ff9e640763919f5063428e17815796fbc6d9e8578d2b12b0280b87b1870ac",
       "functions": [],
       "classes": [],
       "imports": [],
       "exports": [],
-      "totalLines": 60,
+      "totalLines": 9,
+      "hasStructuralAnalysis": false
+    },
+    ".env.example": {
+      "filePath": ".env.example",
+      "contentHash": "a6bf82a91cdd4af6ed57c914b6fadad390685809bfd65dd1b73dd3067db355c2",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 61,
       "hasStructuralAnalysis": true
     },
     ".gitattributes": {
@@ -345,12 +355,12 @@
     },
     ".github/workflows/ci.yml": {
       "filePath": ".github/workflows/ci.yml",
-      "contentHash": "f8723f20d65db5a7e756741c299310afc61543f12b9f15ed659f1ccc522e53c2",
+      "contentHash": "47a423f4bb4776feae2c2c90f24f1b8206ab0e9ae00747f77c5a25cb1cbb0144",
       "functions": [],
       "classes": [],
       "imports": [],
       "exports": [],
-      "totalLines": 99,
+      "totalLines": 101,
       "hasStructuralAnalysis": true
     },
     ".github/workflows/frontend-tests.yml": {
@@ -375,12 +385,12 @@
     },
     ".pre-commit-config.yaml": {
       "filePath": ".pre-commit-config.yaml",
-      "contentHash": "851ce027f0054d7a6736f1c493105315611b1636010c9b5508e0bd8c1afc649d",
+      "contentHash": "3a9f587c4100a8842c7acd8263bc03cf49bf002a548721a1780641cfa3da75f5",
       "functions": [],
       "classes": [],
       "imports": [],
       "exports": [],
-      "totalLines": 77,
+      "totalLines": 79,
       "hasStructuralAnalysis": true
     },
     "backend/.dockerignore": {
@@ -540,52 +550,25 @@
     },
     "backend/agents/career_agent/agents.py": {
       "filePath": "backend/agents/career_agent/agents.py",
-      "contentHash": "6e006349d8ecfa4f5597fd05498ae1b7a68a5bd98096d2e08847f8edfd42bb76",
+      "contentHash": "92cc4a934a8f865484de3b85e3a4d0945b1c02e1812466b29434e8fc5328a92c",
       "functions": [
         {
-          "name": "_apply_prompt_overrides",
-          "params": [],
-          "returnType": "None",
+          "name": "build_career_agent",
+          "params": [
+            "model",
+            "store"
+          ],
+          "returnType": "CompiledStateGraph",
           "exported": true,
-          "lineCount": 47
+          "lineCount": 53
         }
       ],
       "classes": [],
       "imports": [
         {
-          "source": "deepagents.graph",
+          "source": "typing",
           "specifiers": [
-            "_graph_mod"
-          ]
-        },
-        {
-          "source": "deepagents.middleware.filesystem",
-          "specifiers": [
-            "_fs_mw"
-          ]
-        },
-        {
-          "source": "deepagents.middleware.memory",
-          "specifiers": [
-            "_mem_mw"
-          ]
-        },
-        {
-          "source": "deepagents.middleware.skills",
-          "specifiers": [
-            "_skills_mw"
-          ]
-        },
-        {
-          "source": "deepagents.middleware.subagents",
-          "specifiers": [
-            "_sub_mw"
-          ]
-        },
-        {
-          "source": "langchain.agents.middleware.todo",
-          "specifiers": [
-            "_todo_mw"
+            "Any"
           ]
         },
         {
@@ -597,6 +580,7 @@
         {
           "source": "backend.agents.career_agent.middleware",
           "specifiers": [
+            "PREFERENCES_PATH",
             "EnsurePreferencesFileMiddleware",
             "ModelOverrideMiddleware",
             "UtcDatetimeMiddleware"
@@ -627,7 +611,6 @@
             "CAREER_AGENT_DIR",
             "make_extract_jd",
             "make_list_files",
-            "make_overwrite_file",
             "make_parse_document",
             "make_render_battlecard_pdf",
             "make_render_resume_pdf",
@@ -653,17 +636,55 @@
             "CompositeBackend",
             "StoreBackend"
           ]
+        },
+        {
+          "source": "deepagents.middleware.filesystem",
+          "specifiers": [
+            "EXECUTE_TOOL_DESCRIPTION",
+            "FilesystemMiddleware"
+          ]
+        },
+        {
+          "source": "deepagents.middleware.memory",
+          "specifiers": [
+            "MemoryMiddleware"
+          ]
+        },
+        {
+          "source": "langchain.agents.middleware",
+          "specifiers": [
+            "AgentMiddleware",
+            "TodoListMiddleware"
+          ]
+        },
+        {
+          "source": "langchain_core.language_models",
+          "specifiers": [
+            "BaseChatModel"
+          ]
+        },
+        {
+          "source": "langgraph.graph.state",
+          "specifiers": [
+            "CompiledStateGraph"
+          ]
+        },
+        {
+          "source": "langgraph.store.base",
+          "specifiers": [
+            "BaseStore"
+          ]
         }
       ],
       "exports": [
-        "_apply_prompt_overrides"
+        "build_career_agent"
       ],
-      "totalLines": 184,
+      "totalLines": 213,
       "hasStructuralAnalysis": true
     },
     "backend/agents/career_agent/CAREER_AGENT.md": {
       "filePath": "backend/agents/career_agent/CAREER_AGENT.md",
-      "contentHash": "ac260d80b6e197aa17120cd897ecc32a98cf9e219cff8c6fe03a481c0dea733e",
+      "contentHash": "44b48cc345bf5db5cbd1e55fbb09dd1fd33f0bbb0f69aeea25accdfc0139952a",
       "functions": [],
       "classes": [],
       "imports": [],
@@ -673,7 +694,7 @@
     },
     "backend/agents/career_agent/middleware.py": {
       "filePath": "backend/agents/career_agent/middleware.py",
-      "contentHash": "ac0cdbc402afc24b94bd8de24a78a144ad1a022a15a64ebb96f433fed04598c8",
+      "contentHash": "0f5335832595e801f8bf3d887647dd3d241cc3ddd8c3b9b6978095061a606f3f",
       "functions": [
         {
           "name": "_resolve_model",
@@ -715,7 +736,7 @@
           ],
           "properties": [],
           "exported": true,
-          "lineCount": 32
+          "lineCount": 36
         },
         {
           "name": "ModelOverrideMiddleware",
@@ -788,12 +809,12 @@
         "_without_streaming",
         "ModelOverrideMiddleware"
       ],
-      "totalLines": 220,
+      "totalLines": 224,
       "hasStructuralAnalysis": true
     },
     "backend/agents/career_agent/object_backend.py": {
       "filePath": "backend/agents/career_agent/object_backend.py",
-      "contentHash": "de7b15bd70d5b1ce3fc1c6b1b5deb03cde94a5e8fca7ae8bf665e09ec18e8dec",
+      "contentHash": "14c1716ead4ab021d652a67c8b1af21fb47dc729a76cc871ac8c956fcfd7e676",
       "functions": [
         {
           "name": "_iso_modified",
@@ -815,6 +836,7 @@
             "ls",
             "read",
             "write",
+            "delete",
             "edit",
             "glob",
             "grep",
@@ -823,7 +845,7 @@
           ],
           "properties": [],
           "exported": true,
-          "lineCount": 256
+          "lineCount": 274
         }
       ],
       "imports": [
@@ -850,9 +872,9 @@
           "source": "backend.agents.career_agent.object_storage",
           "specifiers": [
             "area_key_prefix",
+            "delete_key",
             "get_bytes",
             "get_store",
-            "head_meta",
             "key_for_area",
             "list_meta",
             "put_bytes"
@@ -862,6 +884,7 @@
           "source": "deepagents.backends.protocol",
           "specifiers": [
             "BackendProtocol",
+            "DeleteResult",
             "EditResult",
             "FileData",
             "FileDownloadResponse",
@@ -889,7 +912,7 @@
         "_iso_modified",
         "ObjectStoreBackend"
       ],
-      "totalLines": 340,
+      "totalLines": 360,
       "hasStructuralAnalysis": true
     },
     "backend/agents/career_agent/object_storage.py": {
@@ -1090,17 +1113,17 @@
     },
     "backend/agents/career_agent/prompts.py": {
       "filePath": "backend/agents/career_agent/prompts.py",
-      "contentHash": "ab7c359a207ec7200e4ca3efcac640b0ceccd751874c95baf92bdd753a7ae259",
+      "contentHash": "d24f1661b9e9108e6aab5e5b38944645ea24d00addff33a90486a9fedc426667",
       "functions": [],
       "classes": [],
       "imports": [],
       "exports": [],
-      "totalLines": 265,
+      "totalLines": 173,
       "hasStructuralAnalysis": true
     },
     "backend/agents/career_agent/README.md": {
       "filePath": "backend/agents/career_agent/README.md",
-      "contentHash": "9482559d5374d8670bb6ba2acd02252a3ec6c76997b28deeca48876edd307043",
+      "contentHash": "96ddb8e67e5e43427bc9cbeafae8827da47844fbefee074cbfc39caf25979346",
       "functions": [],
       "classes": [],
       "imports": [],
@@ -1228,7 +1251,7 @@
     },
     "backend/agents/career_agent/skills/career-agent/interview-battlecard/SKILL.md": {
       "filePath": "backend/agents/career_agent/skills/career-agent/interview-battlecard/SKILL.md",
-      "contentHash": "d4b5ed402fd0c950ee1a970bbbf71355659415b6a98e088cc3d7467d1c55f7f1",
+      "contentHash": "6695242c64f6c4ec6500dac016fa459ba0ab20ccccdc6a6a36e85e6e2a85391b",
       "functions": [],
       "classes": [],
       "imports": [],
@@ -1238,7 +1261,7 @@
     },
     "backend/agents/career_agent/skills/hiring-recon/hiring-recon/SKILL.md": {
       "filePath": "backend/agents/career_agent/skills/hiring-recon/hiring-recon/SKILL.md",
-      "contentHash": "70b790b7309730193667ea730a5432b78d9faed69816c4f0d88a106decff0cb5",
+      "contentHash": "28b85aad17cfdb38c302ea634cba4330cf67402b5ce0dffb3dafc42927dda696",
       "functions": [],
       "classes": [],
       "imports": [],
@@ -1248,7 +1271,7 @@
     },
     "backend/agents/career_agent/skills/interview-coach/interview-coach/SKILL.md": {
       "filePath": "backend/agents/career_agent/skills/interview-coach/interview-coach/SKILL.md",
-      "contentHash": "e7e6737eef9f34da087076e027606831b4fb146a9cb502b56bf12f90f0330df4",
+      "contentHash": "c293e89ea7263beecbaabb39cb64a97f4a0ff6b60386364e000c9f63643bb05a",
       "functions": [],
       "classes": [],
       "imports": [],
@@ -1258,7 +1281,7 @@
     },
     "backend/agents/career_agent/skills/resume-tailor/resume-tailor/SKILL.md": {
       "filePath": "backend/agents/career_agent/skills/resume-tailor/resume-tailor/SKILL.md",
-      "contentHash": "ddfd7a37aafca12c4930997ebe8c348af79343f08bc38b96a38b8b4f05a8ffb3",
+      "contentHash": "661becf32f9ba283256f4afd07e2b1ffb4bfdde001ae18ce158df49b2cefb2eb",
       "functions": [],
       "classes": [],
       "imports": [],
@@ -1268,12 +1291,12 @@
     },
     "backend/agents/career_agent/subagents.yaml": {
       "filePath": "backend/agents/career_agent/subagents.yaml",
-      "contentHash": "9d391d8bbdeba0f88fd5270df2eb6a8072011f0bbb06f4efde26a1f716e587b7",
+      "contentHash": "6c3acdc6f02c594d4480c9b9956e4445615246f67b9387dba3f52ed64dde7a6a",
       "functions": [],
       "classes": [],
       "imports": [],
       "exports": [],
-      "totalLines": 78,
+      "totalLines": 76,
       "hasStructuralAnalysis": true
     },
     "backend/agents/career_agent/templates/battlecard/battlecard.css": {
@@ -1298,7 +1321,7 @@
     },
     "backend/agents/career_agent/tools.py": {
       "filePath": "backend/agents/career_agent/tools.py",
-      "contentHash": "0ceba003a950a1251fe4799eb1429bbd1f264404b6df391ccf390392bb86fd7f",
+      "contentHash": "8fa42c3bf7d2d931c07f6f63c76b208f0a872f2647480c23c1cd02a5083dc70a",
       "functions": [
         {
           "name": "_strip_image_filenames",
@@ -1342,26 +1365,6 @@
           "lineCount": 37
         },
         {
-          "name": "_upsert",
-          "params": [
-            "backend",
-            "path",
-            "content"
-          ],
-          "returnType": "WriteResult",
-          "exported": true,
-          "lineCount": 31
-        },
-        {
-          "name": "make_overwrite_file",
-          "params": [
-            "backend"
-          ],
-          "returnType": "BaseTool",
-          "exported": true,
-          "lineCount": 35
-        },
-        {
           "name": "_materialize_source",
           "params": [
             "backend",
@@ -1378,7 +1381,7 @@
           ],
           "returnType": "BaseTool",
           "exported": true,
-          "lineCount": 68
+          "lineCount": 70
         },
         {
           "name": "_tavily_extract_one",
@@ -1504,7 +1507,7 @@
           ],
           "returnType": "BaseTool",
           "exported": true,
-          "lineCount": 50
+          "lineCount": 52
         }
       ],
       "classes": [
@@ -1579,12 +1582,6 @@
           ]
         },
         {
-          "source": "deepagents.backends.protocol",
-          "specifiers": [
-            "WriteResult"
-          ]
-        },
-        {
           "source": "langchain_core.tools",
           "specifiers": [
             "BaseTool",
@@ -1597,8 +1594,6 @@
         "web_search",
         "web_extract",
         "make_list_files",
-        "_upsert",
-        "make_overwrite_file",
         "_materialize_source",
         "make_parse_document",
         "_tavily_extract_one",
@@ -1616,12 +1611,12 @@
         "make_render_battlecard_pdf",
         "make_extract_jd"
       ],
-      "totalLines": 724,
+      "totalLines": 657,
       "hasStructuralAnalysis": true
     },
     "backend/agents/career_agent/utils.py": {
       "filePath": "backend/agents/career_agent/utils.py",
-      "contentHash": "dbd641f717f1716b8fa8ab3eb71cb9f6db53dfbc289a81286327de817fd2987d",
+      "contentHash": "f7ef6c0a8de7fd74c9b8d99c2f4fbc75376dbe71d834e8f70d532f7ac335f969",
       "functions": [
         {
           "name": "load_subagents",
@@ -1908,12 +1903,12 @@
     },
     "backend/pyproject.toml": {
       "filePath": "backend/pyproject.toml",
-      "contentHash": "66252e095f1ad70e3b89b116c3b219b36c56d38d3460822067d7a038d8b171ab",
+      "contentHash": "0a58cb9bb7bc6bd6fc8a7b6d13be84c292dcee41859babde0cfc32e06eb1984d",
       "functions": [],
       "classes": [],
       "imports": [],
       "exports": [],
-      "totalLines": 260,
+      "totalLines": 263,
       "hasStructuralAnalysis": true
     },
     "backend/README.md": {
@@ -18125,7 +18120,7 @@
     },
     "backend/server/api/server.py": {
       "filePath": "backend/server/api/server.py",
-      "contentHash": "6869bc4bef8bb8b7bcda3783d5eb70f9a6924ac59bf45a45fb3b3a7179faac8c",
+      "contentHash": "9c5fabc6bdb51f365fe9fc4ca720eeeaaecdfce7edbe5e83469dd8a6521f264a",
       "functions": [
         {
           "name": "update_openapi_spec",
@@ -18349,7 +18344,7 @@
         "apply_middleware",
         "validate_router_lifespan_hooks"
       ],
-      "totalLines": 309,
+      "totalLines": 313,
       "hasStructuralAnalysis": true
     },
     "backend/server/api/sse.py": {
@@ -25879,7 +25874,7 @@
     },
     "backend/tests/career_agent/test_middleware_model_override.py": {
       "filePath": "backend/tests/career_agent/test_middleware_model_override.py",
-      "contentHash": "49d9b6f5512143882b34dd87d668f7605c878261edc87e760000a76a359a1197",
+      "contentHash": "78053337ee6c993900985988dc1b6926875887e5b10acb3afc775761f7fcc279",
       "functions": [
         {
           "name": "middleware",
@@ -26074,7 +26069,7 @@
     },
     "backend/tests/career_agent/test_middleware.py": {
       "filePath": "backend/tests/career_agent/test_middleware.py",
-      "contentHash": "d10d8335c20f3cfaf1075d517bd10160c9d443e537b67e309636d9cae380b37a",
+      "contentHash": "82a5776dd9db4a1b9a7a023c02e0d88408db9cbfca03432f0660b916de640ce2",
       "functions": [
         {
           "name": "middleware",
@@ -26133,10 +26128,23 @@
           "lineCount": 22
         },
         {
+          "name": "_memory_backend",
+          "params": [],
+          "returnType": "CompositeBackend",
+          "exported": true,
+          "lineCount": 17
+        },
+        {
           "name": "test_ensure_preferences_seeds_scaffold_when_missing",
           "params": [],
           "exported": true,
-          "lineCount": 14
+          "lineCount": 15
+        },
+        {
+          "name": "test_ensure_preferences_preserves_existing_content",
+          "params": [],
+          "exported": true,
+          "lineCount": 24
         },
         {
           "name": "test_ensure_preferences_swallows_backend_errors",
@@ -26148,20 +26156,33 @@
           "name": "test_ensure_preferences_async_path_seeds",
           "params": [],
           "exported": true,
-          "lineCount": 12
+          "lineCount": 13
+        },
+        {
+          "name": "test_ensure_preferences_async_path_preserves_existing_content",
+          "params": [],
+          "exported": true,
+          "lineCount": 19
+        },
+        {
+          "name": "test_ensure_preferences_async_swallows_backend_errors",
+          "params": [],
+          "exported": true,
+          "lineCount": 7
         }
       ],
       "classes": [
         {
-          "name": "_RecordingBackend",
+          "name": "_ExplodingBackend",
           "methods": [
-            "__init__",
+            "read",
+            "aread",
             "write",
             "awrite"
           ],
           "properties": [],
           "exported": true,
-          "lineCount": 22
+          "lineCount": 14
         }
       ],
       "imports": [
@@ -26198,9 +26219,23 @@
           ]
         },
         {
+          "source": "deepagents.backends",
+          "specifiers": [
+            "CompositeBackend",
+            "StateBackend",
+            "StoreBackend"
+          ]
+        },
+        {
           "source": "langchain_core.messages",
           "specifiers": [
             "SystemMessage"
+          ]
+        },
+        {
+          "source": "langgraph.store.memory",
+          "specifiers": [
+            "InMemoryStore"
           ]
         }
       ],
@@ -26212,17 +26247,21 @@
         "test_middleware_creates_message_when_system_prompt_is_none",
         "test_middleware_async_path_also_injects",
         "test_middleware_uses_same_date_for_different_times_on_same_day",
-        "_RecordingBackend",
+        "_ExplodingBackend",
+        "_memory_backend",
         "test_ensure_preferences_seeds_scaffold_when_missing",
+        "test_ensure_preferences_preserves_existing_content",
         "test_ensure_preferences_swallows_backend_errors",
-        "test_ensure_preferences_async_path_seeds"
+        "test_ensure_preferences_async_path_seeds",
+        "test_ensure_preferences_async_path_preserves_existing_content",
+        "test_ensure_preferences_async_swallows_backend_errors"
       ],
-      "totalLines": 162,
+      "totalLines": 245,
       "hasStructuralAnalysis": true
     },
     "backend/tests/career_agent/test_object_backend.py": {
       "filePath": "backend/tests/career_agent/test_object_backend.py",
-      "contentHash": "a89407a46b6f8034c35b1151f2c34a4e9733d59882c16298ee762fbf3a3d5bb2",
+      "contentHash": "991641461fd880d9fa8fb84381da3c38594c0d0bc0dd74840044a2b9423a9099",
       "functions": [
         {
           "name": "mem_store",
@@ -26267,12 +26306,36 @@
           "lineCount": 28
         },
         {
-          "name": "test_write_then_refuse_overwrite_then_edit",
+          "name": "test_write_overwrites_existing_file",
           "params": [
             "backend"
           ],
           "exported": true,
-          "lineCount": 17
+          "lineCount": 16
+        },
+        {
+          "name": "test_delete_removes_single_file",
+          "params": [
+            "backend"
+          ],
+          "exported": true,
+          "lineCount": 10
+        },
+        {
+          "name": "test_delete_removes_directory_recursively",
+          "params": [
+            "backend"
+          ],
+          "exported": true,
+          "lineCount": 11
+        },
+        {
+          "name": "test_delete_missing_path_reports_not_found",
+          "params": [
+            "backend"
+          ],
+          "exported": true,
+          "lineCount": 3
         },
         {
           "name": "test_write_rejects_unsafe_path",
@@ -26396,6 +26459,14 @@
           "lineCount": 3
         },
         {
+          "name": "test_grep_max_count_caps_total_matches",
+          "params": [
+            "seeded"
+          ],
+          "exported": true,
+          "lineCount": 11
+        },
+        {
           "name": "test_upload_download_round_trip",
           "params": [
             "backend"
@@ -26463,7 +26534,10 @@
         "test_is_not_a_sandbox_backend",
         "test_keys_carry_the_scoped_area_prefix",
         "test_backend_scopes_keys_to_the_runtime_identity",
-        "test_write_then_refuse_overwrite_then_edit",
+        "test_write_overwrites_existing_file",
+        "test_delete_removes_single_file",
+        "test_delete_removes_directory_recursively",
+        "test_delete_missing_path_reports_not_found",
         "test_write_rejects_unsafe_path",
         "test_edit_missing_file_uses_framework_literal",
         "test_edit_refuses_binary",
@@ -26479,15 +26553,16 @@
         "test_glob_matches_without_downloading",
         "test_grep_searches_text_objects_only",
         "test_grep_scopes_to_path",
+        "test_grep_max_count_caps_total_matches",
         "test_upload_download_round_trip",
         "test_upload_overwrites_silently"
       ],
-      "totalLines": 241,
+      "totalLines": 283,
       "hasStructuralAnalysis": true
     },
     "backend/tests/career_agent/test_object_storage_integration.py": {
       "filePath": "backend/tests/career_agent/test_object_storage_integration.py",
-      "contentHash": "521d375ef769fd133afb25a0ff8e4d987a70d0f88939f7280db5dcd8d2f12245",
+      "contentHash": "99001d9e762abab6f6b29578d2039aa08b25fd74487dc69eea876368b3476aee",
       "functions": [
         {
           "name": "store",
@@ -26509,7 +26584,7 @@
             "store"
           ],
           "exported": true,
-          "lineCount": 22
+          "lineCount": 24
         }
       ],
       "classes": [],
@@ -26561,7 +26636,7 @@
         "test_bytes_round_trip_and_cleanup",
         "test_backend_contract_against_real_emulator"
       ],
-      "totalLines": 71,
+      "totalLines": 73,
       "hasStructuralAnalysis": true
     },
     "backend/tests/career_agent/test_object_storage.py": {
@@ -26728,7 +26803,7 @@
     },
     "backend/tests/career_agent/test_prompts.py": {
       "filePath": "backend/tests/career_agent/test_prompts.py",
-      "contentHash": "db32375e2d29ab5c252e02a28886840e46dd3cc5177f661db0c37b7cd822b1d9",
+      "contentHash": "cfd6df2468440b14f005dd01720792601ef1b31175ef0d722ec2724681262e15",
       "functions": [
         {
           "name": "test_memory_prompt_formats_with_only_agent_memory_placeholder",
@@ -26745,44 +26820,125 @@
           "lineCount": 5
         },
         {
-          "name": "test_memory_index_wired_as_second_memory_source",
+          "name": "test_todo_prompt_still_matches_stock",
           "params": [],
           "returnType": "None",
           "exported": true,
-          "lineCount": 28
+          "lineCount": 13
         },
         {
-          "name": "test_memory_prompt_override_reaches_the_middleware",
+          "name": "test_memory_sources_and_prompt_wired_via_constructor",
           "params": [
             "monkeypatch"
           ],
           "returnType": "None",
           "exported": true,
-          "lineCount": 22
+          "lineCount": 17
+        },
+        {
+          "name": "test_no_prompt_monkey_patching_remains",
+          "params": [
+            "monkeypatch"
+          ],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 16
+        },
+        {
+          "name": "test_todos_channel_registered",
+          "params": [
+            "monkeypatch"
+          ],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 7
+        },
+        {
+          "name": "_tool_names",
+          "params": [
+            "tools"
+          ],
+          "returnType": "set[str]",
+          "exported": true,
+          "lineCount": 9
+        },
+        {
+          "name": "_tool_description",
+          "params": [
+            "tools",
+            "name"
+          ],
+          "returnType": "str",
+          "exported": true,
+          "lineCount": 9
+        },
+        {
+          "name": "test_assembled_prompt_and_tools_snapshot",
+          "params": [
+            "monkeypatch"
+          ],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 77
         }
       ],
-      "classes": [],
+      "classes": [
+        {
+          "name": "_RecordingFakeModel",
+          "methods": [
+            "_llm_type",
+            "bind_tools",
+            "_generate"
+          ],
+          "properties": [
+            "captured_messages",
+            "captured_tools"
+          ],
+          "exported": true,
+          "lineCount": 18
+        }
+      ],
       "imports": [
         {
-          "source": "ast",
+          "source": "langchain_core.language_models",
           "specifiers": [
-            "ast"
+            "BaseChatModel"
           ]
         },
         {
-          "source": "pathlib",
+          "source": "langchain_core.messages",
           "specifiers": [
-            "Path"
+            "AIMessage",
+            "HumanMessage"
+          ]
+        },
+        {
+          "source": "langchain_core.outputs",
+          "specifiers": [
+            "ChatGeneration",
+            "ChatResult"
+          ]
+        },
+        {
+          "source": "pydantic",
+          "specifiers": [
+            "Field"
           ]
         }
       ],
       "exports": [
         "test_memory_prompt_formats_with_only_agent_memory_placeholder",
         "test_memory_prompt_keeps_required_placeholder",
-        "test_memory_index_wired_as_second_memory_source",
-        "test_memory_prompt_override_reaches_the_middleware"
+        "test_todo_prompt_still_matches_stock",
+        "test_memory_sources_and_prompt_wired_via_constructor",
+        "test_no_prompt_monkey_patching_remains",
+        "test_todos_channel_registered",
+        "_RecordingFakeModel",
+        "_tool_names",
+        "_tool_description",
+        "test_assembled_prompt_and_tools_snapshot"
       ],
-      "totalLines": 85,
+      "totalLines": 214,
       "hasStructuralAnalysis": true
     },
     "backend/tests/career_agent/test_scope.py": {
@@ -27514,7 +27670,7 @@
     },
     "backend/tests/career_agent/test_tools.py": {
       "filePath": "backend/tests/career_agent/test_tools.py",
-      "contentHash": "af6249a48dab4a8c3003ace0cc48088d8a64ca13b3d2652c8c6fed94cd7e98df",
+      "contentHash": "580be715786cac9ef86e82c7b58ca9827842d2ffcd589e4d70d4f09269e69038",
       "functions": [
         {
           "name": "backend",
@@ -27797,32 +27953,6 @@
           ],
           "exported": true,
           "lineCount": 22
-        },
-        {
-          "name": "test_overwrite_file_writes_new_file",
-          "params": [
-            "tmp_path",
-            "backend"
-          ],
-          "exported": true,
-          "lineCount": 10
-        },
-        {
-          "name": "test_overwrite_file_replaces_existing_content",
-          "params": [
-            "tmp_path",
-            "backend"
-          ],
-          "exported": true,
-          "lineCount": 20
-        },
-        {
-          "name": "test_overwrite_file_surfaces_upsert_error",
-          "params": [
-            "backend"
-          ],
-          "exported": true,
-          "lineCount": 14
         }
       ],
       "classes": [],
@@ -27895,17 +28025,14 @@
         "test_extract_jd_rejects_invalid_save_as",
         "test_extract_jd_handles_empty_tavily_results",
         "test_extract_jd_surfaces_tavily_exception",
-        "test_extract_jd_overwrites_existing_processed_file",
-        "test_overwrite_file_writes_new_file",
-        "test_overwrite_file_replaces_existing_content",
-        "test_overwrite_file_surfaces_upsert_error"
+        "test_extract_jd_overwrites_existing_processed_file"
       ],
-      "totalLines": 567,
+      "totalLines": 518,
       "hasStructuralAnalysis": true
     },
     "backend/tests/career_agent/test_utils.py": {
       "filePath": "backend/tests/career_agent/test_utils.py",
-      "contentHash": "2f26cb0f91b8115c613617b796704dad45cb425f118045b4c16387a1b992d610",
+      "contentHash": "71e24aac7911b1e7446ee3bb87dc2dea0616feb1bb2028dff93b399e230d3acb",
       "functions": [
         {
           "name": "_fake_search",
@@ -27935,7 +28062,7 @@
           "lineCount": 3
         },
         {
-          "name": "_fake_overwrite",
+          "name": "_fake_scratch",
           "params": [
             "path",
             "content"
@@ -28081,7 +28208,7 @@
         "_fake_search",
         "_fake_extract",
         "_fake_list_files",
-        "_fake_overwrite",
+        "_fake_scratch",
         "_write_yaml",
         "test_skills_passthrough",
         "test_skills_absent_when_omitted",
@@ -28249,7 +28376,7 @@
     },
     "backend/tests/server/test_smoke.py": {
       "filePath": "backend/tests/server/test_smoke.py",
-      "contentHash": "3cf6aba6705d4d2cfb0865f7bdf146b76fd07297f594e143efffa3b8190ba83c",
+      "contentHash": "cd8dafbc523a0fd1646037525c2a56ea26eca0e08cdeb20d537e01a6df911a22",
       "functions": [
         {
           "name": "_base_url",
@@ -28271,6 +28398,13 @@
           "returnType": "None",
           "exported": true,
           "lineCount": 8
+        },
+        {
+          "name": "test_openapi_spec_keeps_builtin_docs_with_custom_app",
+          "params": [],
+          "returnType": "None",
+          "exported": true,
+          "lineCount": 18
         },
         {
           "name": "test_store_roundtrip",
@@ -28342,10 +28476,11 @@
         "_base_url",
         "test_ok_endpoint_reports_healthy",
         "test_info_reports_server_version",
+        "test_openapi_spec_keeps_builtin_docs_with_custom_app",
         "test_store_roundtrip",
         "test_thread_event_stream_survives_idle"
       ],
-      "totalLines": 112,
+      "totalLines": 132,
       "hasStructuralAnalysis": true
     },
     "backend/tests/test_files_api_auth.py": {
@@ -28715,12 +28850,12 @@
     },
     "CLAUDE.md": {
       "filePath": "CLAUDE.md",
-      "contentHash": "d68ce522e0646f144ee4e098e638beeeb519cf694ecf4fbefd575cbf161134b2",
+      "contentHash": "620307fdbe14af6d6941a9b2323d3937cd82017171a310279a7d2b5efae82fed",
       "functions": [],
       "classes": [],
       "imports": [],
       "exports": [],
-      "totalLines": 78,
+      "totalLines": 90,
       "hasStructuralAnalysis": true
     },
     "CODE_OF_CONDUCT.md": {
@@ -28775,117 +28910,7 @@
     },
     "docs/prd/01_file_upload.md": {
       "filePath": "docs/prd/01_file_upload.md",
-      "contentHash": "8206b27d1cc695fc89d7ddd0ae345567d0859bababa826fc0a6bd73c8988c0e5",
-      "functions": [],
-      "classes": [],
-      "imports": [],
-      "exports": [],
-      "totalLines": 71,
-      "hasStructuralAnalysis": true
-    },
-    "docs/prd/02_document_processing.md": {
-      "filePath": "docs/prd/02_document_processing.md",
-      "contentHash": "66fda273b9af64ad87e872c9e7d6ade3ece4d89cbb5628101b3fbbb56355c2a9",
-      "functions": [],
-      "classes": [],
-      "imports": [],
-      "exports": [],
-      "totalLines": 96,
-      "hasStructuralAnalysis": true
-    },
-    "docs/prd/03_jd_url_extraction.md": {
-      "filePath": "docs/prd/03_jd_url_extraction.md",
-      "contentHash": "34026f05f626793c16820d00a09284ed5fc4e429c068c9d386fce2b124edf0e6",
-      "functions": [],
-      "classes": [],
-      "imports": [],
-      "exports": [],
-      "totalLines": 64,
-      "hasStructuralAnalysis": true
-    },
-    "docs/prd/04_initialize_subagents.md": {
-      "filePath": "docs/prd/04_initialize_subagents.md",
-      "contentHash": "54ee2dc4b446212396cba99465f7a115fea0edda64fcc4780c8b93727d041dcd",
-      "functions": [],
-      "classes": [],
-      "imports": [],
-      "exports": [],
-      "totalLines": 80,
-      "hasStructuralAnalysis": true
-    },
-    "docs/prd/05_chat_streaming_throttle.md": {
-      "filePath": "docs/prd/05_chat_streaming_throttle.md",
-      "contentHash": "8639849f9cb8020b2a0d786fd4b323fb164dcdcc5ee4bde434b057a0fa424cd4",
-      "functions": [],
-      "classes": [],
-      "imports": [],
-      "exports": [],
-      "totalLines": 95,
-      "hasStructuralAnalysis": true
-    },
-    "docs/prd/06_subagents_with_skills.md": {
-      "filePath": "docs/prd/06_subagents_with_skills.md",
-      "contentHash": "22b9d3d2c821078b1e157d0dccff46f256fd6c6dc34835ccbad8ed90d3ee1f05",
-      "functions": [],
-      "classes": [],
-      "imports": [],
-      "exports": [],
-      "totalLines": 56,
-      "hasStructuralAnalysis": true
-    },
-    "docs/prd/07_tailored_resume_pdf.md": {
-      "filePath": "docs/prd/07_tailored_resume_pdf.md",
-      "contentHash": "0796dd2c054b0eab997b0feaf55ab11c8c222a64f888dbdba74ff45a533edc5e",
-      "functions": [],
-      "classes": [],
-      "imports": [],
-      "exports": [],
-      "totalLines": 57,
-      "hasStructuralAnalysis": true
-    },
-    "docs/prd/08_agent_workflow.md": {
-      "filePath": "docs/prd/08_agent_workflow.md",
-      "contentHash": "66edd156d8efe4d2f9284808361200f633fe722d0ad7fe91182c48afcc73e00f",
-      "functions": [],
-      "classes": [],
-      "imports": [],
-      "exports": [],
-      "totalLines": 89,
-      "hasStructuralAnalysis": true
-    },
-    "docs/prd/09_file_category_colors.md": {
-      "filePath": "docs/prd/09_file_category_colors.md",
-      "contentHash": "e3891dfae8ed4fe0e276568593e982aa52511c64e34cbd541387692731c67fec",
-      "functions": [],
-      "classes": [],
-      "imports": [],
-      "exports": [],
-      "totalLines": 67,
-      "hasStructuralAnalysis": true
-    },
-    "docs/prd/10_print_file_as_pdf.md": {
-      "filePath": "docs/prd/10_print_file_as_pdf.md",
-      "contentHash": "ad306f1d8b4d439d7eb507bcec848817e1f87e158e08f33cd0defa92aa92623b",
-      "functions": [],
-      "classes": [],
-      "imports": [],
-      "exports": [],
-      "totalLines": 64,
-      "hasStructuralAnalysis": true
-    },
-    "docs/prd/11_interview_battlecard_pdf.md": {
-      "filePath": "docs/prd/11_interview_battlecard_pdf.md",
-      "contentHash": "d30a91a0c49bcd69d8332035bab590ea5e53b68b82c25cb59144985ea6d3aa18",
-      "functions": [],
-      "classes": [],
-      "imports": [],
-      "exports": [],
-      "totalLines": 70,
-      "hasStructuralAnalysis": true
-    },
-    "docs/prd/12_multi_turn_updates.md": {
-      "filePath": "docs/prd/12_multi_turn_updates.md",
-      "contentHash": "8a20b34b49302e9f749b6f12422711e57f47ec37908b3c93a584e59e6824d26c",
+      "contentHash": "69a0a18b08f33c97b8582cd9aaf279f73961b881500069b3142d635e14529b80",
       "functions": [],
       "classes": [],
       "imports": [],
@@ -28893,109 +28918,59 @@
       "totalLines": 78,
       "hasStructuralAnalysis": true
     },
-    "docs/prd/13_execute_virtual_path_translation.md": {
-      "filePath": "docs/prd/13_execute_virtual_path_translation.md",
-      "contentHash": "cd19b4c69908b05832cf0aaab76495c793b96f6e8173f7e5cf9c8abef2a35115",
+    "docs/prd/02_document_processing.md": {
+      "filePath": "docs/prd/02_document_processing.md",
+      "contentHash": "d4881a9a28826ac23bc7756815a264ced63de3da1d4a135148978ee7d62f1862",
       "functions": [],
       "classes": [],
       "imports": [],
       "exports": [],
-      "totalLines": 58,
+      "totalLines": 103,
       "hasStructuralAnalysis": true
     },
-    "docs/prd/14_multi_select_file_delete.md": {
-      "filePath": "docs/prd/14_multi_select_file_delete.md",
-      "contentHash": "ee02c6fc4c11b830f3340bb447504ac8f66605d49251b7e706a9025b90aacfb4",
+    "docs/prd/03_jd_url_extraction.md": {
+      "filePath": "docs/prd/03_jd_url_extraction.md",
+      "contentHash": "67d444fc22476422d9f2d584a10a478a1f75b012a6ffd11dbaee57b541dded0d",
       "functions": [],
       "classes": [],
       "imports": [],
       "exports": [],
-      "totalLines": 76,
+      "totalLines": 73,
       "hasStructuralAnalysis": true
     },
-    "docs/prd/15_configurable_llm_models.md": {
-      "filePath": "docs/prd/15_configurable_llm_models.md",
-      "contentHash": "a6d396dcce14e2c87eabc839e9ffe9dec85e2d086955a92ddb2e9ddd22a77ccb",
+    "docs/prd/04_initialize_subagents.md": {
+      "filePath": "docs/prd/04_initialize_subagents.md",
+      "contentHash": "9bb501cf0701d065964256da4b40a516ce1587a337875355291eb2b06cb2312d",
       "functions": [],
       "classes": [],
       "imports": [],
       "exports": [],
-      "totalLines": 66,
+      "totalLines": 87,
       "hasStructuralAnalysis": true
     },
-    "docs/prd/16_disable_subagent_streaming.md": {
-      "filePath": "docs/prd/16_disable_subagent_streaming.md",
-      "contentHash": "30f3bce7894917d69b4ec91552a03ea32aaabfdf08c8fdd8e516f346d604987c",
+    "docs/prd/05_chat_streaming_throttle.md": {
+      "filePath": "docs/prd/05_chat_streaming_throttle.md",
+      "contentHash": "076a7bd9f0cb64fce1b962cc099db5eb93c681e53ef8cac8d19c40b58c84abd3",
       "functions": [],
       "classes": [],
       "imports": [],
       "exports": [],
-      "totalLines": 123,
+      "totalLines": 103,
       "hasStructuralAnalysis": true
     },
-    "docs/prd/17_preference_memory.md": {
-      "filePath": "docs/prd/17_preference_memory.md",
-      "contentHash": "94f9c1ee047cc45324076785b2725ab99c392194d6b922bf1d06ef84c2b783c9",
+    "docs/prd/06_subagents_with_skills.md": {
+      "filePath": "docs/prd/06_subagents_with_skills.md",
+      "contentHash": "0568a2032a4d7c9c288b011f36d3ade3d7f32475dab69f97a41639ef9ea4ac92",
       "functions": [],
       "classes": [],
       "imports": [],
       "exports": [],
-      "totalLines": 117,
+      "totalLines": 63,
       "hasStructuralAnalysis": true
     },
-    "docs/prd/18_langchain_react_migration.md": {
-      "filePath": "docs/prd/18_langchain_react_migration.md",
-      "contentHash": "c255305f8212db348bae76d479531f770edb13b09ca319f003f8d46f6025691c",
-      "functions": [],
-      "classes": [],
-      "imports": [],
-      "exports": [],
-      "totalLines": 132,
-      "hasStructuralAnalysis": true
-    },
-    "docs/prd/19_bulk_delete_dialog_full_paths.md": {
-      "filePath": "docs/prd/19_bulk_delete_dialog_full_paths.md",
-      "contentHash": "546f679d158c52920df4f67b57c65fca12c39ac218ac9de60401b3f8d7525825",
-      "functions": [],
-      "classes": [],
-      "imports": [],
-      "exports": [],
-      "totalLines": 40,
-      "hasStructuralAnalysis": true
-    },
-    "docs/prd/20_ui_modernization.md": {
-      "filePath": "docs/prd/20_ui_modernization.md",
-      "contentHash": "169cd1f5b1225c413fd025f83dc4aee4d6c8ea6fc278bbf45c7197a680c06cf1",
-      "functions": [],
-      "classes": [],
-      "imports": [],
-      "exports": [],
-      "totalLines": 71,
-      "hasStructuralAnalysis": true
-    },
-    "docs/prd/21_own_agent_server.md": {
-      "filePath": "docs/prd/21_own_agent_server.md",
-      "contentHash": "13719f4975e40f15e82563c2ec0f6f36725d2dded8ac0062ee413770c62a77e6",
-      "functions": [],
-      "classes": [],
-      "imports": [],
-      "exports": [],
-      "totalLines": 121,
-      "hasStructuralAnalysis": true
-    },
-    "docs/prd/22_frontend_test_suite.md": {
-      "filePath": "docs/prd/22_frontend_test_suite.md",
-      "contentHash": "3a5b04eebc29d99de6f95a573e21bc4333203b7d5c5e8376caf8d537d8c9d20e",
-      "functions": [],
-      "classes": [],
-      "imports": [],
-      "exports": [],
-      "totalLines": 60,
-      "hasStructuralAnalysis": true
-    },
-    "docs/prd/23_progressive_tool_disclosure.md": {
-      "filePath": "docs/prd/23_progressive_tool_disclosure.md",
-      "contentHash": "ced966f8d60486341a9bad9c0ed03d9d81909e226eea32d505562015a61ddf49",
+    "docs/prd/07_tailored_resume_pdf.md": {
+      "filePath": "docs/prd/07_tailored_resume_pdf.md",
+      "contentHash": "c821acf53cc7d1cd20c9fe5ad25713018f5474d94f4e28d08b2895ef8ba991e7",
       "functions": [],
       "classes": [],
       "imports": [],
@@ -29003,44 +28978,234 @@
       "totalLines": 64,
       "hasStructuralAnalysis": true
     },
-    "docs/prd/24_collapsible_threads_panel.md": {
-      "filePath": "docs/prd/24_collapsible_threads_panel.md",
-      "contentHash": "d78db324b1a572ed466dddbce52c45ac86fe5d8433a48962d6fc28b3b3b579d4",
+    "docs/prd/08_agent_workflow.md": {
+      "filePath": "docs/prd/08_agent_workflow.md",
+      "contentHash": "c95867c3aa8a8f2d07fc27da979f183fa9d2e3177ab629ec3db09b6be89ae424",
       "functions": [],
       "classes": [],
       "imports": [],
       "exports": [],
-      "totalLines": 58,
+      "totalLines": 98,
+      "hasStructuralAnalysis": true
+    },
+    "docs/prd/09_file_category_colors.md": {
+      "filePath": "docs/prd/09_file_category_colors.md",
+      "contentHash": "e5af17e9a836ce0bd6fbb103d15097e3cbf38e5fd76d7133277504cd2a2d5c75",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 74,
+      "hasStructuralAnalysis": true
+    },
+    "docs/prd/10_print_file_as_pdf.md": {
+      "filePath": "docs/prd/10_print_file_as_pdf.md",
+      "contentHash": "10fa6596b827dfb770d0f6fad332bd90ec88144b4295bdcbf395830242aeafd2",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 71,
+      "hasStructuralAnalysis": true
+    },
+    "docs/prd/11_interview_battlecard_pdf.md": {
+      "filePath": "docs/prd/11_interview_battlecard_pdf.md",
+      "contentHash": "ae6575be13630623fc327fe2120a6b0ba27c93339321003aa03755e1fa3c94fe",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 79,
+      "hasStructuralAnalysis": true
+    },
+    "docs/prd/12_multi_turn_updates.md": {
+      "filePath": "docs/prd/12_multi_turn_updates.md",
+      "contentHash": "18db04c4c79c52ef39e46c23c3928d09d92883e3c433dc9c950193d9e3dde3df",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 87,
+      "hasStructuralAnalysis": true
+    },
+    "docs/prd/13_execute_virtual_path_translation.md": {
+      "filePath": "docs/prd/13_execute_virtual_path_translation.md",
+      "contentHash": "4e96e184d0e8e6eb5a38e674d6882956cb646a3df40bc32b410c945ba708d0e7",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 67,
+      "hasStructuralAnalysis": true
+    },
+    "docs/prd/14_multi_select_file_delete.md": {
+      "filePath": "docs/prd/14_multi_select_file_delete.md",
+      "contentHash": "f6c779c271b0abfa6ede61ea3eeef8eabef715f1e19ee8d3f2cc96f5e7d21107",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 83,
+      "hasStructuralAnalysis": true
+    },
+    "docs/prd/15_configurable_llm_models.md": {
+      "filePath": "docs/prd/15_configurable_llm_models.md",
+      "contentHash": "398b796a0fef913030decc999a86e3c02ecc826f01496809330bb5c06d3527ea",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 73,
+      "hasStructuralAnalysis": true
+    },
+    "docs/prd/16_disable_subagent_streaming.md": {
+      "filePath": "docs/prd/16_disable_subagent_streaming.md",
+      "contentHash": "11594c24115978393071881b13cdea66b3adb1538732882381108395a499224a",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 133,
+      "hasStructuralAnalysis": true
+    },
+    "docs/prd/17_preference_memory.md": {
+      "filePath": "docs/prd/17_preference_memory.md",
+      "contentHash": "af5ec1485646c569eb90db45c0f289b26872770a3a7b0a7f02865aa73809953a",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 127,
+      "hasStructuralAnalysis": true
+    },
+    "docs/prd/18_langchain_react_migration.md": {
+      "filePath": "docs/prd/18_langchain_react_migration.md",
+      "contentHash": "72c64c210f9ee8e46a3d585ccf253a2727188a9fec1b2e5312049856fb49e90d",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 139,
+      "hasStructuralAnalysis": true
+    },
+    "docs/prd/19_bulk_delete_dialog_full_paths.md": {
+      "filePath": "docs/prd/19_bulk_delete_dialog_full_paths.md",
+      "contentHash": "44e35d2fd1164774aacd97a75981fab65e5fb026de0d07028bcb08d73856ec81",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 49,
+      "hasStructuralAnalysis": true
+    },
+    "docs/prd/20_ui_modernization.md": {
+      "filePath": "docs/prd/20_ui_modernization.md",
+      "contentHash": "a39f804b04f7ebd090673bca602b1763488fd084125b359cbc254cc5a0fbba80",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 80,
+      "hasStructuralAnalysis": true
+    },
+    "docs/prd/21_own_agent_server.md": {
+      "filePath": "docs/prd/21_own_agent_server.md",
+      "contentHash": "6609e8149bccd9ba2eee056ab5620b1d689de0f488c571d8dce457f603324926",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 129,
+      "hasStructuralAnalysis": true
+    },
+    "docs/prd/22_frontend_test_suite.md": {
+      "filePath": "docs/prd/22_frontend_test_suite.md",
+      "contentHash": "cf4b6cdfdef63441153358e83a710c7e4cd23095cef2fef38857c7686c4619bd",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 67,
+      "hasStructuralAnalysis": true
+    },
+    "docs/prd/23_progressive_tool_disclosure.md": {
+      "filePath": "docs/prd/23_progressive_tool_disclosure.md",
+      "contentHash": "85f4a70150b2dfa5f54a9eaf0c69453e1465e0756d3802a845725ffb3dcbe4ba",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 73,
+      "hasStructuralAnalysis": true
+    },
+    "docs/prd/24_collapsible_threads_panel.md": {
+      "filePath": "docs/prd/24_collapsible_threads_panel.md",
+      "contentHash": "ac69d49cdb4eb8aa52b8874d5c755f04b2015198a8a5e4c105270020c50378fa",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 67,
       "hasStructuralAnalysis": true
     },
     "docs/prd/25_object_storage_artifacts.md": {
       "filePath": "docs/prd/25_object_storage_artifacts.md",
-      "contentHash": "c73b16a7a162edb268796ee44d00e97baaa1270f1cc5d11c503f6a025f13ec1a",
+      "contentHash": "66a625dee9b3e624850abf270e89039b0a99b6a7511175ed624857c2c02cff0c",
       "functions": [],
       "classes": [],
       "imports": [],
       "exports": [],
-      "totalLines": 61,
+      "totalLines": 70,
       "hasStructuralAnalysis": true
     },
     "docs/prd/26_multi_user_auth.md": {
       "filePath": "docs/prd/26_multi_user_auth.md",
-      "contentHash": "fb53c374658d6c6aad30a26d59f3a3ee4cc0a74b48d4d95f3884bd70d6feb92b",
+      "contentHash": "e0d150d1d8a45d0a689b47efb3d9975eac84bc3b2d2d84d388e634324a369e1b",
       "functions": [],
       "classes": [],
       "imports": [],
       "exports": [],
-      "totalLines": 65,
+      "totalLines": 74,
       "hasStructuralAnalysis": true
     },
     "docs/prd/27_first_run_upload_guidance.md": {
       "filePath": "docs/prd/27_first_run_upload_guidance.md",
-      "contentHash": "dda809c11c3d6245dde72d1c74796287c6be81084cfd8ee20d42199feafbac1e",
+      "contentHash": "edd148ca72444f0447b76a618583e5f3ee0fafa6e386bd85b6c535ceeeb05191",
       "functions": [],
       "classes": [],
       "imports": [],
       "exports": [],
-      "totalLines": 60,
+      "totalLines": 69,
+      "hasStructuralAnalysis": true
+    },
+    "docs/prd/28_deepagents_v07_migration.md": {
+      "filePath": "docs/prd/28_deepagents_v07_migration.md",
+      "contentHash": "9b885b9dbfa5acc4e37f0fdbbf274b5ea6f02244c22aea2c695cdeb5005f6ff8",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 67,
+      "hasStructuralAnalysis": true
+    },
+    "docs/prd/index.md": {
+      "filePath": "docs/prd/index.md",
+      "contentHash": "abaf92caa85084f1752220a651c59f7773301e4144eeba5b3cba93304038e8de",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 35,
+      "hasStructuralAnalysis": true
+    },
+    "docs/prd/README.md": {
+      "filePath": "docs/prd/README.md",
+      "contentHash": "9977b07cfdc956692b29a168f9199679b0221498114547f98ae574ab17a01ac6",
+      "functions": [],
+      "classes": [],
+      "imports": [],
+      "exports": [],
+      "totalLines": 62,
       "hasStructuralAnalysis": true
     },
     "frontend/.dockerignore": {
@@ -30011,7 +30176,7 @@
     },
     "frontend/src/app/components/ConfigDialog.tsx": {
       "filePath": "frontend/src/app/components/ConfigDialog.tsx",
-      "contentHash": "6177faa5fb2e4682f5954a0a2b426a88f6f09b4200637f8f7d4f78e0c44cdb1c",
+      "contentHash": "7fec4ba79ca9f48ff782f5cc4d662d27dcec59e7d4a4521bc2f95c2dba5348d2",
       "functions": [
         {
           "name": "ConfigDialog",
@@ -31281,7 +31446,7 @@
     },
     "frontend/src/app/components/ToolCallBox.tsx": {
       "filePath": "frontend/src/app/components/ToolCallBox.tsx",
-      "contentHash": "e53bce01a07e635cb75a54e03412bfabd59256244069a1bcea9d3139988701f1",
+      "contentHash": "676fb9ef1be798e7292226e0d62622effe7bd5f97a2c81ef353774ec8be53f3b",
       "functions": [
         {
           "name": "getToolIcon",
@@ -35554,12 +35719,12 @@
     },
     "README.md": {
       "filePath": "README.md",
-      "contentHash": "81f503d013e70170caa94de08b07ae1e1630ed543784c1cc6986d8d6736bb40d",
+      "contentHash": "7d43c1334f2190f39ecdab3688033805d4edacf4754106faa9ef16baf9ec91b9",
       "functions": [],
       "classes": [],
       "imports": [],
       "exports": [],
-      "totalLines": 337,
+      "totalLines": 376,
       "hasStructuralAnalysis": true
     },
     "SECURITY.md": {
