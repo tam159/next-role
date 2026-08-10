@@ -66,10 +66,10 @@ discovery flow — see below.
 
 | Concern | Path |
 |---|---|
-| The memory contract — what to remember, when to save, how to apply | `backend/app/career_agent/prompts.py` (`MEMORY`, block 7) |
-| Preferences file wired as a 2nd always-loaded memory source | `backend/app/career_agent/agents.py` (`create_deep_agent(memory=…)`) |
-| Monkey-patch that makes deepagents use our `MEMORY` prompt | `backend/app/career_agent/agents.py` (`_apply_prompt_overrides`) |
-| Seeds the `/memory/preferences.md` scaffold before the model runs | `backend/app/career_agent/middleware.py` (`EnsurePreferencesFileMiddleware`, `PREFERENCES_PATH`, `_PREFERENCES_SCAFFOLD`) |
+| The memory contract — what to remember, when to save, how to apply | `backend/agents/career_agent/prompts.py` (`MEMORY`, block 7) |
+| Preferences file wired as a 2nd always-loaded memory source | `backend/agents/career_agent/agents.py` (`create_deep_agent(memory=…)`) |
+| Monkey-patch that makes deepagents use our `MEMORY` prompt | `backend/agents/career_agent/agents.py` (`_apply_prompt_overrides`) |
+| Seeds the `/memory/preferences.md` scaffold before the model runs | `backend/agents/career_agent/middleware.py` (`EnsurePreferencesFileMiddleware`, `PREFERENCES_PATH`, `_PREFERENCES_SCAFFOLD`) |
 | `User preferences:` reminders at the delegation points | `backend/agents/career_agent/CAREER_AGENT.md` (Stage 3 / Stage 4 / Stage 6) |
 | Guards: `MEMORY.format()`, override reaches middleware, seeder | `backend/tests/career_agent/test_prompts.py`, `test_middleware.py` |
 

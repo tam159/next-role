@@ -48,14 +48,14 @@ No frontend changes — the entire surface is conversational.
 
 | Concern | Path |
 |---|---|
-| Routing summary in main system prompt | `backend/app/career_agent/prompts.py` (`SYSTEM_PROMPT`, the new follow-up paragraph) |
+| Routing summary in main system prompt | `backend/agents/career_agent/prompts.py` (`SYSTEM_PROMPT`, the new follow-up paragraph) |
 | Stage 6 procedure: per-artifact update flows + task-input templates | `backend/agents/career_agent/CAREER_AGENT.md` (`## Stage 6 — Updates and follow-ups`) |
-| Subagent system_prompts: create vs update mode, user-first clause, two-verb reply contract | `backend/app/career_agent/subagents.yaml` |
-| Battlecard update flow (main agent owns it) + Hard-rules split | `backend/app/career_agent/skills/career-agent/interview-battlecard/SKILL.md` (`## Updates`, `## Hard rules`) |
-| Research update flow + Rules split | `backend/app/career_agent/skills/hiring-recon/hiring-recon/SKILL.md` (`## Updates`, `## Rules`) |
-| Resume update flow + Unacceptable split + per-rule "user can override" exceptions | `backend/app/career_agent/skills/resume-tailor/resume-tailor/SKILL.md` (`## Updates`, "Skills preservation rule", "URL preservation rule", "Truth-vs-tailoring guardrail") |
-| Interview-prep update flow + Rules split | `backend/app/career_agent/skills/interview-coach/interview-coach/SKILL.md` (`## Updates`, `## Rules`) |
-| README pointer to Stage 6 | `backend/app/career_agent/README.md` (`## Multi-turn updates`) |
+| Subagent system_prompts: create vs update mode, user-first clause, two-verb reply contract | `backend/agents/career_agent/subagents.yaml` |
+| Battlecard update flow (main agent owns it) + Hard-rules split | `backend/agents/career_agent/skills/career-agent/interview-battlecard/SKILL.md` (`## Updates`, `## Hard rules`) |
+| Research update flow + Rules split | `backend/agents/career_agent/skills/hiring-recon/hiring-recon/SKILL.md` (`## Updates`, `## Rules`) |
+| Resume update flow + Unacceptable split + per-rule "user can override" exceptions | `backend/agents/career_agent/skills/resume-tailor/resume-tailor/SKILL.md` (`## Updates`, "Skills preservation rule", "URL preservation rule", "Truth-vs-tailoring guardrail") |
+| Interview-prep update flow + Rules split | `backend/agents/career_agent/skills/interview-coach/interview-coach/SKILL.md` (`## Updates`, `## Rules`) |
+| README pointer to Stage 6 | `backend/agents/career_agent/README.md` (`## Multi-turn updates`) |
 
 # Decisions worth remembering
 

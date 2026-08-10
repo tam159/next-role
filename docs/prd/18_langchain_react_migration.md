@@ -75,7 +75,7 @@ fine.
 | Sources from scoped tool calls (`SubagentSourcesProbe` consumer) | `frontend/src/app/utils/sources.ts` (`extractSourcesFromToolCalls`) |
 | Per-subagent sources probes replacing legacy `sub.messages` merge | `frontend/src/app/components/Workspace.tsx` |
 | `stream_mode` body-rewrite workaround removal (0.8.1-era, dead on the new protocol) | `frontend/src/providers/ClientProvider.tsx` |
-| Toggle flip + rollback-lever comments | `backend/app/career_agent/middleware.py` (`DISABLE_SUBAGENT_STREAMING`) |
+| Toggle flip + rollback-lever comments | `backend/agents/career_agent/middleware.py` (`DISABLE_SUBAGENT_STREAMING`) |
 | Default/rollback test matrix | `backend/tests/career_agent/test_middleware_model_override.py` |
 
 # Decisions worth remembering

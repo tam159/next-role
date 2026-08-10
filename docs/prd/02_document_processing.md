@@ -11,7 +11,7 @@ version: v1
 
 # Why
 
-File Upload (v1) lets the user drop CVs/JDs onto disk, but the agent only sees filenames — it can't read PDF/DOCX bytes. Step 2 of the career agent flow (`backend/app/career_agent/README.md`) is converting those uploads into clean markdown the LLM can reason over, so downstream steps (research, custom resume, interview prep) have something to chew on. CVs and JDs are visually rich (multi-column layouts, tables, embedded charts) — naive text extraction loses structure that the agent needs.
+File Upload (v1) lets the user drop CVs/JDs onto disk, but the agent only sees filenames — it can't read PDF/DOCX bytes. Step 2 of the career agent flow (`backend/agents/career_agent/README.md`) is converting those uploads into clean markdown the LLM can reason over, so downstream steps (research, custom resume, interview prep) have something to chew on. CVs and JDs are visually rich (multi-column layouts, tables, embedded charts) — naive text extraction loses structure that the agent needs.
 
 # What the user sees
 
@@ -53,11 +53,11 @@ The happy path above assumes LlamaParse succeeds and the user has nothing to add
 
 | Concern | Path |
 |---|---|
-| Agent assembly + composite backend route map | `backend/app/career_agent/agents.py` |
-| `parse_document`, `list_files` tool factories | `backend/app/career_agent/tools.py` |
-| Per-call UTC datetime middleware | `backend/app/career_agent/middleware.py` |
-| Upload-handling block + reconciliation rules | `backend/app/career_agent/prompts.py` (`SYSTEM_PROMPT`) |
-| Tool + middleware unit tests (LlamaParse mocked) | `backend/tests/test_career_agent_tools.py`, `backend/tests/test_career_agent_middleware.py` |
+| Agent assembly + composite backend route map | `backend/agents/career_agent/agents.py` |
+| `parse_document`, `list_files` tool factories | `backend/agents/career_agent/tools.py` |
+| Per-call UTC datetime middleware | `backend/agents/career_agent/middleware.py` |
+| Upload-handling block + reconciliation rules | `backend/agents/career_agent/prompts.py` (`SYSTEM_PROMPT`) |
+| Tool + middleware unit tests (LlamaParse mocked) | `backend/tests/career_agent/test_tools.py`, `backend/tests/career_agent/test_middleware.py` |
 | Pytest config (rootdir + asyncio mode) | `backend/pyproject.toml` (`[tool.pytest.ini_options]`) |
 | Frontend file listing (store + disk merge) | `frontend/src/app/lib/agentFiles.ts` (`fetchStoreFiles`, `resolveStoreLocation`) |
 | Path-prefix → namespace config | `frontend/src/app/config/agentFiles.ts` (`AGENT_FILE_SOURCES.career_agent.store`) |

@@ -36,9 +36,9 @@ Blank field → the agent's bake-time default still wins. Settings persist in `l
 
 | Concern | Path |
 |---|---|
-| Override middleware | `backend/app/career_agent/middleware.py` (`ModelOverrideMiddleware`, `_resolve_model`) |
-| Wiring main + subagent share | `backend/app/career_agent/agents.py` (`_model_override_middleware`, lines ~125–150) |
-| Subagent middleware threading | `backend/app/career_agent/utils.py` (`load_subagents` `default_middleware=` param) |
+| Override middleware | `backend/agents/career_agent/middleware.py` (`ModelOverrideMiddleware`, `_resolve_model`) |
+| Wiring main + subagent share | `backend/agents/career_agent/agents.py` (`_model_override_middleware`, lines ~125–150) |
+| Subagent middleware threading | `backend/agents/career_agent/utils.py` (`load_subagents` `default_middleware=` param) |
 | Settings UI section | `frontend/src/app/components/ConfigDialog.tsx` (`ModelsSectionHelp`, the **Models** block) |
 | Persisted config shape | `frontend/src/lib/config.ts` (`mainAgentModel`, `subagentModel` on `StandaloneConfig`) |
 | Per-submit config builder | `frontend/src/app/hooks/useChat.ts` (`buildSubmitConfig`, used by all five `stream.submit` sites) |

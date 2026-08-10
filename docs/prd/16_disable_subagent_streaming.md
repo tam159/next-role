@@ -76,11 +76,11 @@ per-step cadence reads as "stepped," not broken.
 
 | Concern | Path |
 |---|---|
-| The reversible toggle (default `True`) | `backend/app/career_agent/middleware.py` (`DISABLE_SUBAGENT_STREAMING`) |
-| Disable-streaming for subagents; main-vs-subagent branch | `backend/app/career_agent/middleware.py` (`_maybe_override`) |
-| The `model_copy(disable_streaming=True)` helper | `backend/app/career_agent/middleware.py` (`_without_streaming`) |
-| Reads `is_subagent` + override + streaming flag from config | `backend/app/career_agent/middleware.py` (`_read_config`) |
-| Middleware wired onto main agent + every subagent | `backend/app/career_agent/agents.py:129,147,150` |
+| The reversible toggle (default `True`) | `backend/agents/career_agent/middleware.py` (`DISABLE_SUBAGENT_STREAMING`) |
+| Disable-streaming for subagents; main-vs-subagent branch | `backend/agents/career_agent/middleware.py` (`_maybe_override`) |
+| The `model_copy(disable_streaming=True)` helper | `backend/agents/career_agent/middleware.py` (`_without_streaming`) |
+| Reads `is_subagent` + override + streaming flag from config | `backend/agents/career_agent/middleware.py` (`_read_config`) |
+| Middleware wired onto main agent + every subagent | `backend/agents/career_agent/agents.py:129,147,150` |
 | Unit tests (override + streaming, copy-not-mutation) | `backend/tests/career_agent/test_middleware_model_override.py` |
 | Root-cause O(n²) concat (SDK, for reference) | `node_modules/@langchain/langgraph-sdk/dist/ui/messages.js:85` |
 
@@ -124,7 +124,7 @@ per-step cadence reads as "stepped," not broken.
 
 1. `cd backend && uv run pytest tests/career_agent/test_middleware_model_override.py` — green
    (covers subagent-default, subagent-override, main-agent-untouched, copy-not-mutation).
-2. `pre-commit run --files backend/app/career_agent/middleware.py backend/tests/career_agent/test_middleware_model_override.py` — ruff + `ty` pass.
+2. `pre-commit run --files backend/agents/career_agent/middleware.py backend/tests/career_agent/test_middleware_model_override.py` — ruff + `ty` pass.
 3. `docker compose up -d`, grab the frontend port from `docker ps`. Backend hot-reloads — confirm
    the `career_agent` graph re-imports cleanly in `docker logs next-role-backend-1`.
 4. Run a flow to the parallel `resume-tailor` + `interview-coach` phase (both write large files).
