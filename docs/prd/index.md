@@ -14,6 +14,7 @@
 * [File Upload](01_file_upload.md) - Upload a CV and optional JD into the career agent's workspace — the entry point for the whole agent flow.
 * [First-Run Upload Guidance](27_first_run_upload_guidance.md) - Actionable empty states, an in-grid upload tile, and a dismissible pulse cue drive the critical first upload — no coach-mark arrows.
 * [Frontend Test Suite + Required CI Check](22_frontend_test_suite.md) - A 367-test Vitest suite with a third required CI check (frontend-tests) that skip-passes on backend-only and docs-only changes.
+* [Human-in-the-Loop Approval for the execute Tool](29_execute_tool_hitl_approval.md) - Risky execute (bash) commands pause for approve/edit/reject in the chat — main agent and subagents alike — with a fail-closed read-only allowlist auto-approving safe commands and an env kill switch.
 * [Interview Battlecard — JSON + PDF via weasyprint](11_interview_battlecard_pdf.md) - Stage 5 emits a hand-editable battlecard JSON plus an A4-landscape PDF rendered in-process with jinja2 + weasyprint.
 * [JD-from-URL Extraction](03_jd_url_extraction.md) - Paste a JD URL in chat and Tavily-extract it into the same /processed/<slug>.md artifact that uploaded JDs produce.
 * [Long-term user-preference memory](17_preference_memory.md) - A single always-loaded /memory/preferences.md persists durable user preferences across threads — saving is one edit_file, applying costs zero tool calls.
