@@ -26,24 +26,29 @@ const ctx: {
   isThreadLoading: boolean;
   files: Record<string, string>;
   filesReady: boolean;
+  interrupts: { id: string; value: unknown }[];
+  threadInterrupts: { interruptId: string; payload: unknown; namespace: string[] }[];
 } = {
   messages: [],
   isLoading: false,
   isThreadLoading: false,
   files: {},
   filesReady: true,
+  interrupts: [],
+  threadInterrupts: [],
 };
 
 function useMockChatContext() {
   const [input, setInput] = React.useState("");
   return {
-    stream: null,
+    // getThread backs useInterruptApprovals' live-subagent fallback source.
+    stream: { getThread: () => ({ interrupts: ctx.threadInterrupts }), subagents: new Map() },
     messages: ctx.messages,
     isLoading: ctx.isLoading,
     isThreadLoading: ctx.isThreadLoading,
     files: ctx.files,
     filesReady: ctx.filesReady,
-    interrupt: undefined,
+    interrupts: ctx.interrupts,
     sendMessage,
     stopStream,
     resumeInterrupt,
@@ -75,10 +80,12 @@ vi.mock("@/app/lib/uploadFiles", async (importOriginal) => {
 vi.mock("@/app/components/ChatMessage", () => ({
   ChatMessage: ({
     message,
+    toolCalls,
     toolBatches,
     isOpenEndedGroup,
   }: {
     message: BaseMessage;
+    toolCalls: ToolCall[];
     toolBatches?: ToolCall[][] | null;
     isOpenEndedGroup?: boolean;
   }) => (
@@ -87,6 +94,7 @@ vi.mock("@/app/components/ChatMessage", () => ({
       data-batches={
         toolBatches ? JSON.stringify(toolBatches.map((b) => b.map((tc) => tc.name))) : ""
       }
+      data-statuses={JSON.stringify(toolCalls.map((tc) => [tc.id, tc.status]))}
       data-open-ended={isOpenEndedGroup ? "yes" : "no"}
     >
       {message.id}
@@ -117,6 +125,8 @@ beforeEach(() => {
   ctx.isThreadLoading = false;
   ctx.files = {};
   ctx.filesReady = true;
+  ctx.interrupts = [];
+  ctx.threadInterrupts = [];
 });
 
 // ---------------------------------------------------------------------------
@@ -357,5 +367,151 @@ describe("ChatInterface tool-call run grouping", () => {
     const [m1, m2] = screen.getAllByTestId("chat-message");
     expect(m1).toHaveAttribute("data-open-ended", "no");
     expect(m2).toHaveAttribute("data-open-ended", "no");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// HITL approvals (derived here via useInterruptApprovals)
+// ---------------------------------------------------------------------------
+
+const executeAI = (id: string, calls: Array<{ id: string; command: string }>): AIMessage =>
+  new AIMessage({
+    id,
+    content: "",
+    tool_calls: calls.map((c) => ({
+      id: c.id,
+      name: "execute",
+      args: { command: c.command },
+      type: "tool_call",
+    })),
+  });
+
+const hitlValue = (commands: string[]) => ({
+  action_requests: commands.map((command) => ({
+    name: "execute",
+    args: { command },
+    description: "Review it before it executes.",
+  })),
+  review_configs: commands.map(() => ({
+    action_name: "execute",
+    allowed_decisions: ["approve", "edit", "reject"],
+  })),
+});
+
+const statusesOf = (stub: HTMLElement) =>
+  JSON.parse(stub.getAttribute("data-statuses") ?? "[]") as [string, string][];
+
+describe("ChatInterface HITL approvals", () => {
+  it("marks only the approval's own tool call interrupted, not parallel siblings", () => {
+    ctx.messages = [
+      executeAI("m1", [
+        { id: "t1", command: "ls" },
+        { id: "t2", command: "id" },
+      ]),
+    ];
+    // One gated call: the `when` allowlist auto-approved `ls`, so the
+    // interrupt carries only the `id` action_request.
+    ctx.interrupts = [{ id: "int1", value: hitlValue(["id"]) }];
+    renderChat();
+
+    const statuses = new Map(statusesOf(screen.getByTestId("chat-message")));
+    expect(statuses.get("t2")).toBe("interrupted");
+    expect(statuses.get("t1")).toBe("pending");
+  });
+
+  it("accumulates one decision per action and resumes once with the ordered batch", async () => {
+    const user = userEvent.setup();
+    // The last AI turn is a task call (unresolved), so the two execute
+    // approvals have no matching root box and render in the fallback block.
+    ctx.messages = [
+      new AIMessage({
+        id: "m1",
+        content: "",
+        tool_calls: [
+          {
+            id: "task1",
+            name: "task",
+            args: { subagent_type: "general-purpose" },
+            type: "tool_call",
+          },
+        ],
+      }),
+    ];
+    ctx.interrupts = [{ id: "int1", value: hitlValue(["id", "uname -a"]) }];
+    renderChat();
+
+    const approveButtons = screen.getAllByRole("button", { name: "Approve" });
+    expect(approveButtons).toHaveLength(2);
+
+    await user.click(approveButtons[0]);
+    // First decision queues — no resume yet.
+    expect(resumeInterrupt).not.toHaveBeenCalled();
+    expect(screen.getByText("Approved — queued")).toBeInTheDocument();
+    expect(screen.getByText("Waiting on 1 more decision")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Approve" }));
+    expect(resumeInterrupt).toHaveBeenCalledTimes(1);
+    expect(resumeInterrupt).toHaveBeenCalledWith(
+      { decisions: [{ type: "approve" }, { type: "approve" }] },
+      { interruptId: "int1", namespace: undefined }
+    );
+  });
+
+  it("surfaces a live subagent interrupt from the ThreadStream record and resumes with its namespace", async () => {
+    const user = userEvent.setup();
+    ctx.messages = [
+      new AIMessage({
+        id: "m1",
+        content: "",
+        tool_calls: [
+          {
+            id: "task1",
+            name: "task",
+            args: { subagent_type: "general-purpose" },
+            type: "tool_call",
+          },
+        ],
+      }),
+    ];
+    // Live subagent interrupts never reach `interrupts` — only the
+    // ThreadStream record has them.
+    ctx.interrupts = [];
+    ctx.threadInterrupts = [
+      { interruptId: "int9", payload: hitlValue(["id"]), namespace: ["task:task1"] },
+    ];
+    renderChat();
+
+    expect(screen.getByText("Approval Required")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Approve" }));
+
+    expect(resumeInterrupt).toHaveBeenCalledWith(
+      { decisions: [{ type: "approve" }] },
+      { interruptId: "int9", namespace: ["task:task1"] }
+    );
+  });
+
+  it("locks the composer while a review is pending (input would be coerced to a resume)", async () => {
+    const user = userEvent.setup();
+    ctx.messages = [executeAI("m1", [{ id: "t1", command: "id" }])];
+    ctx.interrupts = [{ id: "int1", value: hitlValue(["id"]) }];
+    renderChat();
+
+    expect(screen.getByText(/Waiting for your review/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Send" })).toBeDisabled();
+
+    await user.type(composer(), "never mind");
+    await user.keyboard("{Enter}");
+    expect(sendMessage).not.toHaveBeenCalled();
+  });
+
+  it("ignores replayed thread interrupts while a run is streaming", () => {
+    ctx.messages = [executeAI("m1", [{ id: "t1", command: "id" }])];
+    ctx.isLoading = true;
+    ctx.threadInterrupts = [{ interruptId: "stale1", payload: hitlValue(["id"]), namespace: [] }];
+    renderChat();
+
+    expect(screen.queryByText("Approval Required")).not.toBeInTheDocument();
+    const statuses = new Map(statusesOf(screen.getByTestId("chat-message")));
+    expect(statuses.get("t1")).toBe("pending");
   });
 });
