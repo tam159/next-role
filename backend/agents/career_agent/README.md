@@ -76,6 +76,27 @@ subagents=[
 Once the five stages have run, users iterate ("add a round", "drop this link", "add common questions to round 2"). The main agent routes by which file owns the change: it edits `/interview_battlecard/<r>/<j>.json` itself (read → `edit_file` or `write_file` → `render_battlecard_pdf`), and delegates research / tailored-resume / interview-prep updates to the matching subagent with an explicit "update" task description that names the target path and the surgical change. Subagents read the existing file first, preserve everything the user did not name, and reply with `Updated … at: <path>`. Skill-level preservation defaults (don't drop a skill, don't drop a URL, etc.) yield to explicit user requests; truth/fabrication rules stay absolute. See `CAREER_AGENT.md` "Stage 6 — Updates" for the full procedure and task-input templates.
 
 
+## Human-in-the-loop: `execute` approval
+
+The `execute` tool runs unsandboxed bash on the host, so risky commands pause the run for
+human review. `build_career_agent` passes `interrupt_on={"execute": ...}` (built by
+`execute_approval.py`) to `create_deep_agent`, which installs langchain's
+`HumanInTheLoopMiddleware` on the main agent and threads the same config into every
+declarative subagent plus the auto-added general-purpose one — main agent and subagents
+pause alike. The frontend renders the pending command with **Approve / Edit / Reject**;
+the decision resumes the run via the server's interrupt/resume flow (the platform
+checkpointer makes this durable — never pass `checkpointer=` to `create_deep_agent`).
+
+- **Auto-approve allowlist:** `is_auto_approvable` clears short commands that invoke a
+  read-only binary (`ls`, `cat`, `grep`, ...) with no shell control/substitution
+  characters, no absolute paths, and no `..` traversal. Everything else interrupts —
+  the classifier fails closed.
+- **Intentional bypass:** `render_resume_pdf` calls `backend.execute()` directly with a
+  developer-authored `rendercv render` command; it never passes the tool layer, so it is
+  not gated.
+- **Kill switch:** `CAREER_AGENT_EXECUTE_APPROVAL=false` (see `.env.example`) disables
+  the gate for offline evals or rollback. Default on.
+
 ## File Upload (v1)
 
 Users upload raw resume / JD files (PDF, DOC, DOCX, TXT, MD; up to 10 MB each) from
