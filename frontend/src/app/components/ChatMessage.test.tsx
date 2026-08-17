@@ -3,7 +3,8 @@ import { AIMessage, HumanMessage } from "@langchain/core/messages";
 import type { BaseMessage } from "@langchain/core/messages";
 import type { AnyStream, SubagentDiscoverySnapshot } from "@langchain/react";
 import { ChatMessage } from "@/app/components/ChatMessage";
-import type { ActionRequest, ToolCall } from "@/app/types/types";
+import type { ApprovalsBundle } from "@/app/hooks/useInterruptApprovals";
+import type { PendingApproval, ToolCall } from "@/app/types/types";
 
 vi.mock("@/app/components/MarkdownContent", () => ({
   MarkdownContent: ({ content }: { content: string }) => (
@@ -14,18 +15,18 @@ vi.mock("@/app/components/MarkdownContent", () => ({
 vi.mock("@/app/components/ToolCallBox", () => ({
   ToolCallBox: ({
     toolCall,
-    actionRequest,
-    onResume,
+    approval,
+    onDecide,
   }: {
     toolCall: ToolCall;
-    actionRequest?: ActionRequest;
-    onResume?: (value: unknown) => void;
+    approval?: PendingApproval;
+    onDecide?: (approval: PendingApproval, decision: unknown) => void;
   }) => (
     <div
       data-testid={`tool-call-box-${toolCall.id}`}
       data-name={toolCall.name}
-      data-action-request={actionRequest?.name ?? ""}
-      data-has-resume={onResume ? "yes" : "no"}
+      data-approval={approval?.actionRequest.name ?? ""}
+      data-has-decide={onDecide ? "yes" : "no"}
     />
   ),
 }));
@@ -101,9 +102,24 @@ describe("ChatMessage", () => {
     expect(screen.queryByTestId("tool-call-box-a1")).not.toBeInTheDocument();
   });
 
-  it("routes the action request to the interrupted tool call box", () => {
-    const actionRequest: ActionRequest = { name: "write_file", args: { path: "/tmp/a.md" } };
-    const onResumeInterrupt = vi.fn();
+  it("routes the pending approval to exactly its tool call box by id", () => {
+    const approval: PendingApproval = {
+      key: "int1:0",
+      interruptId: "int1",
+      index: 0,
+      total: 1,
+      actionRequest: { name: "write_file", args: { path: "/tmp/a.md" } },
+    };
+    const approvals = {
+      approvalByToolCallId: new Map([["a1", approval]]),
+      unassignedApprovals: [],
+      pendingApprovals: [approval],
+      interruptedToolCallIds: new Set(["a1"]),
+      queuedDecisions: new Map(),
+      decide: vi.fn(),
+      claimedKeySet: new Set<string>(),
+      registerSubagentClaims: vi.fn(),
+    } as unknown as ApprovalsBundle;
     renderMessage(new AIMessage(""), {
       toolBatches: [
         [
@@ -111,16 +127,14 @@ describe("ChatMessage", () => {
           toolCall({ id: "b2", name: "execute" }),
         ],
       ],
-      actionRequestsMap: new Map([["write_file", actionRequest]]),
-      onResumeInterrupt,
+      approvals,
     });
 
-    // actionRequestsMap is keyed by tool NAME and attaches only to the
-    // interrupted call; every box receives onResume.
+    // Approvals are routed by tool-call ID; every box receives onDecide.
     const interrupted = screen.getByTestId("tool-call-box-a1");
-    expect(interrupted).toHaveAttribute("data-action-request", "write_file");
-    expect(interrupted).toHaveAttribute("data-has-resume", "yes");
-    expect(screen.getByTestId("tool-call-box-b2")).toHaveAttribute("data-action-request", "");
+    expect(interrupted).toHaveAttribute("data-approval", "write_file");
+    expect(interrupted).toHaveAttribute("data-has-decide", "yes");
+    expect(screen.getByTestId("tool-call-box-b2")).toHaveAttribute("data-approval", "");
   });
 
   it("renders a SubagentCard for a task call once its discovery snapshot exists", () => {

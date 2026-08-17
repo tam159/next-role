@@ -407,6 +407,11 @@ def _run_rendercv(backend: CompositeBackend, yaml_file: Path) -> str:
     The path is a real absolute path outside the shell backend's root, so the
     virtual-path rewriter passes it through untouched. Returns the process
     output (kept for the verify-stage message).
+
+    Calling `backend.execute()` directly bypasses the `execute` TOOL and with
+    it the human-in-the-loop gate (see execute_approval.py) — intentionally:
+    this command is developer-authored from fixed args, not model-authored
+    bash, and the render already runs in a throwaway temp dir.
     """
     try:
         exec_res = backend.execute(f"rendercv render {shlex.quote(str(yaml_file))}")

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo, useCallback, useRef } from "react";
+import React, { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import {
   Bot,
   BookOpen,
@@ -21,16 +21,18 @@ import {
   Check,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { ToolCall, ActionRequest, ReviewConfig } from "@/app/types/types";
+import { ToolCall, ApprovalDecision, PendingApproval } from "@/app/types/types";
 import { cn } from "@/lib/utils";
 import { ToolApprovalInterrupt } from "@/app/components/ToolApprovalInterrupt";
 import { parseToolError, previewValue } from "@/app/utils/toolErrors";
 
 interface ToolCallBoxProps {
   toolCall: ToolCall;
-  actionRequest?: ActionRequest;
-  reviewConfig?: ReviewConfig;
-  onResume?: (value: unknown) => void;
+  /** The pending HITL approval assigned to THIS call (routed by id). */
+  approval?: PendingApproval;
+  queuedDecision?: ApprovalDecision;
+  queueNote?: string;
+  onDecide?: (approval: PendingApproval, decision: ApprovalDecision) => void;
   isLoading?: boolean;
 }
 
@@ -97,9 +99,18 @@ function getStatusMeta(
 }
 
 export const ToolCallBox = React.memo<ToolCallBoxProps>(
-  ({ toolCall, actionRequest, reviewConfig, onResume, isLoading }) => {
-    const [isExpanded, setIsExpanded] = useState(() => !!actionRequest);
+  ({ toolCall, approval, queuedDecision, queueNote, onDecide, isLoading }) => {
+    const [isExpanded, setIsExpanded] = useState(() => !!approval);
     const [expandedArgs, setExpandedArgs] = useState<Record<string, boolean>>({});
+
+    // A box usually mounts as `pending` (args streaming) and only later gets
+    // its approval routed in — the mount-time initializer above misses that
+    // transition, so force the box open when an approval arrives.
+    const hadApprovalRef = useRef(!!approval);
+    useEffect(() => {
+      if (approval && !hadApprovalRef.current) setIsExpanded(true);
+      hadApprovalRef.current = !!approval;
+    }, [approval]);
 
     const { name, args, result, status } = useMemo(() => {
       return {
@@ -198,7 +209,7 @@ export const ToolCallBox = React.memo<ToolCallBoxProps>(
       }));
     }, []);
 
-    const hasContent = result || Object.keys(args).length > 0;
+    const hasContent = !!approval || result || Object.keys(args).length > 0;
 
     return (
       <div className="relative grid grid-cols-[26px_minmax(0,1fr)] gap-3">
@@ -258,13 +269,15 @@ export const ToolCallBox = React.memo<ToolCallBoxProps>(
 
           {isExpanded && hasContent && (
             <div className="relative z-10 px-3 pb-3">
-              {actionRequest && onResume ? (
+              {approval && onDecide ? (
                 // Show tool approval UI when there's an action request but no GenUI
                 <div className="mt-2 overflow-hidden rounded-lg border border-warning/30 bg-warning/10 p-3">
                   <ToolApprovalInterrupt
-                    actionRequest={actionRequest}
-                    reviewConfig={reviewConfig}
-                    onResume={onResume}
+                    actionRequest={approval.actionRequest}
+                    reviewConfig={approval.reviewConfig}
+                    onDecide={(decision) => onDecide(approval, decision)}
+                    queuedDecision={queuedDecision}
+                    queueNote={queueNote}
                     isLoading={isLoading}
                   />
                 </div>

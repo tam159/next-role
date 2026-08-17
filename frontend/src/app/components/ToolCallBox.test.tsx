@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ToolCallBox } from "@/app/components/ToolCallBox";
-import type { ActionRequest, ToolCall } from "@/app/types/types";
+import type { PendingApproval, ToolCall } from "@/app/types/types";
 
 // Note: ToolCallBox no longer imports MarkdownContent (args/result render in
 // plain <pre> blocks since the toolErrors refactor), so no stub is needed.
@@ -89,19 +89,25 @@ describe("ToolCallBox", () => {
     expect(screen.getByText("done ok")).toBeInTheDocument();
   });
 
-  it("starts expanded with the approval UI when an actionRequest is present", async () => {
+  it("starts expanded with the approval UI when an approval is present", async () => {
     const user = userEvent.setup();
-    const onResume = vi.fn();
-    const actionRequest: ActionRequest = {
-      name: "write_file",
-      args: { path: "/tmp/draft.md" },
-      description: "Write the draft",
+    const onDecide = vi.fn();
+    const approval: PendingApproval = {
+      key: "int1:0",
+      interruptId: "int1",
+      index: 0,
+      total: 1,
+      actionRequest: {
+        name: "write_file",
+        args: { path: "/tmp/draft.md" },
+        description: "Write the draft",
+      },
     };
     render(
       <ToolCallBox
         toolCall={call({ name: "write_file", status: "interrupted", args: { path: "/tmp/x" } })}
-        actionRequest={actionRequest}
-        onResume={onResume}
+        approval={approval}
+        onDecide={onDecide}
       />
     );
 
@@ -110,7 +116,32 @@ describe("ToolCallBox", () => {
     expect(screen.getByText("Write the draft")).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "Approve" }));
-    expect(onResume).toHaveBeenCalledWith({ decisions: [{ type: "approve" }] });
+    expect(onDecide).toHaveBeenCalledWith(approval, { type: "approve" });
+  });
+
+  it("expands when an approval arrives after mounting as pending", () => {
+    const onDecide = vi.fn();
+    const pendingCall = call({ name: "execute", status: "pending", args: { command: "id" } });
+    const { rerender } = render(<ToolCallBox toolCall={pendingCall} onDecide={onDecide} />);
+
+    expect(screen.queryByText("Approval Required")).not.toBeInTheDocument();
+
+    const approval: PendingApproval = {
+      key: "int1:0",
+      interruptId: "int1",
+      index: 0,
+      total: 1,
+      actionRequest: { name: "execute", args: { command: "id" } },
+    };
+    rerender(
+      <ToolCallBox
+        toolCall={call({ name: "execute", status: "interrupted", args: { command: "id" } })}
+        approval={approval}
+        onDecide={onDecide}
+      />
+    );
+
+    expect(screen.getByText("Approval Required")).toBeInTheDocument();
   });
 
   it.each([

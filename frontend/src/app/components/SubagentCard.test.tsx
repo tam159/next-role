@@ -4,7 +4,8 @@ import { AIMessage, AIMessageChunk } from "@langchain/core/messages";
 import { useMessages, useToolCalls } from "@langchain/react";
 import type { AnyStream, AssembledToolCall, SubagentDiscoverySnapshot } from "@langchain/react";
 import { QueuedSubagentCard, SubagentCard } from "@/app/components/SubagentCard";
-import type { ToolCall } from "@/app/types/types";
+import type { ApprovalsBundle } from "@/app/hooks/useInterruptApprovals";
+import type { PendingApproval, ToolCall } from "@/app/types/types";
 
 // Keep everything real except the scoped selector hooks the card subscribes with.
 vi.mock("@langchain/react", async (importOriginal) => {
@@ -251,6 +252,108 @@ describe("SubagentCard", () => {
 
     expect(screen.getByText("2 in parallel")).toBeInTheDocument();
     expect(screen.getAllByText(/in parallel/)).toHaveLength(1);
+  });
+});
+
+describe("SubagentCard nested HITL approvals", () => {
+  const approval: PendingApproval = {
+    key: "int1:0",
+    interruptId: "int1",
+    namespace: ["task:task-1"],
+    index: 0,
+    total: 1,
+    actionRequest: {
+      name: "execute",
+      args: { command: "id" },
+      description: "Review it before it executes.",
+    },
+  };
+
+  function approvalsBundle(overrides: Partial<Record<string, unknown>> = {}) {
+    return {
+      pendingApprovals: [approval],
+      approvalByToolCallId: new Map(),
+      unassignedApprovals: [approval],
+      interruptedToolCallIds: new Set<string>(),
+      queuedDecisions: new Map(),
+      decide: vi.fn(),
+      claimedKeySet: new Set<string>(),
+      registerSubagentClaims: vi.fn(),
+      ...overrides,
+    } as unknown as ApprovalsBundle;
+  }
+
+  // HITL fires in after_model, BEFORE the tool starts: the gated call exists
+  // only on the messages channel (still pending), never on the tools channel.
+  const pendingExecuteMessage = () =>
+    new AIMessage({
+      content: "",
+      tool_calls: [{ id: "exec-1", name: "execute", args: { command: "id" }, type: "tool_call" }],
+    });
+
+  it("matches an unassigned approval to the pending nested call and renders the card", async () => {
+    const user = userEvent.setup();
+    vi.mocked(useMessages).mockReturnValue([pendingExecuteMessage()]);
+    const approvals = approvalsBundle();
+    // The run pauses on interrupt, so the snapshot reads terminal ("error").
+    const { container } = renderCard(makeSnapshot({ status: "error" }), {
+      isLoading: false,
+      approvals,
+    });
+
+    // Review badge on the header (replacing "Failed") AND the status pill on
+    // the nested interrupted box; pinned open.
+    expect(screen.getAllByText("Needs review")).toHaveLength(2);
+    expect(screen.queryByText("Failed")).not.toBeInTheDocument();
+    expect(header()).toHaveAttribute("aria-expanded", "true");
+    expect(container.querySelector("[inert]")).toBeNull();
+
+    // The claim is reported upward so the fallback block won't duplicate it.
+    expect(approvals.registerSubagentClaims).toHaveBeenCalledWith("task-1", ["int1:0"]);
+
+    expect(screen.getByText("Approval Required")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Approve" }));
+    expect(approvals.decide).toHaveBeenCalledWith(approval, { type: "approve" });
+  });
+
+  it("stops spinning messages-only pending calls once the snapshot is terminal", () => {
+    // A HITL-gated call never gets tools-channel events, and a resumed run's
+    // events don't reach the mounted projection — without coercion its
+    // spinner would run forever after the task completes.
+    vi.mocked(useMessages).mockReturnValue([pendingExecuteMessage()]);
+    const { container } = renderCard(
+      makeSnapshot({ status: "complete", completedAt: new Date("2026-07-01T10:05:00Z") }),
+      { isLoading: false }
+    );
+
+    expect(container.querySelector(".animate-spin")).toBeNull();
+    expect(screen.getByText("execute")).toBeInTheDocument();
+  });
+
+  it("keeps the pending state (no coercion) while an approval is matched to the call", () => {
+    vi.mocked(useMessages).mockReturnValue([pendingExecuteMessage()]);
+    const approvals = approvalsBundle();
+    renderCard(makeSnapshot({ status: "error" }), { isLoading: false, approvals });
+
+    // Coercion must not swallow the interrupted rendering path.
+    expect(screen.getByText("Approval Required")).toBeInTheDocument();
+  });
+
+  it("claims nothing when no nested call matches the approval", () => {
+    vi.mocked(useMessages).mockReturnValue([
+      new AIMessage({
+        content: "",
+        tool_calls: [
+          { id: "s-1", name: "internet_search", args: { query: "x" }, type: "tool_call" },
+        ],
+      }),
+    ]);
+    const approvals = approvalsBundle();
+    renderCard(makeSnapshot({ status: "error" }), { isLoading: false, approvals });
+
+    expect(approvals.registerSubagentClaims).toHaveBeenCalledWith("task-1", []);
+    expect(screen.queryByText("Approval Required")).not.toBeInTheDocument();
+    expect(screen.getByText("Failed")).toBeInTheDocument();
   });
 });
 

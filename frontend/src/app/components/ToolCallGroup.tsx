@@ -8,7 +8,8 @@ import { ToolCallBatchList } from "@/app/components/ToolCallBatchList";
 import { ToolCallBox } from "@/app/components/ToolCallBox";
 import { useAutoCollapse } from "@/app/hooks/useAutoCollapse";
 import { usePointerToggle } from "@/app/hooks/usePointerToggle";
-import type { ActionRequest, ReviewConfig, ToolCall } from "@/app/types/types";
+import type { ApprovalDecision, PendingApproval, ToolCall } from "@/app/types/types";
+import { approvalQueueNote } from "@/app/hooks/useInterruptApprovals";
 import { parseToolError } from "@/app/utils/toolErrors";
 import { cn } from "@/lib/utils";
 
@@ -25,9 +26,10 @@ interface ToolCallGroupProps {
    * hold the group open across the model's think-pauses between batches.
    */
   isOpenEnded?: boolean;
-  actionRequestsMap?: Map<string, ActionRequest>;
-  reviewConfigsMap?: Map<string, ReviewConfig>;
-  onResumeInterrupt?: (value: unknown) => void;
+  /** Pending HITL approvals routed by tool-call id (see useInterruptApprovals). */
+  approvalByToolCallId?: Map<string, PendingApproval>;
+  queuedDecisions?: Map<string, ApprovalDecision>;
+  onDecide?: (approval: PendingApproval, decision: ApprovalDecision) => void;
 }
 
 const MAX_SUMMARY_NAMES = 3;
@@ -41,7 +43,7 @@ const MAX_SUMMARY_NAMES = 3;
  * label. A run of exactly one call renders as its plain ToolCallBox.
  */
 export const ToolCallGroup = React.memo<ToolCallGroupProps>(
-  ({ batches, isLoading, isOpenEnded, actionRequestsMap, reviewConfigsMap, onResumeInterrupt }) => {
+  ({ batches, isLoading, isOpenEnded, approvalByToolCallId, queuedDecisions, onDecide }) => {
     const toolCalls = useMemo(() => batches.flat(), [batches]);
 
     // `isLoading` gates the pendings so a reload, Stop, or interrupt pause all
@@ -79,16 +81,20 @@ export const ToolCallGroup = React.memo<ToolCallGroupProps>(
       usePointerToggle(toggle);
 
     const renderToolCall = (toolCall: ToolCall) => {
-      // Route the approval request only to the call actually awaiting review —
-      // a completed same-name call elsewhere in the run must not match.
-      const interrupted = toolCall.status === "interrupted";
+      // Approvals are routed by tool-call id, so parallel same-name calls
+      // each get exactly their own card (never a shared name-keyed lookup).
+      const approval = approvalByToolCallId?.get(toolCall.id);
+      const queuedDecision = approval ? queuedDecisions?.get(approval.key) : undefined;
       return (
         <ToolCallBox
           key={toolCall.id}
           toolCall={toolCall}
-          actionRequest={interrupted ? actionRequestsMap?.get(toolCall.name) : undefined}
-          reviewConfig={interrupted ? reviewConfigsMap?.get(toolCall.name) : undefined}
-          onResume={onResumeInterrupt}
+          approval={approval}
+          queuedDecision={queuedDecision}
+          queueNote={
+            approval && queuedDecisions ? approvalQueueNote(approval, queuedDecisions) : undefined
+          }
+          onDecide={onDecide}
           isLoading={isLoading}
         />
       );

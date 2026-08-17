@@ -5,7 +5,8 @@ import { QueuedSubagentCard, SubagentCard } from "@/app/components/SubagentCard"
 import { ToolCallGroup } from "@/app/components/ToolCallGroup";
 import { MarkdownContent } from "@/app/components/MarkdownContent";
 import { LogoMark } from "@/app/components/LogoMark";
-import type { ToolCall, ActionRequest, ReviewConfig } from "@/app/types/types";
+import type { ToolCall } from "@/app/types/types";
+import type { ApprovalsBundle } from "@/app/hooks/useInterruptApprovals";
 import type { BaseMessage } from "@langchain/core/messages";
 import type { AnyStream } from "@langchain/react";
 import { extractStringFromMessageContent } from "@/app/utils/utils";
@@ -23,10 +24,9 @@ interface ChatMessageProps {
   isOpenEndedGroup?: boolean;
   isLoading?: boolean;
   showAvatar?: boolean;
-  actionRequestsMap?: Map<string, ActionRequest>;
-  reviewConfigsMap?: Map<string, ReviewConfig>;
+  /** HITL approval state from useInterruptApprovals (owned by ChatInterface). */
+  approvals?: ApprovalsBundle;
   stream: AnyStream;
-  onResumeInterrupt?: (value: unknown) => void;
 }
 
 export const ChatMessage = React.memo<ChatMessageProps>(
@@ -37,10 +37,8 @@ export const ChatMessage = React.memo<ChatMessageProps>(
     isOpenEndedGroup,
     isLoading,
     showAvatar = true,
-    actionRequestsMap,
-    reviewConfigsMap,
+    approvals,
     stream,
-    onResumeInterrupt,
   }) => {
     const isUser = message.type === "human";
     const messageContent = extractStringFromMessageContent(message);
@@ -114,9 +112,9 @@ export const ChatMessage = React.memo<ChatMessageProps>(
               batches={toolBatches}
               isLoading={isLoading}
               isOpenEnded={isOpenEndedGroup}
-              actionRequestsMap={actionRequestsMap}
-              reviewConfigsMap={reviewConfigsMap}
-              onResumeInterrupt={onResumeInterrupt}
+              approvalByToolCallId={approvals?.approvalByToolCallId}
+              queuedDecisions={approvals?.queuedDecisions}
+              onDecide={approvals?.decide}
             />
           )}
           {!isUser && taskToolCalls.length > 0 && (
@@ -141,6 +139,7 @@ export const ChatMessage = React.memo<ChatMessageProps>(
                     snapshot={snapshot}
                     taskToolCall={toolCall}
                     isLoading={isLoading}
+                    approvals={approvals}
                   />
                 );
               })}

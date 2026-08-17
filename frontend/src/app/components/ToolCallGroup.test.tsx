@@ -1,22 +1,25 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ToolCallGroup } from "@/app/components/ToolCallGroup";
-import type { ActionRequest, ToolCall } from "@/app/types/types";
+import type { PendingApproval, ToolCall } from "@/app/types/types";
 
 vi.mock("@/app/components/ToolCallBox", () => ({
-  ToolCallBox: ({
-    toolCall,
-    actionRequest,
-  }: {
-    toolCall: ToolCall;
-    actionRequest?: ActionRequest;
-  }) => (
+  ToolCallBox: ({ toolCall, approval }: { toolCall: ToolCall; approval?: PendingApproval }) => (
     <div
       data-testid={`tool-call-box-${toolCall.id}`}
-      data-action-request={actionRequest?.name ?? ""}
+      data-approval={approval?.actionRequest.name ?? ""}
     />
   ),
 }));
+
+const approvalFor = (name: string, overrides: Partial<PendingApproval> = {}): PendingApproval => ({
+  key: "int1:0",
+  interruptId: "int1",
+  index: 0,
+  total: 1,
+  actionRequest: { name, args: {} },
+  ...overrides,
+});
 
 const toolCall = (overrides: Partial<ToolCall> = {}): ToolCall => ({
   id: "a1",
@@ -123,23 +126,19 @@ describe("ToolCallGroup", () => {
     expect(groupButton()).toHaveAttribute("aria-expanded", "true");
   });
 
-  it("routes the approval request only to the interrupted call, not same-name completed ones", () => {
-    const actionRequest: ActionRequest = { name: "write_file", args: {} };
+  it("routes each approval only to its own tool call by id, not same-name siblings", () => {
     render(
       <ToolCallGroup
         batches={[
           [toolCall({ id: "a1", name: "write_file" })],
           [toolCall({ id: "b2", name: "write_file", status: "interrupted" })],
         ]}
-        actionRequestsMap={new Map([["write_file", actionRequest]])}
+        approvalByToolCallId={new Map([["b2", approvalFor("write_file")]])}
       />
     );
 
-    expect(screen.getByTestId("tool-call-box-b2")).toHaveAttribute(
-      "data-action-request",
-      "write_file"
-    );
-    expect(screen.getByTestId("tool-call-box-a1")).toHaveAttribute("data-action-request", "");
+    expect(screen.getByTestId("tool-call-box-b2")).toHaveAttribute("data-approval", "write_file");
+    expect(screen.getByTestId("tool-call-box-a1")).toHaveAttribute("data-approval", "");
   });
 
   it("labels simultaneous batches with 'N in parallel' and leaves single steps unlabeled", () => {

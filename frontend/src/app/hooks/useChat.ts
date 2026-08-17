@@ -340,10 +340,16 @@ export function useChat({
   }, []);
 
   const resumeInterrupt = useCallback(
-    (value: unknown) => {
-      // Resumes the newest unresolved interrupt; our HITL flow raises a
-      // single interrupt carrying all action_requests, so no interruptId.
-      void stream.respond(value, { config: buildSubmitConfig() });
+    (value: unknown, target?: { interruptId?: string; namespace?: string[] }) => {
+      // With an explicit target this resumes that exact interrupt (required
+      // when several are pending, e.g. parallel subagents; `namespace`
+      // addresses subgraph interrupts). Without one, respond() falls back to
+      // the newest unresolved interrupt on the thread.
+      void stream.respond(value, {
+        config: buildSubmitConfig(),
+        ...(target?.interruptId ? { interruptId: target.interruptId } : {}),
+        ...(target?.namespace ? { namespace: target.namespace } : {}),
+      });
       // Update thread list when resuming from interrupt
       onHistoryRevalidate?.();
     },
@@ -372,6 +378,10 @@ export function useChat({
     isLoading: stream.isLoading,
     isThreadLoading: stream.isThreadLoading,
     interrupt: stream.interrupt,
+    // Root-store interrupts (root-namespace live + ALL active on hydration).
+    // Live subagent interrupts never reach this list — useInterruptApprovals
+    // unions it with the ThreadStream record (stream.getThread().interrupts).
+    interrupts: stream.interrupts,
     sendMessage,
     stopStream,
     resumeInterrupt,

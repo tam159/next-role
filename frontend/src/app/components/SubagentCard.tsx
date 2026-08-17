@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo } from "react";
+import React, { useEffect, useMemo } from "react";
 import {
   useMessages,
   useToolCalls,
@@ -18,15 +18,18 @@ import {
   MessagesSquare,
   Radar,
   Scissors,
+  StopCircle,
   type LucideIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Collapse } from "@/app/components/Collapse";
 import { ToolCallBatchList } from "@/app/components/ToolCallBatchList";
+import { ToolCallBox } from "@/app/components/ToolCallBox";
 import { MarkdownContent } from "@/app/components/MarkdownContent";
 import { useAutoCollapse } from "@/app/hooks/useAutoCollapse";
+import { approvalQueueNote, type ApprovalsBundle } from "@/app/hooks/useInterruptApprovals";
 import { usePointerToggle } from "@/app/hooks/usePointerToggle";
-import type { SubAgent, ToolCall } from "@/app/types/types";
+import type { PendingApproval, SubAgent, ToolCall } from "@/app/types/types";
 import {
   extractSubAgentContent,
   formatDuration,
@@ -87,6 +90,8 @@ const noop = () => {};
 interface SubagentHeaderProps {
   name: string;
   status: SubAgent["status"];
+  /** A nested tool call is awaiting HITL review — show that over the status. */
+  needsReview?: boolean;
   toolCount?: number;
   durationLabel?: string | null;
   isExpanded?: boolean;
@@ -102,12 +107,22 @@ interface SubagentHeaderProps {
 function SubagentHeader({
   name,
   status,
+  needsReview,
   toolCount,
   durationLabel,
   isExpanded,
   onToggle,
 }: SubagentHeaderProps) {
-  const statusMeta = getSubAgentStatusMeta(status);
+  // The run pauses (terminal lifecycle) while an approval is pending, which
+  // would read as "Failed" — the review badge tells the real story.
+  const statusMeta = needsReview
+    ? {
+        label: "Needs review",
+        icon: StopCircle,
+        className: "border-warning/25 bg-warning/10 text-warning",
+        iconClassName: "",
+      }
+    : getSubAgentStatusMeta(status);
   const StatusIcon = statusMeta.icon;
   const AgentIcon = SUBAGENT_ICON_MAP[name] ?? Bot;
   const { onPointerDown, onClick } = usePointerToggle(onToggle ?? noop);
@@ -193,6 +208,8 @@ interface SubagentCardProps {
   snapshot: SubagentDiscoverySnapshot;
   taskToolCall: ToolCall;
   isLoading?: boolean;
+  /** HITL approval state from useInterruptApprovals (owned by ChatInterface). */
+  approvals?: ApprovalsBundle;
 }
 
 /**
@@ -210,7 +227,7 @@ interface SubagentCardProps {
  *    what makes nested tool args grow token-by-token live.
  */
 export const SubagentCard = React.memo<SubagentCardProps>(
-  ({ stream, snapshot, taskToolCall, isLoading }) => {
+  ({ stream, snapshot, taskToolCall, isLoading, approvals }) => {
     const assembled = useToolCalls(stream, snapshot);
     const messages = useMessages(stream, snapshot);
 
@@ -218,7 +235,6 @@ export const SubagentCard = React.memo<SubagentCardProps>(
     // `complete` can't hold the card open); the isLoading gate makes a
     // stopped run read as terminal even if its snapshot is stuck "running".
     const isRunning = snapshot.status === "running" && !!isLoading;
-    const { isExpanded, toggle } = useAutoCollapse(isRunning);
 
     const nestedBatches: ToolCall[][] = useMemo(() => {
       // Authoritative status/result per call from the tools channel.
@@ -275,6 +291,93 @@ export const SubagentCard = React.memo<SubagentCardProps>(
       return batches;
     }, [assembled, messages]);
 
+    // Match unassigned approvals (execute interrupts raised INSIDE this
+    // subagent — HITL fires before the tool starts, so the call exists only
+    // on the messages channel, still `pending`) to nested calls: args
+    // equality first, then name. Two parallel subagents with an identical
+    // unresolved same-name+args call are genuinely ambiguous — both cards
+    // would claim it; deciding on either resumes the interrupt and the stale
+    // claim prunes itself.
+    const approvalByNestedId = useMemo(() => {
+      const map = new Map<string, PendingApproval>();
+      const unassigned = approvals?.unassignedApprovals ?? [];
+      if (unassigned.length === 0) return map;
+      const openCalls = nestedBatches.flat().filter((tc) => tc.status === "pending");
+      const claimed = new Set<string>();
+      for (const approval of unassigned) {
+        const wantedArgs = JSON.stringify(approval.actionRequest.args ?? {});
+        const byArgs = openCalls.find(
+          (tc) =>
+            !claimed.has(tc.id) &&
+            tc.name === approval.actionRequest.name &&
+            JSON.stringify(tc.args ?? {}) === wantedArgs
+        );
+        const match =
+          byArgs ??
+          openCalls.find((tc) => !claimed.has(tc.id) && tc.name === approval.actionRequest.name);
+        if (match) {
+          claimed.add(match.id);
+          map.set(match.id, approval);
+        }
+      }
+      return map;
+    }, [approvals?.unassignedApprovals, nestedBatches]);
+
+    const hasNestedApproval = approvalByNestedId.size > 0;
+    // Pin the card open while a nested approval is pending — the run goes
+    // idle on interrupt, which would otherwise auto-collapse the card and
+    // hide the approval UI that unblocks it.
+    const { isExpanded, toggle } = useAutoCollapse(isRunning, {
+      forceExpanded: hasNestedApproval,
+    });
+
+    // Report claimed approval keys upward so ChatInterface's fallback block
+    // doesn't render duplicates. Compare-before-set lives in the registry.
+    const registerClaims = approvals?.registerSubagentClaims;
+    const claimedKeysJoined = useMemo(
+      () =>
+        Array.from(approvalByNestedId.values())
+          .map((approval) => approval.key)
+          .sort()
+          .join(","),
+      [approvalByNestedId]
+    );
+    useEffect(() => {
+      if (!registerClaims) return;
+      registerClaims(snapshot.id, claimedKeysJoined ? claimedKeysJoined.split(",") : []);
+      return () => registerClaims(snapshot.id, []);
+    }, [registerClaims, snapshot.id, claimedKeysJoined]);
+
+    const decide = approvals?.decide;
+    const queuedDecisions = approvals?.queuedDecisions;
+    // Once the subagent's task has returned, nothing nested can still be
+    // running — but calls that only ever existed on the messages channel
+    // (HITL-gated ones get no tools-channel events, and a resumed run's
+    // events don't reach an already-mounted projection) would keep their
+    // `pending` spinner forever. Render-time coercion only; a refresh
+    // rehydrates the real results from the checkpoint.
+    const snapshotTerminal = snapshot.status === "complete" || snapshot.status === "error";
+    const renderNestedToolCall = (toolCall: ToolCall) => {
+      const approval = approvalByNestedId.get(toolCall.id);
+      if (!approval || !decide) {
+        const shown =
+          snapshotTerminal && toolCall.status === "pending"
+            ? { ...toolCall, status: "completed" as const }
+            : toolCall;
+        return <ToolCallBox key={toolCall.id} toolCall={shown} />;
+      }
+      return (
+        <ToolCallBox
+          key={toolCall.id}
+          toolCall={{ ...toolCall, status: "interrupted" }}
+          approval={approval}
+          queuedDecision={queuedDecisions?.get(approval.key)}
+          queueNote={queuedDecisions ? approvalQueueNote(approval, queuedDecisions) : undefined}
+          onDecide={decide}
+        />
+      );
+    };
+
     const nestedToolCallCount = useMemo(
       () => nestedBatches.reduce((count, batch) => count + batch.length, 0),
       [nestedBatches]
@@ -309,6 +412,7 @@ export const SubagentCard = React.memo<SubagentCardProps>(
         <SubagentHeader
           name={subAgent.subAgentName}
           status={subAgent.status}
+          needsReview={hasNestedApproval}
           toolCount={nestedToolCallCount}
           durationLabel={durationLabel}
           isExpanded={isExpanded}
@@ -328,7 +432,10 @@ export const SubagentCard = React.memo<SubagentCardProps>(
                   Activity
                 </h4>
                 <div className="relative mb-4 before:absolute before:top-2 before:bottom-2 before:left-[12px] before:w-px before:bg-border2">
-                  <ToolCallBatchList batches={nestedBatches} />
+                  <ToolCallBatchList
+                    batches={nestedBatches}
+                    renderToolCall={renderNestedToolCall}
+                  />
                 </div>
               </>
             )}

@@ -3,20 +3,38 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { AlertCircle, Check, X, Pencil } from "lucide-react";
-import type { ActionRequest, ReviewConfig } from "@/app/types/types";
+import { AlertCircle, Check, Clock3, X, Pencil } from "lucide-react";
+import type { ActionRequest, ApprovalDecision, ReviewConfig } from "@/app/types/types";
 
 interface ToolApprovalInterruptProps {
   actionRequest: ActionRequest;
   reviewConfig?: ReviewConfig;
-  onResume: (value: any) => void;
+  /**
+   * Emits ONE decision for THIS action. The owner (useInterruptApprovals)
+   * batches sibling decisions and submits the ordered resume payload once
+   * every action of the interrupt is decided — the card never talks to the
+   * stream itself.
+   */
+  onDecide: (decision: ApprovalDecision) => void;
+  /** Set once this action's decision is queued (awaiting siblings). */
+  queuedDecision?: ApprovalDecision;
+  /** e.g. "Waiting on 1 more decision" — shown next to the queued chip. */
+  queueNote?: string;
   isLoading?: boolean;
 }
+
+const QUEUED_LABEL: Record<ApprovalDecision["type"], string> = {
+  approve: "Approved",
+  edit: "Edited",
+  reject: "Rejected",
+};
 
 export function ToolApprovalInterrupt({
   actionRequest,
   reviewConfig,
-  onResume,
+  onDecide,
+  queuedDecision,
+  queueNote,
   isLoading,
 }: ToolApprovalInterruptProps) {
   const [rejectionMessage, setRejectionMessage] = useState("");
@@ -24,52 +42,36 @@ export function ToolApprovalInterrupt({
   const [editedArgs, setEditedArgs] = useState<Record<string, unknown>>({});
   const [showRejectionInput, setShowRejectionInput] = useState(false);
 
-  const allowedDecisions = reviewConfig?.allowedDecisions ?? ["approve", "reject", "edit"];
+  const allowedDecisions = reviewConfig?.allowed_decisions ?? ["approve", "reject", "edit"];
+  const disabled = !!isLoading || !!queuedDecision;
 
   const handleApprove = () => {
-    onResume({
-      decisions: [{ type: "approve" }],
-    });
+    onDecide({ type: "approve" });
   };
 
   const handleReject = () => {
     if (showRejectionInput) {
-      onResume({
-        decisions: [
-          {
-            type: "reject",
-            message: rejectionMessage.trim(),
-          },
-        ],
-      });
+      handleRejectConfirm();
     } else {
       setShowRejectionInput(true);
     }
   };
 
   const handleRejectConfirm = () => {
-    onResume({
-      decisions: [
-        {
-          type: "reject",
-          message: rejectionMessage.trim(),
-        },
-      ],
+    onDecide({
+      type: "reject",
+      message: rejectionMessage.trim(),
     });
   };
 
   const handleEdit = () => {
     if (isEditing) {
-      onResume({
-        decisions: [
-          {
-            type: "edit",
-            edited_action: {
-              name: actionRequest.name,
-              args: editedArgs,
-            },
-          },
-        ],
+      onDecide({
+        type: "edit",
+        edited_action: {
+          name: actionRequest.name,
+          args: editedArgs,
+        },
       });
       setIsEditing(false);
       setEditedArgs({});
@@ -141,7 +143,7 @@ export function ToolApprovalInterrupt({
                     onChange={(e) => updateEditedArg(key, e.target.value)}
                     className="font-mono text-xs"
                     rows={typeof value === "string" && value.length < 100 ? 2 : 4}
-                    disabled={isLoading}
+                    disabled={disabled}
                   />
                 </div>
               ))}
@@ -160,7 +162,7 @@ export function ToolApprovalInterrupt({
       </div>
 
       {/* Rejection Message Input */}
-      {showRejectionInput && !isEditing && (
+      {showRejectionInput && !isEditing && !queuedDecision && (
         <div className="mb-4">
           <label className="mb-2 block text-xs font-medium text-foreground">
             Rejection Message (optional)
@@ -171,74 +173,84 @@ export function ToolApprovalInterrupt({
             placeholder="Explain why you're rejecting this action..."
             className="text-sm"
             rows={2}
-            disabled={isLoading}
+            disabled={disabled}
           />
         </div>
       )}
 
       {/* Actions */}
-      <div className="flex flex-wrap gap-2">
-        {isEditing ? (
-          <>
-            <Button variant="outline" size="sm" onClick={cancelEditing} disabled={isLoading}>
-              Cancel
-            </Button>
-            <Button variant="primary" size="sm" onClick={handleEdit} disabled={isLoading}>
-              <Check size={14} />
-              {isLoading ? "Saving..." : "Save & Approve"}
-            </Button>
-          </>
-        ) : showRejectionInput ? (
-          <>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                setShowRejectionInput(false);
-                setRejectionMessage("");
-              }}
-              disabled={isLoading}
-            >
-              Cancel
-            </Button>
-            <Button
-              variant="destructive"
-              size="sm"
-              onClick={handleRejectConfirm}
-              disabled={isLoading}
-            >
-              {isLoading ? "Rejecting..." : "Confirm Reject"}
-            </Button>
-          </>
-        ) : (
-          <>
-            {allowedDecisions.includes("reject") && (
+      {queuedDecision ? (
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-muted/50 px-2.5 py-1 text-xs font-medium text-foreground">
+            <Clock3 size={12} className="text-warning" />
+            {QUEUED_LABEL[queuedDecision.type]} — queued
+          </span>
+          {queueNote && <span className="text-xs text-muted-foreground">{queueNote}</span>}
+        </div>
+      ) : (
+        <div className="flex flex-wrap gap-2">
+          {isEditing ? (
+            <>
+              <Button variant="outline" size="sm" onClick={cancelEditing} disabled={disabled}>
+                Cancel
+              </Button>
+              <Button variant="primary" size="sm" onClick={handleEdit} disabled={disabled}>
+                <Check size={14} />
+                {isLoading ? "Saving..." : "Save & Approve"}
+              </Button>
+            </>
+          ) : showRejectionInput ? (
+            <>
               <Button
                 variant="outline"
                 size="sm"
-                onClick={handleReject}
-                disabled={isLoading}
-                className="text-destructive hover:bg-destructive/10"
+                onClick={() => {
+                  setShowRejectionInput(false);
+                  setRejectionMessage("");
+                }}
+                disabled={disabled}
               >
-                <X size={14} />
-                Reject
+                Cancel
               </Button>
-            )}
-            {allowedDecisions.includes("edit") && (
-              <Button variant="outline" size="sm" onClick={startEditing} disabled={isLoading}>
-                <Pencil size={14} />
-                Edit
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={handleRejectConfirm}
+                disabled={disabled}
+              >
+                {isLoading ? "Rejecting..." : "Confirm Reject"}
               </Button>
-            )}
-            {allowedDecisions.includes("approve") && (
-              <Button variant="primary" size="sm" onClick={handleApprove} disabled={isLoading}>
-                <Check size={14} />
-                {isLoading ? "Approving..." : "Approve"}
-              </Button>
-            )}
-          </>
-        )}
-      </div>
+            </>
+          ) : (
+            <>
+              {allowedDecisions.includes("reject") && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleReject}
+                  disabled={disabled}
+                  className="text-destructive hover:bg-destructive/10"
+                >
+                  <X size={14} />
+                  Reject
+                </Button>
+              )}
+              {allowedDecisions.includes("edit") && (
+                <Button variant="outline" size="sm" onClick={startEditing} disabled={disabled}>
+                  <Pencil size={14} />
+                  Edit
+                </Button>
+              )}
+              {allowedDecisions.includes("approve") && (
+                <Button variant="primary" size="sm" onClick={handleApprove} disabled={disabled}>
+                  <Check size={14} />
+                  {isLoading ? "Approving..." : "Approve"}
+                </Button>
+              )}
+            </>
+          )}
+        </div>
+      )}
     </div>
   );
 }

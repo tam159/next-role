@@ -3,6 +3,7 @@
 from typing import Any
 
 from backend.agents.career_agent import prompts as _prompts
+from backend.agents.career_agent.execute_approval import execute_interrupt_on
 from backend.agents.career_agent.middleware import (
     PREFERENCES_PATH,
     EnsurePreferencesFileMiddleware,
@@ -205,6 +206,11 @@ def build_career_agent(
         ),
         backend=_backend,
         middleware=middleware,
+        # Human-in-the-loop for the shell tool: inherited by every declarative
+        # subagent (and general-purpose), so main agent and subagents pause
+        # alike. No `checkpointer=` here — the server injects one per run and
+        # rejects graph-owned savers. See execute_approval.py for the policy.
+        interrupt_on=execute_interrupt_on(),
         store=store,
     )
 

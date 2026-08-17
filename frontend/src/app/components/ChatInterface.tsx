@@ -14,7 +14,9 @@ import {
 } from "lucide-react";
 import { ChatMessage } from "@/app/components/ChatMessage";
 import { LogoMark } from "@/app/components/LogoMark";
-import type { ToolCall, ActionRequest, ReviewConfig } from "@/app/types/types";
+import { ToolApprovalInterrupt } from "@/app/components/ToolApprovalInterrupt";
+import type { ToolCall } from "@/app/types/types";
+import { approvalQueueNote, useInterruptApprovals } from "@/app/hooks/useInterruptApprovals";
 import { Assistant } from "@langchain/langgraph-sdk";
 import {
   type AIMessageChunk,
@@ -78,7 +80,7 @@ export const ChatInterface = React.memo<ChatInterfaceProps>(({ assistant }) => {
     messages,
     isLoading,
     isThreadLoading,
-    interrupt,
+    interrupts,
     sendMessage,
     stopStream,
     resumeInterrupt,
@@ -87,7 +89,30 @@ export const ChatInterface = React.memo<ChatInterfaceProps>(({ assistant }) => {
     focusComposerNonce,
   } = useChatContext();
 
-  const submitDisabled = isLoading || !assistant;
+  // HITL approval state. `getThreadInterrupts` reads the ThreadStream record
+  // (live subagent interrupts never reach `interrupts`); the ref keeps the
+  // accessor referentially stable so the hook's derivation isn't re-run per
+  // render.
+  const streamRef = useRef(stream);
+  streamRef.current = stream;
+  const getThreadInterrupts = useCallback(() => streamRef.current.getThread()?.interrupts, []);
+  const approvals = useInterruptApprovals({
+    interrupts,
+    getThreadInterrupts,
+    isLoading,
+    messages,
+    resumeInterrupt,
+  });
+  const { interruptedToolCallIds } = approvals;
+
+  // The v2 protocol coerces ANY new input on an interrupted thread into a
+  // resume (`Command(resume=<input>)`) — a chat message would crash the HITL
+  // middleware, which expects `{decisions: [...]}`. So while a review is
+  // pending the composer locks; Reject-with-message is the channel for
+  // "never mind, do something else instead".
+  const reviewPending = approvals.pendingApprovals.length > 0 || interrupts.length > 0;
+
+  const submitDisabled = isLoading || !assistant || reviewPending;
 
   // Focus the textarea (with cursor at end) whenever a sibling surface — e.g.
   // Workspace > Files Upload — appended an "Uploaded: ..." note. Skip the
@@ -185,25 +210,29 @@ export const ChatInterface = React.memo<ChatInterfaceProps>(({ assistant }) => {
         // Completed calls live on `tool_calls` (parsed args); a call whose
         // args are still streaming only exists as a `tool_call_chunks` entry
         // (partial-JSON string args) until it finishes assembling.
-        const status: ToolCall["status"] = interrupt ? "interrupted" : "pending";
         const done = (message.tool_calls ?? []).filter((tc) => tc.name !== "");
         const doneIds = new Set(done.map((tc) => tc.id));
         const chunks = (message as AIMessageChunk).tool_call_chunks ?? [];
         const streaming = chunks.filter((c) => c.id && c.name && !doneIds.has(c.id));
         // Pending tools: always fresh reference so the streaming box re-renders.
         // Cache hit happens later when the matching ToolMessage flips status.
+        // Only calls with a pending approval routed to them read as
+        // "interrupted" — a parallel call the reviewer isn't gating stays a
+        // plain pending row.
+        const statusFor = (id: string | undefined | null): ToolCall["status"] =>
+          id && interruptedToolCallIds.has(id) ? "interrupted" : "pending";
         const toolCallsWithStatus: ToolCall[] = [
           ...done.map((tc) => ({
             id: tc.id ?? `tool-${Math.random()}`,
             name: tc.name,
             args: (tc.args ?? {}) as Record<string, unknown>,
-            status,
+            status: statusFor(tc.id),
           })),
           ...streaming.map((c) => ({
             id: c.id!,
             name: c.name!,
             args: parsePartialArgs(c.args),
-            status,
+            status: statusFor(c.id),
           })),
         ];
         messageMap.set(message.id!, {
@@ -276,7 +305,7 @@ export const ChatInterface = React.memo<ChatInterfaceProps>(({ assistant }) => {
       if (!seenMessageIds.has(id)) arrayCache.delete(id);
     }
     return result;
-  }, [messages, interrupt]);
+  }, [messages, interruptedToolCallIds]);
 
   // Merge consecutive runs of regular (non-`task`) tool calls across AI
   // messages into one disclosure unit per run, batched by issuing message
@@ -348,18 +377,17 @@ export const ChatInterface = React.memo<ChatInterfaceProps>(({ assistant }) => {
     return { toolBatchesByHead: byHead, openEndedHeadId: current?.headId ?? null };
   }, [processedMessages]);
 
-  // Parse out any action requests or review configs from the interrupt
-  const actionRequestsMap: Map<string, ActionRequest> | null = useMemo(() => {
-    const actionRequests = interrupt?.value && (interrupt.value as any)["action_requests"];
-    if (!actionRequests) return new Map<string, ActionRequest>();
-    return new Map(actionRequests.map((ar: ActionRequest) => [ar.name, ar]));
-  }, [interrupt]);
-
-  const reviewConfigsMap: Map<string, ReviewConfig> | null = useMemo(() => {
-    const reviewConfigs = interrupt?.value && (interrupt.value as any)["review_configs"];
-    if (!reviewConfigs) return new Map<string, ReviewConfig>();
-    return new Map(reviewConfigs.map((rc: ReviewConfig) => [rc.actionName, rc]));
-  }, [interrupt]);
+  // Approvals no tool-call box renders: subagent-owned ones are claimed by
+  // their SubagentCard; whatever remains gets a standalone card below the
+  // transcript so a pending interrupt is NEVER invisible or unanswerable
+  // (e.g. a reloaded thread whose subagent activity doesn't replay).
+  const fallbackApprovals = useMemo(
+    () =>
+      approvals.unassignedApprovals.filter(
+        (approval) => !approvals.claimedKeySet.has(approval.key)
+      ),
+    [approvals.unassignedApprovals, approvals.claimedKeySet]
+  );
 
   const isEmpty = !isThreadLoading && processedMessages.length === 0;
   const canSend = !submitDisabled && input.trim().length > 0;
@@ -462,13 +490,30 @@ export const ChatInterface = React.memo<ChatInterfaceProps>(({ assistant }) => {
                     isOpenEndedGroup={messageId != null && messageId === openEndedHeadId}
                     isLoading={isLoading}
                     showAvatar={data.showAvatar}
-                    actionRequestsMap={actionRequestsMap}
-                    reviewConfigsMap={reviewConfigsMap}
+                    approvals={approvals}
                     stream={stream}
-                    onResumeInterrupt={resumeInterrupt}
                   />
                 );
               })}
+              {fallbackApprovals.length > 0 && (
+                <div className="mt-5 flex flex-col gap-3 pl-10">
+                  {fallbackApprovals.map((approval) => (
+                    <div
+                      key={approval.key}
+                      className="overflow-hidden rounded-lg border border-warning/30 bg-warning/10 p-3"
+                    >
+                      <ToolApprovalInterrupt
+                        actionRequest={approval.actionRequest}
+                        reviewConfig={approval.reviewConfig}
+                        onDecide={(decision) => approvals.decide(approval, decision)}
+                        queuedDecision={approvals.queuedDecisions.get(approval.key)}
+                        queueNote={approvalQueueNote(approval, approvals.queuedDecisions)}
+                        isLoading={isLoading}
+                      />
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -480,6 +525,12 @@ export const ChatInterface = React.memo<ChatInterfaceProps>(({ assistant }) => {
             <div className="mb-2 flex items-center gap-2 px-2 text-xs text-secondary">
               <span className="size-1.5 animate-pulse rounded-full bg-brand-accent" />
               NextRole is working…
+            </div>
+          )}
+          {!isLoading && reviewPending && (
+            <div className="mb-2 flex items-center gap-2 px-2 text-xs text-secondary">
+              <span className="size-1.5 rounded-full bg-warning" />
+              Waiting for your review — approve, edit, or reject the pending command to continue.
             </div>
           )}
           <div className="flex flex-col overflow-hidden rounded-[18px] border border-primary bg-surface-raised shadow-lg shadow-black/5 transition-colors focus-within:border-brand-strong focus-within:ring-2 focus-within:ring-brand-accent/30">
