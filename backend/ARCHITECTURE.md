@@ -226,6 +226,7 @@ All read in `server/api/config/__init__.py` unless noted. The compose file sets 
 | `LANGSERVE_GRAPHS` ★ | — | JSON `{graph_id: "path.py:variable"}`; any source containing `/` is loaded as a file path (`server/api/graph.py`) |
 | `LANGGRAPH_HTTP` ★ | — | JSON `{"app": "path.py:app"}` — mounts a user Starlette/FastAPI app into the server (`load_custom_app`). Used for the artifact **files API** (`backend/agents/files_api.py`); add `"enable_custom_route_auth": true` (compose does) to put its routes behind the server's auth middleware in multi-user mode |
 | `OBJECT_STORE_*` ★ | — | S3-compatible artifact storage: endpoint/bucket/region/creds/path-style. Local = SeaweedFS; cloud = S3 / GCS / Azure. Deliberately separate from `AWS_*` (Bedrock creds) |
+| `SANDBOX_PROVIDER` (+ `SANDBOX_E2B_API_URL` / `SANDBOX_E2B_API_KEY` / `SANDBOX_TEMPLATE` / `SANDBOX_TTL_SECONDS` / `SANDBOX_EXECUTE_TIMEOUT` / `SANDBOX_CWD` / `SANDBOX_MAX_OUTPUT_BYTES`) | `local` | Where the agent's `execute` runs: `local` = host subprocess, `e2b` = remote microVM over the E2B API (self-hosted CubeSandbox / E2B Cloud — §10). Read by the *agent* package at graph build (`agents/career_agent/sandbox_backend.py`), not server config |
 | `N_JOBS_PER_WORKER` | `10` | embedded worker concurrency; `0` = web-only, no queue |
 | `FF_CRONS_ENABLED` | `true` | cron scheduler in this process (keep exactly one) |
 | `FF_V2_EVENT_STREAMING` | `true` | v2 `/stream/events` + `/commands` routes |
@@ -350,10 +351,11 @@ Real properties of this codebase, listed so nobody is surprised later:
    orphan rows silently.
 5. **The backend is not Postgres-free** — checkpoints/store/state bypass gRPC, so backend
    replicas also consume DB connections (matters only when scaling out, §10).
-6. **Shell execution is not sandboxed for untrusted tenants.** Multi-user mode (§8) isolates
-   *data*, but `VirtualPathShellBackend` still runs render commands via `subprocess` on the host.
-   Fine for a single user or a trusted team; isolate render/shell steps (remote sandbox) before
-   opening public signup.
+6. **Shell execution is host-local by default.** Multi-user mode (§8) isolates *data*, but with
+   `SANDBOX_PROVIDER=local` (the default) `VirtualPathShellBackend` runs `execute`/render
+   commands via `subprocess` on the host — fine for a single user or a trusted team. Before
+   opening public signup, set `SANDBOX_PROVIDER=e2b` so every command runs in an isolated remote
+   microVM (§10, `deploy/cubesandbox/`); the HiL approval gate applies in both modes.
 7. **MCP / A2A carry no per-resource authorization** (§8) — only authentication. Disable them in
    a shared deployment until per-user scoping is wired into those handlers.
 
@@ -376,8 +378,21 @@ Serverless containers (Cloud Run / Fargate / Container Apps) fit this workload w
 changes; FaaS does not (long runs, persistent gRPC, SSE). Binary artifacts already live behind
 an S3-compatible client (`OBJECT_STORE_*`), so in the cloud the SeaweedFS service is replaced
 by a managed bucket (S3 / GCS / Azure) — provision versioning/SSE/IAM there; no app changes.
-Renders use a throwaway `TemporaryDirectory`, so worker pods need only ordinary ephemeral
-`/tmp`.
+In local sandbox mode renders use a throwaway `TemporaryDirectory` (worker pods need only
+ordinary ephemeral `/tmp`); in `e2b` mode the render scratch lives inside the sandbox.
+
+**Sandboxed shell execution.** For any deployment serving untrusted users, run the agent's
+shell off-host: `SANDBOX_PROVIDER=e2b` swaps the composite default for an E2B-protocol backend
+(`agents/career_agent/sandbox_backend.py`) that gives each conversation a **thread-scoped
+microVM** — rediscovered by sandbox metadata across worker restarts, idle-reaped after
+`SANDBOX_TTL_SECONDS`, and created with an empty environment so no provider secrets ever enter
+it. The endpoint is a self-hosted [CubeSandbox](https://github.com/TencentCloud/CubeSandbox)
+deployment — a dedicated Linux host (custom PVM kernel on x86_64 cloud VMs, or native-KVM bare
+metal incl. ARM64, XFS at `/data/cubelet`), deliberately **not** a compose service — reached
+over HTTP `:3000` by every api-web / api-worker replica. Provisioning, the NextRole template
+image (python 3.13 + `rendercv[full]`), auth, and network hardening:
+[`deploy/cubesandbox/README.md`](../deploy/cubesandbox/README.md). The same code path targets
+E2B Cloud by leaving `SANDBOX_E2B_API_URL` empty. HiL execute approval stays on in both modes.
 
 For a multi-tenant deployment, additionally enable auth (§8) on **every** replica that serves
 the API (`LANGGRAPH_AUTH` + `REQUIRE_AUTH=true` so a misconfigured pod refuses to boot rather
