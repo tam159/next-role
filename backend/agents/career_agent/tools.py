@@ -10,6 +10,11 @@ from pathlib import Path
 from typing import Any, Literal
 from urllib.parse import urlparse
 
+from backend.agents.career_agent.render_scratch import (
+    HostRenderScratch,
+    RenderScratch,
+    RenderScratchError,
+)
 from deepagents.backends import CompositeBackend
 from langchain_core.tools import BaseTool, tool
 
@@ -365,14 +370,26 @@ def _read_resume_yaml_body(backend: CompositeBackend, yaml_path: str) -> str:
     return body.rstrip() + "\n"
 
 
-def _write_render_copy(body: str, render_dir: Path, stem: str) -> tuple[Path, int]:
-    """Write the normalized render copy + settings block into the temp render dir.
+def _open_render_scratch(backend: CompositeBackend) -> RenderScratch:
+    """Scratch dir for one rendercv run, living where the default backend executes.
 
-    Renders happen in a throwaway `TemporaryDirectory` outside the repo tree —
-    rendercv is a subprocess that needs a real filesystem, but none of its
-    working files are artifacts: the durable YAML/PDF/typ all live in the
-    object store. The settings block pins every rendercv output inside the
-    temp dir; its machine-local absolute paths are never persisted anywhere.
+    Sandbox-capable defaults expose an `open_render_scratch()` hook (the
+    scratch must exist inside the sandbox the command runs in); anything else
+    — the local subprocess backend, test fakes — renders in a host temp dir.
+    """
+    opener = getattr(backend.default, "open_render_scratch", None)
+    return opener() if opener is not None else HostRenderScratch()
+
+
+def _hydrate_render_copy(body: str, render_dir: str, stem: str) -> tuple[str, int]:
+    """Build the render-copy YAML text: normalized body + canonical settings block.
+
+    Renders happen in a throwaway scratch dir outside the repo tree (host temp
+    dir, or a dir inside the sandbox — see render_scratch.py): rendercv is a
+    subprocess that needs a real filesystem, but none of its working files are
+    artifacts — the durable YAML/PDF/typ all live in the object store. The
+    settings block pins every rendercv output inside the scratch dir; its
+    machine-local absolute paths are never persisted anywhere.
 
     The render copy is also normalized: mechanically-repairable string-entry
     defects (unquoted mid-string colons, trailing colons, bare numbers) are
@@ -386,7 +403,7 @@ def _write_render_copy(body: str, render_dir: Path, stem: str) -> tuple[Path, in
           current_date: today
           render_command:
             output_folder: {render_dir}
-            typst_path: {render_dir / stem}.typ
+            typst_path: {render_dir}/{stem}.typ
             pdf_path: OUTPUT_FOLDER/{stem}.pdf
             dont_generate_markdown: true
             dont_generate_html: true
@@ -396,25 +413,24 @@ def _write_render_copy(body: str, render_dir: Path, stem: str) -> tuple[Path, in
           bold_keywords: []
         """,
     )
-    yaml_file = render_dir / f"{stem}.yaml"
-    yaml_file.write_text(body + settings_block, encoding="utf-8")
-    return yaml_file, fixes
+    return body + settings_block, fixes
 
 
-def _run_rendercv(backend: CompositeBackend, yaml_file: Path) -> str:
-    """Run `rendercv render` on the temp render copy via the composite default.
+def _run_rendercv(backend: CompositeBackend, yaml_file: str) -> str:
+    """Run `rendercv render` on the scratch render copy via the composite default.
 
     The path is a real absolute path outside the shell backend's root, so the
-    virtual-path rewriter passes it through untouched. Returns the process
+    local backend's virtual-path rewriter passes it through untouched (and in
+    sandbox mode it is already a sandbox-native path). Returns the process
     output (kept for the verify-stage message).
 
     Calling `backend.execute()` directly bypasses the `execute` TOOL and with
     it the human-in-the-loop gate (see execute_approval.py) — intentionally:
     this command is developer-authored from fixed args, not model-authored
-    bash, and the render already runs in a throwaway temp dir.
+    bash, and the render already runs in a throwaway scratch dir.
     """
     try:
-        exec_res = backend.execute(f"rendercv render {shlex.quote(str(yaml_file))}")
+        exec_res = backend.execute(f"rendercv render {shlex.quote(yaml_file)}")
     except NotImplementedError:
         msg = "Error (render): the agent backend does not support shell execution"
         raise _RenderStageError(msg) from None
@@ -424,23 +440,27 @@ def _run_rendercv(backend: CompositeBackend, yaml_file: Path) -> str:
     return exec_res.output
 
 
-def _collect_render_outputs(render_dir: Path, stem: str, exec_output: str) -> dict[str, bytes]:
-    """Read rendercv's outputs from the temp dir, keyed by suffix.
+def _collect_render_outputs(
+    scratch: RenderScratch,
+    stem: str,
+    exec_output: str,
+) -> dict[str, bytes]:
+    """Read rendercv's outputs from the scratch dir, keyed by suffix.
 
     The `.pdf` is mandatory (verify-stage error when missing); the `.typ`
     typesetting intermediate is included when present.
     """
-    pdf_file = render_dir / f"{stem}.pdf"
-    if not pdf_file.is_file():
+    pdf_bytes = scratch.read_bytes(f"{stem}.pdf")
+    if pdf_bytes is None:
         msg = (
             f"Error (verify): rendercv reported success but {stem}.pdf was not "
             f"produced. Output tail:\n{exec_output[-2000:]}"
         )
         raise _RenderStageError(msg)
-    outputs = {".pdf": pdf_file.read_bytes()}
-    typ_file = render_dir / f"{stem}.typ"
-    if typ_file.is_file():
-        outputs[".typ"] = typ_file.read_bytes()
+    outputs = {".pdf": pdf_bytes}
+    typ_bytes = scratch.read_bytes(f"{stem}.typ")
+    if typ_bytes is not None:
+        outputs[".typ"] = typ_bytes
     return outputs
 
 
@@ -472,7 +492,7 @@ def make_render_resume_pdf(backend: CompositeBackend) -> BaseTool:
 
         One call runs the whole pipeline: read the YAML from the artifact
         store, write a render copy (with the canonical rendercv `settings:`
-        block) into a throwaway temp directory, run `rendercv render` on it,
+        block) into a throwaway scratch directory, run `rendercv render` on it,
         and publish the outputs back next to the YAML. Run it AFTER writing
         the YAML (`cv:`, `design:`, `locale:`).
 
@@ -508,13 +528,15 @@ def make_render_resume_pdf(backend: CompositeBackend) -> BaseTool:
         pdf_dest = str(Path(yaml_path).with_suffix(".pdf"))
         try:
             body = _read_resume_yaml_body(backend, yaml_path)
-            with tempfile.TemporaryDirectory(prefix="nextrole-render-") as tmp:
-                render_dir = Path(tmp)
+            with _open_render_scratch(backend) as scratch:
                 stem = Path(yaml_path).stem
-                yaml_file, fixes = _write_render_copy(body, render_dir, stem)
+                content, fixes = _hydrate_render_copy(body, scratch.dir, stem)
+                yaml_file = scratch.write_text(f"{stem}.yaml", content)
                 exec_output = _run_rendercv(backend, yaml_file)
-                outputs = _collect_render_outputs(render_dir, stem, exec_output)
+                outputs = _collect_render_outputs(scratch, stem, exec_output)
             _publish_render_outputs(backend, yaml_path, outputs)
+        except RenderScratchError as e:
+            return f"Error (scratch): {e}"
         except _RenderStageError as e:
             return str(e)
         note = (
