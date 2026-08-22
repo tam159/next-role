@@ -81,6 +81,7 @@ dependencies = [
   "obstore>=0.11.0",
   "python-multipart>=0.0.32",
   "pyyaml>=6.0.3",
+  "e2b>=2.45.1",
 ]
 
 [tool.pytest.ini_options]
