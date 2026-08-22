@@ -78,8 +78,11 @@ Once the five stages have run, users iterate ("add a round", "drop this link", "
 
 ## Human-in-the-loop: `execute` approval
 
-The `execute` tool runs unsandboxed bash on the host, so risky commands pause the run for
-human review. `build_career_agent` passes `interrupt_on={"execute": ...}` (built by
+The `execute` tool runs LLM-authored bash — on the host with `SANDBOX_PROVIDER=local`
+(default), inside a remote E2B microVM with `e2b` (see `sandbox_backend.py` and
+`deploy/cubesandbox/`) — so risky commands pause the run for human review in **both** modes:
+isolation contains blast radius, not exfiltration or API misuse. `build_career_agent` passes
+`interrupt_on={"execute": ...}` (built by
 `execute_approval.py`) to `create_deep_agent`, which installs langchain's
 `HumanInTheLoopMiddleware` on the main agent and threads the same config into every
 declarative subagent plus the auto-added general-purpose one — main agent and subagents
@@ -147,4 +150,4 @@ Re-uploading the same filename overwrites. Scoping is global per the layout abov
     └── aws-ai-solution-engineer-jd.pdf                       # weasyprint-rendered day-of cheat sheet
 ```
 
-Note: both the tailored resume and the interview battlecard follow the same source-then-render pattern. Tailored resumes use `rendercv` (YAML → `.typ` intermediate → `.pdf`, via the one-shot `render_resume_pdf` tool, which hydrates a scratch copy, renders, and publishes). Battlecards use `weasyprint` (JSON → `.pdf`, via `render_battlecard_pdf`). The JSON / YAML side is the user-editable source of truth; the PDF is regenerated on demand. `/upload/`, `/tailored_resume/`, and `/interview_battlecard/` live in S3-compatible object storage (SeaweedFS locally; S3/GCS/Azure in the cloud) under deterministic keys — `users/default/career_agent/<area>/<relpath>` — so binary PDFs live neither on shared disk nor in Postgres.
+Note: both the tailored resume and the interview battlecard follow the same source-then-render pattern. Tailored resumes use `rendercv` (YAML → `.typ` intermediate → `.pdf`, via the one-shot `render_resume_pdf` tool, which hydrates a scratch copy, renders, and publishes — the throwaway scratch dir lives on the host in `local` sandbox mode and inside the sandbox in `e2b` mode; see `render_scratch.py`). Battlecards use `weasyprint` (JSON → `.pdf`, via `render_battlecard_pdf`). The JSON / YAML side is the user-editable source of truth; the PDF is regenerated on demand. `/upload/`, `/tailored_resume/`, and `/interview_battlecard/` live in S3-compatible object storage (SeaweedFS locally; S3/GCS/Azure in the cloud) under deterministic keys — `users/default/career_agent/<area>/<relpath>` — so binary PDFs live neither on shared disk nor in Postgres.

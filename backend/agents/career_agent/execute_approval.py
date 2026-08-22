@@ -1,8 +1,11 @@
 """Human-in-the-loop approval policy for the `execute` (shell) tool.
 
-The `execute` tool runs LLM-authored bash on the host with no sandbox, so
-every call that is not provably harmless pauses the run for human review
-(approve / edit / reject) via langchain's `HumanInTheLoopMiddleware`.
+The `execute` tool runs LLM-authored bash — unsandboxed on the host under
+`SANDBOX_PROVIDER=local`, inside a remote microVM under `e2b` (see
+`sandbox_backend.py`). The gate applies identically in both modes (a sandbox
+contains blast radius, not exfiltration or API misuse), so every call that is
+not provably harmless pauses the run for human review (approve / edit /
+reject) via langchain's `HumanInTheLoopMiddleware`.
 `create_deep_agent(interrupt_on=...)` installs the middleware on the main
 agent and threads the same config into every declarative subagent (including
 the auto-added general-purpose one), so the policy holds across the roster.
