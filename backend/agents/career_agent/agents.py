@@ -11,8 +11,8 @@ from backend.agents.career_agent.middleware import (
     UtcDatetimeMiddleware,
 )
 from backend.agents.career_agent.object_backend import ObjectStoreBackend
+from backend.agents.career_agent.sandbox_backend import make_default_shell_backend
 from backend.agents.career_agent.scope import kv_namespace
-from backend.agents.career_agent.shell_backend import VirtualPathShellBackend, default_shell_env
 from backend.agents.career_agent.tools import (
     CAREER_AGENT_DIR,
     make_extract_jd,
@@ -42,12 +42,12 @@ from langgraph.store.base import BaseStore
 _MODEL = "openai:gpt-5.6-terra"
 
 _backend = CompositeBackend(
-    default=VirtualPathShellBackend(
-        root_dir=CAREER_AGENT_DIR,
-        virtual_mode=True,
-        timeout=60,
-        env=default_shell_env(),
-    ),
+    # Shell/default route, picked by SANDBOX_PROVIDER at graph build time:
+    # `local` = host-subprocess VirtualPathShellBackend (historical behavior,
+    # the rollback lever), `e2b` = remote microVM sandbox over the E2B API
+    # (self-hosted CubeSandbox / E2B Cloud — see sandbox_backend.py). The HiL
+    # approval gate (interrupt_on below) applies identically in both modes.
+    default=make_default_shell_backend(),
     routes={
         # Namespaces are scoped to the authenticated caller at call time
         # (kv_namespace reads the run's identity via get_config); single-user
