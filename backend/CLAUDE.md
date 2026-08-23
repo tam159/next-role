@@ -77,7 +77,7 @@ Everything under `server/` (`api`, `runtime`, `runtime_postgres`, `grpc_common`,
 - **SeaweedFS (S3-compatible)** via docker compose (`object-store` service, S3 API on `${OBJECT_STORE_LOCAL_PORT}`, filer UI on `${OBJECT_STORE_UI_LOCAL_PORT}`). Binary artifact prefixes (`/upload/`, `/tailored_resume/`, `/interview_battlecard/`) live here as objects under `users/<scope>/career_agent/<area>/<relpath>` — `<scope>` is the authenticated identity in multi-user mode and `default` single-user (see the Authentication section + `scope.py`). The mapping is `agents/career_agent/object_storage.py`, shared by the agent's `ObjectStoreBackend` routes and the files HTTP API (`agents/files_api.py`, mounted via `LANGGRAPH_HTTP`).
 - **Config**: `OBJECT_STORE_*` in `.env` — never reuse `AWS_*` (those are live Bedrock creds). In the cloud, point `OBJECT_STORE_*` at S3 / GCS / Azure (`obstore` speaks all three).
 - **Testing**: unit tests run against `obstore.store.MemoryStore` (no emulator needed); `@pytest.mark.integration` tests hit the compose SeaweedFS via the host-side endpoint from `.env`.
-- rendercv renders in a throwaway `TemporaryDirectory` (see `render_resume_pdf` in `tools.py`) — the `.pdf` and `.typ` outputs are published to `/tailored_resume/` in the object store; no artifact ever lives in the repo tree.
+- rendercv renders in a throwaway scratch dir (see `render_resume_pdf` in `tools.py` + `render_scratch.py`): a host `TemporaryDirectory` under `SANDBOX_PROVIDER=local`, a dir inside the remote sandbox under `e2b`. The `.pdf` and `.typ` outputs are published to `/tailored_resume/` in the object store; no artifact ever lives in the repo tree.
 
 ## Authentication & per-user scoping (multi-user, opt-in)
 

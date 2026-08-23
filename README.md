@@ -98,10 +98,13 @@ docker ps                     # read the 0.0.0.0:<host>->... mappings
 | `LANGCHAIN_API_KEY` + `LANGCHAIN_TRACING_V2=true` | ⬜ | LangSmith tracing (recommended) |
 | `AUTH_ENABLED` / `BETTER_AUTH_SECRET` / `LANGGRAPH_AUTH` | ⬜ | Multi-user auth (opt-in) — steps in [Authentication & multi-user](#authentication--multi-user) |
 | `CAREER_AGENT_EXECUTE_APPROVAL` | preset | Human approval for the agent's shell tool — see below |
+| `SANDBOX_PROVIDER` (+ `SANDBOX_E2B_*`, `SANDBOX_TEMPLATE`) | preset | Where the shell tool executes: host or isolated sandbox — see below |
 | `FRONTEND_LOCAL_PORT` / `LANGGRAPH_LOCAL_PORT` / `POSTGRES_LOCAL_PORT` / `REDIS_LOCAL_PORT` / `OBJECT_STORE_LOCAL_PORT` | preset | Host port mappings |
 | `OBJECT_STORE_*` | preset | Artifact object storage — see below |
 
-**Shell-command approval.** The agent's `execute` tool runs unsandboxed bash, so risky commands pause in the UI for approve / edit / reject; a conservative read-only allowlist auto-approves trivial pokes. On by default — set `CAREER_AGENT_EXECUTE_APPROVAL=false` only for offline evals or emergency rollback (env changes need `docker compose up -d backend` to recreate, not `restart`). Full policy in [`backend/agents/career_agent/README.md`](backend/agents/career_agent/README.md#human-in-the-loop-execute-approval).
+**Shell-command approval.** Risky `execute` (bash) commands pause in the UI for approve / edit / reject; a conservative read-only allowlist auto-approves trivial pokes. The gate applies in **both** sandbox modes below — isolation contains blast radius, not exfiltration or API misuse. On by default — set `CAREER_AGENT_EXECUTE_APPROVAL=false` only for offline evals or emergency rollback (env changes need `docker compose up -d backend` to recreate, not `restart`). Full policy in [`backend/agents/career_agent/README.md`](backend/agents/career_agent/README.md#human-in-the-loop-execute-approval).
+
+**Sandbox.** `SANDBOX_PROVIDER` picks where `execute` commands (and `rendercv` renders) run. `local` (default) executes on the backend host — right for local dev and a trusted team, zero extra moving parts. `e2b` runs every command in an isolated remote **microVM** over the E2B API: point `SANDBOX_E2B_API_URL` at a self-hosted [CubeSandbox](https://github.com/TencentCloud/CubeSandbox) (open source, Apache-2.0 — your data never leaves your infra; provisioning + template guide in [`deploy/cubesandbox/`](deploy/cubesandbox/README.md)), or leave it empty to use [E2B Cloud](https://e2b.dev) with the same code path. CubeSandbox requires its own Linux host (custom PVM kernel or native KVM), so it is reached over HTTP rather than run inside docker compose.
 
 **Object storage.** Binary artifacts (uploads + rendered PDFs) live in S3-compatible object storage. Locally that's the compose `object-store` service (SeaweedFS) and the presets work as-is: S3 API on `OBJECT_STORE_LOCAL_PORT`, a browsable bucket UI on `OBJECT_STORE_UI_LOCAL_PORT`, and placeholder credentials that the local emulator accepts but doesn't enforce. For the cloud, point `OBJECT_STORE_ENDPOINT` / `OBJECT_STORE_BUCKET` / credentials at a managed bucket — AWS S3, GCS, Azure, or any S3-compatible store — with no code changes. Note: the `AWS_*` variables are reserved for Bedrock models; the object store reads only `OBJECT_STORE_*`.
 
@@ -194,15 +197,15 @@ Subagents only receive the tools they opt into in YAML — tool whitelisting kee
 
 <br/>
 
-A single `CompositeBackend` gives the agent one virtual filesystem while routing each path prefix to the right physical store — Postgres for text artifacts, S3-compatible object storage for uploads and rendered PDFs (SeaweedFS locally; S3 / GCS / Azure in the cloud), and a shell backend whose disk holds only render scratch and translates virtual paths to real ones before running commands like `rendercv render`.
+A single `CompositeBackend` gives the agent one virtual filesystem while routing each path prefix to the right physical store — Postgres for text artifacts, S3-compatible object storage for uploads and rendered PDFs (SeaweedFS locally; S3 / GCS / Azure in the cloud), and a shell route for `execute` whose scratch space holds only render working files: a host shell backend by default, or an isolated remote sandbox (CubeSandbox / E2B) with `SANDBOX_PROVIDER=e2b`.
 
 ```mermaid
 flowchart LR
     Agent["Agent filesystem tools<br/>read_file · write_file · edit_file<br/>ls · glob · grep · execute"]
     CB{{"CompositeBackend<br/>routes virtual paths"}}
     Agent --> CB
-    subgraph Shell["VirtualPathShellBackend · default route"]
-        SH["shell `execute`<br/>rewrites /virtual/path → on-disk path<br/>(renders run in a throwaway temp dir)"]
+    subgraph Shell["Shell default route · SANDBOX_PROVIDER"]
+        SH["`execute` — local: host subprocess,<br/>/virtual/path → on-disk path ·<br/>e2b: remote E2B microVM<br/>(CubeSandbox self-hosted / E2B Cloud)<br/>renders run in a throwaway scratch dir"]
     end
     subgraph Store["StoreBackend · Postgres + pgvector"]
         ST["/memory/ · /processed/ · /research/<br/>/interview_coach/<br/>/large_tool_results/ · /workspace/"]
@@ -321,7 +324,7 @@ Set `LANGCHAIN_API_KEY` and `LANGCHAIN_TRACING_V2=true` in `.env`, and every run
 ## Roadmap
 
 - 💤 **"Auto-dream" consolidation** — sleep-time compaction that prunes stale notes and merges insights into durable memory.
-- 📦 **Remote sandboxes** — swap `LocalShellBackend` for an isolated remote sandbox (e.g. [Daytona](https://www.daytona.io/)) so render/shell steps are safe for multi-tenant use.
+- 🔐 **Wider `execute` allowlist in sandbox mode** — remote sandboxes shipped (`SANDBOX_PROVIDER=e2b` → self-hosted [CubeSandbox](https://github.com/TencentCloud/CubeSandbox) or E2B Cloud); next, let sandboxed deployments auto-approve more than the conservative read-only list.
 - 📊 **Agent evaluation** — LangSmith evals over the workflow (the `@pytest.mark.eval` marker is already reserved).
 - 🎨 **Enhanced UI** — richer artifact editing, diff views, and inline regeneration.
 - 🔌 **MCP / A2A examples** — sample integrations driving `career_agent` from external agents and IDEs.
@@ -330,9 +333,9 @@ Set `LANGCHAIN_API_KEY` and `LANGCHAIN_TRACING_V2=true` in `.env`, and every run
 
 ## Limitations
 
-> Multi-user mode isolates data, but the shell sandbox below is still the gate before opening signups to untrusted users.
+> Multi-user mode isolates data; before opening signups to untrusted users, also move shell execution off the default local mode (`SANDBOX_PROVIDER=e2b`).
 
-- 🔒 **Local shell execution** — `VirtualPathShellBackend` runs render commands via `subprocess` on the host. Safe locally and for a trusted team; **not** hardened for untrusted multi-tenant use (needs sandboxing — see roadmap). Isolate render/shell steps before exposing public signup.
+- 🔒 **Local shell execution is the default** — with `SANDBOX_PROVIDER=local`, `execute` and render commands run via `subprocess` on the host (HiL-gated). Safe locally and for a trusted team; for untrusted multi-tenant use switch to `e2b` so every command runs in an isolated microVM ([`deploy/cubesandbox/`](deploy/cubesandbox/README.md)).
 - 🧪 **LLM evals deferred** — current tests are unit + local-DB integration; automated quality evals aren't wired up yet.
 - 🧠 **Personalization is preferences-only** — the agent persists and auto-applies the preferences you *state* across sessions, but doesn't yet infer your style/history on its own or consolidate memory over time (see [roadmap](#roadmap)).
 - ⏱️ **Latency** — a full run makes several LLM and tool calls across multiple agents; expect minutes, not seconds.
