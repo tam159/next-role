@@ -1,0 +1,2160 @@
+<title>The Dossier Layer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:ital,wdth,wght@0,62..125,400..800;1,62..125,400..600&family=Newsreader:ital,opsz,wght@0,6..72,300..700;1,6..72,300..600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+
+<style>
+  /* ── tokens: light is the base, both dark states redefine only tokens ───── */
+  :root {
+    --ground:#E7EAE8; --surface:#F2F5F3; --surface-2:#FBFCFB;
+    --line:#C7CFCA; --line-soft:#D8DEDA; --line-strong:#A6B0AA;
+    --ink:#16201C; --ink-2:#3E4A45; --ink-3:#6B7873;
+    --compiled:#0C6B62; --compiled-wash:rgba(12,107,98,.09); --compiled-line:rgba(12,107,98,.32);
+    --live:#98570A; --live-wash:rgba(152,87,10,.10); --live-line:rgba(152,87,10,.34);
+    --risk:#9E3320; --risk-wash:rgba(158,51,32,.09);
+    --ok:#2C6537;
+    --shadow:0 1px 0 rgba(22,32,28,.05), 0 8px 24px -18px rgba(22,32,28,.4);
+    --rail:210px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground:#0F1513; --surface:#171F1C; --surface-2:#1D2723;
+      --line:#2B3531; --line-soft:#232C29; --line-strong:#44514A;
+      --ink:#E5EAE7; --ink-2:#B3BEB9; --ink-3:#7D8B85;
+      --compiled:#4FB8AB; --compiled-wash:rgba(79,184,171,.10); --compiled-line:rgba(79,184,171,.30);
+      --live:#E0A93A; --live-wash:rgba(224,169,58,.10); --live-line:rgba(224,169,58,.30);
+      --risk:#E8917C; --risk-wash:rgba(232,145,124,.10);
+      --ok:#6FBF80;
+      --shadow:0 1px 0 rgba(0,0,0,.3), 0 10px 28px -20px #000;
+    }
+  }
+  :root[data-theme="dark"] {
+    --ground:#0F1513; --surface:#171F1C; --surface-2:#1D2723;
+    --line:#2B3531; --line-soft:#232C29; --line-strong:#44514A;
+    --ink:#E5EAE7; --ink-2:#B3BEB9; --ink-3:#7D8B85;
+    --compiled:#4FB8AB; --compiled-wash:rgba(79,184,171,.10); --compiled-line:rgba(79,184,171,.30);
+    --live:#E0A93A; --live-wash:rgba(224,169,58,.10); --live-line:rgba(224,169,58,.30);
+    --risk:#E8917C; --risk-wash:rgba(232,145,124,.10);
+    --ok:#6FBF80;
+    --shadow:0 1px 0 rgba(0,0,0,.3), 0 10px 28px -20px #000;
+  }
+
+  *,*::before,*::after{box-sizing:border-box}
+  body{
+    margin:0; background:var(--ground); color:var(--ink);
+    font-family:"Newsreader",Georgia,"Times New Roman",serif;
+    font-size:17.5px; line-height:1.62; font-optical-sizing:auto;
+    -webkit-font-smoothing:antialiased;
+  }
+  @media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
+
+  .mono,code,kbd{font-family:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace}
+  h1,h2,h3,h4,.disp,.eyebrow,th,.chip,.num{
+    font-family:"Archivo",-apple-system,"Segoe UI",Helvetica,Arial,sans-serif;
+    font-variation-settings:"wdth" 108;
+  }
+  h1,h2,h3{text-wrap:balance;margin:0}
+  a{color:inherit;text-decoration-color:var(--line-strong);text-underline-offset:3px}
+  a:hover{text-decoration-color:var(--compiled)}
+  :focus-visible{outline:2px solid var(--compiled);outline-offset:3px;border-radius:2px}
+
+  .eyebrow{
+    font-size:11px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;
+    color:var(--ink-3);font-variation-settings:"wdth" 100;
+  }
+  .skip{position:absolute;left:-9999px}
+  .skip:focus{left:12px;top:12px;z-index:9;background:var(--surface-2);padding:8px 12px;border:1px solid var(--line)}
+
+  /* ── masthead ─────────────────────────────────────────────────────────── */
+  .masthead{border-bottom:1px solid var(--line);background:var(--surface)}
+  .mh-in{max-width:1180px;margin:0 auto;padding:34px 28px 26px;display:flex;flex-direction:column;gap:18px}
+  .mh-top{display:grid;gap:22px 48px;align-items:end;
+          grid-template-columns:minmax(0,1.02fr) minmax(0,1fr)}
+  @media (max-width:860px){.mh-top{grid-template-columns:minmax(0,1fr);align-items:start}}
+  h1{
+    font-size:clamp(2.5rem,6.2vw,4.35rem);font-weight:700;line-height:.94;
+    letter-spacing:-.024em;font-variation-settings:"wdth" 118;
+  }
+  .thesis{
+    font-size:clamp(1.04rem,1.6vw,1.2rem);line-height:1.5;color:var(--ink-2);
+    margin:0;max-width:52ch;font-weight:400;
+  }
+  .thesis b{color:var(--ink);font-weight:600}
+  .meta{
+    display:flex;flex-wrap:wrap;gap:6px 26px;padding-top:16px;border-top:1px solid var(--line-soft);
+    font-family:"IBM Plex Mono",monospace;font-size:11.5px;color:var(--ink-3);
+  }
+  .meta b{color:var(--ink-2);font-weight:500}
+
+  /* ── shell ────────────────────────────────────────────────────────────── */
+  .doc{max-width:1180px;margin:0 auto;padding:0 28px 96px;display:grid;gap:52px;
+       grid-template-columns:var(--rail) minmax(0,1fr)}
+  .rail{position:sticky;top:0;align-self:start;padding:44px 0;max-height:100vh;overflow-y:auto}
+  .rail ol{list-style:none;margin:12px 0 0;padding:0;display:flex;flex-direction:column;gap:1px}
+  .rail a{display:grid;grid-template-columns:24px 1fr;gap:9px;padding:5px 0;font-size:13.5px;
+          line-height:1.3;color:var(--ink-2);text-decoration:none;border-top:1px solid var(--line-soft)}
+  .rail a:hover{color:var(--compiled)}
+  .rail .n{font-family:"IBM Plex Mono",monospace;font-size:10.5px;color:var(--ink-3);padding-top:2px}
+  main{padding:44px 0 0;min-width:0}
+  @media (max-width:1040px){
+    .doc{grid-template-columns:minmax(0,1fr);gap:0}
+    .rail{position:static;max-height:none;padding:28px 0 0;border-bottom:1px solid var(--line)}
+    .rail ol{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:0 24px;padding-bottom:20px}
+  }
+
+  section{padding:0 0 12px;scroll-margin-top:20px}
+  section + section{margin-top:60px;padding-top:34px;border-top:1px solid var(--line)}
+  .h2row{display:grid;grid-template-columns:52px minmax(0,1fr);gap:14px;align-items:start;margin-bottom:22px}
+  .num{font-family:"IBM Plex Mono",monospace;font-size:13px;font-weight:500;color:var(--compiled);
+       padding-top:.42em;letter-spacing:.02em}
+  h2{font-size:clamp(1.6rem,3.2vw,2.15rem);font-weight:700;letter-spacing:-.018em;
+     line-height:1.06;font-variation-settings:"wdth" 114}
+  .sub{margin-top:8px;color:var(--ink-3);font-size:15.5px;line-height:1.45;max-width:62ch}
+  h3{font-size:1.12rem;font-weight:600;letter-spacing:-.006em;margin:34px 0 10px;
+     font-variation-settings:"wdth" 106}
+  h3 .mono{font-weight:500;font-size:.95em}
+  h4{font-size:12px;font-weight:600;letter-spacing:.13em;text-transform:uppercase;color:var(--ink-3);
+     margin:26px 0 8px;font-variation-settings:"wdth" 100}
+  p{margin:0 0 15px;max-width:72ch}
+  ul,ol{margin:0 0 16px;padding-left:1.15em;max-width:72ch}
+  li{margin-bottom:7px}
+  li > ul{margin:7px 0 0}
+  strong{font-weight:600}
+  em{font-style:italic;color:var(--ink-2)}
+  code{font-size:.855em;background:var(--surface);border:1px solid var(--line-soft);
+       border-radius:3px;padding:.1em .34em;color:var(--ink)}
+  .lede{font-size:1.1rem;color:var(--ink-2);max-width:68ch}
+
+  /* ── components ───────────────────────────────────────────────────────── */
+  .callout{border-left:2px solid var(--line-strong);background:var(--surface);padding:16px 20px;
+           margin:22px 0;border-radius:0 4px 4px 0;max-width:74ch}
+  .callout.hot{border-left-color:var(--risk);background:var(--risk-wash)}
+  .callout.cool{border-left-color:var(--compiled);background:var(--compiled-wash)}
+  .callout.warm{border-left-color:var(--live);background:var(--live-wash)}
+  .callout > :last-child{margin-bottom:0}
+  .callout p{max-width:66ch}
+
+  .cards{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(228px,1fr));margin:24px 0 30px}
+  .card{background:var(--surface);border:1px solid var(--line-soft);border-radius:5px;
+        padding:15px 16px 16px;box-shadow:var(--shadow)}
+  .card .k{font-family:"IBM Plex Mono",monospace;font-size:10.5px;letter-spacing:.1em;
+           text-transform:uppercase;color:var(--ink-3);display:block;margin-bottom:7px}
+  .card .d{font-family:"Archivo",sans-serif;font-weight:600;font-size:15px;line-height:1.28;
+           letter-spacing:-.006em;font-variation-settings:"wdth" 106}
+  .card .w{font-size:14.5px;line-height:1.45;color:var(--ink-2);margin-top:8px}
+  .card.c-teal{border-left:2px solid var(--compiled)}
+  .card.c-amber{border-left:2px solid var(--live)}
+
+  .tw{overflow-x:auto;margin:22px 0 28px;border:1px solid var(--line-soft);border-radius:5px;
+      background:var(--surface)}
+  table{border-collapse:collapse;width:100%;font-size:14.5px;
+        font-family:"Archivo",sans-serif;font-variation-settings:"wdth" 100}
+  th{text-align:left;font-size:10.5px;font-weight:600;letter-spacing:.11em;text-transform:uppercase;
+     color:var(--ink-3);padding:11px 14px;border-bottom:1px solid var(--line);
+     background:var(--surface-2)}
+  .t-verdicts td:first-child,.t-verdicts th:first-child{width:15%}
+  .t-verdicts td:nth-child(2){width:1px;white-space:nowrap}
+  .t-verdicts td:nth-child(3),.t-verdicts th:nth-child(3){width:16%}
+  td{padding:11px 14px;border-bottom:1px solid var(--line-soft);vertical-align:top;line-height:1.42;
+     color:var(--ink-2)}
+  tr:last-child td{border-bottom:0}
+  td:first-child{color:var(--ink);font-weight:500}
+  td.n,th.n{font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums;white-space:nowrap}
+  td.n small{white-space:normal}
+  td small{display:block;color:var(--ink-3);font-size:12.5px;margin-top:3px;line-height:1.35}
+  .t-tight td,.t-tight th{padding:9px 12px}
+
+  .chip{display:inline-block;font-size:10px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;
+        padding:3px 7px;border-radius:3px;border:1px solid var(--line);color:var(--ink-2);
+        white-space:nowrap;font-variation-settings:"wdth" 100}
+  .chip.adopt{color:var(--ok);border-color:var(--ok)}
+  .chip.narrow{color:var(--compiled);border-color:var(--compiled-line)}
+  .chip.adapt{color:var(--live);border-color:var(--live-line)}
+  .chip.watch{color:var(--ink-3)}
+  .chip.skip{color:var(--risk);border-color:var(--risk)}
+
+  figure{margin:30px 0 34px}
+  .figbox{border:1px solid var(--line-soft);border-radius:5px;background:var(--surface);
+          padding:20px 18px;overflow-x:auto}
+  figure svg{display:block;width:100%;min-width:600px;max-width:100%;height:auto;color:var(--ink-2)}
+  figcaption{margin-top:12px;font-size:14px;line-height:1.5;color:var(--ink-3);max-width:74ch}
+  figcaption b{color:var(--ink-2);font-weight:600}
+  .svg-t{font-family:"Archivo",sans-serif;font-size:12.5px;font-weight:600;fill:var(--ink);
+         font-variation-settings:"wdth" 104}
+  .svg-s{font-family:"Newsreader",serif;font-size:11.5px;fill:var(--ink-2)}
+  .svg-l{font-family:"IBM Plex Mono",monospace;font-size:10px;fill:var(--ink-3);letter-spacing:.02em}
+  .svg-e{font-family:"IBM Plex Mono",monospace;font-size:9.5px;letter-spacing:.11em;
+         text-transform:uppercase;fill:var(--ink-3)}
+  .svg-b{fill:var(--surface-2);stroke:var(--line-strong);stroke-width:1}
+  .svg-teal{fill:var(--compiled-wash);stroke:var(--compiled);stroke-width:1}
+  .svg-amber{fill:var(--live-wash);stroke:var(--live);stroke-width:1}
+  .svg-risk{fill:var(--risk-wash);stroke:var(--risk);stroke-width:1}
+  .svg-lane{fill:var(--surface-2);stroke:var(--line-soft);stroke-width:1}
+  .svg-a{stroke:var(--line-strong);stroke-width:1.4;fill:none}
+  .svg-a-teal{stroke:var(--compiled);stroke-width:1.4;fill:none}
+  .svg-a-risk{stroke:var(--risk);stroke-width:1.4;fill:none}
+  .svg-a-live{stroke:var(--live-line);stroke-width:1.4;fill:none}
+  .svg-lane-teal{fill:var(--surface-2);stroke:var(--compiled-line);stroke-width:1}
+  .tnum{font-family:"IBM Plex Mono",monospace;font-size:14px;font-weight:600;fill:var(--live);
+        font-variant-numeric:tabular-nums}
+
+  pre{background:var(--surface-2);border:1px solid var(--line);border-radius:5px;padding:16px 18px;
+      overflow-x:auto;margin:18px 0 24px;font-size:12.8px;line-height:1.62}
+  pre code{background:none;border:0;padding:0;font-size:inherit;white-space:pre}
+  .cm{color:var(--ink-3)}
+  .ky{color:var(--compiled)}
+  .st{color:var(--live)}
+
+  .kv{display:grid;grid-template-columns:auto 1fr;gap:6px 16px;margin:16px 0 22px;
+      font-size:14.5px;max-width:72ch;align-items:baseline}
+  .kv dt{font-family:"IBM Plex Mono",monospace;font-size:11.5px;color:var(--ink-3);
+         letter-spacing:.04em;padding-top:.24em;white-space:nowrap}
+  .kv dd{margin:0;color:var(--ink-2)}
+  .kv dd b{color:var(--ink);font-weight:600}
+
+  .srcs{list-style:none;padding:0;margin:16px 0 0;display:grid;gap:5px;max-width:82ch}
+  .srcs li{font-size:14px;color:var(--ink-3);display:grid;grid-template-columns:20px 1fr;gap:8px}
+  .srcs .mono{font-size:11px;padding-top:2px}
+  footer.end{margin-top:64px;padding-top:22px;border-top:1px solid var(--line);
+             font-family:"IBM Plex Mono",monospace;font-size:11.5px;color:var(--ink-3);line-height:1.7}
+</style>
+
+<a class="skip" href="#s1">Skip to the brief</a>
+
+<header class="masthead">
+  <div class="mh-in">
+    <p class="eyebrow">NextRole · commercial extension · design brief</p>
+    <div class="mh-top">
+      <h1>The Dossier<br>Layer</h1>
+      <p class="thesis">A recruiter knows things about their client companies that never reach a job
+      description: what Acme actually runs, what they are staffing next month, how the last two AI
+      projects went. That knowledge is real, it is scattered across seven systems, and it is
+      <b>the only input that makes tailoring measurably better</b>. This is how to turn it into a
+      knowledge base an agent can use — and what to build first.</p>
+    </div>
+    <div class="meta">
+      <span><b>Date</b> 2026-08-23</span>
+      <span><b>Author</b> Tam Nguyen</span>
+      <span><b>Status</b> design brief · nothing built</span>
+      <span><b>Shape</b> single-tenant deploy per client</span>
+      <span><b>Bias</b> open source, self-hostable</span>
+    </div>
+  </div>
+</header>
+
+<div class="doc">
+  <nav class="rail" aria-label="Sections">
+    <p class="eyebrow">Contents</p>
+    <ol>
+      <li><a href="#s1"><span class="n mono">01</span><span>The knowledge in play</span></a></li>
+      <li><a href="#s2"><span class="n mono">02</span><span>Complex KB or LLM wiki</span></a></li>
+      <li><a href="#s3"><span class="n mono">03</span><span>The layers</span></a></li>
+      <li><a href="#s4"><span class="n mono">04</span><span>Ingestion</span></a></li>
+      <li><a href="#s5"><span class="n mono">05</span><span>Worked example</span></a></li>
+      <li><a href="#s6"><span class="n mono">06</span><span>Staying fresh</span></a></li>
+      <li><a href="#s7"><span class="n mono">07</span><span>Retrieval</span></a></li>
+      <li><a href="#s8"><span class="n mono">08</span><span>Measuring it</span></a></li>
+      <li><a href="#s9"><span class="n mono">09</span><span>Access and disclosure</span></a></li>
+      <li><a href="#s10"><span class="n mono">10</span><span>Build order</span></a></li>
+      <li><a href="#verdicts"><span class="n mono">→</span><span>Library verdicts</span></a></li>
+      <li><a href="#open"><span class="n mono">→</span><span>Open questions</span></a></li>
+      <li><a href="#sources"><span class="n mono">→</span><span>Sources</span></a></li>
+    </ol>
+  </nav>
+
+  <main>
+
+    <section id="tldr" aria-label="Summary of decisions">
+      <h4>Six decisions, up front</h4>
+      <div class="cards">
+        <div class="card c-teal">
+          <span class="k">Architecture</span>
+          <p class="d">Not one KB — four stores</p>
+          <p class="w">Documents, compiled facts, relations and live records change at different
+            rates and need different engines. Forcing them into one index is the classic failure.</p>
+        </div>
+        <div class="card c-teal">
+          <span class="k">The core question</span>
+          <p class="d">LLM wiki <em>and</em> chunk index, layered</p>
+          <p class="w">The OKF wiki is the product surface — reviewable, citable, demoable. The
+            hybrid chunk index is the evidence substrate underneath it. Not either/or.</p>
+        </div>
+        <div class="card c-amber">
+          <span class="k">Latency</span>
+          <p class="d">Move agentic search to compile time</p>
+          <p class="w">NextRole's queries are predictable per company and per role. Do the expensive
+            multi-hop reasoning once, nightly, not on the user's request.</p>
+        </div>
+        <div class="card">
+          <span class="k">Freshness</span>
+          <p class="d">Webhooks first, cron as the net</p>
+          <p class="w">Push where the API allows it, cursor-poll where it doesn't, and a nightly
+            reconcile diff to catch deletes and missed events. Split the cheap reindex from the
+            expensive recompile.</p>
+        </div>
+        <div class="card">
+          <span class="k">Buy vs build</span>
+          <p class="d">Borrow the plumbing, build the compiler</p>
+          <p class="w">Onyx gives away 50+ connectors with permission sync; CocoIndex gives away
+            incremental recompute with lineage. Nothing open source compiles company dossiers —
+            that is the part worth your time.</p>
+        </div>
+        <div class="card c-amber">
+          <span class="k">Before any of it</span>
+          <p class="d">Prove the uplift on 20 hand-written pages</p>
+          <p class="w">The whole thesis — more internal context yields better resumes and prep — is
+            untested. Two weeks of manual curation answers it. Build the pipeline after.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="s1">
+      <div class="h2row">
+        <span class="num">01</span>
+        <div>
+          <h2>The knowledge in play</h2>
+          <p class="sub">Not a knowledge base so much as a compiler: it turns a recruitment
+            company's scattered internal material into grounded, citable facts an agent can tailor
+            against.</p>
+        </div>
+      </div>
+
+      <p>The client already owns the knowledge. What they don't own is the ability to <em>use</em>
+      it: it sits in a five-year-old Confluence space, in a Notion database one team migrated to,
+      in Slack threads, in Meet transcripts nobody reopens, in Drive PDFs named
+      <code>Acme_TechReview_v3_FINAL.pdf</code>, and in an ATS whose free-text notes fields are
+      where the real intelligence lives. Asking their employees to follow a convention has already
+      failed, and it is not going to start working now. <strong>The convention has to be imposed
+      after the fact, by a compiler, not before the fact, by policy.</strong></p>
+
+      <h3>What a fact looks like once it is compiled</h3>
+      <p>Your example, made concrete. Three source systems, one claim, one provenance chain:</p>
+      <div class="tw"><table class="t-tight">
+        <thead><tr><th>Claim</th><th>Where it came from</th><th>Confidence signal</th></tr></thead>
+        <tbody>
+          <tr><td>Acme builds agents on Python + LangGraph</td>
+              <td>Confluence "Platform overview", rev 41 · Meet transcript 2026-08-14 @ 11:40</td>
+              <td>two independent sources, 9 days old</td></tr>
+          <tr><td>Project Atlas kicks off 2026-09, needs 3 backend + 1 ML</td>
+              <td>ATS req AC-2291 · exec deck slide 12</td>
+              <td>one source is <em>leadership-only</em> — see §09</td></tr>
+          <tr><td>Two prior agent projects; the first stalled on eval tooling</td>
+              <td>Retro doc in Drive · Slack thread in <code>#acme-delivery</code></td>
+              <td>14 months old — decay this</td></tr>
+          <tr><td>They dropped Airflow for Temporal in July</td>
+              <td>Recruiter's own correction, typed into the dossier</td>
+              <td>human, newest, must survive recompile</td></tr>
+        </tbody>
+      </table></div>
+
+      <p>Those four rows are what changes a resume from "5 years Python, built AI features" into
+      "built LangGraph agent pipelines; set up the eval harness that the team was missing" — and
+      what turns interview prep from generic STAR drilling into "they will ask how you'd migrate
+      Airflow DAGs to Temporal."</p>
+
+      <h3>Two audiences, one artifact</h3>
+      <p>Worth designing for from the start: the dossier is useful to the recruitment company's own
+      consultants, not just to candidates. “Which of our clients run LangGraph and are hiring in Q4”
+      is a question they ask every week and currently answer from memory. That is a cross-entity
+      query, which is why L3 exists at all — and it means the same compiled layer has to serve two
+      very different read patterns.</p>
+
+      <div class="callout warm">
+        <p><strong>The constraint that shapes the data model.</strong> The recruitment company's
+        counterparties <em>are</em> the hiring companies. Some of what is in that Confluence space
+        is under NDA and cannot be repeated to a candidate, even though it would help them. Every
+        fact therefore needs a disclosure tier from day one — <code>candidate_safe</code>,
+        <code>recruiter_only</code>, <code>client_confidential</code> — filtered at generation
+        time, not bolted on later. Retrofitting this into a compiled corpus is a rewrite.</p>
+      </div>
+    </section>
+
+    <section id="s2">
+      <div class="h2row">
+        <span class="num">02</span>
+        <div>
+          <h2>Complex KB, or just an LLM wiki?</h2>
+          <p class="sub">The question assumes they compete. They don't — they sit at different
+            layers, and the mistake is picking one.</p>
+        </div>
+      </div>
+
+      <p>Sort the client's knowledge by how it behaves, not by where it lives. Three kinds fall
+      out, and each one wants a different engine:</p>
+
+      <div class="tw"><table>
+        <thead><tr><th>Kind</th><th>Example</th><th class="n">Volume</th><th>Change rate</th><th>Engine</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>Documents</td>
+            <td>Confluence pages, Drive PDFs, Slack threads, Meet transcripts</td>
+            <td class="n">10⁴–10⁶ chunks</td>
+            <td>constant, low-value churn</td>
+            <td>hybrid chunk index<small>BM25 + dense + rerank</small></td>
+          </tr>
+          <tr>
+            <td>Facts</td>
+            <td>"Acme runs LangGraph"; "Atlas starts in September"; "eval tooling was the gap"</td>
+            <td class="n">10²–10⁴ pages</td>
+            <td>slow, but contradicts itself across sources</td>
+            <td>compiled wiki<small>OKF markdown, one page per entity</small></td>
+          </tr>
+          <tr>
+            <td>Records</td>
+            <td>ATS requisitions, pipeline stages, placements, warehouse tables</td>
+            <td class="n">10⁵–10⁸ rows</td>
+            <td>every minute</td>
+            <td>query it live<small>semantic layer → SQL, never embedded</small></td>
+          </tr>
+        </tbody>
+      </table></div>
+
+      <p>Read that table twice, because it settles three arguments at once.</p>
+
+      <ul>
+        <li><strong>Documents cannot be the answer surface.</strong> Retrieval over raw chunks
+        rediscovers the same synthesis on every query, at query-time latency, with query-time
+        failure modes. The recruiter asks about Acme forty times a week and pays the reasoning cost
+        forty times.</li>
+        <li><strong>Facts cannot be a vector index.</strong> The value here is <em>reconciled</em>
+        knowledge — the exec deck and the retro doc disagree, and something has to decide. That is
+        synthesis, and it belongs in a durable artifact. It also has to be reviewable: a recruiter
+        can read a markdown page about their own client and tell you it's wrong. Nobody can review
+        an embedding.</li>
+        <li><strong>Records must never be embedded.</strong> A snapshot of the ATS in a vector store
+        is stale the moment it lands, and lossy on top. Grounding an LLM in a modelled semantic
+        layer instead of raw schemas is reported at roughly <span class="mono">83%</span> vs
+        <span class="mono">40%</span> natural-language query accuracy in dbt's own testing — vendor
+        numbers, so treat the gap as directional, not exact. Either way: tools, not chunks.</li>
+      </ul>
+
+      <div class="callout cool">
+        <p><strong>The verdict.</strong> Karpathy's wiki pattern is the right <em>product surface</em>
+        — the thing the agent reads first and the client reviews. A hybrid chunk index is the right
+        <em>evidence substrate</em> — what the wiki cites, and where the agent falls back when the
+        wiki is thin. Google's OKF is the right <em>file format</em> for the wiki, and its v0.2
+        trust fields (<code>provenance</code>, <code>trust</code>, <code>freshness</code>,
+        <code>lifecycle</code>, <code>attestation</code>) are almost exactly the metadata this
+        problem needs. You already run an OKF bundle for <code>docs/prd/</code>; the muscle exists.</p>
+      </div>
+
+      <figure id="fig1">
+        <div class="figbox">
+          <svg viewBox="0 0 900 400" role="img" aria-label="Four stores serve the career agent: a landing zone, a hybrid chunk index and a compiled dossier plus relations layer are all built ahead of time, while ATS and warehouse records are read live at query time and never indexed.">
+            <defs>
+              <marker id="f1-n" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                <path d="M0,1 L9,5 L0,9 z" fill="var(--line-strong)"/>
+              </marker>
+              <marker id="f1-l" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                <path d="M0,1 L9,5 L0,9 z" fill="var(--live)"/>
+              </marker>
+            </defs>
+
+            <rect x="16" y="16" width="640" height="34" rx="3" class="svg-teal"/>
+            <text x="336" y="38" text-anchor="middle" class="svg-e" fill="var(--compiled)">compiled ahead of time · llm work happens here</text>
+            <rect x="676" y="16" width="200" height="34" rx="3" class="svg-amber"/>
+            <text x="776" y="38" text-anchor="middle" class="svg-e" fill="var(--live)">read live · never indexed</text>
+
+            <g class="svg-b">
+              <rect x="16" y="92" width="200" height="140" rx="4"/>
+              <rect x="236" y="92" width="200" height="140" rx="4"/>
+              <rect x="456" y="92" width="200" height="140" rx="4"/>
+              <rect x="676" y="92" width="200" height="140" rx="4"/>
+            </g>
+            <line x1="16" y1="124" x2="216" y2="124" stroke="var(--line)"/>
+            <line x1="236" y1="124" x2="436" y2="124" stroke="var(--compiled-line)"/>
+            <line x1="456" y1="124" x2="656" y2="124" stroke="var(--compiled-line)"/>
+            <line x1="676" y1="124" x2="876" y2="124" stroke="var(--live-line)"/>
+
+            <text x="30" y="114" class="svg-l">L1</text>
+            <text x="58" y="115" class="svg-t">Chunk index</text>
+            <text x="30" y="148" class="svg-s">pgvector + pg_search</text>
+            <text x="30" y="166" class="svg-s">verbatim spans, citations</text>
+            <text x="30" y="190" class="svg-l">answers</text>
+            <text x="30" y="208" class="svg-s">“show me where it says that”</text>
+
+            <text x="250" y="114" class="svg-l" fill="var(--compiled)">L2</text>
+            <text x="278" y="115" class="svg-t">Dossier</text>
+            <text x="250" y="148" class="svg-s">OKF markdown, 1 page</text>
+            <text x="250" y="166" class="svg-s">per company / project / tech</text>
+            <text x="250" y="190" class="svg-l">answers</text>
+            <text x="250" y="208" class="svg-s">“what should I know about Acme”</text>
+
+            <text x="470" y="114" class="svg-l" fill="var(--compiled)">L3</text>
+            <text x="498" y="115" class="svg-t">Relations</text>
+            <text x="470" y="148" class="svg-s">edges derived from L2</text>
+            <text x="470" y="166" class="svg-s">links, not a second extractor</text>
+            <text x="470" y="190" class="svg-l">answers</text>
+            <text x="470" y="208" class="svg-s">“who else runs this stack”</text>
+
+            <text x="690" y="114" class="svg-l" fill="var(--live)">L4</text>
+            <text x="718" y="115" class="svg-t">Live records</text>
+            <text x="690" y="148" class="svg-s">Cube semantic layer →</text>
+            <text x="690" y="166" class="svg-s">ATS API, BigQuery</text>
+            <text x="690" y="190" class="svg-l">answers</text>
+            <text x="690" y="208" class="svg-s">“is the req still open”</text>
+
+            <g class="svg-a" marker-end="url(#f1-n)">
+              <line x1="116" y1="50" x2="116" y2="90"/>
+              <line x1="336" y1="50" x2="336" y2="90"/>
+              <line x1="556" y1="50" x2="556" y2="90"/>
+            </g>
+            <line x1="776" y1="50" x2="776" y2="90" class="svg-a-live" marker-end="url(#f1-l)"/>
+
+            <g class="svg-a" marker-end="url(#f1-n)">
+              <line x1="116" y1="232" x2="116" y2="296"/>
+              <line x1="336" y1="232" x2="336" y2="296"/>
+              <line x1="556" y1="232" x2="556" y2="296"/>
+              <line x1="776" y1="232" x2="776" y2="296"/>
+            </g>
+            <rect x="63" y="244" width="106" height="32" fill="var(--surface)"/>
+            <text x="116" y="256" text-anchor="middle" class="svg-l">hybrid + rerank</text>
+            <text x="116" y="270" text-anchor="middle" class="svg-l">≈ 1.1 s</text>
+            <rect x="274" y="244" width="124" height="32" fill="var(--surface)"/>
+            <text x="336" y="256" text-anchor="middle" class="svg-l">fetch by entity id</text>
+            <text x="336" y="270" text-anchor="middle" class="svg-l">≈ 0.3 s</text>
+            <rect x="506" y="244" width="100" height="32" fill="var(--surface)"/>
+            <text x="556" y="256" text-anchor="middle" class="svg-l">1–2 hop expand</text>
+            <text x="556" y="270" text-anchor="middle" class="svg-l">≈ 0.5 s</text>
+            <rect x="702" y="244" width="148" height="32" fill="var(--surface)"/>
+            <text x="776" y="256" text-anchor="middle" class="svg-l">sql via semantic layer</text>
+            <text x="776" y="270" text-anchor="middle" class="svg-l">≈ 0.6 s</text>
+
+            <rect x="60" y="298" width="776" height="56" rx="4" class="svg-b"/>
+            <text x="448" y="322" text-anchor="middle" class="svg-t">NextRole career agent · one router, four read paths</text>
+            <text x="448" y="340" text-anchor="middle" class="svg-s">resume tailoring · interview prep · recruiter Q&amp;A</text>
+
+            <rect x="60" y="372" width="776" height="20" rx="3" fill="none" stroke="var(--line-soft)"/>
+            <text x="448" y="386" text-anchor="middle" class="svg-l">L0 landing zone — raw bytes + DoclingDocument, content-addressed, immutable (SeaweedFS)</text>
+          </svg>
+        </div>
+        <figcaption><b>The layer split is the whole design.</b> Everything under the teal bar is built
+        before the user asks; everything under the amber bar is read at request time. L2 and L3 exist
+        so that the common question — “what should I know about this company” — never touches a
+        retriever, and so that the client has something human-readable to review and correct.</figcaption>
+      </figure>
+    </section>
+
+    <section id="s3">
+      <div class="h2row">
+        <span class="num">03</span>
+        <div>
+          <h2>The layers, specified</h2>
+          <p class="sub">Four read paths plus a landing zone and one compile-time artifact. Every
+            pick is open source and self-hostable, and where possible already running in NextRole.</p>
+        </div>
+      </div>
+
+      <div class="tw"><table>
+        <thead><tr><th>Layer</th><th>Holds</th><th>Technology</th><th>Why this one</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>L0 · Landing</td>
+            <td>Original bytes plus the parsed <code>DoclingDocument</code> JSON, keyed by content
+              hash</td>
+            <td>SeaweedFS + obstore</td>
+            <td>Already in the stack. Content addressing gives you free dedup, a replayable
+              pipeline, and a traceable delete path for GDPR erasure.</td>
+          </tr>
+          <tr>
+            <td>L1 · Chunk index</td>
+            <td>Structure-aware chunks with contextual prefixes, embeddings, BM25 terms, the
+              access-control list (ACL) inherited from the source, source revision</td>
+            <td>Postgres + <code>pgvector</code> + ParadeDB <code>pg_search</code></td>
+            <td>One database, one transaction, both retrieval modes. Postgres-resident vector search
+              holds to roughly the low tens of millions of vectors — far past any single
+              recruiter's corpus. Move to Qdrant only if a client blows past that.</td>
+          </tr>
+          <tr>
+            <td>L1½ · Fact atoms</td>
+            <td>One row per atomic claim, with its citations, validity interval and the narrowest
+              ACL among its sources</td>
+            <td>Postgres table, written by the compiler</td>
+            <td>A compile-time artifact, not a fifth read path — which is why it is absent from the
+              layer figure. It is what makes citation, contradiction detection, ACL floors and
+              erasure operate at claim granularity instead of page granularity. See below.</td>
+          </tr>
+          <tr>
+            <td>L2 · Dossier</td>
+            <td>One OKF markdown page per company, project, technology, team and role</td>
+            <td>Markdown in Postgres + object store; compiled by a LangGraph pipeline</td>
+            <td>Reviewable, diffable, greppable, portable. The format is a spec, not a vendor. It is
+              also the only layer a non-engineer can read, check and correct.</td>
+          </tr>
+          <tr>
+            <td>L3 · Relations</td>
+            <td>Typed edges: <code>uses</code>, <code>staffs</code>, <code>succeeded</code>,
+              <code>migrated_from</code>, with validity intervals</td>
+            <td>Postgres tables + recursive CTE</td>
+            <td>Derive edges from L2 frontmatter and links — do <em>not</em> run a second LLM
+              extraction pass over raw text. A graph database earns its place only when the eval
+              set actually contains 3+ hop questions.</td>
+          </tr>
+          <tr>
+            <td>L4 · Live records</td>
+            <td>Nothing. It is a tool, not a store.</td>
+            <td>Cube (OSS core) over BigQuery / Snowflake / Databricks; the ATS's own REST API</td>
+            <td>Governed metrics the agent queries over MCP instead of writing raw SQL against
+              tables it has never seen. Warehouse-native semantic views are a fallback if the
+              client already models there.</td>
+          </tr>
+        </tbody>
+      </table></div>
+
+      <h3>Why there is a layer between chunks and pages</h3>
+      <p>Compiling straight from chunks to a finished page is the obvious design and it is the wrong
+      one. Everything you need to do afterwards — cite a claim, notice two sources disagreeing,
+      work out the narrowest ACL, honour an erasure request, decide whether a recompile is even
+      necessary — happens at the granularity of a <em>claim</em>, not a page. So extract claims
+      first, as rows:</p>
+      <pre><code><span class="ky">atom_id</span>        a1f9c2…                      <span class="cm"># stable hash of (subject, predicate, object)</span>
+<span class="ky">subject</span>        org:acme-robotics
+<span class="ky">predicate</span>      uses_technology
+<span class="ky">object</span>         tech:temporal
+<span class="ky">valid_from</span>     <span class="st">2026-07-01</span>                  <span class="cm"># when it became true in the world</span>
+<span class="ky">valid_to</span>       null                        <span class="cm"># open interval = currently true</span>
+<span class="ky">observed_at</span>    <span class="st">2026-08-18</span>                  <span class="cm"># when we learned it</span>
+<span class="ky">citations</span>      [conf://…/88213#L41, human:2026-08-18]
+<span class="ky">acl_floor</span>      recruiters_all              <span class="cm"># min() over every citation's ACL</span>
+<span class="ky">disclosure</span>     candidate_safe
+<span class="ky">conflicts</span>      [a77b31…]                   <span class="cm"># the Airflow atom this one supersedes</span>
+<span class="ky">confidence</span>     0.92                        <span class="cm"># corroboration count × source trust × recency</span>
+</code></pre>
+      <p>Two independent designs landed on the same shape, which is some comfort: Tencent's agent
+      memory distils raw material into “atoms” before it builds scenario and persona pages, and
+      Semantica makes conflict detection a step that runs <em>before</em> a merge rather than a
+      cleanup afterwards. Note the two time fields. That is the bi-temporal idea from Graphiti,
+      applied to a table you already know how to query — a superseded atom is invalidated with a
+      <code>valid_to</code>, never deleted, so “what did we believe in June” stays answerable and
+      the audit trail survives.</p>
+
+      <h3>The dossier page schema</h3>
+      <p>This is the most important artifact in the system, so it is worth writing out. OKF v0.1
+      requires only <code>type</code>; v0.2 adds the trust block. Everything under the extension
+      comment is yours.</p>
+
+      <pre><code><span class="cm">---</span>
+<span class="ky">type</span>: company_dossier
+<span class="ky">title</span>: Acme Robotics
+<span class="ky">description</span>: Series-C warehouse robotics. 40-person platform org, Python/LangGraph AI stack.
+<span class="ky">tags</span>: [robotics, python, langgraph, gcp, temporal, "hiring:q4-2026"]
+<span class="ky">provenance</span>:
+  <span class="ky">compiled_by</span>: nextrole-kb/compiler@0.4.2
+  <span class="ky">compiled_at</span>: <span class="st">2026-08-21T04:12:09Z</span>
+  <span class="ky">sources</span>:
+    - { ref: <span class="st">conf://SPACE-ACME/page/88213</span>, rev: 41, seen: <span class="st">2026-08-20</span> }
+    - { ref: <span class="st">meet://2026-08-14/acme-tech-review</span>, span: <span class="st">"00:11:40-00:19:02"</span> }
+    - { ref: <span class="st">ats://req/AC-2291</span>, rev: 7 }
+<span class="ky">trust</span>: reviewed            <span class="cm"># unreviewed | machine | reviewed | endorsed</span>
+<span class="ky">freshness</span>: { checked_at: <span class="st">2026-08-21</span>, ttl_days: 30 }
+<span class="ky">lifecycle</span>: active           <span class="cm"># draft | active | superseded | retired</span>
+<span class="cm"># ── NextRole extensions ─────────────────────────────────────────</span>
+<span class="ky">disclosure</span>: candidate_safe  <span class="cm"># candidate_safe | recruiter_only | client_confidential</span>
+<span class="ky">acl_class</span>: recruiters_all   <span class="cm"># narrowest ACL across every cited source (§09)</span>
+<span class="ky">entities</span>: [org:acme-robotics, tech:langgraph, tech:temporal, project:atlas]
+<span class="cm">---</span>
+
+<span class="ky">## Stack</span> <span class="cm">(as of 2026-08)</span>
+Python 3.12 services on GCP. Agent orchestration on **LangGraph**; workflow layer
+migrated off Airflow to **Temporal** in July 2026.[^1][^h1]
+
+<span class="ky">## Active and planned work</span>
+- **Atlas** — multi-agent order routing. Kickoff 2026-09. Staffing 3 backend + 1 ML.[^2]
+
+<span class="ky">## Prior AI projects</span>
+- **2025 · pick-path optimiser** — shipped. **2024 · demand forecast agent** — stalled;
+  retro names missing eval tooling as the cause.[^3]
+
+<span class="ky">## Human notes</span>  <span class="cm">&lt;!-- append-only. the compiler must never rewrite this block --&gt;</span>
+- <span class="st">2026-08-18</span> T. Nguyen: they dropped Airflow for Temporal in July; the platform deck is stale.
+
+[^1]: conf://SPACE-ACME/page/88213 §"Platform overview"
+[^2]: ats://req/AC-2291 · corroborated meet://2026-08-14 @ 00:14:02
+[^h1]: human note 2026-08-18 — outranks [^1] on the Temporal claim
+</code></pre>
+
+      <div class="callout">
+        <p>Three details in there that are load-bearing. <strong>Footnotes are non-negotiable</strong>
+        — an uncited fact in this system is a fabrication risk with a candidate's name on it.
+        <strong><code>Human notes</code> is append-only and outranks the compiler</strong>, because
+        the single most reported failure of this pattern is a recompile silently overwriting a
+        person's correction. And <strong><code>acl_class</code> is derived, not declared</strong>:
+        a page inherits the narrowest permission of anything it cites, or it leaks (§09).</p>
+      </div>
+    </section>
+
+    <section id="s4">
+      <div class="h2row">
+        <span class="num">04</span>
+        <div>
+          <h2>Ingestion</h2>
+          <p class="sub">Borrow the connector tier. Build the compiler tier. The differentiation is
+            entirely in the second one.</p>
+        </div>
+      </div>
+
+      <h3>Connectors: the honest build-vs-borrow</h3>
+      <p>Seven source systems with permission sync is six months of unglamorous work, and none of it
+      is your product. Three credible paths, and the answer is a blend of the first two:</p>
+
+      <div class="tw"><table>
+        <thead><tr><th>Path</th><th>What you get</th><th>What it costs</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><strong>Onyx</strong> as the connector + chunk tier<small>MIT community edition, ~32k stars</small></td>
+            <td>50+ connectors — Confluence, Notion, Slack, Drive, SharePoint, Jira, Discord — with
+              permission sync that reflects source ACL changes within minutes. Hybrid keyword +
+              semantic index. REST API and MCP so your agent can query it as a tool.</td>
+            <td>You inherit a whole product: its Postgres, its index, its model servers, its
+              chunking opinions, and a community/enterprise edition split to watch. Deep
+              customisation means forking.</td>
+          </tr>
+          <tr>
+            <td><strong>CocoIndex</strong> as the incremental engine<small>Apache-2.0, Rust core + Python DSL, ~11k stars</small></td>
+            <td>You declare <code>target = f(source)</code> and it keeps the target in sync. Per-row
+              lineage plus memoisation on <code>hash(input) + hash(code)</code> means only the delta
+              reprocesses — <strong>including when you change the transform itself</strong>. Sources
+              cover Drive, S3, filesystems, databases and message queues; targets cover Postgres and
+              pgvector, Qdrant, Neo4j and Kuzu. Retries, backoff and dead-letter queues come with
+              the Rust core.</td>
+            <td>You adopt its dataflow abstraction, and it has an enterprise tier — the same split
+              to watch as Onyx. It gives you no permission sync: for Confluence, Notion, Slack and
+              Discord you still need a connector that mirrors ACLs.</td>
+          </tr>
+          <tr>
+            <td><strong><code>dlt</code></strong> pipelines you own<small>Python, incremental state built in</small></td>
+            <td>A thin extractor per source landing raw payloads into L0. Native to your stack —
+              Python 3.13, <code>uv</code>, runs in the same container as everything else. You own
+              the freshness semantics exactly.</td>
+            <td>Roughly one to two weeks per source, and you rebuild both permission sync and
+              incremental invalidation yourself, badly, twice.</td>
+          </tr>
+        </tbody>
+      </table></div>
+
+      <div class="callout cool">
+        <p><strong>Recommendation: Onyx reaches the sources, CocoIndex moves the deltas, you write
+        the compiler.</strong> Spike Onyx for a week and let it own the systems it already covers,
+        consumed as a retrieval tool over its API. Run the L0→L1 lane on CocoIndex rather than
+        hand-rolled watermarks — its code-aware invalidation is precisely the primitive this
+        architecture needs, and rebuilding it yourself is the classic six-month detour. Keep
+        <code>dlt</code> for the handful of sources neither reaches: the client's own ATS app and
+        Meet transcripts. Build L1½, L2 and L3 yourself, because no open-source project compiles
+        entity dossiers with provenance, disclosure tiers and an ACL floor, so that part has to be
+        yours either way.</p>
+      </div>
+
+      <h3>Parsing and chunking</h3>
+      <p><strong>Docling</strong> is an easy yes and there is no real competitor: MIT, hosted by LF
+      AI &amp; Data, ~65k stars, and it covers the whole spread — PDF layout and reading order,
+      DOCX/PPTX/XLSX, HTML, EPUB, OCR for scans, plus ASR for audio and keyframes for video, all
+      normalised into one <code>DoclingDocument</code>. Its <code>HybridChunker</code> respects
+      document structure instead of cutting at 512 tokens, which matters more than any embedding
+      choice.</p>
+      <p>On top of it, apply <strong>contextual retrieval</strong>: prepend a 50–100 token
+      LLM-written description of where each chunk sits in its parent document before you embed
+      <em>and</em> before you index it for BM25. Anthropic's published numbers on their own corpus:
+      top-20 retrieval failure drops from <span class="mono">5.7% → 3.7%</span> with contextual
+      embeddings, to <span class="mono">2.9%</span> with contextual BM25 as well, and to
+      <span class="mono">1.9%</span> once a reranker is added. It costs an LLM call per chunk at
+      ingest and nothing at query time — exactly the trade this architecture wants.</p>
+
+      <h3>Docling or PageIndex? Both, and not for the same job</h3>
+      <div class="callout">
+        <p>These are not alternatives, and reading them as a choice is the most common way to get
+        this wrong. <strong>Docling turns bytes into a document.</strong> Everything goes through
+        it, always — it is the only thing that knows how to read a PDF's columns, a DOCX's styles or
+        a WAV file. <strong>PageIndex turns one long document into a navigable tree.</strong> It runs
+        <em>after</em> Docling, on the minority of documents where splitting destroys the structure
+        that carries the meaning, and it runs at compile time only.</p>
+      </div>
+
+      <div class="tw"><table>
+        <thead><tr><th>What arrives</th><th>Docling's job</th><th>Then what</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>Confluence / Notion page<small>structured HTML, a few thousand words</small></td>
+            <td>Normalise to <code>DoclingDocument</code>; real heading tree; tables kept as tables,
+              not as flattened text</td>
+            <td><strong>Docling only.</strong> <code>HybridChunker</code> splits on the headings the
+              author already wrote. A tree index would add nothing you don't have.</td>
+          </tr>
+          <tr>
+            <td>Meeting transcript or Slack thread<small>WebVTT, MP3, chat JSON</small></td>
+            <td>ASR for audio; speaker turns and timecodes preserved</td>
+            <td><strong>Docling only</strong>, with a transcript-shaped chunker: split on speaker
+              turn plus a time window, never on token count. Keep the speaker — “the CTO said” and
+              “a contractor said” are different claims.</td>
+          </tr>
+          <tr>
+            <td>Short PDF or deck<small>under ~20 pages</small></td>
+            <td>Layout, reading order, table structure, figure captions via VLM</td>
+            <td><strong>Docling only.</strong> The whole thing fits in a prompt; a tree is overhead.</td>
+          </tr>
+          <tr>
+            <td>Long PDF<small>80-page playbook, org handbook, RFP, client account review</small></td>
+            <td>Same parse — Docling still does the reading</td>
+            <td><strong>Docling → PageIndex.</strong> Build a tree over the natural sections with an
+              LLM summary per node, then let the compiler ask “which section covers their deployment
+              model?” and walk to that subtree. Chunk-and-embed on an 80-pager retrieves paragraphs
+              that are locally similar and globally wrong.</td>
+          </tr>
+          <tr>
+            <td>Scanned or image-heavy PDF</td>
+            <td>OCR plus the VLM pipeline — this is where Docling earns its keep</td>
+            <td><strong>Docling only.</strong> PageIndex's open-source build targets text-heavy PDFs;
+              scans need their cloud, so keep them out of the tree path.</td>
+          </tr>
+          <tr>
+            <td>XLSX / CSV</td>
+            <td>Extract the grid faithfully</td>
+            <td><strong>Neither chunker.</strong> A sheet is records. Extract atoms from it, or route
+              it to L4 and query it. Chunking a spreadsheet is a category error.</td>
+          </tr>
+        </tbody>
+      </table></div>
+      <p>Pick the long-document threshold once and write it down: roughly 20 pages or 15k tokens,
+      which is also OpenKB's own default for switching to a tree. Below it, read the document whole;
+      above it, index and navigate. In a recruiter's corpus this will route something like 5% of
+      documents to PageIndex and 95% straight to chunks — but that 5% is the account reviews and
+      playbooks, which is where the highest-value facts live.</p>
+
+      <h4>Source-by-source, what will actually bite</h4>
+      <div class="tw"><table class="t-tight">
+        <thead><tr><th>Source</th><th>Mechanism</th><th>The gotcha</th></tr></thead>
+        <tbody>
+          <tr><td>Confluence</td><td>webhooks + space-scoped REST</td>
+              <td>Five years of stale pages that look authoritative. Recency and lifecycle weighting
+                is not optional here.</td></tr>
+          <tr><td>Notion</td><td>API webhooks (shipped 2026) + incremental search</td>
+              <td>Block-level model; a "page" is a tree. Reassemble before parsing or you get
+                confetti.</td></tr>
+          <tr><td>Google Drive</td><td><code>changes.watch</code> push channels</td>
+              <td>Channels expire (about a week) and must be renewed. When renewal silently fails
+                you go stale with no error — the nightly reconcile is what saves you.</td></tr>
+          <tr><td>Slack / Discord</td><td>Events API / gateway, allow-listed channels only</td>
+              <td>Signal density is terrible. Ingest only allow-listed channels, and within them
+                only threads with ≥3 replies or a link to a document. Otherwise you pay compile
+                cost on lunch plans.</td></tr>
+          <tr><td>Meet notes and transcripts</td><td>Drive-side transcript docs, or a recording API
+              if they need live capture</td>
+              <td>Diarised but noisy. Speaker attribution is the value — "the CTO said" and "a
+                contractor said" are not the same claim. Never treat a transcript as an
+                authoritative source on its own.</td></tr>
+          <tr><td>Drive spreadsheets</td><td>Docling for structure, then extract</td>
+              <td>A sheet is records, not prose. Chunking it is a category error — extract to facts,
+                or route the whole thing to L4.</td></tr>
+          <tr><td>ATS app</td><td>their REST API, or CDC off its Postgres via Debezium</td>
+              <td>The free-text notes fields hold the real intelligence and the worst PII. Split
+                them: structured columns to L4, notes through PII scrubbing into L1.</td></tr>
+          <tr><td>Warehouse</td><td>Cube over BigQuery / Snowflake / Databricks</td>
+              <td>Do not copy it. Model the dozen metrics that matter and expose those.</td></tr>
+        </tbody>
+      </table></div>
+
+      <h3>Entity resolution — the hidden hard problem</h3>
+      <p>"Acme", "Acme Inc.", "ACME Corp", "acme.com" and ATS account <code>7741</code> must
+      collapse to one dossier, or the KB fragments and every retrieval misses. This is not an LLM
+      problem, it is a record-linkage problem, and it should be cheap and auditable:</p>
+      <ol>
+        <li><strong>Canonical key is the primary domain.</strong> Not the name. Names collide and
+        mutate; domains mostly don't.</li>
+        <li><strong>Deterministic normalisation</strong> — case, legal suffixes, whitespace,
+        punctuation — then block on normalised name plus domain.</li>
+        <li><strong>Splink</strong> for probabilistic linkage on the ATS and CRM tables. Open source,
+        Fellegi–Sunter, runs on a SQL backend, gives you inspectable match weights instead of a
+        vibe.</li>
+        <li><strong>LLM adjudication only on the ambiguous middle</strong> — the 2–5% Splink scores
+        between thresholds. Log every decision; a wrong merge silently corrupts two dossiers.</li>
+      </ol>
+      <p>Apply the same discipline to technology names. <code>langgraph</code>,
+      <code>LangGraph</code>, "langchain graph" and "LG" are one node; <code>LangChain</code>,
+      <code>Langfuse</code> and <code>LangSmith</code> are three others. Curate that alias table by
+      hand — it is a few hundred rows and it is worth more than a bigger embedding model.</p>
+    </section>
+
+    <section id="s5">
+      <div class="h2row">
+        <span class="num">05</span>
+        <div>
+          <h2>Worked example: one page, three questions</h2>
+          <p class="sub">One real Confluence page all the way from webhook to dossier, then three
+            questions that use it. This is the section to show someone else.</p>
+        </div>
+      </div>
+
+      <p>Everything above is architecture. Here it is running. The source is a single Confluence
+      page in the client's <code>SPACE-ACME</code> space — “Acme platform overview”, about 2 400
+      words with one table and one architecture diagram — which an Acme-side engineer has just
+      edited to say the team moved off Airflow.</p>
+
+      <figure id="fig5">
+        <div class="figbox">
+          <svg viewBox="0 0 880 716" role="img" aria-label="One Confluence page travelling through the pipeline: a webhook lands the raw bytes in L0 where Docling parses them, a CocoIndex flow splits, contextualises, embeds and upserts them into the L1 chunk index, then a debounced LangGraph compiler extracts fact atoms into L1 and a half and synthesises the L2 dossier page and L3 edges.">
+            <defs>
+              <marker id="f5-n" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                <path d="M0,1 L9,5 L0,9 z" fill="var(--line-strong)"/>
+              </marker>
+              <marker id="f5-t" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                <path d="M0,1 L9,5 L0,9 z" fill="var(--compiled)"/>
+              </marker>
+            </defs>
+
+            <text x="16" y="44" class="svg-e">source</text>
+            <rect x="140" y="16" width="600" height="70" rx="4" class="svg-b"/>
+            <text x="154" y="40" class="svg-t">Confluence page 88213 · “Acme platform overview” · rev 41</text>
+            <text x="154" y="60" class="svg-s">2 400 words · 1 table · 1 architecture PNG</text>
+            <text x="154" y="78" class="svg-l">space permissions: recruiters_all</text>
+            <text x="752" y="50" class="svg-l">t = 0</text>
+
+            <line x1="440" y1="88" x2="440" y2="130" class="svg-a" marker-end="url(#f5-n)"/>
+            <text x="430" y="104" text-anchor="end" class="svg-l">webhook page_updated → change queue</text>
+            <text x="430" y="120" text-anchor="end" class="svg-l">Onyx connector re-reads the body and the ACL</text>
+            <text x="752" y="112" class="svg-l">+3 s</text>
+
+            <text x="16" y="176" class="svg-e">L0 landing</text>
+            <rect x="140" y="134" width="600" height="96" rx="4" class="svg-b"/>
+            <rect x="150" y="150" width="270" height="64" rx="3" fill="none" stroke="var(--line)"/>
+            <text x="162" y="174" class="svg-t">raw bytes</text>
+            <text x="162" y="192" class="svg-s">sha256:9f2c… · XHTML + the PNG</text>
+            <text x="162" y="208" class="svg-l">immutable, content-addressed</text>
+            <rect x="480" y="150" width="250" height="64" rx="3" fill="none" stroke="var(--line)"/>
+            <text x="492" y="174" class="svg-t">DoclingDocument JSON</text>
+            <text x="492" y="192" class="svg-s">heading tree · the table stays</text>
+            <text x="492" y="208" class="svg-s">a table · the PNG gets a caption</text>
+            <line x1="422" y1="182" x2="476" y2="182" class="svg-a" marker-end="url(#f5-n)"/>
+            <text x="449" y="172" text-anchor="middle" class="svg-l">Docling</text>
+            <text x="752" y="186" class="svg-l">+1 s</text>
+
+            <line x1="440" y1="232" x2="440" y2="248" class="svg-a" marker-end="url(#f5-n)"/>
+
+            <rect x="140" y="250" width="600" height="104" rx="4" class="svg-lane"/>
+            <text x="150" y="346" class="svg-e">cocoindex flow · memoised per row · resumable</text>
+            <g class="svg-b">
+              <rect x="140" y="262" width="132" height="64" rx="4"/>
+              <rect x="296" y="262" width="132" height="64" rx="4"/>
+              <rect x="452" y="262" width="132" height="64" rx="4"/>
+              <rect x="608" y="262" width="132" height="64" rx="4"/>
+            </g>
+            <text x="150" y="282" class="svg-t">① split</text>
+            <text x="150" y="300" class="svg-s">HybridChunker</text>
+            <text x="150" y="318" class="svg-l">→ 14 chunks</text>
+            <text x="306" y="282" class="svg-t">② contextualise</text>
+            <text x="306" y="300" class="svg-s">1 LLM call / chunk</text>
+            <text x="306" y="318" class="svg-l">60-token prefix</text>
+            <text x="462" y="282" class="svg-t">③ embed</text>
+            <text x="462" y="300" class="svg-s">BGE-M3, 1024-d</text>
+            <text x="462" y="318" class="svg-l">self-hosted</text>
+            <text x="618" y="282" class="svg-t">④ upsert</text>
+            <text x="618" y="300" class="svg-s">pgvector + pg_search</text>
+            <text x="618" y="318" class="svg-l">pk = chunk id</text>
+            <g class="svg-a" marker-end="url(#f5-n)">
+              <line x1="272" y1="294" x2="294" y2="294"/>
+              <line x1="428" y1="294" x2="450" y2="294"/>
+              <line x1="584" y1="294" x2="606" y2="294"/>
+            </g>
+            <text x="752" y="298" class="svg-l">+8 s</text>
+
+            <line x1="440" y1="356" x2="440" y2="372" class="svg-a" marker-end="url(#f5-n)"/>
+
+            <text x="16" y="418" class="svg-e">L1 chunks</text>
+            <rect x="140" y="376" width="600" height="70" rx="4" class="svg-b"/>
+            <text x="154" y="400" class="svg-t">14 chunk rows in Postgres</text>
+            <text x="154" y="420" class="svg-s">text + context prefix + 1024-d vector + BM25 terms + allowed_principals[]</text>
+            <text x="154" y="438" class="svg-l">3 rows re-derived · 11 memoised and skipped · searchable now</text>
+            <text x="752" y="410" class="svg-l">≈12 s</text>
+
+            <line x1="440" y1="448" x2="440" y2="490" class="svg-a-teal" marker-end="url(#f5-t)"/>
+            <text x="430" y="464" text-anchor="end" class="svg-l" fill="var(--compiled)">LangGraph compiler · extract → resolve → detect conflicts</text>
+            <text x="430" y="480" text-anchor="end" class="svg-l" fill="var(--compiled)">Splink folds “ACME Corp” and acme.com into org:acme-robotics</text>
+            <text x="752" y="472" class="svg-l">debounce 15 m</text>
+
+            <text x="16" y="536" class="svg-e">L1½ atoms</text>
+            <rect x="140" y="494" width="600" height="80" rx="4" class="svg-teal"/>
+            <text x="154" y="518" class="svg-t">6 fact atoms written</text>
+            <text x="154" y="538" class="svg-s">(org:acme-robotics, uses_technology, tech:temporal) valid_from 2026-07-01</text>
+            <text x="154" y="558" class="svg-s">conflicts a77b31 — the Airflow atom, closed with valid_to 2026-06-30</text>
+            <text x="752" y="536" class="svg-l">+40 s</text>
+
+            <line x1="440" y1="576" x2="440" y2="618" class="svg-a-teal" marker-end="url(#f5-t)"/>
+            <text x="430" y="592" text-anchor="end" class="svg-l" fill="var(--compiled)">LangGraph compiler · synthesise → verify every citation</text>
+            <text x="430" y="608" text-anchor="end" class="svg-l" fill="var(--compiled)">the Human notes block is copied through byte for byte</text>
+            <text x="752" y="600" class="svg-l">+12 s</text>
+
+            <text x="16" y="664" class="svg-e">L2 · L3</text>
+            <rect x="140" y="622" width="600" height="80" rx="4" class="svg-teal"/>
+            <text x="154" y="646" class="svg-t">acme-robotics.md — 3 of 7 sections rewritten, trust → machine</text>
+            <text x="154" y="666" class="svg-s">4 edges re-derived from the frontmatter, no LLM: uses→temporal,</text>
+            <text x="154" y="686" class="svg-s">uses→langgraph, staffs→project:atlas, migrated_from→airflow</text>
+            <text x="752" y="664" class="svg-l">≈16 m total</text>
+          </svg>
+        </div>
+        <figcaption><b>Where each library actually sits.</b> The embedding model is step ③, inside the
+        cheap lane — chunks are embedded once at ingest and never at query time. The compiler is the
+        two teal arrows, and it runs on a debounce, which is why the page is <em>searchable</em> in
+        twelve seconds but <em>synthesised</em> a quarter of an hour later. Note the split at L0: raw
+        bytes and the parsed document are both retained, so a Docling upgrade re-parses from bytes
+        without re-fetching Confluence.</figcaption>
+      </figure>
+
+      <h3>Which engine owns which lane</h3>
+      <p><strong>Yes, install CocoIndex — but only for the cheap lane.</strong> The two engines are
+      not competing for the same work, and the split follows from the shape of each job:</p>
+
+      <div class="tw"><table>
+        <thead><tr><th>Lane</th><th>Shape of the work</th><th>Engine</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>L0 → L1<small>the four numbered pills above</small></td>
+            <td>Per row, order-independent, idempotent, no conversation. Run it a thousand times and
+              you want the same answer and no duplicated work.</td>
+            <td><strong>CocoIndex.</strong> This is precisely a memoised dataflow. Nothing about it
+              wants a state machine.</td>
+          </tr>
+          <tr>
+            <td>L1 → L1½ → L2 → L3<small>the two teal arrows</small></td>
+            <td>Multi-step with branches: adjudicate a conflict or don't, retry a synthesis whose
+              citations failed, give up and escalate to a human. Carries state across steps.</td>
+            <td><strong>LangGraph.</strong> That is a graph with conditional edges, you already run
+              it, and the compiler is the part with no off-the-shelf equivalent.</td>
+          </tr>
+        </tbody>
+      </table></div>
+
+      <p>They meet at one table. CocoIndex owns the chunk rows; when it re-derives a chunk, a trigger
+      writes the affected <code>(entity, page)</code> pairs into a <code>dirty_pages</code> table.
+      LangGraph drains that table on a debounce. Neither engine knows anything about the other, which
+      is the point — you can replace either one without touching the other.</p>
+
+      <div class="callout warm">
+        <p><strong>One trap worth flagging before you read a tutorial.</strong> CocoIndex v1 replaced
+        its whole API. <code>flow_def</code>, <code>FlowBuilder</code>, <code>add_source</code>,
+        <code>collect</code>/<code>export</code> and the <code>cocoindex setup</code> step are gone,
+        and nearly every blog post and example you will find online still uses them. v1 is
+        <code>@coco.fn</code> functions, <code>coco.App</code>, and
+        <code>mount</code>/<code>mount_each</code>. Read the docs, not the tutorials.</p>
+      </div>
+
+      <p>The flow for one source, in v1 shape. Note where the incremental behaviour actually comes
+      from — it is the one decorator argument:</p>
+
+      <pre><code><span class="cm">"""L0 → L1 for one source. Run: cocoindex update flows/confluence.py -L"""</span>
+<span class="ky">import</span> cocoindex <span class="ky">as</span> coco
+<span class="ky">from</span> cocoindex.connectors <span class="ky">import</span> postgres
+
+PG      = coco.ContextKey[asyncpg.Pool](<span class="st">"pg"</span>)
+EMBED   = coco.ContextKey[SentenceTransformerEmbedder](<span class="st">"embedder"</span>)
+
+<span class="ky">@dataclass</span>
+<span class="ky">class</span> ChunkRow:                          <span class="cm"># this dataclass IS the L1 schema</span>
+    chunk_id: str
+    source_ref: str                        <span class="cm"># conf://SPACE-ACME/page/88213</span>
+    text: str                              <span class="cm"># context prefix + body</span>
+    embedding: Annotated[NDArray, EMBED]   <span class="cm"># dims inferred from the ContextKey</span>
+    allowed_principals: list[str]          <span class="cm"># mirrored from the space ACL</span>
+
+<span class="ky">@coco.fn</span>(memo=<span class="ky">True</span>)                       <span class="cm"># ← the whole reason to use this library</span>
+<span class="ky">async def</span> process_page(page: StagedPage, table: postgres.TableTarget[ChunkRow]) -> <span class="ky">None</span>:
+    doc    = <span class="ky">await</span> docling_parse(page.blob_sha)          <span class="cm"># ① from L0 bytes</span>
+    chunks = hybrid_chunker.chunk(doc)                       <span class="cm"># ①</span>
+    <span class="ky">await</span> coco.map(process_chunk, chunks, page, table)     <span class="cm"># ②③④ per chunk</span>
+
+<span class="ky">@coco.fn</span>
+<span class="ky">async def</span> app_main() -> <span class="ky">None</span>:
+    table = <span class="ky">await</span> postgres.mount_table_target(
+        PG, table_name=<span class="st">"l1_chunks"</span>,
+        table_schema=<span class="ky">await</span> postgres.TableSchema.from_class(ChunkRow, primary_key=[<span class="st">"chunk_id"</span>]),
+    )
+    table.declare_vector_index(column=<span class="st">"embedding"</span>)
+    src = postgres.PgTableSource(coco.use_context(PG), table_name=<span class="st">"l0_staged_pages"</span>,
+                                row_type=StagedPage)
+    <span class="ky">await</span> coco.mount_each(process_page, src.fetch_rows().items(<span class="ky">lambda</span> p: p.source_ref), table)
+
+app = coco.App(coco.AppConfig(name=<span class="st">"ConfluenceToL1"</span>), app_main)
+</code></pre>
+
+      <p>That <code>memo=True</code> is doing four things you would otherwise write yourself. The
+      cache key is the arguments <em>plus a hash of the function body</em>, so editing
+      <code>process_chunk</code> — or swapping BGE-M3 for Qwen3 — invalidates exactly the rows that
+      depended on the old code and leaves the rest alone. Rows whose source content is unchanged are
+      skipped. Primary keys make the writes targeted upserts. And a row deleted from
+      <code>l0_staged_pages</code> is deleted from <code>l1_chunks</code> on the next pass, which is
+      half of the tombstone requirement in §06 handled for free. It does <em>not</em> retract the
+      atoms that chunk supported — that lives in the LangGraph lane and is still yours to build.</p>
+
+      <div class="callout">
+        <p><strong>If you decide not to take the dependency</strong>, the minimum you must hand-roll
+        is two tables: <code>source_state(ref, revision, content_hash, seen_at)</code> and
+        <code>derivation(output_pk, input_hashes[], code_hash)</code>. “What is stale” then becomes a
+        join, and a prompt edit becomes a <code>code_hash</code> bump. Write those two tables before
+        you write anything else in the lane — retrofitting lineage onto a pipeline that already has
+        a million rows in it is the worst week of the project.</p>
+      </div>
+
+      <h3>The compiler, as a graph</h3>
+      <p>This is the part with no open-source equivalent, so it is worth drawing properly. Eleven
+      nodes, two conditional edges and one escape hatch:</p>
+
+      <figure id="fig6">
+        <div class="figbox">
+          <svg viewBox="0 0 900 470" role="img" aria-label="The LangGraph compiler state graph: load page, gather evidence, extract atoms, resolve entities and detect conflicts run left to right with a loop out to an adjudicate node; then compute ACL floor, synthesise page, verify citations and derive edges run right to left to done, with a retry loop from verify back to synthesise and a failure path to a human review queue.">
+            <defs>
+              <marker id="f6-n" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                <path d="M0,1 L9,5 L0,9 z" fill="var(--line-strong)"/>
+              </marker>
+              <marker id="f6-r" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                <path d="M0,1 L9,5 L0,9 z" fill="var(--risk)"/>
+              </marker>
+            </defs>
+
+            <text x="16" y="60" class="svg-e">one dirty page in</text>
+            <line x1="78" y1="70" x2="78" y2="96" class="svg-a" marker-end="url(#f6-n)"/>
+
+            <g class="svg-b">
+              <rect x="16" y="100" width="124" height="64" rx="4"/>
+              <rect x="170" y="100" width="140" height="64" rx="4"/>
+              <rect x="512" y="100" width="138" height="64" rx="4"/>
+              <rect x="680" y="100" width="140" height="64" rx="4"/>
+            </g>
+            <rect x="340" y="100" width="132" height="64" rx="4" class="svg-teal"/>
+            <rect x="680" y="20" width="140" height="56" rx="4" class="svg-teal"/>
+
+            <text x="28" y="126" class="svg-t">load page</text>
+            <text x="28" y="146" class="svg-s">+ its current atoms</text>
+            <text x="182" y="126" class="svg-t">gather evidence</text>
+            <text x="182" y="146" class="svg-s">hybrid over L1</text>
+            <text x="352" y="126" class="svg-t">extract atoms</text>
+            <text x="352" y="146" class="svg-s">Pydantic schema</text>
+            <text x="524" y="126" class="svg-t">resolve entities</text>
+            <text x="524" y="146" class="svg-s">Splink + alias table</text>
+            <text x="692" y="126" class="svg-t">detect conflicts</text>
+            <text x="692" y="146" class="svg-s">vs. existing atoms</text>
+            <text x="692" y="44" class="svg-t">adjudicate</text>
+            <text x="692" y="62" class="svg-s">LLM, ambiguous only</text>
+
+            <g class="svg-a" marker-end="url(#f6-n)">
+              <line x1="140" y1="132" x2="166" y2="132"/>
+              <line x1="310" y1="132" x2="336" y2="132"/>
+              <line x1="472" y1="132" x2="508" y2="132"/>
+              <line x1="650" y1="132" x2="676" y2="132"/>
+              <line x1="706" y1="98" x2="706" y2="80"/>
+              <line x1="790" y1="78" x2="790" y2="96"/>
+              <line x1="750" y1="164" x2="750" y2="296"/>
+            </g>
+            <text x="700" y="92" text-anchor="end" class="svg-l">conflict?</text>
+            <text x="798" y="92" class="svg-l">verdict</text>
+            <text x="758" y="236" class="svg-l">no conflicts left</text>
+
+            <g class="svg-b">
+              <rect x="680" y="300" width="140" height="64" rx="4"/>
+              <rect x="310" y="300" width="160" height="64" rx="4"/>
+              <rect x="120" y="300" width="160" height="64" rx="4"/>
+              <rect x="16" y="312" width="76" height="40" rx="4"/>
+            </g>
+            <rect x="500" y="300" width="150" height="64" rx="4" class="svg-teal"/>
+            <text x="692" y="326" class="svg-t">compute acl floor</text>
+            <text x="692" y="346" class="svg-s">+ disclosure tier</text>
+            <text x="512" y="326" class="svg-t">synthesise page</text>
+            <text x="512" y="346" class="svg-s">atoms + human notes</text>
+            <text x="322" y="326" class="svg-t">verify citations</text>
+            <text x="322" y="346" class="svg-s">every claim → a source</text>
+            <text x="132" y="326" class="svg-t">derive edges + stamp</text>
+            <text x="132" y="346" class="svg-s">provenance, freshness</text>
+            <text x="54" y="337" text-anchor="middle" class="svg-t">done</text>
+
+            <g class="svg-a" marker-end="url(#f6-n)">
+              <line x1="680" y1="332" x2="654" y2="332"/>
+              <line x1="500" y1="332" x2="474" y2="332"/>
+              <line x1="310" y1="332" x2="284" y2="332"/>
+              <line x1="120" y1="332" x2="96" y2="332"/>
+            </g>
+            <path d="M 390 300 L 390 262 L 575 262 L 575 296" class="svg-a" marker-end="url(#f6-n)"/>
+            <text x="482" y="254" text-anchor="middle" class="svg-l">citation missing · retry ≤ 2</text>
+
+            <rect x="310" y="402" width="160" height="48" rx="4" class="svg-risk"/>
+            <text x="322" y="424" class="svg-t">review queue</text>
+            <text x="322" y="440" class="svg-s">a human decides</text>
+            <line x1="390" y1="364" x2="390" y2="398" class="svg-a-risk" marker-end="url(#f6-r)"/>
+            <text x="398" y="386" class="svg-l" fill="var(--risk)">still failing</text>
+          </svg>
+        </div>
+        <figcaption><b>Teal nodes are the only ones that call an LLM.</b> Eight of eleven steps are
+        deterministic, which is what keeps the compile bill and the fabrication rate down — conflicts
+        go to a model only when the deterministic check cannot separate them, and citation
+        verification is a string-resolution check, not a judgement. The two loops are both bounded,
+        and a page that fails verification twice goes to a person rather than shipping a claim
+        nothing supports.</figcaption>
+      </figure>
+
+      <h3>Three questions, three paths</h3>
+      <p>Same corpus, same router, three very different amounts of work. This is the figure that
+      explains why the tier split exists.</p>
+
+      <figure id="fig7">
+        <div class="figbox">
+          <svg viewBox="0 0 900 520" role="img" aria-label="Three example questions taking three different paths: the first is answered by a tier one dossier fetch in 0.3 seconds; the second starts at tier one, misses the detail and falls back to tier two hybrid search with reranking in 1.4 seconds; the third needs tier three, fanning out to an L3 edge query and a live L4 ATS query before grading and filling gaps, in 12 seconds.">
+            <defs>
+              <marker id="f7-n" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                <path d="M0,1 L9,5 L0,9 z" fill="var(--line-strong)"/>
+              </marker>
+            </defs>
+
+            <rect x="16" y="26" width="240" height="66" rx="4" class="svg-b"/>
+            <text x="28" y="52" class="svg-s">“Tailor my resume for the</text>
+            <text x="28" y="70" class="svg-s">Atlas backend role at Acme”</text>
+            <text x="28" y="86" class="svg-l">names an entity</text>
+            <rect x="286" y="26" width="250" height="66" rx="4" class="svg-teal"/>
+            <text x="298" y="52" class="svg-t">Tier 1 · dossier fetch by id</text>
+            <text x="298" y="70" class="svg-s">acme-robotics.md + atlas.md</text>
+            <text x="298" y="86" class="svg-l">no retriever runs at all</text>
+            <line x1="256" y1="59" x2="282" y2="59" class="svg-a" marker-end="url(#f7-n)"/>
+            <text x="884" y="52" text-anchor="end" class="tnum" fill="var(--compiled)">0.3 s</text>
+            <text x="884" y="70" text-anchor="end" class="svg-l">tier 1 only</text>
+            <text x="286" y="114" class="svg-s">→ resume rewritten against LangGraph and Temporal; prep brief raises the Airflow migration</text>
+            <line x1="16" y1="132" x2="884" y2="132" stroke="var(--line-soft)"/>
+
+            <rect x="16" y="178" width="240" height="66" rx="4" class="svg-b"/>
+            <text x="28" y="204" class="svg-s">“Did their forecast agent</text>
+            <text x="28" y="222" class="svg-s">project actually ship?”</text>
+            <text x="28" y="238" class="svg-l">entity known, detail missing</text>
+            <rect x="286" y="148" width="250" height="52" rx="4" class="svg-teal"/>
+            <text x="298" y="170" class="svg-t">Tier 1 · dossier fetch</text>
+            <text x="298" y="190" class="svg-s">page says “stalled”, not why</text>
+            <rect x="286" y="234" width="250" height="66" rx="4" class="svg-b"/>
+            <text x="298" y="258" class="svg-t">Tier 2 · hybrid + rerank</text>
+            <text x="298" y="278" class="svg-s">BM25 “forecast agent” ∪ dense</text>
+            <text x="298" y="294" class="svg-l">50 → 8, ACL pre-filtered</text>
+            <line x1="256" y1="208" x2="282" y2="178" class="svg-a" marker-end="url(#f7-n)"/>
+            <line x1="411" y1="202" x2="411" y2="230" class="svg-a" stroke-dasharray="4 3" marker-end="url(#f7-n)"/>
+            <text x="548" y="212" class="svg-l">no cause on the page</text>
+            <text x="548" y="228" class="svg-l">→ fall through to tier 2</text>
+            <text x="884" y="196" text-anchor="end" class="tnum">1.4 s</text>
+            <text x="884" y="214" text-anchor="end" class="svg-l">tier 1 → tier 2</text>
+            <text x="286" y="322" class="svg-s">→ “it stalled on eval tooling”, quoted from the retro doc with a link and a date</text>
+            <line x1="16" y1="338" x2="884" y2="338" stroke="var(--line-soft)"/>
+
+            <rect x="16" y="386" width="240" height="80" rx="4" class="svg-b"/>
+            <text x="28" y="410" class="svg-s">“Which of our clients run</text>
+            <text x="28" y="428" class="svg-s">Temporal and are hiring</text>
+            <text x="28" y="446" class="svg-s">backend in Q4?”</text>
+            <text x="28" y="462" class="svg-l">cross-entity + live data</text>
+            <rect x="286" y="352" width="140" height="54" rx="4" class="svg-amber"/>
+            <text x="298" y="376" class="svg-t">Tier 3 · plan</text>
+            <text x="298" y="396" class="svg-s">3 sub-questions</text>
+            <rect x="452" y="352" width="170" height="54" rx="4" class="svg-b"/>
+            <text x="464" y="376" class="svg-t">L3 · edge query</text>
+            <text x="464" y="396" class="svg-s">clients uses→temporal</text>
+            <rect x="452" y="420" width="170" height="54" rx="4" class="svg-amber"/>
+            <text x="464" y="444" class="svg-t">L4 · live ATS</text>
+            <text x="464" y="464" class="svg-s">open backend reqs, Q4</text>
+            <rect x="648" y="386" width="130" height="54" rx="4" class="svg-b"/>
+            <text x="660" y="410" class="svg-t">grade + fill</text>
+            <text x="660" y="430" class="svg-s">1 requery</text>
+            <g class="svg-a" marker-end="url(#f7-n)">
+              <line x1="256" y1="426" x2="282" y2="381"/>
+              <line x1="426" y1="379" x2="448" y2="379"/>
+              <line x1="426" y1="381" x2="448" y2="445"/>
+              <line x1="622" y1="379" x2="644" y2="404"/>
+              <line x1="622" y1="447" x2="644" y2="424"/>
+            </g>
+            <text x="884" y="396" text-anchor="end" class="tnum">12 s</text>
+            <text x="884" y="414" text-anchor="end" class="svg-l">tier 3 · fan-out</text>
+            <text x="286" y="502" class="svg-s">→ 7 clients on Temporal, 3 with open backend reqs; the consultant gets a ranked shortlist</text>
+          </svg>
+        </div>
+        <figcaption><b>The chain gets longer as you go down, and that is the point.</b> Question 1 is
+        the overwhelmingly common case and never touches a retriever, because the synthesis it needs
+        was done at 4 a.m. Question 2 shows the fallback that makes the dossier safe to be thin — a
+        page that does not know something hands off to the evidence index rather than guessing.
+        Question 3 is the only one that earns the agentic loop, and note that it is the only one
+        reaching L3 and L4 at all: the graph and the warehouse exist for cross-entity questions, not
+        for “tell me about Acme”.</figcaption>
+      </figure>
+
+      <h3>How the router knew to open those two pages</h3>
+      <p>Fair challenge, because “fetch by entity id” quietly skips a step. Two things it is
+      <em>not</em>: the agent does not carry a roster of dossier names in its context, and it does
+      not read an index file. At 2 000 entities a roster is roughly 30k tokens on every single
+      request, and it would still need a model call to pick from it — which is exactly the
+      query-time reasoning this architecture exists to avoid. Karpathy's <code>index.md</code> has
+      the same ceiling, and his own gist says so: the index becomes the bottleneck somewhere around
+      a hundred sources. Keep <code>index.md</code> as a browsing aid for the top-level taxonomy;
+      do not make it the lookup mechanism.</p>
+      <p>Resolution is a database index, tried in order, first hit wins:</p>
+
+      <figure id="fig8">
+        <div class="figbox">
+          <svg viewBox="0 0 900 350" role="img" aria-label="An entity resolver ladder: session state resolves the company id for free, otherwise an exact alias lookup, otherwise a fuzzy trigram and vector match over entity names only, otherwise the question is handed to tier 2. A resolved id is fetched by primary key along with one hop of L3 edges.">
+            <defs>
+              <marker id="f8-n" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                <path d="M0,1 L9,5 L0,9 z" fill="var(--line-strong)"/>
+              </marker>
+              <marker id="f8-r" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                <path d="M0,1 L9,5 L0,9 z" fill="var(--risk)"/>
+              </marker>
+            </defs>
+
+            <rect x="16" y="24" width="170" height="62" rx="4" class="svg-b"/>
+            <text x="28" y="50" class="svg-s">“Tailor my resume for the</text>
+            <text x="28" y="68" class="svg-s">Atlas backend role at Acme”</text>
+            <line x1="186" y1="55" x2="216" y2="55" class="svg-a" marker-end="url(#f8-n)"/>
+
+            <g class="svg-b">
+              <rect x="220" y="24" width="300" height="62" rx="4"/>
+              <rect x="220" y="104" width="300" height="62" rx="4"/>
+              <rect x="220" y="184" width="300" height="62" rx="4"/>
+            </g>
+            <rect x="220" y="264" width="300" height="62" rx="4" class="svg-risk"/>
+
+            <text x="232" y="46" class="svg-t">① session state</text>
+            <text x="232" y="64" class="svg-s">thread.application.company_id</text>
+            <text x="232" y="80" class="svg-l">0 ms · already a foreign key</text>
+            <text x="232" y="126" class="svg-t">② exact alias</text>
+            <text x="232" y="144" class="svg-s">entity_alias, unique index</text>
+            <text x="232" y="160" class="svg-l">≈1 ms · “acme” · “ACME Corp” · acme.com</text>
+            <text x="232" y="206" class="svg-t">③ fuzzy alias</text>
+            <text x="232" y="224" class="svg-s">pg_trgm + ANN over entity names</text>
+            <text x="232" y="240" class="svg-l">≈10 ms · 2 000 vectors, not 2 million</text>
+            <text x="232" y="286" class="svg-t">④ no match</text>
+            <text x="232" y="304" class="svg-s">not an entity question</text>
+            <text x="232" y="320" class="svg-l">hand off — never guess a company</text>
+
+            <g class="svg-a" marker-end="url(#f8-n)">
+              <line x1="370" y1="86" x2="370" y2="100"/>
+              <line x1="370" y1="166" x2="370" y2="180"/>
+            </g>
+            <line x1="370" y1="246" x2="370" y2="260" class="svg-a-risk" marker-end="url(#f8-r)"/>
+            <text x="378" y="98" class="svg-l">miss</text>
+            <text x="378" y="178" class="svg-l">miss</text>
+            <text x="378" y="258" class="svg-l">miss</text>
+
+            <rect x="570" y="104" width="130" height="62" rx="4" class="svg-teal"/>
+            <text x="582" y="128" class="svg-t">entity id</text>
+            <text x="582" y="148" class="svg-s">org:acme-robotics</text>
+            <g class="svg-a" marker-end="url(#f8-n)">
+              <line x1="520" y1="55" x2="566" y2="118"/>
+              <line x1="520" y1="135" x2="566" y2="135"/>
+              <line x1="520" y1="215" x2="566" y2="152"/>
+              <line x1="700" y1="135" x2="736" y2="135"/>
+            </g>
+
+            <rect x="740" y="104" width="144" height="62" rx="4" class="svg-teal"/>
+            <text x="752" y="126" class="svg-t">fetch by pk</text>
+            <text x="752" y="144" class="svg-s">acme-robotics.md</text>
+            <text x="752" y="160" class="svg-l">+ 1 hop → atlas.md</text>
+
+            <rect x="570" y="264" width="314" height="62" rx="4" class="svg-b"/>
+            <text x="582" y="288" class="svg-t">Tier 2 · hybrid search</text>
+            <text x="582" y="308" class="svg-s">the question was never about a named company</text>
+            <line x1="520" y1="295" x2="566" y2="295" class="svg-a-risk" marker-end="url(#f8-r)"/>
+          </svg>
+        </div>
+        <figcaption><b>The interesting rung is the first one.</b> In NextRole the user is not typing
+        into a void — they are in a thread with a job application attached, so the company and role
+        are structured session state, not something to infer from prose. Most tier-1 hits resolve for
+        free. And note where <code>atlas.md</code> comes from: not the word “Atlas” in the question,
+        but the <code>staffs→project:atlas</code> edge hanging off the company page. That one-hop
+        expansion is what L3 buys at tier 1 — the same two pages arrive even if the user only says
+        “Acme”.</figcaption>
+      </figure>
+
+      <p>Total resolve-and-fetch is on the order of <strong>10–25 ms</strong>. Which raises the
+      obvious point about that <span class="mono">0.3 s</span> label: <strong>every tier latency in
+      this brief is time-to-assembled-context, not time-to-answer.</strong> Generating a tailored
+      resume is a long completion and dwarfs all of it. That is precisely why the tier split is
+      worth the trouble — generation cost is fixed and you cannot avoid it, so the only variable you
+      control is how much work happens before the first token.</p>
+      <p>Two rules fall out of the ladder. <strong>Rung ③ must return a confidence, and a weak match
+      is a miss</strong> — resolving “the robotics company” to the wrong Acme silently tailors a
+      resume against another company's stack, which is worse than any retrieval miss because it
+      looks confident. <strong>Rung ④ is a feature, not a failure</strong>: a question with no
+      resolvable entity is a tier-2 question, and handing off is the correct behaviour. And note the
+      alias table is not new work — it is the same table §04 builds during entity resolution at
+      ingest, read back at query time.</p>
+    </section>
+
+    <section id="s6">
+      <div class="h2row">
+        <span class="num">06</span>
+        <div>
+          <h2>Staying fresh when everything changes</h2>
+          <p class="sub">Push where the API allows it, poll where it doesn't, reconcile nightly
+            because both of those will fail silently.</p>
+        </div>
+      </div>
+
+      <p>The single most useful idea in this section: <strong>separate the cheap update from the
+      expensive one.</strong> Reindexing a changed chunk costs an embedding call and a row upsert —
+      do it on every event, immediately. Recompiling a dossier page costs a multi-step LLM synthesis
+      over a dozen sources — do it in batches, debounced, and only for pages whose cited evidence
+      actually moved. Conflating the two is how teams end up either stale or bankrupt.</p>
+
+      <figure id="fig2">
+        <div class="figbox">
+          <svg viewBox="0 0 900 420" role="img" aria-label="Three change-detection tiers — webhook push, cursor poll and a nightly reconcile diff — feed one change queue. A cheap lane parses, chunks and upserts the chunk index on every change; a section diff marks dossier pages dirty, and a debounced expensive lane recompiles them with an LLM.">
+            <defs>
+              <marker id="f2-n" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                <path d="M0,1 L9,5 L0,9 z" fill="var(--line-strong)"/>
+              </marker>
+              <marker id="f2-t" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                <path d="M0,1 L9,5 L0,9 z" fill="var(--compiled)"/>
+              </marker>
+            </defs>
+
+            <rect x="450" y="20" width="430" height="150" rx="4" class="svg-lane"/>
+            <text x="866" y="156" text-anchor="end" class="svg-e">cheap lane · every change · ≤ 2 min</text>
+            <rect x="450" y="196" width="430" height="200" rx="4" class="svg-lane-teal"/>
+            <text x="866" y="386" text-anchor="end" class="svg-e" fill="var(--compiled)">expensive lane · llm · coalesced</text>
+
+            <g class="svg-b">
+              <rect x="16" y="76" width="196" height="62" rx="4"/>
+              <rect x="16" y="158" width="196" height="62" rx="4"/>
+              <rect x="16" y="240" width="196" height="62" rx="4"/>
+              <rect x="300" y="138" width="120" height="100" rx="4"/>
+            </g>
+
+            <text x="30" y="98" class="svg-l">tier a</text>
+            <text x="30" y="116" class="svg-t">Webhook push</text>
+            <text x="30" y="132" class="svg-s">Confluence, Notion, Slack, Drive</text>
+            <text x="30" y="180" class="svg-l">tier b</text>
+            <text x="30" y="198" class="svg-t">Cursor poll</text>
+            <text x="30" y="214" class="svg-s">updated_at / change token</text>
+            <text x="30" y="262" class="svg-l">tier c</text>
+            <text x="30" y="280" class="svg-t">Reconcile diff</text>
+            <text x="30" y="296" class="svg-s">full listing vs. index</text>
+
+            <text x="360" y="174" text-anchor="middle" class="svg-t">Change</text>
+            <text x="360" y="192" text-anchor="middle" class="svg-t">queue</text>
+            <text x="360" y="214" text-anchor="middle" class="svg-s">Redis stream</text>
+
+            <g class="svg-a" marker-end="url(#f2-n)">
+              <line x1="212" y1="107" x2="300" y2="156"/>
+              <line x1="212" y1="189" x2="300" y2="188"/>
+              <line x1="212" y1="271" x2="300" y2="220"/>
+              <line x1="420" y1="164" x2="464" y2="104"/>
+            </g>
+            <rect x="218" y="111" width="56" height="15" fill="var(--surface)"/>
+            <text x="246" y="122" text-anchor="middle" class="svg-l">seconds</text>
+            <text x="246" y="182" text-anchor="middle" class="svg-l">15 m – 1 h</text>
+            <rect x="218" y="231" width="56" height="15" fill="var(--surface)"/>
+            <text x="246" y="242" text-anchor="middle" class="svg-l">nightly</text>
+
+            <g class="svg-b">
+              <rect x="464" y="44" width="120" height="88" rx="4"/>
+              <rect x="604" y="44" width="126" height="88" rx="4"/>
+              <rect x="750" y="44" width="116" height="88" rx="4"/>
+            </g>
+            <text x="476" y="70" class="svg-t">Fetch +</text>
+            <text x="476" y="86" class="svg-t">parse</text>
+            <text x="476" y="106" class="svg-s">Docling</text>
+            <text x="476" y="122" class="svg-s">hash-dedup</text>
+            <text x="616" y="70" class="svg-t">Chunk +</text>
+            <text x="616" y="86" class="svg-t">contextualise</text>
+            <text x="616" y="106" class="svg-s">HybridChunker</text>
+            <text x="616" y="122" class="svg-s">+ embed</text>
+            <text x="762" y="70" class="svg-t">L1 upsert</text>
+            <text x="762" y="94" class="svg-s">deletes →</text>
+            <text x="762" y="110" class="svg-s">tombstone,</text>
+            <text x="762" y="126" class="svg-s">purge facts</text>
+
+            <g class="svg-a" marker-end="url(#f2-n)">
+              <line x1="584" y1="88" x2="604" y2="88"/>
+              <line x1="730" y1="88" x2="750" y2="88"/>
+            </g>
+
+            <line x1="667" y1="132" x2="524" y2="218" class="svg-a-teal" marker-end="url(#f2-t)"/>
+            <rect x="557" y="169" width="86" height="15" fill="var(--surface)"/>
+            <text x="600" y="180" text-anchor="middle" class="svg-l" fill="var(--compiled)">section diff</text>
+
+            <g class="svg-teal">
+              <rect x="464" y="220" width="120" height="80" rx="4"/>
+              <rect x="604" y="220" width="126" height="80" rx="4"/>
+              <rect x="750" y="220" width="116" height="80" rx="4"/>
+              <rect x="464" y="322" width="402" height="52" rx="4"/>
+            </g>
+            <text x="476" y="248" class="svg-t">Mark pages</text>
+            <text x="476" y="264" class="svg-t">dirty</text>
+            <text x="470" y="286" class="svg-s">cited ref + code hash</text>
+            <text x="616" y="248" class="svg-t">Debounce</text>
+            <text x="616" y="270" class="svg-s">15 min window,</text>
+            <text x="616" y="286" class="svg-s">coalesce per page</text>
+            <text x="762" y="248" class="svg-t">Recompile</text>
+            <text x="762" y="270" class="svg-s">LangGraph,</text>
+            <text x="762" y="286" class="svg-s">keeps human notes</text>
+            <text x="665" y="345" text-anchor="middle" class="svg-t">L2 dossier pages · L3 edges re-derived</text>
+            <text x="665" y="363" text-anchor="middle" class="svg-s">freshness stamped · trust falls back to “machine” on material change</text>
+
+            <g class="svg-a-teal" marker-end="url(#f2-t)">
+              <line x1="584" y1="260" x2="604" y2="260"/>
+              <line x1="730" y1="260" x2="750" y2="260"/>
+              <line x1="808" y1="300" x2="808" y2="322"/>
+            </g>
+          </svg>
+        </div>
+        <figcaption><b>Two lanes, one queue.</b> Every change takes the top lane and lands in the
+        chunk index within about two minutes. Only changes that touch a chunk a dossier page
+        actually cites enter the bottom lane, where they wait out a debounce window and get
+        recompiled in batch. The nightly reconcile is the tier that keeps the other two honest.</figcaption>
+      </figure>
+
+      <div class="tw"><table>
+        <thead><tr><th>Tier</th><th>Trigger</th><th class="n">Target lag</th><th>Catches</th><th>Fails at</th></tr></thead>
+        <tbody>
+          <tr><td>A · Push</td><td>Source webhook or gateway event</td><td class="n">seconds</td>
+              <td>edits, creates, most deletes</td>
+              <td>silent webhook drops; expired Drive watch channels; sources with no webhook</td></tr>
+          <tr><td>B · Poll</td><td>Cursor on <code>updated_at</code> or a change token</td>
+              <td class="n">15 min hot / 1 h cold</td>
+              <td>everything Tier A misses on covered sources</td>
+              <td>hard deletes, permission changes, anything that doesn't bump the cursor</td></tr>
+          <tr><td>C · Reconcile</td><td>Nightly cron, full listing diff</td><td class="n">24 h</td>
+              <td>deletes, ACL changes, missed events, expired watches, drifted revisions</td>
+              <td>nothing — this is the backstop, and skipping it is why enterprise KBs rot</td></tr>
+          <tr><td>Recompile</td><td>Dirty-page set, debounced</td><td class="n">15 min – 1 h</td>
+              <td>synthesis catching up with new evidence</td>
+              <td>needs an on-demand override, or a recruiter who just fixed something waits an
+                hour to see it</td></tr>
+        </tbody>
+      </table></div>
+
+      <h4>Three rules that keep it from rotting</h4>
+      <ul>
+        <li><strong>Deletes are a compliance path, not a cleanup task.</strong> A removed Confluence
+        page must purge its chunks <em>and</em> retract the facts it supported. The chunk half comes
+        free if the cheap lane runs on CocoIndex — a row that disappears from the source is deleted
+        from the target on the next pass. The second half is yours: when an atom loses its last
+        citation it is closed, the page's <code>trust</code> drops, and the claim is flagged for
+        review rather than silently kept.</li>
+        <li><strong>Bound the recompile cost by citation, not by time.</strong> Only recompile pages
+        whose cited refs changed. A 2,000-page corpus where 40 sources move a day should be tens of
+        recompiles, not two thousand.</li>
+        <li><strong>Your own code is a source.</strong> The invalidation nobody plans for: when you
+        change the compiler prompt, the chunker or the extraction schema, every page built by the
+        old version is stale even though no document moved. Key the dirty set on
+        <code>hash(citations) + hash(compiler_version)</code> and a prompt edit re-derives exactly
+        the affected pages instead of forcing a full rebuild — or leaving a corpus quietly compiled
+        by four different prompt versions. This is the primitive CocoIndex provides natively, and
+        the main reason to run the ingest lane on it rather than on hand-rolled watermarks.</li>
+        <li><strong>Run the lint as a scheduled job.</strong> Karpathy's third operation is the one
+        everyone drops: sweep weekly for contradictions between pages, claims past their
+        <code>ttl_days</code>, orphan pages nothing links to, and single-sourced claims presented as
+        settled. Output a queue for a human, not an auto-fix.</li>
+      </ul>
+    </section>
+
+    <section id="s7">
+      <div class="h2row">
+        <span class="num">07</span>
+        <div>
+          <h2>Retrieval</h2>
+          <p class="sub">Three tiers with three latency budgets, and one structural move that makes
+            agentic search affordable.</p>
+        </div>
+      </div>
+
+      <p>Agentic depth genuinely buys accuracy — corrective grading, decomposition and reflection
+      all move the numbers — but the reported cost is roughly <strong>2–5× latency and 3–10× tokens</strong>,
+      which no interactive surface can absorb. The way out is not to skip it. It is to notice that
+      <strong>NextRole's queries are predictable</strong>: the questions are per company and per
+      role, and you know the company and the role before the user asks. So run the expensive
+      reasoning at compile time, once, and let the request path be a lookup.</p>
+
+      <figure id="fig3">
+        <div class="figbox">
+          <svg viewBox="0 0 880 400" role="img" aria-label="A router sends a query to one of three tiers: a dossier fetch at about 0.3 seconds, a hybrid search with reranking at about 1.1 seconds, or an agentic multi-hop loop at 5 to 40 seconds. A dashed arrow shows the agentic tier's work being precomputed nightly so it is answered by the fast dossier tier instead.">
+            <defs>
+              <marker id="f3-n" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                <path d="M0,1 L9,5 L0,9 z" fill="var(--line-strong)"/>
+              </marker>
+              <marker id="f3-t" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                <path d="M0,1 L9,5 L0,9 z" fill="var(--compiled)"/>
+              </marker>
+            </defs>
+
+            <rect x="16" y="168" width="96" height="52" rx="4" class="svg-b"/>
+            <text x="64" y="192" text-anchor="middle" class="svg-t">Query</text>
+            <text x="64" y="209" text-anchor="middle" class="svg-s">+ user ACL</text>
+
+            <rect x="146" y="156" width="140" height="76" rx="4" class="svg-b"/>
+            <text x="216" y="184" text-anchor="middle" class="svg-t">Router</text>
+            <text x="216" y="202" text-anchor="middle" class="svg-s">classify intent,</text>
+            <text x="216" y="218" text-anchor="middle" class="svg-s">assign budget</text>
+            <line x1="112" y1="194" x2="146" y2="194" class="svg-a" marker-end="url(#f3-n)"/>
+
+            <rect x="380" y="24" width="290" height="76" rx="4" class="svg-teal"/>
+            <text x="394" y="48" class="svg-t">Tier 1 · dossier hit</text>
+            <text x="394" y="68" class="svg-s">fetch page + linked pages by entity id</text>
+            <text x="394" y="86" class="svg-s">no retriever in the path at all</text>
+
+            <rect x="380" y="124" width="290" height="96" rx="4" class="svg-b"/>
+            <text x="394" y="148" class="svg-t">Tier 2 · hybrid</text>
+            <text x="394" y="168" class="svg-s">BM25 ∪ dense → RRF fuse → cross-encoder</text>
+            <text x="394" y="186" class="svg-s">rerank 50 → 8, ACL pre-filter on both arms</text>
+            <text x="394" y="206" class="svg-s">the workhorse; everything cites L1</text>
+
+            <rect x="380" y="244" width="290" height="124" rx="4" class="svg-amber"/>
+            <text x="394" y="268" class="svg-t">Tier 3 · agentic</text>
+            <text x="394" y="288" class="svg-s">decompose → retrieve → grade context</text>
+            <text x="394" y="306" class="svg-s">→ requery or widen → L3 graph expand</text>
+            <text x="394" y="324" class="svg-s">reflection capped at 2 loops, hard deadline</text>
+            <text x="394" y="348" class="svg-l">multi-hop and comparative questions only</text>
+
+            <g class="svg-a" marker-end="url(#f3-n)">
+              <line x1="286" y1="176" x2="380" y2="62"/>
+              <line x1="286" y1="194" x2="380" y2="172"/>
+              <line x1="286" y1="212" x2="380" y2="300"/>
+            </g>
+            <rect x="290" y="99" width="86" height="15" fill="var(--surface)"/>
+            <text x="333" y="110" text-anchor="middle" class="svg-l">entity named</text>
+            <rect x="268" y="165" width="110" height="15" fill="var(--surface)"/>
+            <text x="323" y="176" text-anchor="middle" class="svg-l">lexical / factual</text>
+            <rect x="299" y="239" width="68" height="15" fill="var(--surface)"/>
+            <text x="333" y="250" text-anchor="middle" class="svg-l">multi-hop</text>
+
+            <text x="741" y="56" class="tnum" fill="var(--compiled)">0.3 s</text>
+            <text x="696" y="74" class="svg-l">p50 · the common case</text>
+            <text x="741" y="164" class="tnum">1.1 s</text>
+            <text x="696" y="182" class="svg-l">p50 · fallback</text>
+            <text x="741" y="298" class="tnum">5–40 s</text>
+            <text x="696" y="316" class="svg-l">p50 · rare, offline</text>
+
+            <path d="M 830 292 L 830 74" class="svg-a-teal" stroke-dasharray="5 4" marker-end="url(#f3-t)"/>
+            <text x="822" y="186" text-anchor="middle" class="svg-l" fill="var(--compiled)" transform="rotate(-90 822 186)">precomputed nightly</text>
+          </svg>
+        </div>
+        <figcaption><b>The dashed arrow is the whole trick.</b> Tier 3 is not removed, it is
+        relocated: the same decomposition and grading run in the nightly compile for every
+        (company, role) pair the client cares about, and its output lands in a dossier page that
+        Tier 1 serves in a third of a second. Tier 3 stays wired up for the genuinely novel
+        question — it just stops being on the critical path. Every latency on this figure is time to
+        assembled context; the answer completion sits on top of all three equally.</figcaption>
+      </figure>
+
+      <h3>Why BM25 is a correctness requirement here, not an optimisation</h3>
+      <div class="callout hot">
+        <p>This domain runs on rare proper nouns. <code>LangGraph</code>, <code>LangChain</code>,
+        <code>Langfuse</code> and <code>LangSmith</code> sit almost on top of each other in
+        embedding space and mean completely different things about a company's stack. Same for
+        <code>Temporal</code> vs <code>Airflow</code>, or a project codename that appears in four
+        documents and nowhere else on the internet. Dense retrieval blurs exactly the tokens this
+        product is built to get right — and a resume that claims stack alignment on a hallucinated
+        framework is worse than a generic resume, because it fails <em>visibly</em>, in front of the
+        hiring manager. Exact lexical matching is load-bearing. Do not ship a dense-only
+        configuration.</p>
+      </div>
+
+      <h3>The accuracy / latency trade</h3>
+      <p>Recall figures below are Anthropic's published contextual-retrieval results on their own
+      corpus (top-20 chunk retrieval), so treat them as the shape of the curve rather than as your
+      numbers. Everything marked <em>est.</em> is my estimate for this workload and needs measuring
+      on your hardware before anyone quotes it.</p>
+
+      <div class="tw"><table>
+        <thead><tr>
+          <th>Configuration</th><th class="n">Recall@20</th><th class="n">Added p50</th>
+          <th class="n">LLM calls / query</th><th>Where it hurts</th>
+        </tr></thead>
+        <tbody>
+          <tr><td>Dense only, fixed 512-token chunks</td><td class="n">94.3%</td><td class="n">—</td>
+              <td class="n">0</td><td>acronyms, product names, "which company said this"</td></tr>
+          <tr><td>+ BM25 arm, RRF fusion</td><td class="n">est. +0.5–1 pt</td><td class="n">+15–40 ms</td>
+              <td class="n">0</td><td>nothing. Do this first, it is nearly free</td></tr>
+          <tr><td>+ contextual chunk prefixes <small>index-time LLM pass</small></td>
+              <td class="n">96.3% → 97.1%<small>dense-only → with contextual BM25</small></td>
+              <td class="n">0</td><td class="n">0<small>1 per chunk at ingest</small></td>
+              <td>ingest cost, and every recompile re-pays it for changed chunks</td></tr>
+          <tr><td>+ cross-encoder rerank 50 → 8</td><td class="n">98.1%</td>
+              <td class="n">est. +80–600 ms<small>batching and GPU dependent</small></td>
+              <td class="n">0<small>dedicated model</small></td>
+              <td>you now own a GPU or a reranker service</td></tr>
+          <tr><td>+ CRAG-style grading and one requery</td><td>est. +0.5–1.5 pt recall, larger precision gain</td><td class="n">est. +1.5–4 s</td><td class="n">2–4</td>
+              <td>tail latency; a p99 that embarrasses you</td></tr>
+          <tr><td>+ full agentic multi-hop, 2 loops</td><td>wins on multi-hop only</td>
+              <td class="n">est. +5–40 s</td><td class="n">6–30</td>
+              <td>unusable interactively. Reported ≈2–5× latency, 3–10× tokens</td></tr>
+          <tr><td><strong>Tier 1 dossier hit</strong> <small>the same work, precomputed</small></td>
+              <td>precision by construction</td><td class="n">10–25 ms to context</td>
+              <td class="n">0</td><td>staleness window, and the compile bill</td></tr>
+        </tbody>
+      </table></div>
+
+      <h4>Model picks</h4>
+      <dl class="kv">
+        <dt>embedding</dt>
+        <dd><b>BGE-M3</b> (MIT) as the default — battle-tested, 100+ languages, and it emits dense,
+          sparse and multi-vector representations from one model, which simplifies the hybrid arm.
+          <b>Qwen3-Embedding-0.6B/4B</b> (Apache-2.0) if you want the stronger instruction-aware
+          option and can afford the serving.</dd>
+        <dt>reranker</dt>
+        <dd><b>bge-reranker-v2-m3</b> is the quality-per-millisecond default — roughly 71–72% BEIR
+          nDCG@10 at around 12 ms per pair on a mid-range GPU. <b>Qwen3-Reranker-8B</b> leads the
+          open-weight board near 77% if the accuracy is worth roughly 3× the latency. Numbers here
+          come from 2026 aggregator round-ups, not first-party evals — verify before you commit.</dd>
+        <dt>long docs</dt>
+        <dd><b>PageIndex</b> for the 20+ page minority — org handbooks, RFPs, client decks — where
+          chunking destroys the structure that carries the meaning. Run it at <em>compile</em> time
+          to pull the right sections into a dossier, never on the request path: its retrieval is an
+          LLM walking a tree, which is the opposite of a latency budget.</dd>
+        <dt>graph</dt>
+        <dd>Postgres tables with a recursive CTE until the eval set proves you need more. Revisit
+          only if 3+ hop questions show up for real; then <b>Graphiti</b> is the interesting option,
+          because its bi-temporal model (valid time vs. ingest time, invalidate rather than delete)
+          is a genuinely good fit for "Acme <em>was</em> on Airflow, <em>is</em> on Temporal".</dd>
+        <dt>skip</dt>
+        <dd>Microsoft GraphRAG's global search — dozens of LLM calls per query and a reported
+          $0.50–2.00 per complex query is the wrong shape for this. If you want graph-flavoured
+          retrieval cheaply, <b>LightRAG</b> is the pragmatic cousin at roughly one call per query,
+          with correspondingly weaker whole-graph aggregation.</dd>
+      </dl>
+    </section>
+
+    <section id="s8">
+      <div class="h2row">
+        <span class="num">08</span>
+        <div>
+          <h2>Measuring it, or you are guessing</h2>
+          <p class="sub">One gold set, four metrics, and one of them is a fabrication counter that
+            can block a release.</p>
+        </div>
+      </div>
+
+      <p>Build the gold set with the client's own consultants, before the pipeline. 150 rows is
+      enough: a question, the company it is about, the facts a correct answer must contain, and the
+      source that proves each one. Getting recruiters to sit down and write those 150 rows is also
+      the cheapest possible discovery exercise — you will learn what they actually ask, which is
+      almost never what you assumed.</p>
+
+      <div class="tw"><table>
+        <thead><tr><th>Metric</th><th>What it catches</th><th>Tooling</th><th>Gate</th></tr></thead>
+        <tbody>
+          <tr><td>Context recall</td><td>The fact was in the KB and retrieval missed it</td>
+              <td>Ragas, wired into LangSmith</td><td>no regression vs. the last release</td></tr>
+          <tr><td>Context precision</td><td>Retrieval returned noise that dilutes the prompt</td>
+              <td>Ragas</td><td>watch, don't gate — precision trades against recall</td></tr>
+          <tr><td>Faithfulness</td><td>The answer drifted from the retrieved context</td>
+              <td>Ragas / LLM judge</td><td>no regression</td></tr>
+          <tr><td><strong>Fabrication rate</strong></td>
+              <td>A claim about a company that no source supports. The one that does real damage.</td>
+              <td>custom check: every factual claim must resolve to a citation in L1 or L2</td>
+              <td><strong>hard zero on the gold set. Blocks release.</strong></td></tr>
+          <tr><td>Staleness rate</td><td>Answers built on facts past their <code>ttl_days</code></td>
+              <td>frontmatter scan, no LLM needed</td><td>report weekly</td></tr>
+          <tr><td>Disclosure violations</td><td>A <code>recruiter_only</code> fact reaching candidate
+              output</td><td>tag propagation test over generated artefacts</td>
+              <td><strong>hard zero. Blocks release.</strong></td></tr>
+        </tbody>
+      </table></div>
+
+      <p>Two practical notes. LLM-judge metrics have real run-to-run variance, so compare across at
+      least three runs before you believe a two-point move — and pin the judge model, because
+      changing it silently rebases every historical number. And measure the thing you are actually
+      building: run a blind A/B where consultants rate resumes and prep briefs produced with the
+      dossier against ones produced from the job description alone. That comparison, not
+      <span class="mono">recall@20</span>, is the one that tells you whether any of this worked.</p>
+    </section>
+
+    <section id="s9">
+      <div class="h2row">
+        <span class="num">09</span>
+        <div>
+          <h2>Access and disclosure</h2>
+          <p class="sub">Non-negotiable for anyone holding recruitment data. Synthesis also has an
+            access-control failure mode that chunk retrieval does not.</p>
+        </div>
+      </div>
+
+      <p>Start from the easy win: <strong>deploy single-tenant per client.</strong> A per-client
+      deployment is the operating model anyway, and it removes the entire class of cross-tenant leakage bugs that
+      would otherwise dominate your security review. Inside the tenant, mirror source permissions
+      onto every chunk at ingest — an <code>allowed_principals</code> array — and pre-filter both
+      retrieval arms on it. If the client's rules are relational rather than list-shaped ("the
+      account team for this client, plus their manager"), put <strong>OpenFGA</strong> or
+      <strong>SpiceDB</strong> in front and pre-filter on the authorised id set; over-fetch and
+      post-filter only as a second pass, never as the only pass.</p>
+
+      <p>Now the part that is specific to this architecture, and easy to miss:</p>
+
+      <figure id="fig4">
+        <div class="figbox">
+          <svg viewBox="0 0 780 220" role="img" aria-label="A widely visible Confluence page and a leadership-only exec deck are both cited by one compiled dossier page, which then flows into candidate-facing output — the restricted fact loses its access control by passing through synthesis.">
+            <defs>
+              <marker id="f4-n" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                <path d="M0,1 L9,5 L0,9 z" fill="var(--line-strong)"/>
+              </marker>
+              <marker id="f4-r" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                <path d="M0,1 L9,5 L0,9 z" fill="var(--risk)"/>
+              </marker>
+            </defs>
+            <rect x="16" y="24" width="230" height="66" rx="4" class="svg-b"/>
+            <text x="30" y="48" class="svg-t">Confluence · platform page</text>
+            <text x="30" y="68" class="svg-s">“they run LangGraph on GCP”</text>
+            <text x="30" y="84" class="svg-l">acl: recruiters_all</text>
+
+            <rect x="16" y="132" width="230" height="66" rx="4" class="svg-risk"/>
+            <text x="30" y="156" class="svg-t">Exec deck · slide 12</text>
+            <text x="30" y="176" class="svg-s">“Atlas budget signed, 4 heads”</text>
+            <text x="30" y="192" class="svg-l" fill="var(--risk)">acl: leadership_only</text>
+
+            <rect x="320" y="70" width="160" height="92" rx="4" class="svg-teal"/>
+            <text x="400" y="100" text-anchor="middle" class="svg-t">Dossier</text>
+            <text x="400" y="118" text-anchor="middle" class="svg-t">Acme Robotics</text>
+            <text x="400" y="140" text-anchor="middle" class="svg-s">one page,</text>
+            <text x="400" y="156" text-anchor="middle" class="svg-s">both citations</text>
+
+            <rect x="540" y="44" width="222" height="74" rx="4" class="svg-b"/>
+            <text x="554" y="70" class="svg-t">Candidate-facing output</text>
+            <text x="554" y="90" class="svg-s">tailored resume, prep brief</text>
+            <text x="554" y="106" class="svg-l">seen by: the candidate</text>
+
+            <line x1="246" y1="57" x2="320" y2="96" class="svg-a" marker-end="url(#f4-n)"/>
+            <text x="283" y="62" text-anchor="middle" class="svg-l">cited</text>
+            <line x1="246" y1="165" x2="320" y2="140" class="svg-a-risk" stroke-dasharray="5 4" marker-end="url(#f4-r)"/>
+            <text x="283" y="180" text-anchor="middle" class="svg-l" fill="var(--risk)">also cited</text>
+            <line x1="480" y1="110" x2="540" y2="88" class="svg-a-risk" marker-end="url(#f4-r)"/>
+            <text x="526" y="128" text-anchor="middle" class="svg-l" fill="var(--risk)">no acl survives</text>
+          </svg>
+        </div>
+        <figcaption><b>Synthesis launders permissions.</b> A compiled page merges facts whose sources
+        had different access rules, and the merged page has only one rule — whatever you set. Chunk
+        retrieval never has this problem because each chunk carries its own ACL all the way to the
+        prompt. The fix is to make the page's <code>acl_class</code> the <em>narrowest</em> ACL among
+        its citations, and to compile a separate page per visibility class when a company has facts
+        at more than one level.</figcaption>
+      </figure>
+
+      <h4>The rest of the governance checklist</h4>
+      <ul>
+        <li><strong>Disclosure is orthogonal to ACL.</strong> A recruiter may be permitted to read a
+        fact and still be contractually barred from repeating it to a candidate. Two independent
+        fields, both enforced: <code>acl_class</code> gates <em>retrieval</em>,
+        <code>disclosure</code> gates <em>generation</em>.</li>
+        <li><strong>Candidate PII never enters a dossier.</strong> CVs and candidate notes live in
+        their own store with their own lifecycle. A company dossier that mentions a named candidate
+        is a bug, and the fabrication check should flag it.</li>
+        <li><strong>Exclude DMs and private channels outright.</strong> Employee chatter is personal
+        data even inside a work tool. Allow-list channels; never wildcard.</li>
+        <li><strong>Erasure has to reach every layer.</strong> A deletion request must sweep L0 bytes,
+        L1 chunks, L2 citations and L3 edges. Content-addressed landing plus footnote-level citation
+        is what makes that traceable rather than aspirational.</li>
+        <li><strong>Log every read.</strong> Which principal saw which dossier, when. An HR company
+        will require it, and retrofitting audit logging is miserable.</li>
+        <li><strong>Name the provenance fields after a standard, not after yourself.</strong> The
+        <code>provenance</code> block above is ad-hoc; W3C <strong>PROV-O</strong> is the published
+        vocabulary for exactly this (<code>wasDerivedFrom</code>, <code>wasGeneratedBy</code>,
+        <code>wasAttributedTo</code>). Mapping to it costs a rename now and buys you a compliance
+        reviewer who recognises the shape of your audit export. Semantica models its lineage this
+        way, which is the strongest argument in its favour even if you never install it.</li>
+      </ul>
+    </section>
+
+    <section id="s10">
+      <div class="h2row">
+        <span class="num">10</span>
+        <div>
+          <h2>Build order</h2>
+          <p class="sub">Each phase has an exit criterion. If a phase fails its criterion, the next
+            one is not worth building.</p>
+        </div>
+      </div>
+
+      <div class="tw"><table>
+        <thead><tr><th>Phase</th><th>Build</th><th>Exit criterion</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><strong>0 · Prove it</strong><small>~2 weeks, no pipeline</small></td>
+            <td>One client, one Confluence export, 20 companies. Hand-write 20 dossier pages in the
+              OKF schema. Point the existing career agent at the folder as files. Run the blind A/B
+              against job-description-only output.</td>
+            <td><strong>Consultants measurably prefer the dossier-grounded output.</strong> If the
+              blind A/B comes back flat the premise does not hold, and no amount of pipeline fixes
+              it — two weeks spent, not six months.</td>
+          </tr>
+          <tr>
+            <td><strong>1 · The spine</strong></td>
+            <td>Docling parsing on a CocoIndex flow for two or three sources, L0 landing,
+              L1 with <code>pgvector</code> + <code>pg_search</code> and contextual prefixes, the L2
+              compiler as a LangGraph pipeline, Tier 1 and Tier 2 retrieval, and the gold-set
+              harness from day one.</td>
+            <td>Context recall on the gold set beats the Phase-0 manual pages. Fabrication rate is
+              zero. A recruiter can read a generated dossier and say “yes, that's Acme”.</td>
+          </tr>
+          <tr>
+            <td><strong>2 · Make it live</strong></td>
+            <td>Webhook tier, cursor-poll tier, nightly reconcile, debounced recompile, tombstones,
+              ACL mirroring and pre-filter, entity resolution with Splink, the weekly lint job.</td>
+            <td>A page edited in Confluence is reflected in candidate output within an hour, without
+              anyone running a command. Deletes verifiably disappear.</td>
+          </tr>
+          <tr>
+            <td><strong>3 · Breadth and depth</strong></td>
+            <td>Onyx for the long tail of connectors, L3 edges and Tier-3 agentic search, Cube over
+              the warehouse, ATS tools, PageIndex for long documents, per-visibility-class compiles.</td>
+            <td>A second client onboards in under two weeks of engineering time. Until that holds,
+              this is a bespoke integration rather than a product.</td>
+          </tr>
+        </tbody>
+      </table></div>
+
+      <h4>What not to build yet</h4>
+      <ul>
+        <li><strong>A general enterprise search product.</strong> That is Onyx, it is MIT, and it is
+        three years ahead of you.</li>
+        <li><strong>A graph database.</strong> Not until the gold set contains 3+ hop questions that
+        Postgres recursive CTEs actually fail on.</li>
+        <li><strong>Fine-tuned embeddings.</strong> Contextual prefixes plus a reranker will beat a
+        fine-tune for a fraction of the effort, and they don't need retraining when the corpus
+        changes.</li>
+        <li><strong>Multi-tenant isolation.</strong> Single-tenant deploys until you have enough
+        clients that deployment cost hurts more than the isolation work.</li>
+        <li><strong>Everything in Slack.</strong> Allow-listed channels only. Compile cost scales
+        with volume; value does not.</li>
+      </ul>
+    </section>
+
+    <section id="verdicts">
+      <div class="h2row">
+        <span class="num">→</span>
+        <div>
+          <h2>Library verdicts</h2>
+          <p class="sub">The five you sent, plus the ones I'd add. Verdicts are for this workload,
+            not in general.</p>
+        </div>
+      </div>
+
+      <div class="tw"><table class="t-verdicts">
+        <thead><tr><th>Project</th><th>Verdict</th><th>Role</th><th>Reasoning</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><a href="https://github.com/docling-project/docling">Docling</a><small>MIT · LF AI &amp; Data</small></td>
+            <td><span class="chip adopt">Adopt</span></td>
+            <td>Parsing, all of L0→L1</td>
+            <td>No real competitor for this format spread — PDF layout and reading order, Office,
+              OCR, plus ASR for meeting audio, all into one document model. <code>HybridChunker</code>
+              gives you structure-aware chunks for free.</td>
+          </tr>
+          <tr>
+            <td><a href="https://github.com/VectifyAI/PageIndex">PageIndex</a><small>MIT · ~35k stars</small></td>
+            <td><span class="chip narrow">Adopt narrowly</span></td>
+            <td>Long-document sections, at compile time</td>
+            <td>The tree index is genuinely better than chunking for handbooks and decks, and their
+              98.7% FinanceBench claim is a vendor benchmark worth treating as directional. But
+              retrieval is an LLM walking a tree — put it in the nightly compile, never on the
+              request path. Open-source version targets text-heavy PDFs; scans need their cloud.</td>
+          </tr>
+          <tr>
+            <td><a href="https://github.com/VectifyAI/OpenKB">OpenKB</a><small>Apache-2.0 · ~3.8k stars</small></td>
+            <td><span class="chip adapt">Adapt, don't depend</span></td>
+            <td>Reference implementation for your L2 compiler</td>
+            <td>This is exactly your pattern already built — wiki compilation, entity pages, OKF
+              output, PageIndex underneath. Read its prompts and page schema closely. But it is a
+              CLI over a local folder with no ACLs, no incremental multi-source sync and no tenancy,
+              and its roadmap still lists a database backend as future work. Your compiler needs to
+              be a LangGraph pipeline in your own repo.</td>
+          </tr>
+          <tr>
+            <td><a href="https://github.com/docling-project/docling-graph">docling-graph</a><small>MIT · ~760 stars</small></td>
+            <td><span class="chip watch">Watch · spike</span></td>
+            <td>Structured fact extraction with provenance</td>
+            <td>The right <em>shape</em>: Pydantic extraction schemas, stable ids from declared key
+              fields, deterministic no-LLM merge, and a provenance ledger with bounding boxes back
+              to the source page. Young, so borrow the approach even if you don't take the
+              dependency. Spike the ontology-to-template generation — if it holds up, it saves you
+              writing extraction schemas by hand.</td>
+          </tr>
+          <tr>
+            <td><a href="https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f">Karpathy's LLM wiki</a><small>a gist, not a library</small></td>
+            <td><span class="chip adopt">Adopt as the philosophy</span></td>
+            <td>The product thesis for L2</td>
+            <td>Take the three-layer split (immutable sources / LLM-owned wiki / a schema file that
+              makes the LLM a disciplined maintainer), the three operations (ingest, query, lint),
+              and <code>index.md</code> + append-only <code>log.md</code>. His commenters flag the
+              real failure modes you must design against: concurrent ingestion forking the wiki,
+              visibility labels failing subtly, and human corrections being overwritten on
+              recompile. All three are addressed above.</td>
+          </tr>
+          <tr>
+            <td><a href="https://github.com/onyx-dot-app/onyx">Onyx</a><small>MIT community edition · ~32k stars</small></td>
+            <td><span class="chip narrow">Spike, then borrow</span></td>
+            <td>Connector and permission-sync tier</td>
+            <td>50+ connectors with ACL sync is the single largest chunk of work you would otherwise
+              do yourself, and it is given away. Consume it over its REST API or MCP rather than
+              adopting it as your product. Watch the community/enterprise split before you depend on
+              anything.</td>
+          </tr>
+          <tr>
+            <td><a href="https://github.com/cocoindex-io/cocoindex">CocoIndex</a><small>Apache-2.0 · ~11k stars</small></td>
+            <td><span class="chip adopt">Adopt</span></td>
+            <td>The L0→L1 lane, and the dirty-set logic</td>
+            <td>The best fit of anything here to the hardest part of §06. Declare
+              <code>target = f(source)</code>; per-row lineage and memoisation on
+              <code>hash(input) + hash(code)</code> mean a changed prompt re-derives only the pages
+              that depended on it. Targets already include Postgres, pgvector, Qdrant, Neo4j and
+              Kuzu; the Rust core brings retries, backoff and dead-letter queues. It is an
+              incremental engine, not a connector suite — it does not mirror ACLs, so it pairs with
+              Onyx rather than replacing it. Enterprise tier to watch, and treat the
+              “sub-second freshness” claim as marketing until you measure it. Two things are
+              first-party confirmed and load-bearing: the memo cache key includes a hash of the
+              function body, so a prompt or model swap invalidates exactly the affected rows; and a
+              row deleted at the source is deleted from the target on the next pass. Be aware v1
+              replaced the entire API — every <code>flow_def</code>/<code>export</code> tutorial
+              online is now wrong (§05).</td>
+          </tr>
+          <tr>
+            <td>Google <a href="https://github.com/GoogleCloudPlatform/knowledge-catalog/tree/main/okf">OKF</a><small>spec, v0.2</small></td>
+            <td><span class="chip adopt">Adopt</span></td>
+            <td>L2 file format</td>
+            <td>Markdown plus YAML frontmatter, one concept per file, no SDK between reader and
+              content. v0.2's <code>provenance</code>, <code>trust</code>, <code>freshness</code>,
+              <code>lifecycle</code> and <code>attestation</code> fields are almost a purpose-built
+              fit. You already run an OKF bundle for PRDs.</td>
+          </tr>
+          <tr>
+            <td>ParadeDB <code>pg_search</code> + <code>pgvector</code><small>Postgres extensions</small></td>
+            <td><span class="chip adopt">Adopt</span></td>
+            <td>L1 hybrid index</td>
+            <td>Real BM25 (Tantivy-backed) and vector similarity fused in one SQL query, in the
+              database you already run. Postgres-resident vector search holds to roughly the low
+              tens of millions of vectors; Qdrant is the escape hatch past that.</td>
+          </tr>
+          <tr>
+            <td>BGE-M3 + bge-reranker-v2-m3<small>MIT</small></td>
+            <td><span class="chip adopt">Adopt</span></td>
+            <td>Embedding + rerank</td>
+            <td>The default 2026 production pairing, self-hostable, multilingual, and BGE-M3 emits
+              dense and sparse from one model. Swap to Qwen3 at either stage if evals justify the
+              serving cost.</td>
+          </tr>
+          <tr>
+            <td><a href="https://moj-analytical-services.github.io/splink/">Splink</a><small>MIT</small></td>
+            <td><span class="chip adopt">Adopt</span></td>
+            <td>Entity resolution</td>
+            <td>Transparent probabilistic record linkage on a SQL backend with inspectable match
+              weights. Fragmented company identity is the failure that quietly ruins every
+              retrieval metric, and this is the cheap fix.</td>
+          </tr>
+          <tr>
+            <td><a href="https://cube.dev">Cube</a> (OSS core)<small>+ dbt MetricFlow</small></td>
+            <td><span class="chip narrow">Adopt at phase 3</span></td>
+            <td>L4 warehouse access</td>
+            <td>Governed metrics over MCP instead of the agent writing raw SQL. Keeps the warehouse
+              out of the index entirely, which is the correct architecture for data that changes by
+              the minute.</td>
+          </tr>
+          <tr>
+            <td><a href="https://github.com/getzep/graphiti">Graphiti</a><small>~20k stars</small></td>
+            <td><span class="chip watch">Watch</span></td>
+            <td>L3, only if hops demand it</td>
+            <td>Bi-temporal edges with invalidation instead of deletion is the right model for
+              “was on Airflow, is on Temporal”. Note the self-hosted Zep server is deprecated —
+              Graphiti is the open-source piece, Zep is the managed product.</td>
+          </tr>
+          <tr>
+            <td>Microsoft GraphRAG</td>
+            <td><span class="chip skip">Skip</span></td>
+            <td>—</td>
+            <td>Global search runs dozens of LLM calls per query at a reported $0.50–2.00 each, and
+              indexing 100 documents is reported in the thousands of dollars. Wrong cost shape.
+              LightRAG is the cheap cousin if you want the flavour.</td>
+          </tr>
+          <tr>
+            <td><a href="https://github.com/semantica-agi/semantica">Semantica</a><small>MIT · v0.6.6 · ~10k stars</small></td>
+            <td><span class="chip watch">Watch · borrow two ideas</span></td>
+            <td>Conflict detection and provenance, at phase 3</td>
+            <td>Two things here are genuinely ahead of the design above: conflict detection as a
+              step that runs <em>before</em> a merge, and W3C PROV-O lineage on every fact instead
+              of a bespoke frontmatter block. Both are worth adopting as ideas immediately (§09).
+              As a dependency, not yet: it is v0.6.x with 70 open PRs, its own docs warn that the
+              Rete condition matcher is “intentionally simple — validate before wiring into a
+              production compliance gate”, its benchmarks are CHANGELOG measurements rather than
+              tests, and v0.6.6 shipped fixes for path traversal, SQL injection, SSRF, XSS and
+              header injection in one release. That last point is the decisive one for a system
+              holding a recruiter's confidential client data. The OWL/SHACL ontology tooling is
+              also more machinery than this problem needs before phase 3.</td>
+          </tr>
+          <tr>
+            <td><a href="https://github.com/TencentCloud/TencentDB-Agent-Memory">TencentDB Agent Memory</a><small>MIT · Node · ~24k stars</small></td>
+            <td><span class="chip skip">Skip as a dependency</span></td>
+            <td>Corroboration, not code</td>
+            <td>Wrong domain: this is team memory for <em>coding</em> agents — chat distillation,
+              skills, a code graph — not a document KB, and it is a Node stack against your Python
+              3.13 backend. But read its retrieval design, because it independently arrived at the
+              architecture argued in §02: query the compiled layer first, fall back to raw material
+              with BM25 + vector + RRF. Its L0→L1→L2→L3 ladder is also where the fact-atom layer in
+              §03 comes from. Its PersonaMem gain (48% → 76%) measures personalisation memory, not
+              document retrieval, so do not carry that number across. The one place it could matter
+              later is remembering a <em>candidate</em> across sessions — a different feature from
+              this one, and still the wrong runtime.</td>
+          </tr>
+          <tr>
+            <td><a href="https://github.com/explodinggradients/ragas">Ragas</a> + LangSmith</td>
+            <td><span class="chip adopt">Adopt</span></td>
+            <td>Evaluation</td>
+            <td>Context recall and precision out of the box; LangSmith is already a backend
+              dependency, so tracing and the CI gate cost you almost nothing to wire.</td>
+          </tr>
+        </tbody>
+      </table></div>
+    </section>
+
+    <section id="open">
+      <div class="h2row">
+        <span class="num">→</span>
+        <div>
+          <h2>Questions only the client can answer</h2>
+          <p class="sub">Worth asking early, because three of these change the architecture.</p>
+        </div>
+      </div>
+      <ol>
+        <li><strong>What may a candidate be told?</strong> Get the disclosure tiers in writing before
+        you compile anything. This is the one that changes the data model.</li>
+        <li><strong>Where does the deployment live?</strong> Their VPC, your cloud, or on-prem. It
+        decides whether you can use hosted models at all, and therefore whether self-hosted
+        embeddings and rerankers are optional or mandatory.</li>
+        <li><strong>Which ten Confluence spaces and which ten Slack channels actually matter?</strong>
+        The answer is always far smaller than "all of them", and it halves phase 1.</li>
+        <li><strong>Who owns a wrong dossier page?</strong> Named reviewers per client account, or
+        the <code>trust: reviewed</code> state never gets used and the whole quality story collapses.</li>
+        <li><strong>Does their ATS have a read API, or are we doing CDC off its database?</strong>
+        Changes phase 1 scope by a week either way.</li>
+        <li><strong>How stale is too stale?</strong> Their answer sets <code>ttl_days</code> and
+        therefore the recompile bill.</li>
+      </ol>
+    </section>
+
+    <section id="sources">
+      <div class="h2row">
+        <span class="num">→</span>
+        <div>
+          <h2>Sources</h2>
+          <p class="sub">First-party where it matters. Aggregator round-ups are marked, and their
+            numbers are the ones to verify yourself.</p>
+        </div>
+      </div>
+      <ul class="srcs">
+        <li><span class="mono">01</span><a href="https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f">Karpathy — the LLM wiki pattern</a> (gist, incl. comments)</li>
+        <li><span class="mono">02</span><a href="https://github.com/GoogleCloudPlatform/knowledge-catalog/blob/main/okf/SPEC.md">Google Cloud — Open Knowledge Format SPEC.md</a> · <a href="https://cloud.google.com/blog/products/data-analytics/how-the-open-knowledge-format-can-improve-data-sharing">announcement</a></li>
+        <li><span class="mono">03</span><a href="https://github.com/VectifyAI/OpenKB">VectifyAI — OpenKB</a> · <a href="https://github.com/VectifyAI/PageIndex">PageIndex</a></li>
+        <li><span class="mono">04</span><a href="https://github.com/docling-project/docling">Docling</a> · <a href="https://github.com/docling-project/docling-graph">docling-graph</a></li>
+        <li><span class="mono">05</span><a href="https://www.anthropic.com/engineering/contextual-retrieval">Anthropic — Contextual Retrieval</a> (the 5.7% → 1.9% figures)</li>
+        <li><span class="mono">06</span><a href="https://github.com/onyx-dot-app/onyx">Onyx</a> · <a href="https://onyx.app/connectors">connector list</a> · <a href="https://docs.onyx.app/developers/api_reference/chat/send_message">API reference</a></li>
+        <li><span class="mono">07</span><a href="https://www.paradedb.com/blog/hybrid-search-in-postgresql-the-missing-manual">ParadeDB — Hybrid search in Postgres</a> · <a href="https://pgxn.org/dist/pg_search/">pg_search</a></li>
+        <li><span class="mono">08</span><a href="https://neo4j.com/blog/developer/graphiti-knowledge-graph-memory/">Graphiti — temporal knowledge graph memory</a> · <a href="https://www.getzep.com/ai-agents/temporal-knowledge-graph/">bi-temporal model</a></li>
+        <li><span class="mono">09</span><a href="https://authzed.com/docs/spicedb/ops/spicedb-langchain-langgraph-rag">SpiceDB with LangChain/LangGraph for RAG authz</a> · <a href="https://truto.one/blog/how-to-maintain-document-level-rbac-in-enterprise-rag-pipelines/">document-level RBAC patterns</a></li>
+        <li><span class="mono">10</span><a href="https://cube.dev/articles/semantic-layer-for-ai-agents-2026">Cube — semantic layer for AI agents</a> (vendor; the 83% vs 40% figure is dbt's own testing)</li>
+        <li><span class="mono">11</span><a href="https://moj-analytical-services.github.io/splink/index.html">Splink</a> · <a href="https://tilores.io/content/best-open-source-entity-resolution-and-record-linkage-libraries-splink-zingg-dedupe-and-when-to-move-beyond-them/">Splink vs Zingg vs dedupe</a> (vendor round-up)</li>
+        <li><span class="mono">12</span><a href="https://presenc.ai/research/best-open-weight-reranker-models-2026">Open-weight rerankers 2026</a> · <a href="https://www.bentoml.com/blog/a-guide-to-open-source-embedding-models">open-source embedding models</a> — <em>aggregator round-ups; latency and BEIR numbers unverified</em></li>
+        <li><span class="mono">13</span><a href="https://www.agentlist.top/en/articles/graphrag-vs-lightrag-comparison/">GraphRAG vs LightRAG cost comparison</a> · <a href="https://karbouch.substack.com/p/production-rag-frameworks-compared">production RAG frameworks 2026</a> — <em>aggregator; cost figures directional</em></li>
+        <li><span class="mono">14</span><a href="https://github.com/cocoindex-io/cocoindex">CocoIndex</a> — incremental dataflow with code-aware invalidation · <a href="https://cocoindex.io/docs/llms.txt">v1 docs index</a> (the v1 API; ignore pre-1.0 tutorials)</li>
+        <li><span class="mono">15</span><a href="https://github.com/semantica-agi/semantica">Semantica</a> — deterministic KG, conflict detection, PROV-O lineage · <a href="https://www.w3.org/TR/prov-o/">W3C PROV-O</a></li>
+        <li><span class="mono">16</span><a href="https://github.com/TencentCloud/TencentDB-Agent-Memory">TencentDB Agent Memory</a> — layered distillation and RRF fallback, read for the design</li>
+        <li><span class="mono">17</span><a href="https://www.brightter.com/articles/agentic-rag-five-retrieval-patterns-that-survive-production">Agentic RAG production patterns</a> (source of the 2–5× latency / 3–10× token figures) · <a href="https://docs.ragas.io/">Ragas metrics</a></li>
+      </ul>
+    </section>
+
+    <footer class="end">
+      <p>NextRole · dossier layer design brief · 2026-08-23 · nothing in this document is built yet.<br>
+      Numbers marked “est.” are estimates for this workload, not measurements. Verify every
+      third-party benchmark against your own corpus before you rely on it.</p>
+    </footer>
+  </main>
+</div>
