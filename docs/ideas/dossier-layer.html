@@ -998,8 +998,9 @@ migrated off Airflow to **Temporal** in July 2026.[^1][^h1]
       </figure>
 
       <h3>Which engine owns which lane</h3>
-      <p><strong>Yes, install CocoIndex — but only for the cheap lane.</strong> The two engines are
-      not competing for the same work, and the split follows from the shape of each job:</p>
+      <p><strong>Yes, install CocoIndex.</strong> The two engines are not competing for the same
+      work — they alternate, and the split follows from the shape of each job. There are three
+      lanes, not two, because the compiler's own output needs indexing as well:</p>
 
       <div class="tw"><table>
         <thead><tr><th>Lane</th><th>Shape of the work</th><th>Engine</th></tr></thead>
@@ -1018,10 +1019,80 @@ migrated off Airflow to **Temporal** in July 2026.[^1][^h1]
             <td><strong>LangGraph.</strong> That is a graph with conditional edges, you already run
               it, and the compiler is the part with no off-the-shelf equivalent.</td>
           </tr>
+          <tr>
+            <td>L2 → L2§<small>indexing the compiler's own output</small></td>
+            <td>Per row again: split a finished page on its <code>##</code> headings, embed each
+              section, upsert. No branching, no state.</td>
+            <td><strong>CocoIndex, a second flow.</strong> Reads <code>l2_pages</code> with
+              <code>PgTableSource</code> and maintains <code>l2_page_sections</code> — the same
+              shape as the first flow, pointed at a different source.</td>
+          </tr>
         </tbody>
       </table></div>
+      <figure id="fig-lanes">
+        <div class="figbox">
+          <svg viewBox="0 0 880 444" role="img" aria-label="Two engines alternating across three lanes: a CocoIndex flow builds the L1 chunk index from parsed documents, the LangGraph compiler turns chunks into dossier pages and edges, and a second CocoIndex flow splits those finished pages on their headings and embeds them into a section index. Each store serves a different query-time path.">
+            <defs>
+              <marker id="fl-n" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                <path d="M0,1 L9,5 L0,9 z" fill="var(--line-strong)"/>
+              </marker>
+            </defs>
 
-      <p>They meet at one table. CocoIndex owns the chunk rows; when it re-derives a chunk, a trigger
+            <g class="svg-b">
+              <rect x="230" y="20" width="280" height="56" rx="4"/>
+              <rect x="230" y="136" width="280" height="56" rx="4"/>
+            </g>
+            <rect x="230" y="252" width="280" height="56" rx="4" class="svg-teal"/>
+            <rect x="230" y="368" width="280" height="56" rx="4" class="svg-teal"/>
+
+            <text x="244" y="44" class="svg-t">L0 · parsed documents</text>
+            <text x="244" y="64" class="svg-s">DoclingDocument JSON</text>
+            <text x="244" y="160" class="svg-t">L1 · chunk index</text>
+            <text x="244" y="180" class="svg-s">millions of rows · raw evidence</text>
+            <text x="244" y="276" class="svg-t">L2 · dossier pages · L3 edges</text>
+            <text x="244" y="296" class="svg-s">≈2 000 markdown pages · synthesis</text>
+            <text x="244" y="392" class="svg-t">L2§ · page-section index</text>
+            <text x="244" y="412" class="svg-s">≈12 000 sections · 1 vector each</text>
+
+            <g class="svg-a" marker-end="url(#fl-n)">
+              <line x1="370" y1="78" x2="370" y2="132"/>
+              <line x1="370" y1="194" x2="370" y2="248"/>
+              <line x1="370" y1="310" x2="370" y2="364"/>
+              <line x1="510" y1="164" x2="536" y2="164"/>
+              <line x1="510" y1="280" x2="536" y2="280"/>
+              <line x1="510" y1="396" x2="536" y2="396"/>
+            </g>
+
+            <text x="218" y="98" text-anchor="end" class="svg-e">cocoindex flow ①</text>
+            <text x="218" y="118" text-anchor="end" class="svg-s">split · contextualise · embed</text>
+            <text x="218" y="214" text-anchor="end" class="svg-e" fill="var(--compiled)">langgraph compiler</text>
+            <text x="218" y="234" text-anchor="end" class="svg-s">extract · adjudicate · synthesise</text>
+            <text x="218" y="330" text-anchor="end" class="svg-e">cocoindex flow ②</text>
+            <text x="218" y="350" text-anchor="end" class="svg-s">split on ## · embed</text>
+
+            <text x="540" y="52" class="svg-l">not read at query time</text>
+            <g class="svg-b">
+              <rect x="540" y="140" width="330" height="48" rx="4"/>
+              <rect x="540" y="256" width="330" height="48" rx="4"/>
+              <rect x="540" y="372" width="330" height="48" rx="4"/>
+            </g>
+            <text x="552" y="160" class="svg-t">Tier 2 · hybrid + rerank</text>
+            <text x="552" y="180" class="svg-s">the fallback when the compiled layer is thin</text>
+            <text x="552" y="276" class="svg-t">Rungs ①–③ · fetch by primary key</text>
+            <text x="552" y="296" class="svg-s">one page plus a 1-hop edge join, ≈8 ms</text>
+            <text x="552" y="392" class="svg-t">Rung ④ · search the sections</text>
+            <text x="552" y="412" class="svg-s">flat scan, no ANN index needed</text>
+          </svg>
+        </div>
+        <figcaption><b>The engines alternate.</b> CocoIndex handles both deterministic lanes and
+        LangGraph handles the one in the middle that branches. The second flow is easy to forget:
+        the compiler writes markdown, and markdown is not searchable until something splits and
+        embeds it — that something is another memoised dataflow, not more compiler. Note that L0 is
+        never read at request time; it exists so a Docling or chunker upgrade can rebuild L1 without
+        re-fetching a single source system.</figcaption>
+      </figure>
+
+      <p>The first two lanes meet at one table. CocoIndex owns the chunk rows; when it re-derives a chunk, a trigger
       writes the affected <code>(entity, page)</code> pairs into a <code>dirty_pages</code> table.
       LangGraph drains that table on a debounce. Neither engine knows anything about the other, which
       is the point — you can replace either one without touching the other.</p>
@@ -1319,7 +1390,7 @@ app = coco.App(coco.AppConfig(name=<span class="st">"ConfluenceToL1"</span>), ap
             <text x="232" y="232" class="svg-l">≈10 ms · typos, partial names</text>
             <text x="232" y="274" class="svg-t">④ search the dossiers</text>
             <text x="232" y="292" class="svg-s">BM25 + dense over ~2 000 pages</text>
-            <text x="232" y="308" class="svg-l">≈40 ms · no entity needed at all</text>
+            <text x="232" y="308" class="svg-l">≈60–100 ms · no entity needed</text>
             <text x="232" y="350" class="svg-t">⑤ hand off</text>
             <text x="232" y="368" class="svg-s">nothing in the compiled layer fits</text>
             <text x="232" y="384" class="svg-l">the question is not about a company</text>
@@ -1371,7 +1442,7 @@ app = coco.App(coco.AppConfig(name=<span class="st">"ConfluenceToL1"</span>), ap
       </figure>
 
       <p>End to end, resolve-and-fetch is on the order of <strong>10–25 ms</strong> with rung ①,
-      and still under <strong>60 ms</strong> if you fall all the way to rung ④. Which is the moment
+      and still inside <strong>150 ms</strong> if you fall all the way to rung ④. Which is the moment
       to restate what that <span class="mono">0.3 s</span> label means: <strong>every tier latency in
       this brief is time-to-assembled-context, not time-to-answer.</strong> Generating a tailored
       resume is a long completion and dwarfs all of it. That is precisely why the tier split is
@@ -1400,8 +1471,32 @@ app = coco.App(coco.AppConfig(name=<span class="st">"ConfluenceToL1"</span>), ap
       <em>it</em> is a small, fast search that returns compiled synthesis. Dropping straight to L1
       means searching millions of chunks to rediscover a summary you already wrote. Think of rung ④
       as still being tier 1 — you are reading the same compiled pages, you simply found them by
-      search instead of by id. The <span class="mono">≈40 ms</span> is an estimate; measure it, but
-      the shape holds because the corpus is three orders of magnitude smaller than L1.</p>
+      search instead of by id.</p>
+
+      <h4>What rung ④ actually costs to run</h4>
+      <p>Nothing is embedded per request except the query. The corpus is embedded once, when a page
+      is compiled, by the second CocoIndex flow — and not one vector per page: a dossier has several
+      <code>##</code> sections, and averaging Stack, Prior projects and Human notes into a single
+      point is lossy in exactly the way that hurts here. Embed <strong>per section</strong>, so
+      roughly 2 000 pages at about six sections each gives <strong>≈12 000 vectors</strong>,
+      retrieved as sections and resolved up to their parent page.</p>
+      <p>At that size something useful happens: <strong>you do not need an ANN index at all.</strong>
+      12 000 × 1 024 dimensions × 4 bytes is about <span class="mono">49 MB</span>, so pgvector will
+      do an exact flat scan in single-digit milliseconds — no recall loss, and no HNSW graph to
+      build, tune or maintain. Approximate search earns its keep at millions of rows; at twelve
+      thousand it is pure overhead. Nor is this duplicated work against L1: L1 indexes chunks of the
+      <em>source documents</em>, this indexes sections of the <em>compiled pages</em>. Different
+      corpora, which is exactly why rung ④ returns synthesis rather than fragments.</p>
+      <p>So the cost is dominated by the single query embedding, not by the corpus — single-digit
+      milliseconds on a GPU, more like <span class="mono">30–80 ms</span> for a 568M-parameter model
+      on CPU. Hence <span class="mono">≈60–100 ms</span> for the rung on commodity hardware. An
+      earlier draft of this brief said 40 ms, which quietly assumed a GPU; measure it on your own
+      hardware. For contrast, embedding the corpus on the fly would be 12 000 forward passes
+      <em>per request</em> — tens of seconds, paid every time, to recompute something that never
+      changed.</p>
+      <p>One tie-back to §06: swapping BGE-M3 for Qwen3 changes the embedding function's body, so
+      CocoIndex's code hash invalidates the section table and re-embeds all 12 000 rows on its own.
+      Minutes on a GPU, and no bespoke migration script.</p>
 
       <p>Two rules govern the whole ladder. <strong>Every fuzzy rung must return a confidence, and a
       weak match is a miss</strong> — resolving “the robotics company” to the wrong Acme silently
