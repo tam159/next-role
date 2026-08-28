@@ -1280,97 +1280,137 @@ app = coco.App(coco.AppConfig(name=<span class="st">"ConfluenceToL1"</span>), ap
       the same ceiling, and his own gist says so: the index becomes the bottleneck somewhere around
       a hundred sources. Keep <code>index.md</code> as a browsing aid for the top-level taxonomy;
       do not make it the lookup mechanism.</p>
-      <p>Resolution is a database index, tried in order, first hit wins:</p>
+      <p>Resolution is a ladder of database lookups, tried in order, first hit wins. Only the top
+      rung is NextRole-specific; everything below it works in any deployment, on bare free text:</p>
 
       <figure id="fig8">
         <div class="figbox">
-          <svg viewBox="0 0 900 350" role="img" aria-label="An entity resolver ladder: session state resolves the company id for free, otherwise an exact alias lookup, otherwise a fuzzy trigram and vector match over entity names only, otherwise the question is handed to tier 2. A resolved id is fetched by primary key along with one hop of L3 edges.">
+          <svg viewBox="0 0 900 410" role="img" aria-label="A five-rung entity resolver ladder: session state when the product provides it, then a gazetteer scan that finds entity mentions anywhere in free text, then a fuzzy match, then a hybrid search over the compiled dossier corpus itself, and finally a hand-off to the tier two chunk index.">
             <defs>
               <marker id="f8-n" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
                 <path d="M0,1 L9,5 L0,9 z" fill="var(--line-strong)"/>
               </marker>
-              <marker id="f8-r" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-                <path d="M0,1 L9,5 L0,9 z" fill="var(--risk)"/>
+              <marker id="f8-t" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                <path d="M0,1 L9,5 L0,9 z" fill="var(--compiled)"/>
               </marker>
             </defs>
 
             <rect x="16" y="24" width="170" height="62" rx="4" class="svg-b"/>
-            <text x="28" y="50" class="svg-s">“Tailor my resume for the</text>
-            <text x="28" y="68" class="svg-s">Atlas backend role at Acme”</text>
+            <text x="28" y="50" class="svg-s">a question, with or</text>
+            <text x="28" y="68" class="svg-s">without any context</text>
             <line x1="186" y1="55" x2="216" y2="55" class="svg-a" marker-end="url(#f8-n)"/>
 
             <g class="svg-b">
               <rect x="220" y="24" width="300" height="62" rx="4"/>
-              <rect x="220" y="104" width="300" height="62" rx="4"/>
-              <rect x="220" y="184" width="300" height="62" rx="4"/>
+              <rect x="220" y="100" width="300" height="62" rx="4"/>
+              <rect x="220" y="176" width="300" height="62" rx="4"/>
+              <rect x="220" y="328" width="300" height="62" rx="4"/>
             </g>
-            <rect x="220" y="264" width="300" height="62" rx="4" class="svg-risk"/>
+            <rect x="220" y="252" width="300" height="62" rx="4" class="svg-teal"/>
 
             <text x="232" y="46" class="svg-t">① session state</text>
             <text x="232" y="64" class="svg-s">thread.application.company_id</text>
-            <text x="232" y="80" class="svg-l">0 ms · already a foreign key</text>
-            <text x="232" y="126" class="svg-t">② exact alias</text>
-            <text x="232" y="144" class="svg-s">entity_alias, unique index</text>
-            <text x="232" y="160" class="svg-l">≈1 ms · “acme” · “ACME Corp” · acme.com</text>
-            <text x="232" y="206" class="svg-t">③ fuzzy alias</text>
-            <text x="232" y="224" class="svg-s">pg_trgm + ANN over entity names</text>
-            <text x="232" y="240" class="svg-l">≈10 ms · 2 000 vectors, not 2 million</text>
-            <text x="232" y="286" class="svg-t">④ no match</text>
-            <text x="232" y="304" class="svg-s">not an entity question</text>
-            <text x="232" y="320" class="svg-l">hand off — never guess a company</text>
+            <text x="232" y="80" class="svg-l">0 ms · only if the product has one</text>
+            <text x="232" y="122" class="svg-t">② gazetteer scan</text>
+            <text x="232" y="140" class="svg-s">Aho-Corasick automaton over every alias</text>
+            <text x="232" y="156" class="svg-l">≈1 ms · finds mentions inside free text</text>
+            <text x="232" y="198" class="svg-t">③ fuzzy match</text>
+            <text x="232" y="216" class="svg-s">pg_trgm + ANN over entity names</text>
+            <text x="232" y="232" class="svg-l">≈10 ms · typos, partial names</text>
+            <text x="232" y="274" class="svg-t">④ search the dossiers</text>
+            <text x="232" y="292" class="svg-s">BM25 + dense over ~2 000 pages</text>
+            <text x="232" y="308" class="svg-l">≈40 ms · no entity needed at all</text>
+            <text x="232" y="350" class="svg-t">⑤ hand off</text>
+            <text x="232" y="368" class="svg-s">nothing in the compiled layer fits</text>
+            <text x="232" y="384" class="svg-l">the question is not about a company</text>
 
             <g class="svg-a" marker-end="url(#f8-n)">
-              <line x1="370" y1="86" x2="370" y2="100"/>
-              <line x1="370" y1="166" x2="370" y2="180"/>
+              <line x1="370" y1="88" x2="370" y2="96"/>
+              <line x1="370" y1="164" x2="370" y2="172"/>
+              <line x1="370" y1="240" x2="370" y2="248"/>
+              <line x1="370" y1="316" x2="370" y2="324"/>
             </g>
-            <line x1="370" y1="246" x2="370" y2="260" class="svg-a-risk" marker-end="url(#f8-r)"/>
-            <text x="378" y="98" class="svg-l">miss</text>
-            <text x="378" y="178" class="svg-l">miss</text>
-            <text x="378" y="258" class="svg-l">miss</text>
+            <text x="378" y="95" class="svg-l">miss</text>
+            <text x="378" y="171" class="svg-l">miss</text>
+            <text x="378" y="247" class="svg-l">miss</text>
+            <text x="378" y="323" class="svg-l">miss</text>
 
-            <rect x="570" y="104" width="130" height="62" rx="4" class="svg-teal"/>
-            <text x="582" y="128" class="svg-t">entity id</text>
-            <text x="582" y="148" class="svg-s">org:acme-robotics</text>
+            <rect x="570" y="100" width="130" height="62" rx="4" class="svg-teal"/>
+            <text x="582" y="126" class="svg-t">entity id</text>
+            <text x="582" y="146" class="svg-s">org:acme-robotics</text>
+            <rect x="740" y="100" width="144" height="62" rx="4" class="svg-teal"/>
+            <text x="752" y="122" class="svg-t">fetch by pk</text>
+            <text x="752" y="140" class="svg-s">acme-robotics.md</text>
+            <text x="752" y="156" class="svg-l">+ 1 hop → atlas.md</text>
+
             <g class="svg-a" marker-end="url(#f8-n)">
-              <line x1="520" y1="55" x2="566" y2="118"/>
-              <line x1="520" y1="135" x2="566" y2="135"/>
-              <line x1="520" y1="215" x2="566" y2="152"/>
-              <line x1="700" y1="135" x2="736" y2="135"/>
+              <line x1="520" y1="55" x2="566" y2="114"/>
+              <line x1="520" y1="131" x2="566" y2="131"/>
+              <line x1="520" y1="207" x2="566" y2="148"/>
+              <line x1="700" y1="131" x2="736" y2="131"/>
             </g>
 
-            <rect x="740" y="104" width="144" height="62" rx="4" class="svg-teal"/>
-            <text x="752" y="126" class="svg-t">fetch by pk</text>
-            <text x="752" y="144" class="svg-s">acme-robotics.md</text>
-            <text x="752" y="160" class="svg-l">+ 1 hop → atlas.md</text>
+            <rect x="570" y="252" width="314" height="62" rx="4" class="svg-teal"/>
+            <text x="582" y="278" class="svg-t">ranked dossier pages</text>
+            <text x="582" y="298" class="svg-s">compiled summaries, still not raw chunks</text>
+            <line x1="520" y1="283" x2="566" y2="283" class="svg-a-teal" marker-end="url(#f8-t)"/>
 
-            <rect x="570" y="264" width="314" height="62" rx="4" class="svg-b"/>
-            <text x="582" y="288" class="svg-t">Tier 2 · hybrid search</text>
-            <text x="582" y="308" class="svg-s">the question was never about a named company</text>
-            <line x1="520" y1="295" x2="566" y2="295" class="svg-a-risk" marker-end="url(#f8-r)"/>
+            <rect x="570" y="328" width="314" height="62" rx="4" class="svg-b"/>
+            <text x="582" y="354" class="svg-t">Tier 2 · the chunk index</text>
+            <text x="582" y="374" class="svg-s">millions of rows, hybrid + rerank, ≈1.1 s</text>
+            <line x1="520" y1="359" x2="566" y2="359" class="svg-a" marker-end="url(#f8-n)"/>
           </svg>
         </div>
-        <figcaption><b>The interesting rung is the first one.</b> In NextRole the user is not typing
-        into a void — they are in a thread with a job application attached, so the company and role
-        are structured session state, not something to infer from prose. Most tier-1 hits resolve for
-        free. And note where <code>atlas.md</code> comes from: not the word “Atlas” in the question,
-        but the <code>staffs→project:atlas</code> edge hanging off the company page. That one-hop
-        expansion is what L3 buys at tier 1 — the same two pages arrive even if the user only says
-        “Acme”.</figcaption>
+        <figcaption><b>Only rung ① is NextRole's luxury.</b> Strip it out and the ladder still lands
+        on the right page in about 20 ms — the shortcut buys convenience, not the tier. Rung ④ is the
+        one that makes the whole thing robust: it searches the <em>compiled</em> corpus rather than
+        the evidence index, so a question that names no entity at all still comes back with
+        synthesised pages instead of raw fragments. Note also where <code>atlas.md</code> comes from
+        — not the word “Atlas” in the question, but the <code>staffs→project:atlas</code> edge on the
+        company page. That one-hop expansion is what L3 buys at tier 1.</figcaption>
       </figure>
 
-      <p>Total resolve-and-fetch is on the order of <strong>10–25 ms</strong>. Which raises the
-      obvious point about that <span class="mono">0.3 s</span> label: <strong>every tier latency in
+      <p>End to end, resolve-and-fetch is on the order of <strong>10–25 ms</strong> with rung ①,
+      and still under <strong>60 ms</strong> if you fall all the way to rung ④. Which is the moment
+      to restate what that <span class="mono">0.3 s</span> label means: <strong>every tier latency in
       this brief is time-to-assembled-context, not time-to-answer.</strong> Generating a tailored
       resume is a long completion and dwarfs all of it. That is precisely why the tier split is
       worth the trouble — generation cost is fixed and you cannot avoid it, so the only variable you
       control is how much work happens before the first token.</p>
-      <p>Two rules fall out of the ladder. <strong>Rung ③ must return a confidence, and a weak match
-      is a miss</strong> — resolving “the robotics company” to the wrong Acme silently tailors a
-      resume against another company's stack, which is worse than any retrieval miss because it
-      looks confident. <strong>Rung ④ is a feature, not a failure</strong>: a question with no
-      resolvable entity is a tier-2 question, and handing off is the correct behaviour. And note the
-      alias table is not new work — it is the same table §04 builds during entity resolution at
-      ingest, read back at query time.</p>
+
+      <p><strong>Rung ② is the one that makes free text work, and it is the step I glossed over
+      first time round.</strong> Rungs ③ and below assume you already have a candidate string to
+      look up — but “how does the robotics client compare to the fintech one?” hands you no such
+      string. Finding the mention is its own problem, and it is a solved one: compile every alias
+      into a single Aho-Corasick automaton and scan the query once. That is
+      <span class="mono">O(len(query))</span> regardless of how many aliases you hold, it runs in
+      microseconds, and it scales to hundreds of thousands of names. No model call, no embedding,
+      no index roster in context.</p>
+
+      <p><strong>And rung ① generalises further than it looks.</strong> Structured session state is
+      the strong form, but any chat product can accumulate a weaker version for free: keep a small
+      stack of entities already resolved on this thread, most recent first. Turn one says “Acme”,
+      turn five says “what about their hiring bar?” — “their” resolves off the stack, at no cost.
+      That is the same mechanism as a foreign key on the thread, just earned during the conversation
+      instead of handed over by the product.</p>
+
+      <p><strong>Rung ④ is the answer to “can we just use full-text search?” — yes, but point it at
+      the right corpus.</strong> The instinct is to fall back to the chunk index, and that is a
+      waste: the dossier corpus is a couple of thousand markdown pages, so BM25 plus a dense arm over
+      <em>it</em> is a small, fast search that returns compiled synthesis. Dropping straight to L1
+      means searching millions of chunks to rediscover a summary you already wrote. Think of rung ④
+      as still being tier 1 — you are reading the same compiled pages, you simply found them by
+      search instead of by id. The <span class="mono">≈40 ms</span> is an estimate; measure it, but
+      the shape holds because the corpus is three orders of magnitude smaller than L1.</p>
+
+      <p>Two rules govern the whole ladder. <strong>Every fuzzy rung must return a confidence, and a
+      weak match is a miss</strong> — resolving “the robotics company” to the wrong Acme silently
+      tailors a resume against another company's stack, which is worse than any retrieval miss
+      because it looks confident. Prefer returning three candidate pages and letting the generation
+      step cite, over silently picking one. <strong>Rung ⑤ is a feature, not a failure</strong>: a
+      question genuinely not about a company belongs in the evidence index, and handing off is
+      correct. And none of this is new work — the alias table is the same one §04 builds during
+      entity resolution at ingest, read back at query time.</p>
     </section>
 
     <section id="s6">
