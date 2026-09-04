@@ -189,7 +189,7 @@ The agent's behavior is configured by files, not hardcoded — making it easy to
 | **Subagents** | `subagents.yaml` | Specialist delegates → the `task` tool | Always |
 | **Tools** | `tools.py` + DeepAgents built-ins | `parse_document`, `extract_jd`, `render_resume_pdf`, `render_battlecard_pdf`, `list_files`, plus `read/write/edit_file`, `ls/glob/grep`, `delete`, `execute` | — |
 | **Filesystem** | `CompositeBackend` | Routes virtual paths to the right store (see below) | — |
-| **Middleware** | `middleware.py` | `ModelOverrideMiddleware` (runtime LLM swap) + `UtcDatetimeMiddleware` | — |
+| **Middleware** | `middleware.py` | `ModelOverrideMiddleware` (runtime LLM swap; opts Claude tool calls — direct API and Bedrock — into fine-grained arg streaming) + `UtcDatetimeMiddleware` | — |
 
 Subagents only receive the tools they opt into in YAML — tool whitelisting keeps `interview-coach`, for example, from inheriting the main agent's full toolset.
 
