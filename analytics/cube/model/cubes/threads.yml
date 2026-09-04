@@ -1,0 +1,124 @@
+cubes:
+  - name: threads
+    sql_table: fct_thread
+    title: Conversations
+    description: >
+      One row per conversation thread — the unit of "a user working on a role" — with message and
+      run roll-ups. Default time dimension: created_date; updated_at is the last activity.
+    meta:
+      grain: one conversation thread
+      primary_time_dimension: created_date
+      example_questions:
+        - How many new conversations started this week?
+        - What share of conversations go beyond a single turn?
+        - How many conversations are waiting on a human approval right now?
+      caveats:
+        - status is a current-state snapshot, not history — use runs.status for failure trends
+        - file_count is normally 0 (artifacts live in object storage), not an artifact count
+
+    joins:
+      - name: users
+        sql: "{CUBE}.owner = {users}.user_id"
+        relationship: many_to_one
+      - name: assistants
+        sql: "{CUBE}.assistant_id = {assistants}.assistant_id"
+        relationship: many_to_one
+
+    dimensions:
+      - name: thread_id
+        sql: thread_id
+        type: string
+        primary_key: true
+        description: Unique thread id.
+      - name: owner
+        sql: owner
+        type: string
+        description: User id that owns the conversation; 'default' = single-user mode.
+        meta:
+          synonyms: [user, user_id]
+      - name: assistant_id
+        sql: assistant_id
+        type: string
+        description: Agent definition serving the thread (join assistants).
+      - name: graph_id
+        sql: graph_id
+        type: string
+        description: Agent graph serving the thread (career_agent).
+      - name: status
+        sql: status
+        type: string
+        description: "Current state: idle (resting), busy (a run is executing), interrupted (waiting on human approval), error (last run failed)."
+        meta:
+          values: [idle, busy, interrupted, error]
+      - name: has_interrupt
+        sql: has_interrupt
+        type: boolean
+        description: A human-in-the-loop interrupt is pending right now.
+      - name: created_date
+        sql: created_date
+        type: time
+        description: Calendar date the conversation started — the default time dimension.
+        meta:
+          synonyms: [date, day, started]
+      - name: created_at
+        sql: created_at
+        type: time
+        description: Thread creation timestamp.
+      - name: updated_at
+        sql: updated_at
+        type: time
+        description: Last activity on the thread — the "last active" proxy.
+
+    measures:
+      - name: count
+        type: count
+        description: Number of conversation threads.
+        meta:
+          synonyms: [conversations, threads, sessions of work]
+      - name: multi_turn_count
+        type: count
+        filters:
+          - sql: "{CUBE}.run_count > 1"
+        description: Conversations with more than one run — the user came back for another turn.
+      - name: multi_turn_share
+        sql: "{multi_turn_count} / nullIf({count}, 0)"
+        type: number
+        format: percent
+        description: Share of conversations that went beyond a single turn (habit-depth signal).
+        meta:
+          formula: multi_turn_count / count
+      - name: with_plans
+        type: count
+        filters:
+          - sql: "{CUBE}.todo_count > 0"
+        description: Conversations where the agent wrote a multi-step plan (todo items) — heavy, artifact-producing work.
+      - name: with_interrupts
+        type: count
+        filters:
+          - sql: "{CUBE}.has_interrupt"
+        description: Conversations currently waiting on a human-in-the-loop decision.
+      - name: error_threads
+        type: count
+        filters:
+          - sql: "{CUBE}.status = 'error'"
+        description: Conversations whose last run failed.
+      - name: avg_messages
+        sql: message_count
+        type: avg
+        description: Average messages per conversation, all roles (tool results included) — conversation length.
+      - name: total_messages
+        sql: message_count
+        type: sum
+        description: Total messages across the selected conversations.
+      - name: avg_runs
+        sql: run_count
+        type: avg
+        description: Average runs (user turns + resumes) per conversation — turn depth.
+      - name: total_runs
+        sql: run_count
+        type: sum
+        description: Total runs across the selected conversations.
+      - name: total_failed_runs
+        sql: failed_runs
+        type: sum
+        description: Runs that errored across the selected conversations.

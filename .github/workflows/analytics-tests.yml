@@ -1,0 +1,66 @@
+name: CI
+
+# Analytics unit tests run only when analytics code (or a workflow file)
+# changes. The workflow ALWAYS triggers so the `analytics-tests` check is
+# always reported; the job is gated by a job-level `if:`. A job skipped by a
+# conditional reports "Success", whereas a workflow-level `paths:` skip leaves
+# the check stuck in "Expected" and blocks the merge:
+# https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/defining-the-mergeability-of-pull-requests/troubleshooting-required-status-checks
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+# Cancel superseded runs on the same ref (e.g. new push to a PR branch).
+concurrency:
+  group: ci-analytics-tests-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  # Cheap gate (~10s) deciding whether the analytics suite needs to run. Its
+  # own check (`detect-analytics`) is not required; it only feeds the `if:`.
+  detect-analytics:
+    runs-on: ubuntu-latest
+    outputs:
+      analytics: ${{ steps.filter.outputs.analytics }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Detect analytics changes
+        uses: dorny/paths-filter@fbd0ab8f3e69293af611ebaee6363fc25e6d187d # v4.0.1
+        id: filter
+        with:
+          filters: |
+            analytics:
+              - "analytics/**"
+              - ".github/workflows/**"
+
+  # Analytics tests: the extraction-transform unit suite (the privacy contract
+  # — no payload ever ships to the warehouse — is pinned here).
+  analytics-tests:
+    name: analytics-tests
+    needs: detect-analytics
+    if: needs.detect-analytics.outputs.analytics == 'true'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: analytics
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v8.1.0 # no moving v8 major tag is published; pin the exact release
+        with:
+          enable-cache: true
+
+      - name: Sync analytics
+        run: uv sync
+
+      - name: Run unit tests
+        run: uv run pytest

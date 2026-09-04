@@ -1,0 +1,3 @@
+# Single code location: the nextrole_analytics package (on PYTHONPATH).
+load_from:
+  - python_module: nextrole_analytics.definitions

@@ -48,6 +48,32 @@ repos:
         types_or: [python, pyi, jupyter, pyproject]
         pass_filenames: false
 
+      - id: analytics-typecheck
+        name: Analytics Type Check
+        # Same cd-for-config-discovery pattern as backend-typecheck; the ruff
+        # hooks above already cover analytics/ (config in analytics/pyproject.toml).
+        entry: bash -c 'cd analytics && uv run ty check'
+        language: system
+        files: ^analytics/
+        types_or: [python, pyi, jupyter, pyproject]
+        pass_filenames: false
+
+      # dbt SQL: sqlfluff with the curated `core` rules on the ClickHouse dialect
+      # (config in analytics/pyproject.toml [tool.sqlfluff.*]). fix auto-formats/fixes (a modified file
+      # fails the run — re-stage and commit, like ruff --fix); lint reports
+      # whatever isn't auto-fixable.
+      - id: analytics-sqlfluff-fix
+        name: Analytics SQL Fix (sqlfluff)
+        entry: bash -c 'cd analytics && uv run sqlfluff fix --nocolor "${@#analytics/}"' --
+        language: system
+        files: ^analytics/.*\.sql$
+
+      - id: analytics-sqlfluff-lint
+        name: Analytics SQL Lint (sqlfluff)
+        entry: bash -c 'cd analytics && uv run sqlfluff lint --nocolor "${@#analytics/}"' --
+        language: system
+        files: ^analytics/.*\.sql$
+
       - id: frontend-lint
         name: Frontend ESLint
         entry: bash -c 'cd frontend && pnpm exec eslint --fix "${@#frontend/}"' --

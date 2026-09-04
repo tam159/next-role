@@ -1,0 +1,13 @@
+database_name: NextRole Cube (semantic layer)
+sqlalchemy_uri: __CUBE_URI__
+cache_timeout: null
+expose_in_sqllab: true
+allow_run_async: false
+allow_ctas: false
+allow_cvas: false
+allow_dml: false
+allow_file_upload: false
+extra:
+  allows_virtual_table_explore: true
+uuid: 0a03698d-9cad-5482-a2e9-2f80f700dd60
+version: 1.0.0

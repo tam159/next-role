@@ -1,0 +1,45 @@
+cubes:
+  - name: sessions
+    sql_table: fct_session
+    title: Login sessions
+    description: >
+      One row per Better Auth login session — registered users only, so empty in single-user
+      mode. Measures logins, not product activity: prefer runs.active_users for "active".
+    meta:
+      grain: one login session
+      primary_time_dimension: session_date
+      example_questions:
+        - How many logins per day, and by how many distinct users?
+      caveats:
+        - sessions are refreshed on activity, so a session is not one visit and expires_at is not a logout
+
+    joins:
+      - name: users
+        sql: "{CUBE}.user_id = {users}.user_id"
+        relationship: many_to_one
+
+    dimensions:
+      - name: session_id
+        sql: session_id
+        type: string
+        primary_key: true
+        description: Unique session id.
+      - name: user_id
+        sql: user_id
+        type: string
+        description: User who logged in.
+      - name: session_date
+        sql: session_date
+        type: time
+        description: Calendar date the session was created (login day) — the default time dimension.
+
+    measures:
+      - name: count
+        type: count
+        description: Number of login sessions.
+        meta:
+          synonyms: [logins]
+      - name: dau
+        sql: user_id
+        type: count_distinct
+        description: Distinct users who logged in during the selected window (login-based activity; runs.active_users is the product-usage view).

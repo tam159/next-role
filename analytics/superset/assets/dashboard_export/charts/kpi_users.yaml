@@ -1,0 +1,21 @@
+slice_name: Total users
+description: null
+certified_by: null
+certification_details: null
+viz_type: big_number_total
+params:
+  datasource: 0__table
+  viz_type: big_number_total
+  metric: count
+  adhoc_filters: []
+  header_font_size: 0.4
+  subheader: all time
+  subheader_font_size: 0.125
+  y_axis_format: SMART_NUMBER
+  time_format: smart_date
+  extra_form_data: {}
+query_context: null
+cache_timeout: null
+uuid: 110b7c52-ed8b-57b2-acdf-698ddb898308
+version: 1.0.0
+dataset_uuid: 2d360a35-9337-5b2f-a383-2aff116a4c93

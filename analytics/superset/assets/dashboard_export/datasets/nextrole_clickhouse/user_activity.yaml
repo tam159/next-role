@@ -1,0 +1,114 @@
+table_name: user_activity
+main_dttm_col: null
+description: Per-user activity + estimated LLM spend.
+default_endpoint: null
+offset: 0
+cache_timeout: null
+schema: nextrole_marts
+catalog: null
+sql: "SELECT u.user_id, u.name, u.email_domain,\n       coalesce(r.runs, 0) AS runs,\n       coalesce(r.threads, 0) AS threads,\n       m.total_tokens AS total_tokens,\n       m.est_cost_usd AS est_cost_usd\nFROM nextrole_marts.dim_user AS u\nLEFT JOIN (SELECT owner, count() AS runs, countDistinct(thread_id) AS threads\n           FROM nextrole_marts.fct_run GROUP BY owner) AS r ON r.owner = u.user_id\nLEFT JOIN (SELECT owner, sum(total_tokens) AS total_tokens, sum(est_cost_usd) AS est_cost_usd\n           FROM nextrole_marts.fct_message GROUP BY owner) AS m ON m.owner = u.user_id"
+params: null
+template_params: null
+filter_select_enabled: true
+fetch_values_predicate: null
+extra: null
+normalize_columns: false
+always_filter_main_dttm: false
+uuid: 69e4bde5-54c6-553e-b126-36725bbb98fe
+metrics:
+- metric_name: count
+  verbose_name: COUNT(*)
+  metric_type: count
+  expression: COUNT(*)
+  description: null
+  d3format: null
+  currency: null
+  extra: {}
+  warning_text: null
+columns:
+- column_name: user_id
+  verbose_name: null
+  is_dttm: false
+  is_active: true
+  type: String
+  advanced_data_type: null
+  groupby: true
+  filterable: true
+  expression: null
+  description: null
+  python_date_format: null
+  extra: {}
+- column_name: name
+  verbose_name: null
+  is_dttm: false
+  is_active: true
+  type: Nullable(String)
+  advanced_data_type: null
+  groupby: true
+  filterable: true
+  expression: null
+  description: null
+  python_date_format: null
+  extra: {}
+- column_name: email_domain
+  verbose_name: null
+  is_dttm: false
+  is_active: true
+  type: Nullable(String)
+  advanced_data_type: null
+  groupby: true
+  filterable: true
+  expression: null
+  description: null
+  python_date_format: null
+  extra: {}
+- column_name: runs
+  verbose_name: null
+  is_dttm: false
+  is_active: true
+  type: Int64
+  advanced_data_type: null
+  groupby: true
+  filterable: true
+  expression: null
+  description: null
+  python_date_format: null
+  extra: {}
+- column_name: threads
+  verbose_name: null
+  is_dttm: false
+  is_active: true
+  type: Int64
+  advanced_data_type: null
+  groupby: true
+  filterable: true
+  expression: null
+  description: null
+  python_date_format: null
+  extra: {}
+- column_name: total_tokens
+  verbose_name: null
+  is_dttm: false
+  is_active: true
+  type: Nullable(Int64)
+  advanced_data_type: null
+  groupby: true
+  filterable: true
+  expression: null
+  description: null
+  python_date_format: null
+  extra: {}
+- column_name: est_cost_usd
+  verbose_name: null
+  is_dttm: false
+  is_active: true
+  type: Nullable(Float64)
+  advanced_data_type: null
+  groupby: true
+  filterable: true
+  expression: null
+  description: null
+  python_date_format: null
+  extra: {}
+version: 1.0.0
+database_uuid: 23b237b9-850f-59ce-a930-cc088b03d36f

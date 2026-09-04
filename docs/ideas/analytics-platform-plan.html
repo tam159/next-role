@@ -1,0 +1,1933 @@
+<title>NextRole Analytics Blueprint</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400..800;1,6..72,400..600&family=Schibsted+Grotesk:ital,wght@0,400..900;1,400..700&family=JetBrains+Mono:wght@400;500;600&display=swap">
+<style>
+  /* ============ NextRole design tokens (paper + espresso, emerald accent) ============ */
+  :root {
+    --bg: #f3f0e9;
+    --surface: #fbfaf5;
+    --raised: #ffffff;
+    --inset: #f4f1ea;
+    --ink: #211f1a;
+    --ink-2: #6e6a60;
+    --ink-3: #9c968b;
+    --line: #e7e1d4;
+    --line-2: #d8d1c2;
+    --accent: #0e9f6e;
+    --accent-text: #0b7e58;
+    --accent-soft: #e3f5ec;
+    --on-accent: #ffffff;
+    --warm: #d9785a;
+    --ok: #3f9d6b;
+    --ok-soft: #e8f3ec;
+    --warn: #c47a16;
+    --warn-soft: #fbf0d7;
+    --err: #d9534f;
+    --err-soft: #fbe9e4;
+    --plum: #8a5a9e;
+    --slate: #4a6b8a;
+    --rose: #b56a7a;
+    --sage: #5a8a4a;
+    --bronze: #a2683a;
+    --bronze-soft: #f3e5d7;
+    --silver: #6f7d89;
+    --silver-soft: #e8ecef;
+    --gold: #a8841c;
+    --gold-soft: #f6edcf;
+    --shadow: 0 1px 2px rgba(33, 31, 26, 0.06), 0 8px 28px -12px rgba(33, 31, 26, 0.14);
+    --code-bg: #efeadf;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #191611;
+      --surface: #211d17;
+      --raised: #272219;
+      --inset: #2f2a20;
+      --ink: #f1ede4;
+      --ink-2: #aba496;
+      --ink-3: #7d766a;
+      --line: #332e25;
+      --line-2: #403a2f;
+      --accent: #3fcf95;
+      --accent-text: #6fdfb1;
+      --accent-soft: rgba(63, 207, 149, 0.16);
+      --on-accent: #1a1713;
+      --warm: #e08a6a;
+      --ok: #5bb98a;
+      --ok-soft: rgba(91, 185, 138, 0.16);
+      --warn: #f6c866;
+      --warn-soft: rgba(246, 200, 102, 0.14);
+      --err: #f08a82;
+      --err-soft: rgba(240, 138, 130, 0.14);
+      --plum: #c9a4dc;
+      --slate: #8fb0d0;
+      --rose: #d8a0ad;
+      --sage: #a8c98e;
+      --bronze: #d99a5e;
+      --bronze-soft: rgba(217, 154, 94, 0.14);
+      --silver: #a9b6c2;
+      --silver-soft: rgba(169, 182, 194, 0.12);
+      --gold: #dfc05a;
+      --gold-soft: rgba(223, 192, 90, 0.13);
+      --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 18px 56px -18px rgba(0, 0, 0, 0.62);
+      --code-bg: #2a261f;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #191611;
+    --surface: #211d17;
+    --raised: #272219;
+    --inset: #2f2a20;
+    --ink: #f1ede4;
+    --ink-2: #aba496;
+    --ink-3: #7d766a;
+    --line: #332e25;
+    --line-2: #403a2f;
+    --accent: #3fcf95;
+    --accent-text: #6fdfb1;
+    --accent-soft: rgba(63, 207, 149, 0.16);
+    --on-accent: #1a1713;
+    --warm: #e08a6a;
+    --ok: #5bb98a;
+    --ok-soft: rgba(91, 185, 138, 0.16);
+    --warn: #f6c866;
+    --warn-soft: rgba(246, 200, 102, 0.14);
+    --err: #f08a82;
+    --err-soft: rgba(240, 138, 130, 0.14);
+    --plum: #c9a4dc;
+    --slate: #8fb0d0;
+    --rose: #d8a0ad;
+    --sage: #a8c98e;
+    --bronze: #d99a5e;
+    --bronze-soft: rgba(217, 154, 94, 0.14);
+    --silver: #a9b6c2;
+    --silver-soft: rgba(169, 182, 194, 0.12);
+    --gold: #dfc05a;
+    --gold-soft: rgba(223, 192, 90, 0.13);
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 18px 56px -18px rgba(0, 0, 0, 0.62);
+    --code-bg: #2a261f;
+  }
+
+  /* ============ Base ============ */
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: "Schibsted Grotesk", system-ui, -apple-system, "Segoe UI", sans-serif;
+    font-size: 16px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 1100px; margin: 0 auto; padding: 0 24px; }
+  a { color: var(--accent-text); text-decoration: underline; text-decoration-color: color-mix(in srgb, var(--accent) 40%, transparent); text-underline-offset: 3px; }
+  a:hover { text-decoration-color: var(--accent); }
+  a:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 2px; }
+  code, .mono { font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace; }
+  code { font-size: 0.84em; background: var(--code-bg); border-radius: 4px; padding: 0.1em 0.36em; }
+  ::selection { background: var(--accent-soft); }
+
+  /* ============ Header & nav ============ */
+  header.hero { padding: 64px 0 36px; border-bottom: 1px solid var(--line); background: var(--surface); }
+  .eyebrow {
+    font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--accent-text); font-weight: 600; margin: 0 0 14px;
+  }
+  h1 {
+    font-family: "Newsreader", Georgia, serif;
+    font-optical-sizing: auto;
+    font-size: clamp(34px, 5.2vw, 54px);
+    font-weight: 640;
+    line-height: 1.06;
+    letter-spacing: -0.015em;
+    margin: 0 0 16px;
+    text-wrap: balance;
+  }
+  .lede { font-size: 18px; color: var(--ink-2); max-width: 62ch; margin: 0 0 22px; text-wrap: pretty; }
+  .meta-row { display: flex; flex-wrap: wrap; gap: 8px 20px; font-size: 13px; color: var(--ink-3); }
+  .meta-row .mono { color: var(--ink-2); }
+
+  nav.toc {
+    position: sticky; top: 0; z-index: 40;
+    background: color-mix(in srgb, var(--surface) 88%, transparent);
+    backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--line);
+  }
+  nav.toc .wrap { display: flex; gap: 2px; overflow-x: auto; padding-top: 0; padding-bottom: 0; }
+  nav.toc a {
+    flex: 0 0 auto; padding: 11px 12px; font-size: 13.5px; font-weight: 500;
+    color: var(--ink-2); text-decoration: none; border-bottom: 2px solid transparent;
+  }
+  nav.toc a:hover { color: var(--ink); border-bottom-color: var(--line-2); }
+
+  /* ============ Sections ============ */
+  section { padding: 52px 0 8px; scroll-margin-top: 64px; }
+  .sec-eyebrow {
+    display: flex; align-items: center; gap: 10px;
+    font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--ink-3); font-weight: 600; margin: 0 0 10px;
+  }
+  .sec-eyebrow::after { content: ""; height: 1px; flex: 1; background: var(--line); }
+  h2 {
+    font-family: "Newsreader", Georgia, serif;
+    font-optical-sizing: auto;
+    font-size: clamp(26px, 3.4vw, 36px);
+    font-weight: 620; line-height: 1.12; letter-spacing: -0.01em;
+    margin: 0 0 14px; text-wrap: balance;
+  }
+  h3 { font-size: 19px; font-weight: 700; margin: 34px 0 10px; letter-spacing: -0.005em; }
+  h4 { font-size: 15.5px; font-weight: 700; margin: 22px 0 8px; }
+  p, ul, ol { max-width: 72ch; }
+  p { margin: 0 0 14px; text-wrap: pretty; }
+  ul, ol { margin: 0 0 16px; padding-left: 22px; }
+  li { margin-bottom: 6px; }
+  li::marker { color: var(--ink-3); }
+  .note {
+    border-left: 3px solid var(--accent); background: var(--accent-soft);
+    padding: 12px 16px; border-radius: 0 8px 8px 0; margin: 18px 0; max-width: 78ch;
+    font-size: 14.5px;
+  }
+  .note.warn { border-left-color: var(--warn); background: var(--warn-soft); }
+  .note b:first-child { color: var(--accent-text); }
+  .note.warn b:first-child { color: var(--warn); }
+
+  /* ============ Cards & chips ============ */
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 14px; margin: 22px 0; }
+  .card {
+    background: var(--raised); border: 1px solid var(--line); border-radius: 12px;
+    padding: 18px 18px 14px; box-shadow: var(--shadow);
+  }
+  .card h4 { margin: 0 0 6px; font-size: 15px; }
+  .card .k { font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-3); font-weight: 600; margin-bottom: 8px; display: block; }
+  .card p { font-size: 14px; color: var(--ink-2); margin-bottom: 8px; }
+  .card ul { font-size: 14px; color: var(--ink-2); margin-bottom: 6px; padding-left: 18px; }
+  .chip {
+    display: inline-block; font-size: 11.5px; font-weight: 600; letter-spacing: 0.02em;
+    padding: 2px 9px; border-radius: 999px; white-space: nowrap; vertical-align: 1px;
+    border: 1px solid transparent;
+  }
+  .chip.pick { background: var(--accent); color: var(--on-accent); }
+  .chip.soft { background: var(--accent-soft); color: var(--accent-text); border-color: color-mix(in srgb, var(--accent) 30%, transparent); }
+  .chip.later { background: var(--warn-soft); color: var(--warn); border-color: color-mix(in srgb, var(--warn) 30%, transparent); }
+  .chip.skip { background: var(--inset); color: var(--ink-3); border-color: var(--line-2); }
+  .chip.risk { background: var(--err-soft); color: var(--err); border-color: color-mix(in srgb, var(--err) 30%, transparent); }
+  .chip.bronze { background: var(--bronze-soft); color: var(--bronze); border-color: color-mix(in srgb, var(--bronze) 35%, transparent); }
+  .chip.silver { background: var(--silver-soft); color: var(--silver); border-color: color-mix(in srgb, var(--silver) 35%, transparent); }
+  .chip.gold { background: var(--gold-soft); color: var(--gold); border-color: color-mix(in srgb, var(--gold) 35%, transparent); }
+
+  /* ============ Tables ============ */
+  .tablewrap { overflow-x: auto; margin: 18px 0 26px; border: 1px solid var(--line); border-radius: 12px; background: var(--raised); box-shadow: var(--shadow); }
+  table { border-collapse: collapse; width: 100%; min-width: 760px; font-size: 14px; }
+  thead th {
+    text-align: left; font-size: 11.5px; letter-spacing: 0.09em; text-transform: uppercase;
+    color: var(--ink-3); font-weight: 600; padding: 12px 14px 9px;
+    border-bottom: 1px solid var(--line-2); background: var(--surface);
+    white-space: nowrap;
+  }
+  tbody td { padding: 10px 14px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody th[scope="row"], td.rowhead { font-weight: 600; white-space: nowrap; padding: 10px 14px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+  tbody tr:last-child th[scope="row"] { border-bottom: none; }
+  td .sub { display: block; font-size: 12.5px; color: var(--ink-3); font-weight: 400; margin-top: 2px; }
+  th[scope="row"] .sub { display: block; font-size: 12px; color: var(--ink-3); font-weight: 400; white-space: normal; }
+  .num, .dots { font-family: "JetBrains Mono", ui-monospace, monospace; font-variant-numeric: tabular-nums; font-size: 13px; }
+  .dots { letter-spacing: 2px; color: var(--accent-text); white-space: nowrap; }
+  .dots .off { color: var(--line-2); }
+  .lic { font-family: "JetBrains Mono", ui-monospace, monospace; font-size: 12px; white-space: nowrap; }
+  .good { color: var(--ok); font-weight: 600; }
+  .bad { color: var(--err); font-weight: 600; }
+  .mid { color: var(--warn); font-weight: 600; }
+
+  /* ============ Figures / diagrams ============ */
+  figure { margin: 26px 0 30px; }
+  figure svg { max-width: 100%; height: auto; display: block; }
+  figcaption { font-size: 13.5px; color: var(--ink-2); margin-top: 10px; max-width: 78ch; }
+  figcaption b { color: var(--ink); }
+  .dg-panel { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 18px 14px 8px; overflow-x: auto; }
+  .dg-box { fill: var(--raised); stroke: var(--line-2); stroke-width: 1.2; rx: 8; }
+  .dg-container { fill: var(--inset); stroke: var(--line-2); stroke-width: 1.2; stroke-dasharray: none; }
+  .dg-title { font: 600 12.5px "Schibsted Grotesk", sans-serif; fill: var(--ink); }
+  .dg-sub { font: 400 10.5px "Schibsted Grotesk", sans-serif; fill: var(--ink-2); }
+  .dg-note { font: 400 10.5px "Schibsted Grotesk", sans-serif; fill: var(--ink-3); }
+  .dg-head { font: 600 11px "Schibsted Grotesk", sans-serif; fill: var(--ink-3); letter-spacing: 0.08em; text-transform: uppercase; }
+  .dg-arrow { stroke: var(--ink-3); stroke-width: 1.4; fill: none; }
+  .dg-arrow.accent { stroke: var(--accent); stroke-width: 1.7; }
+  .dg-arrow.dashed { stroke-dasharray: 4 4; }
+  .dg-bronze { fill: var(--bronze-soft); stroke: var(--bronze); stroke-width: 1.2; }
+  .dg-silver { fill: var(--silver-soft); stroke: var(--silver); stroke-width: 1.2; }
+  .dg-gold { fill: var(--gold-soft); stroke: var(--gold); stroke-width: 1.2; }
+  .dg-accentbox { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 1.4; }
+  .dg-layer-t { font: 600 12px "Schibsted Grotesk", sans-serif; }
+  .dg-fact { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 1.4; }
+
+  /* ============ Phases strip ============ */
+  .phases { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; margin: 24px 0 8px; }
+  .phase { background: var(--raised); border: 1px solid var(--line); border-radius: 12px; box-shadow: var(--shadow); overflow: hidden; }
+  .phase > .bar { height: 4px; background: var(--accent); }
+  .phase.p1 > .bar { background: var(--bronze); }
+  .phase.p2 > .bar { background: var(--silver); }
+  .phase.p3 > .bar { background: var(--gold); }
+  .phase .body { padding: 16px 18px 12px; }
+  .phase h4 { margin: 0 0 2px; font-size: 15.5px; }
+  .phase .when { font-size: 12px; color: var(--ink-3); margin-bottom: 10px; }
+  .phase ul { padding-left: 4px; list-style: none; font-size: 13.5px; margin-bottom: 4px; }
+  .phase li { display: flex; gap: 8px; margin-bottom: 5px; color: var(--ink-2); }
+  .phase li .t { color: var(--ink-3); font-size: 11px; letter-spacing: 0.07em; text-transform: uppercase; font-weight: 600; flex: 0 0 92px; padding-top: 2px; }
+  .phase li .v { font-weight: 500; color: var(--ink); }
+  .phase li .v .sub2 { display: block; font-weight: 400; font-size: 12.5px; color: var(--ink-3); }
+
+  footer { border-top: 1px solid var(--line); margin-top: 64px; padding: 26px 0 48px; font-size: 13px; color: var(--ink-3); background: var(--surface); }
+  footer .wrap { display: flex; flex-wrap: wrap; gap: 8px 24px; justify-content: space-between; }
+</style>
+
+<header class="hero">
+  <div class="wrap">
+    <p class="eyebrow">NextRole · Data Platform Plan</p>
+    <h1>An analytics, BI &amp; ML platform that grows from laptop to enterprise</h1>
+    <p class="lede">
+      One stack, finalized on day one — dlt into a ClickHouse medallion warehouse, dbt, a Cube semantic
+      layer, and Superset — the same containers from laptop to production, with customer-owned warehouses
+      joining only at the enterprise edge. Everything the platform collects feeds two improvement loops:
+      fine-tuned small models, and an optimizer agent that tunes the career agent itself.
+    </p>
+    <div class="meta-row">
+      <span>Prepared <span class="mono">2026-08-29</span> · revision <span class="mono">2</span></span>
+      <span>Source of truth <span class="mono">postgres · next-role (PG 18)</span></span>
+      <span>Stance <span class="mono">open source first · one stack, day one</span></span>
+    </div>
+  </div>
+</header>
+
+<nav class="toc" aria-label="Sections">
+  <div class="wrap">
+    <a href="#tldr">TL;DR</a>
+    <a href="#today">Today's data</a>
+    <a href="#architecture">Architecture</a>
+    <a href="#warehouse">Warehouse</a>
+    <a href="#pipeline">Pipeline</a>
+    <a href="#modeling">Modeling</a>
+    <a href="#semantic">Semantic layer</a>
+    <a href="#product">Product analytics</a>
+    <a href="#bi">BI</a>
+    <a href="#flywheel">Flywheel</a>
+    <a href="#governance">Governance</a>
+    <a href="#roadmap">Roadmap</a>
+    <a href="#sources">Sources</a>
+  </div>
+</nav>
+
+<main>
+<div class="wrap">
+
+<!-- ================================ TLDR ================================ -->
+<section id="tldr">
+  <p class="sec-eyebrow">The stack at a glance</p>
+  <h2>TL;DR — same architecture at every scale, swap only the engine</h2>
+  <p>
+    Everything in this plan — extraction, transformation, metrics, permissions, BI, the analytics
+    agent — is open source and joins the compose stack you already operate, <b>on day one</b>. This
+    revision collapses the first draft's phase-by-phase tool ladder: ClickHouse, Dagster, Cube, and
+    Superset are the stack from the first commit, so nothing gets migrated later — phases now add
+    capacity and governance, not tools. The multi-warehouse adapters (dlt destinations, dbt adapters,
+    Cube drivers) stay in the design for exactly one reason: enterprise tenants who bring their own
+    warehouse. And the platform's end state is a <a href="#flywheel">flywheel</a> — the warehouse feeds
+    fine-tuned small models and an optimizer agent that continuously tunes the career agent.
+  </p>
+
+  <div class="phases">
+    <div class="phase p1">
+      <div class="bar"></div>
+      <div class="body">
+        <h4>Phase 0 — the whole stack, day one</h4>
+        <p class="when">now · ~6 services join compose (~2–4 GB), reusing your Postgres + Redis</p>
+        <ul>
+          <li><span class="t">Warehouse</span><span class="v">ClickHouse OSS<span class="sub2">one engine — dev and prod share a dialect, nothing to migrate</span></span></li>
+          <li><span class="t">Pipeline</span><span class="v">dlt + dbt (dbt-clickhouse), scheduled by Dagster OSS</span></li>
+          <li><span class="t">Semantic</span><span class="v">Cube Core — BI and the agent both query it</span></li>
+          <li><span class="t">BI</span><span class="v">Superset (metadata in your Postgres, broker on your Redis)</span></li>
+          <li><span class="t">Events</span><span class="v">PostHog — Cloud free tier, or MIT hobby self-host</span></li>
+          <li><span class="t">Cost</span><span class="v">≈ $0/mo</span></li>
+        </ul>
+      </div>
+    </div>
+    <div class="phase p2">
+      <div class="bar"></div>
+      <div class="body">
+        <h4>Phase 1 — same stack, its own box</h4>
+        <p class="when">triggers: laptop RAM pressure · always-on dashboards · &gt;1M events/mo</p>
+        <ul>
+          <li><span class="t">Warehouse</span><span class="v">the same ClickHouse container, bigger disk — no migration</span></li>
+          <li><span class="t">Pipeline</span><span class="v">unchanged; backfills + alerting mature</span></li>
+          <li><span class="t">Flywheel</span><span class="v">traces self-hosted; first LoRA fine-tune (MLflow)</span></li>
+          <li><span class="t">Governance</span><span class="v">OpenMetadata when diligence (or catalog need) starts</span></li>
+          <li><span class="t">Events</span><span class="v">PostHog paid tier or keep hobby; exports land in bronze</span></li>
+          <li><span class="t">Cost</span><span class="v">~$60–250/mo (one VM; occasional GPU rental)</span></li>
+        </ul>
+      </div>
+    </div>
+    <div class="phase p3">
+      <div class="bar"></div>
+      <div class="body">
+        <h4>Phase 2 — enterprise &amp; BYO warehouse</h4>
+        <p class="when">triggers: the first enterprise (recruiting-firm) deal</p>
+        <ul>
+          <li><span class="t">Warehouse</span><span class="v">theirs — Snowflake / Databricks / BigQuery data plane<span class="sub2">your own SaaS stays on ClickHouse (BigQuery only as a zero-ops exit)</span></span></li>
+          <li><span class="t">Pipeline</span><span class="v">same dbt package, per-tenant parameters</span></li>
+          <li><span class="t">Semantic</span><span class="v">Cube compiles per tenant (<code>COMPILE_CONTEXT</code>)</span></li>
+          <li><span class="t">Governance</span><span class="v">their catalog (UC / Horizon / Dataplex) + your OpenMetadata</span></li>
+          <li><span class="t">Flywheel</span><span class="v">per-tenant isolation — no cross-tenant training, ever</span></li>
+          <li><span class="t">Cost</span><span class="v">~$300–1,500+/mo</span></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>Role</th><th>Pick</th><th>License</th><th>Why, in one line</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">Warehouse</th><td><b>ClickHouse OSS</b></td><td class="lic">Apache-2.0</td><td>The one engine at every self-run scale — dev compose to prod node; row policies free; nothing to migrate</td></tr>
+        <tr><th scope="row">Extract-load</th><td><b>dlt</b></td><td class="lic">Apache-2.0</td><td>Auto-flattens JSONB into typed parent/child tables; a pip package, not a platform</td></tr>
+        <tr><th scope="row">Orchestration</th><td><b>Dagster OSS</b></td><td class="lic">Apache-2.0</td><td>Day one — asset graph = free lineage over dlt + dbt; run storage in your existing Postgres</td></tr>
+        <tr><th scope="row">Transformation</th><td><b>dbt Core</b> via dbt-clickhouse</td><td class="lic">Apache-2.0</td><td>Contracts, tests, docs; one dialect tuned once; Fusion engine relicensed Apache-2.0 into Core v2</td></tr>
+        <tr><th scope="row">Data quality</th><td><b>dbt tests → elementary</b></td><td class="lic">Apache-2.0</td><td>Assertions first; elementary adds history, anomaly tests, and the report UI when you want them</td></tr>
+        <tr><th scope="row">Semantic layer + permissions</th><td><b>Cube Core</b></td><td class="lic">Apache-2.0</td><td><code>/v1/meta</code> discovery + JWT row-level security — the agent's entire interface</td></tr>
+        <tr><th scope="row">BI</th><td><b>Superset</b></td><td class="lic">Apache-2.0</td><td>One tool, finalized: internal now, embedded + RLS later — all in the free core</td></tr>
+        <tr><th scope="row">Product analytics</th><td><b>PostHog</b> → warehouse</td><td class="lic">MIT core / SaaS</td><td>Cloud free tier (1M events/mo) or hobby self-host; either way raw events land in <i>your</i> warehouse</td></tr>
+        <tr><th scope="row">LLM traces</th><td><b>Langfuse</b> self-host</td><td class="lic">MIT</td><td>All product features MIT since 2025-06; runs on the Postgres/Redis/S3/ClickHouse you already have</td></tr>
+        <tr><th scope="row">Flywheel</th><td><b>MLflow + Unsloth + vLLM</b></td><td class="lic">Apache-2.0</td><td>LoRA fine-tunes tracked and eval-gated, served as OpenAI-style adapters into <code>subagent_model</code></td></tr>
+        <tr><th scope="row">Catalog (later)</th><td><b>OpenMetadata</b></td><td class="lic">Apache-2.0</td><td>Your cross-estate view; tenants keep their native catalog (UC/Horizon/Dataplex)</td></tr>
+        <tr><th scope="row">Ad-hoc engine</th><td><b>DuckDB</b></td><td class="lic">MIT</td><td>Notebook/one-off analysis over Parquet exports — a utility, not a warehouse tier</td></tr>
+        <tr><th scope="row">Enterprise BYO</th><td>customer's <b>Snowflake / Databricks / BigQuery</b></td><td class="lic">theirs</td><td>Same dbt package + Cube models compiled per tenant; their catalog enforces natively</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="note">
+    <b>The permissions doctrine — two locks.</b> (1) The <b>Cube security context</b> is the primary
+    lock: per-end-user, fail-closed, and portable — it behaves identically over DuckDB, ClickHouse, and
+    any customer warehouse, which is what makes the analytics agent shippable. (2) <b>Engine-native
+    RLS/masking</b> is the second lock, covering any path that bypasses the semantic layer — and with
+    ClickHouse as the day-one engine, its row policies exist from day one too (BigQuery/Snowflake/
+    Databricks policies take over on BYO tenants). The agent never holds warehouse credentials, and
+    prompt-level "permissions" are not permissions.
+  </div>
+</section>
+
+<!-- ================================ TODAY ================================ -->
+<section id="today">
+  <p class="sec-eyebrow">Ground truth</p>
+  <h2>What the operational data looks like today</h2>
+  <p>
+    Explored live on <code>postgres · next-role</code> (PostgreSQL 18, pgvector image): 17 tables in
+    <code>public</code>, split between the vendored LangGraph runtime and Better&nbsp;Auth identity
+    tables. The analytically interesting content sits almost entirely inside <b>15 JSONB columns</b>
+    and two msgpack <code>bytea</code> blob tables — which is exactly why an ELT pass that lands raw
+    JSON and flattens it in the warehouse beats trying to analyze the OLTP schema in place.
+  </p>
+
+  <div class="tablewrap">
+    <table>
+      <caption class="visually-hidden" style="display:none">Operational tables and their analytics value</caption>
+      <thead>
+        <tr><th>Table</th><th>Size</th><th>~Rows</th><th>What it holds</th><th>Analytics value</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <th scope="row">run<span class="sub">LangGraph runtime</span></th>
+          <td class="num">544 kB</td><td class="num">201</td>
+          <td>One agent invocation: <code>status</code>, timestamps, <code>kwargs</code> (config, model overrides, input), <code>metadata.owner</code></td>
+          <td><span class="chip pick">core fact</span> status mix today: 196 success · 3 interrupted · 2 error</td>
+        </tr>
+        <tr>
+          <th scope="row">thread<span class="sub">LangGraph runtime</span></th>
+          <td class="num">5.1 MB</td><td class="num">~100</td>
+          <td><code>values</code> JSONB: <code>messages</code>, <code>files</code>, <code>todos</code>, <code>skills_metadata</code>, <code>memory_contents</code>, <code>subagent_transcripts</code>; <code>metadata.owner/graph_id</code></td>
+          <td><span class="chip pick">rich</span> every AI message carries <code>usage_metadata</code> → tokens &amp; cost are already extractable; <code>files</code> → artifact inventory</td>
+        </tr>
+        <tr>
+          <th scope="row">checkpoints<span class="sub">LangGraph runtime</span></th>
+          <td class="num">12 MB</td><td class="num">5.3k</td>
+          <td>Per-step snapshot <code>metadata</code>: <code>user_id</code>, <code>run_id</code>, <code>step</code>, <code>source</code>, <code>langgraph_node/path/triggers</code></td>
+          <td><span class="chip pick">agent telemetry</span> step-level behavior of main agent + subagents, no extra instrumentation</td>
+        </tr>
+        <tr>
+          <th scope="row">checkpoint_blobs / _writes<span class="sub">LangGraph runtime</span></th>
+          <td class="num">50 + 17 MB</td><td class="num">4.4k / 11k</td>
+          <td>msgpack-serialized channel state (<code>bytea</code>) — opaque to SQL, full agent state incl. document text</td>
+          <td><span class="chip skip">skip ELT</span> 80% of DB size, unqueryable, PII-dense; analytics needs its metadata only</td>
+        </tr>
+        <tr>
+          <th scope="row">user / session / account<span class="sub">Better Auth</span></th>
+          <td class="num">160 kB</td><td class="num">small</td>
+          <td>Identity (<code>email</code>, <code>name</code>), login sessions (<code>ipAddress</code>, <code>userAgent</code>), OAuth links</td>
+          <td><span class="chip pick">identity spine</span> DAU/WAU/retention come from <code>session</code>; joins to everything via <code>owner</code></td>
+        </tr>
+        <tr>
+          <th scope="row">store<span class="sub">LangGraph KV</span></th>
+          <td class="num">288 kB</td><td class="num">13</td>
+          <td>Long-term memory: prefix <code>&lt;user&gt;.career_agent.&lt;area&gt;</code> (memory, processed, research, interview_coach), JSONB <code>value</code></td>
+          <td><span class="chip soft">feature adoption</span> memory &amp; artifact-area usage per user</td>
+        </tr>
+        <tr>
+          <th scope="row">assistant (+versions)<span class="sub">LangGraph runtime</span></th>
+          <td class="num">120 kB</td><td class="num">small</td>
+          <td>Agent definitions: <code>config</code>, <code>context</code>, versioning</td>
+          <td><span class="chip soft">dimension</span> joins runs to graph/agent versions</td>
+        </tr>
+        <tr>
+          <th scope="row">cron · thread_ttl · delete_queue · jwks · verification · schema_migrations</th>
+          <td class="num">&lt;200 kB</td><td class="num">tiny</td>
+          <td>Runtime plumbing</td>
+          <td><span class="chip skip">skip</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>What you can measure on day one — before adding any instrumentation</h3>
+  <ul>
+    <li><b>Usage:</b> DAU/WAU/MAU and login retention from <code>session</code>; threads &amp; runs per user per day from <code>thread</code>/<code>run</code> + <code>owner</code>.</li>
+    <li><b>Reliability:</b> run success / interrupt / error rates; run duration from <code>created_at → updated_at</code>; error threads.</li>
+    <li><b>Cost:</b> tokens in/out per message from <code>usage_metadata</code> (verified present on every AI message), rolled up to cost per run, per user, per model — including the model-override choices sitting in <code>run.kwargs.config.configurable</code>.</li>
+    <li><b>Agent behavior:</b> steps per run, node/subagent frequency, interrupt (HiL approval) rates from <code>checkpoints.metadata</code>.</li>
+    <li><b>Output:</b> artifacts produced per thread from <code>thread.values.files</code> (resume YAML/PDF, recon docs, battlecards) and object-storage inventory.</li>
+  </ul>
+
+  <h3>What's missing — and where it should come from</h3>
+  <ul>
+    <li><b>Frontend behavior</b> (page views, clicks, upload funnel, feature discovery, download events): nothing is instrumented today → <a href="#product">product analytics</a>.</li>
+    <li><b>Per-node latency and full traces:</b> LangSmith tracing is configured today (<code>LANGCHAIN_TRACING_V2</code>), but its bulk export is now Enterprise-gated — the <a href="#flywheel">flywheel section</a> moves the trace store to self-hosted Langfuse (MIT), which runs on services this stack already has.</li>
+    <li><b>Business events</b> (signup → activation → habit): derivable once auth is on and events are landed in the warehouse.</li>
+    <li><b>Explicit feedback signals</b> (thumbs on artifacts, edit-request outcomes): not captured today — they become the labels for the <a href="#flywheel">fine-tuning flywheel</a>, so they join the event taxonomy below.</li>
+  </ul>
+
+  <div class="note warn">
+    <b>PII map (this drives governance):</b> <code>user.email/name</code>, <code>session.ipAddress/userAgent</code>,
+    CV/JD text inside <code>thread.values.messages</code> and checkpoint blobs, memories in <code>store.value</code>,
+    and uploaded documents in object storage. The warehouse plan deliberately lands <em>structure and
+    metrics</em>, not document bodies — raw chat/CV text stays out of analytics by default.
+  </div>
+</section>
+
+<!-- ================================ ARCHITECTURE ================================ -->
+<section id="architecture">
+  <p class="sec-eyebrow">Target design</p>
+  <h2>Architecture: ELT into a medallion warehouse, governed at the semantic layer</h2>
+  <p>
+    Five principles, then the picture:
+  </p>
+  <ol>
+    <li><b>ELT, not ETL.</b> Land raw JSON as-is (bronze), flatten and type it inside the warehouse with dbt. JSONB payloads evolve with the app; transformation-in-warehouse means schema drift lands safely instead of breaking extractors.</li>
+    <li><b>One stack you operate; adapters for warehouses you don't.</b> ClickHouse is the engine at every scale you run yourself — dev compose and production differ by hardware, not dialect, so dbt models are tuned exactly once. dlt, dbt, and Cube keep their multi-warehouse adapters for one purpose: enterprise tenants who bring BigQuery/Snowflake/Databricks.</li>
+    <li><b>The warehouse is the source of truth.</b> Product-analytics events flow <em>into</em> it (PostHog batch export); the PostHog UI is a lens, never a silo.</li>
+    <li><b>Governance rides the pipeline.</b> PII tags live in dbt <code>meta</code>, propagate to the catalog and to masking policies; lineage is emitted by dbt + the orchestrator, not documented by hand.</li>
+    <li><b>The analytics agent never writes raw SQL against the warehouse.</b> It queries the semantic layer with the end user's security context, so permissions are enforced in one portable place.</li>
+  </ol>
+
+  <figure>
+    <div class="dg-panel">
+    <svg viewBox="0 0 1160 476" role="img" aria-label="Target architecture: Postgres, PostHog, LangSmith and object storage feed dlt pipelines orchestrated by Dagster into a bronze-silver-gold warehouse transformed by dbt; Cube serves BI, the analytics agent, and notebooks; a governance rail (OpenMetadata, elementary, dbt docs) receives metadata from every stage." style="min-width:900px">
+      <defs>
+        <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0 0 L10 5 L0 10 z" fill="var(--ink-3)"/>
+        </marker>
+        <marker id="arrA" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0 0 L10 5 L0 10 z" fill="var(--accent)"/>
+        </marker>
+      </defs>
+
+      <!-- column headings -->
+      <text x="106" y="34" class="dg-head" text-anchor="middle">Sources</text>
+      <text x="352" y="34" class="dg-head" text-anchor="middle">Ingestion</text>
+      <text x="610" y="34" class="dg-head" text-anchor="middle">Warehouse</text>
+      <text x="852" y="34" class="dg-head" text-anchor="middle">Semantic</text>
+      <text x="1063" y="34" class="dg-head" text-anchor="middle">Consumers</text>
+
+      <!-- sources -->
+      <rect x="16" y="52" width="180" height="54" class="dg-box" rx="8"/>
+      <text x="30" y="74" class="dg-title">Postgres (OLTP)</text>
+      <text x="30" y="90" class="dg-sub">threads · runs · users · store</text>
+
+      <rect x="16" y="122" width="180" height="54" class="dg-box" rx="8"/>
+      <text x="30" y="144" class="dg-title">PostHog</text>
+      <text x="30" y="160" class="dg-sub">product events (FE + BE)</text>
+
+      <rect x="16" y="192" width="180" height="54" class="dg-box" rx="8"/>
+      <text x="30" y="214" class="dg-title">LLM traces</text>
+      <text x="30" y="230" class="dg-sub">Langfuse / LangSmith</text>
+
+      <rect x="16" y="262" width="180" height="54" class="dg-box" rx="8"/>
+      <text x="30" y="284" class="dg-title">Object storage</text>
+      <text x="30" y="300" class="dg-sub">file inventory (no bodies)</text>
+
+      <!-- ingestion -->
+      <rect x="286" y="92" width="132" height="164" class="dg-box" rx="8"/>
+      <text x="300" y="116" class="dg-title">dlt pipelines</text>
+      <text x="300" y="134" class="dg-sub">incremental merge</text>
+      <text x="300" y="150" class="dg-sub">JSONB → typed cols</text>
+      <text x="300" y="166" class="dg-sub">schema evolution</text>
+      <text x="300" y="190" class="dg-title">Dagster</text>
+      <text x="300" y="208" class="dg-sub">schedules · assets</text>
+      <text x="300" y="224" class="dg-sub">retries · lineage</text>
+
+      <!-- arrows sources -> ingestion -->
+      <line x1="196" y1="79" x2="282" y2="118" class="dg-arrow" marker-end="url(#arr)"/>
+      <text x="206" y="84" class="dg-note">every 15 min</text>
+      <line x1="196" y1="219" x2="282" y2="196" class="dg-arrow dashed" marker-end="url(#arr)"/>
+      <text x="206" y="236" class="dg-note">export API (opt.)</text>
+      <line x1="196" y1="289" x2="282" y2="238" class="dg-arrow dashed" marker-end="url(#arr)"/>
+      <text x="206" y="296" class="dg-note">daily listing</text>
+
+      <!-- posthog direct to bronze -->
+      <path d="M 196 149 C 300 149, 330 74, 470 74 L 486 74" class="dg-arrow" marker-end="url(#arr)"/>
+      <text x="300" y="66" class="dg-note">batch export (hourly)</text>
+
+      <!-- warehouse container -->
+      <rect x="486" y="52" width="248" height="290" class="dg-container" rx="12"/>
+      <text x="502" y="76" class="dg-title">ClickHouse OSS (dev = prod) · BYO later</text>
+
+      <rect x="502" y="92" width="216" height="56" class="dg-bronze" rx="7"/>
+      <text x="516" y="114" class="dg-layer-t" fill="var(--bronze)">bronze — raw</text>
+      <text x="516" y="132" class="dg-sub">JSON as landed + load metadata</text>
+
+      <rect x="502" y="176" width="216" height="56" class="dg-silver" rx="7"/>
+      <text x="516" y="198" class="dg-layer-t" fill="var(--silver)">silver — clean entities</text>
+      <text x="516" y="216" class="dg-sub">typed · deduped · PII-tagged</text>
+
+      <rect x="502" y="260" width="216" height="56" class="dg-gold" rx="7"/>
+      <text x="516" y="282" class="dg-layer-t" fill="var(--gold)">gold — star marts</text>
+      <text x="516" y="300" class="dg-sub">facts + dims + metrics inputs</text>
+
+      <line x1="610" y1="148" x2="610" y2="172" class="dg-arrow" marker-end="url(#arr)"/>
+      <text x="620" y="165" class="dg-note">dbt</text>
+      <line x1="610" y1="232" x2="610" y2="256" class="dg-arrow" marker-end="url(#arr)"/>
+      <text x="620" y="249" class="dg-note">dbt</text>
+
+      <!-- ingestion -> bronze -->
+      <line x1="418" y1="174" x2="498" y2="122" class="dg-arrow" marker-end="url(#arr)"/>
+      <text x="428" y="146" class="dg-note">append / merge</text>
+
+      <!-- cube -->
+      <rect x="786" y="152" width="132" height="90" class="dg-accentbox" rx="10"/>
+      <text x="800" y="176" class="dg-title">Cube</text>
+      <text x="800" y="194" class="dg-sub">metrics · dimensions</text>
+      <text x="800" y="210" class="dg-sub">row-level security</text>
+      <text x="800" y="226" class="dg-sub">/meta for agents</text>
+
+      <line x1="734" y1="288" x2="782" y2="220" class="dg-arrow accent" marker-end="url(#arrA)"/>
+      <text x="716" y="252" class="dg-note">gold only</text>
+
+      <!-- consumers -->
+      <rect x="978" y="72" width="170" height="54" class="dg-box" rx="8"/>
+      <text x="992" y="94" class="dg-title">BI — Metabase</text>
+      <text x="992" y="110" class="dg-sub">dashboards · self-serve</text>
+
+      <rect x="978" y="152" width="170" height="54" class="dg-box" rx="8"/>
+      <text x="992" y="174" class="dg-title">Analytics agent</text>
+      <text x="992" y="190" class="dg-sub">LangGraph · MCP tools</text>
+
+      <rect x="978" y="232" width="170" height="54" class="dg-box" rx="8"/>
+      <text x="992" y="254" class="dg-title">Improvement flywheel</text>
+      <text x="992" y="270" class="dg-sub">fine-tunes · optimizer agent</text>
+
+      <line x1="918" y1="178" x2="974" y2="102" class="dg-arrow" marker-end="url(#arr)"/>
+      <text x="920" y="128" class="dg-note">SQL API</text>
+      <line x1="918" y1="197" x2="974" y2="179" class="dg-arrow accent" marker-end="url(#arrA)"/>
+      <text x="924" y="176" class="dg-note">REST + JWT</text>
+      <line x1="918" y1="216" x2="974" y2="256" class="dg-arrow dashed" marker-end="url(#arr)"/>
+      <text x="924" y="248" class="dg-note">SQL</text>
+
+      <!-- governance rail -->
+      <rect x="16" y="382" width="1132" height="64" class="dg-container" rx="12"/>
+      <text x="34" y="408" class="dg-title">Governance rail</text>
+      <text x="34" y="426" class="dg-sub">OpenMetadata (catalog · column lineage · PII tags · glossary) · elementary (quality on every dbt run) · dbt docs + contracts</text>
+
+      <line x1="352" y1="256" x2="352" y2="378" class="dg-arrow dashed" marker-end="url(#arr)"/>
+      <line x1="610" y1="342" x2="610" y2="378" class="dg-arrow dashed" marker-end="url(#arr)"/>
+      <line x1="852" y1="242" x2="852" y2="378" class="dg-arrow dashed" marker-end="url(#arr)"/>
+      <text x="620" y="366" class="dg-note">metadata · lineage · test results (OpenLineage)</text>
+    </svg>
+    </div>
+    <figcaption>
+      <b>The target platform.</b> Solid arrows move data; dashed arrows move metadata. The same
+      containers run at every scale — the warehouse box is replaced only when an enterprise tenant
+      brings their own (that is what the dlt/dbt/Cube adapters are for). The analytics agent's path
+      (accent) goes through Cube's REST API with a JWT security context — never raw SQL.
+    </figcaption>
+  </figure>
+</section>
+
+<!-- ================================ WAREHOUSE ================================ -->
+<section id="warehouse">
+  <p class="sec-eyebrow">The engine</p>
+  <h2>Warehouse: ClickHouse from day one; customer warehouses at the edge</h2>
+
+  <div class="note">
+    <b>Decision update.</b> The first draft staged DuckDB + DuckLake → ClickHouse → cloud. Review
+    verdict: <b>one engine beats two migrations.</b> The expensive part of a warehouse migration was
+    never the connection string — it's the SQL dialect and the physical-design rework (dbt incremental
+    strategies, table engines, type quirks) plus re-validating every model. Committing to ClickHouse
+    OSS from the first commit removes that entirely: it's free, Apache-2.0, runs as one more compose
+    container for local dev, and is the engine the stack would have graduated to anyway. What you
+    accept: one always-on service (~2–4 GB locally) instead of an in-process library, and ClickHouse's
+    quirkier dialect learned once. What you get: dev = prod parity, engine-enforced row policies from
+    day one, PostHog-scale event ingestion, and zero engine swaps on the roadmap. DuckDB doesn't
+    disappear — it's demoted to what it's genuinely best at: an ad-hoc notebook engine over Parquet
+    exports, not a warehouse tier.
+  </div>
+
+  <h3>First, the idea to retire: analytics inside the operational Postgres</h3>
+  <p>
+    The "Postgres with a columnar extension" category effectively shook out in 2025–26 — three of the
+    six candidates died or changed hands in ~18 months. Beyond project risk, two structural reasons:
+    heavy scans contend with LangGraph's checkpoint write traffic, and an analytics agent issuing SQL
+    against the OLTP database is a blast-radius problem. ELT out — even a nightly copy to Parquet —
+    buys isolation, cheap storage, and the governance seam everything else in this plan attaches to.
+  </p>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>Extension</th><th>License</th><th>Status (verified Aug 2026)</th><th>Verdict</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">pg_duckdb</th><td class="lic">MIT</td><td>The survivor — v1.x "production ready", maintained under the duckdb org (DuckDB Labs / MotherDuck / Hydra); execution gated by <code>duckdb.postgres_role</code> + external-access settings</td><td><span class="chip soft">Fine if you must stay in one PG</span></td></tr>
+        <tr><th scope="row">pg_mooncake</th><td class="lic">MIT</td><td>Mooncake Labs acquired by Databricks (Oct 2025) to build Lakebase; repo active but the roadmap serves Databricks now</td><td><span class="chip skip">Skip</span></td></tr>
+        <tr><th scope="row">Hydra columnar</th><td class="lic">AGPL-3.0</td><td>Abandonware — last commit Feb 2025; company pivoted</td><td><span class="chip skip">Skip</span></td></tr>
+        <tr><th scope="row">ParadeDB pg_analytics</th><td class="lic">—</td><td>Archived Mar 2025; ParadeDB pivoted to search (pg_search)</td><td><span class="chip skip">Skip</span></td></tr>
+        <tr><th scope="row">Citus columnar</th><td class="lic">AGPL-3.0</td><td>Alive inside Citus 14 but columnar itself gets minimal investment</td><td><span class="chip skip">Skip</span></td></tr>
+        <tr><th scope="row">TimescaleDB / TigerData</th><td class="lic">Apache-2.0 + TSL</td><td>Active (2.29, Jul 2026), columnstore-focused — built for time-series workloads</td><td><span class="chip skip">Wrong shape for this</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>Small scale / self-host</h3>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>Option</th><th>License</th><th>Why it fits (or doesn't)</th><th>Governance in the engine</th><th>Verdict</th></tr></thead>
+      <tbody>
+        <tr>
+          <th scope="row">ClickHouse OSS</th>
+          <td class="lic">Apache-2.0</td>
+          <td>Strongest self-host warehouse: a single Docker container next to the app — official docs recommend far more for prod, but it runs in a 2–4 GB-capped container with the documented low-memory settings, which is exactly the dev-laptop case. Native JSON type, sub-second aggregations at event scale, "data-lake ready" (Iceberg/Delta via REST catalogs). Cluster ops (Keeper, merges) are real — stay single-node as long as possible; it goes a very long way.</td>
+          <td class="good">SQL RBAC, <b>row policies</b>, per-column grants — free; masking via views</td>
+          <td><span class="chip pick">The engine, day one</span></td>
+        </tr>
+        <tr>
+          <th scope="row">DuckDB + DuckLake 1.0</th>
+          <td class="lic">MIT</td>
+          <td>In-process, zero services; best-in-class JSON; reads Postgres live and Parquet on any S3 API (DuckLake 1.0 can even keep its catalog in your existing Postgres). In this plan it's the <b>ad-hoc engine</b>: notebooks and one-off analysis over Parquet exports and lake files — not a tier the pipeline depends on.</td>
+          <td class="bad">None — file/credential scope only; must always sit behind Cube / an API layer.</td>
+          <td><span class="chip soft">Utility engine, not a tier</span></td>
+        </tr>
+        <tr>
+          <th scope="row">StarRocks / Apache Doris</th>
+          <td class="lic">Apache-2.0</td>
+          <td>Fast OSS MPP lakehouse engines (JSON first-class in 2025+); clusters are overkill below mid-scale</td>
+          <td>RBAC; row policies (Doris)</td>
+          <td><span class="chip skip">Not before real MPP need</span></td>
+        </tr>
+        <tr>
+          <th scope="row">MotherDuck</th>
+          <td class="lic">SaaS</td>
+          <td>Managed DuckDB/DuckLake; free tier (10 GB), Business $250/mo</td>
+          <td class="bad">Per-database ACL only — no RLS/CLS (as of Aug 2026)</td>
+          <td><span class="chip soft">Managed middle tier, behind the API only</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>Cloud warehouses</h3>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>Platform</th><th>Pricing model</th><th>JSON handling</th><th>Open formats</th><th>Verdict for NextRole</th></tr></thead>
+      <tbody>
+        <tr>
+          <th scope="row">BigQuery</th>
+          <td>On-demand per-TiB scanned or Editions slots — <b>zero idle cost</b></td>
+          <td class="good">Native JSON type + STRUCT/ARRAY</td>
+          <td>BigLake managed Iceberg; Iceberg REST catalog GA (2025-11)</td>
+          <td><span class="chip later">The zero-ops exit ramp</span> — if you ever stop wanting to run ClickHouse; spiky workloads cost near-nothing and governance is in the base price</td>
+        </tr>
+        <tr>
+          <th scope="row">Databricks</th>
+          <td>DBU consumption + infra; Free Edition for dev</td>
+          <td class="good">VARIANT</td>
+          <td>Delta + managed Iceberg; UC Iceberg REST</td>
+          <td><span class="chip soft">Pick if ML gravity grows</span> — Unity Catalog ABAC (GA 2026-05) is the best-in-class permission model</td>
+        </tr>
+        <tr>
+          <th scope="row">Snowflake</th>
+          <td>Credits/sec per warehouse + storage</td>
+          <td class="good">VARIANT — the gold standard</td>
+          <td>Iceberg GA; Open Catalog = managed Polaris; Horizon policies reach external engines</td>
+          <td><span class="chip later">Support first for BYO</span> — but note: RLS, masking, tags, access history are <b>Enterprise-edition-gated</b></td>
+        </tr>
+        <tr>
+          <th scope="row">Redshift</th>
+          <td>Serverless RPU-hours or RA3 nodes</td>
+          <td class="mid">SUPER/PartiQL — weakest of the big three</td>
+          <td>Iceberg reads incl. S3 Tables; RLS/masked tables can't register in Glue</td>
+          <td><span class="chip skip">Only if a customer mandates AWS-native</span></td>
+        </tr>
+        <tr>
+          <th scope="row">Azure Synapse → Fabric</th>
+          <td>Synapse DWUs · Fabric capacity F-SKUs</td>
+          <td class="mid">T-SQL JSON, improving in Fabric</td>
+          <td>Fabric is Delta-native; OneLake shortcuts for Iceberg</td>
+          <td><span class="chip skip">Synapse is maintenance-mode — never start new work there;</span> Fabric only for Microsoft-shop tenants (OneLake RLS/CLS GA 2026)</td>
+        </tr>
+        <tr>
+          <th scope="row">ClickHouse Cloud / MotherDuck</th>
+          <td>Usage-based; BYOC available (CH, GCP)</td>
+          <td class="good">Native / DuckDB-grade</td>
+          <td>Iceberg/Delta reads via catalogs</td>
+          <td><span class="chip soft">Managed middle tier</span> — cheaper entry than the big three, lighter governance</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>The deciding table: permission models per engine</h3>
+  <p>
+    This is the comparison that matters most for the analytics agent and for enterprise deployments.
+    The rule it supports: <b>enforcement must live server-side, outside the model</b> — in the semantic
+    layer always, and in the engine too wherever the engine can. Engines with no row-level model
+    (DuckDB, MotherDuck) are perfectly good <i>compute</i>, but they must sit behind Cube or your API;
+    they can never be exposed to the agent or to customers directly.
+  </p>
+  <div class="tablewrap">
+    <table style="min-width:960px">
+      <thead><tr><th>Engine</th><th>RBAC granularity</th><th>Row-level security</th><th>Column masking</th><th>Tag / attribute policies</th><th>Catalog</th><th>Audit</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">Postgres (OLTP + pg_duckdb)</th><td>DB → schema → table → column grants</td><td class="good">Native RLS policies</td><td>Column grants; masking via extensions</td><td class="bad">—</td><td>—</td><td>pgAudit</td></tr>
+        <tr><th scope="row">DuckDB / DuckLake</th><td class="bad">None engine-side</td><td class="bad">—</td><td class="bad">—</td><td class="bad">—</td><td>DuckLake catalog = metadata, not authz</td><td class="bad">—</td></tr>
+        <tr><th scope="row">ClickHouse OSS</th><td>SQL RBAC + column grants</td><td class="good">ROW POLICY</td><td class="mid">Via views</td><td class="bad">—</td><td>—</td><td>system.query_log</td></tr>
+        <tr><th scope="row">BigQuery</th><td>IAM: project → dataset → table</td><td class="good">Row access policies</td><td class="good">Policy-tag CLS + dynamic masking</td><td class="good">Policy tags (Dataplex taxonomies)</td><td>Dataplex Universal Catalog — enforced cross-engine via BigLake</td><td>Cloud Audit Logs</td></tr>
+        <tr><th scope="row">Snowflake</th><td>Role hierarchy (no column grants — use policies/views)</td><td class="mid">Row access policies — <b>Enterprise+</b></td><td class="mid">Dynamic + tag-based masking — <b>Enterprise+</b></td><td class="mid">Object tags — Enterprise+</td><td>Horizon · Open Catalog (managed Polaris)</td><td>ACCESS_HISTORY (Ent+)</td></tr>
+        <tr><th scope="row">Databricks (Unity Catalog)</th><td>3-level namespace, fine-grained GRANTs</td><td class="good">Row filters + ABAC row policies (GA 2026-05)</td><td class="good">Column masks (+ABAC)</td><td class="good">Governed tags + ABAC — best in class</td><td>Unity Catalog (managed; the OSS UC is still an LF sandbox — interchange API, not a governance plane)</td><td>System audit tables</td></tr>
+        <tr><th scope="row">Redshift</th><td>Roles + column grants</td><td class="good">Native RLS</td><td class="good">Dynamic data masking</td><td class="mid">LF-Tags on the lake side</td><td>Glue + Lake Formation (row/cell filters)</td><td>CloudTrail + audit logs</td></tr>
+        <tr><th scope="row">MS Fabric (OneLake)</th><td>Workspace roles + item perms</td><td class="good">OneLake RLS — GA 2026, enforced across Spark/SQL/Power BI</td><td class="good">OneLake CLS</td><td class="mid">Purview sensitivity labels</td><td>OneLake + Purview</td><td>Purview / M365 audit</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="note">
+    <b>How this maps to phases:</b> from day one there are two locks — Cube's security context as the
+    portable primary, ClickHouse row policies as the engine-native second. At the enterprise edge, keep
+    Cube as the primary lock and mirror the PII tags from dbt <code>meta</code> into each tenant
+    engine's native policies — Dataplex policy tags, Snowflake masking policies, UC ABAC — so direct
+    warehouse access (customer analysts, their own BI) is governed even when NextRole isn't in the path.
+    For BYO-warehouse tenants, support in install-base order: <b>Snowflake → Databricks → BigQuery →
+    Fabric → Redshift</b>.
+  </div>
+</section>
+
+
+<!-- ================================ PIPELINE ================================ -->
+<section id="pipeline">
+  <p class="sec-eyebrow">Moving the data</p>
+  <h2>Ingestion &amp; orchestration: dlt + Dagster, dbt for transformation</h2>
+
+  <h3>Extract-load — the JSONB problem decides it</h3>
+  <p>
+    The deciding requirement: turn Postgres tables full of nested JSONB into typed warehouse tables
+    with the least code, embedded in the stack rather than running a second platform beside the app.
+  </p>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>Tool</th><th>License</th><th>JSONB / nested data</th><th>Incremental · CDC</th><th>Footprint</th><th>Verdict</th></tr></thead>
+      <tbody>
+        <tr>
+          <th scope="row">dlt <span class="sub">v1.30, dlthub</span></th>
+          <td class="lic">Apache-2.0</td>
+          <td><b>Auto-flattens</b> dicts to typed <code>parent__field</code> columns; lists become child tables with <code>_dlt_id</code>/<code>_dlt_parent_id</code>; nesting depth tunable</td>
+          <td>Cursor + merge built in; Postgres logical-replication source exists (younger)</td>
+          <td>A pip package — runs inside Dagster/cron, no platform</td>
+          <td><span class="chip pick">Pick</span></td>
+        </tr>
+        <tr>
+          <th scope="row">Airbyte 2.0</th>
+          <td class="lic">ELv2 + MIT connectors</td>
+          <td>JSONB lands as a JSON/variant column; no deep auto-flattening</td>
+          <td>Solid Debezium-based Postgres CDC</td>
+          <td>Heavy: docker-compose install removed; abctl/K8s, 4 CPU / 8 GB minimum</td>
+          <td><span class="chip skip">Platform tax</span></td>
+        </tr>
+        <tr>
+          <th scope="row">Sling</th>
+          <td class="lic">GPL-3.0 CLI</td>
+          <td>JSONB passes through as JSON/string</td>
+          <td>Incremental keys, snapshots; no log CDC</td>
+          <td>Single Go binary — great cron utility</td>
+          <td><span class="chip skip">GPL + no flattening</span></td>
+        </tr>
+        <tr>
+          <th scope="row">Meltano <span class="sub">acquired by Matatika, 2026-01</span></th>
+          <td class="lic">MIT</td>
+          <td>Singer taps; flattening quality varies per tap</td>
+          <td>Incremental; log-based via variants</td>
+          <td>Own YAML project + CLI</td>
+          <td><span class="chip skip">Waning</span></td>
+        </tr>
+        <tr>
+          <th scope="row">Debezium 3.6</th>
+          <td class="lic">Apache-2.0</td>
+          <td>Emits JSONB as string in change events; flatten downstream</td>
+          <td><b>Gold-standard log CDC</b>; Debezium Server avoids Kafka</td>
+          <td>A streaming service to operate</td>
+          <td><span class="chip later">When freshness &lt; 15 min matters</span></td>
+        </tr>
+        <tr>
+          <th scope="row">PeerDB / ClickPipes</th>
+          <td class="lic">ELv2</td>
+          <td>JSONB → ClickHouse String/JSON</td>
+          <td>Excellent Postgres CDC (GA May 2025)</td>
+          <td>Own compose stack incl. Temporal; <b>non-ClickHouse destinations deprecated</b> — but ClickHouse <i>is</i> the destination now</td>
+          <td><span class="chip later">The CDC fast-path when 15-min batch isn't fresh enough</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>What to sync — table by table</h3>
+  <p>
+    This is where governance starts: the extraction layer deliberately ships <b>structure and
+    numbers, not document bodies</b>. dlt resources select columns and drop content fields before
+    anything leaves Postgres.
+  </p>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>Source</th><th>Method</th><th>Cadence</th><th>PII handling at extract</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">run</th><td>dlt incremental merge on <code>updated_at</code></td><td class="num">15 min</td><td>keep <code>owner</code>, drop <code>kwargs.input</code> payloads; keep <code>config.configurable</code> (model overrides)</td></tr>
+        <tr><th scope="row">thread</th><td>incremental merge; explode <code>values.messages</code> → child rows of <i>message metadata only</i></td><td class="num">15 min</td><td>keep <code>type</code>, <code>name</code>, <code>usage_metadata</code>, model, tool-call names, <code>length(content)</code>; <b>never the content itself</b>; explode <code>values.files</code> → artifact inventory</td></tr>
+        <tr><th scope="row">checkpoints</th><td>metadata column only (<code>user_id</code>, <code>run_id</code>, <code>step</code>, <code>source</code>, <code>langgraph_node</code>)</td><td class="num">hourly</td><td>skip <code>checkpoint</code> body; <b>never sync <code>checkpoint_blobs</code>/<code>_writes</code></b> (80% of DB size, msgpack, PII-dense)</td></tr>
+        <tr><th scope="row">user · session · account</th><td>full refresh (small)</td><td class="num">hourly</td><td>hash <code>email</code>→<code>email_hash</code> + keep domain; truncate IP to /24; keep ids for joins</td></tr>
+        <tr><th scope="row">store</th><td>incremental on <code>updated_at</code></td><td class="num">hourly</td><td>parse prefix → (user, agent, area); land <code>length(value)</code>, not the memory content</td></tr>
+        <tr><th scope="row">assistant (+versions)</th><td>full refresh</td><td class="num">daily</td><td>—</td></tr>
+        <tr><th scope="row">object storage</th><td>files-API listing → inventory (path, size, type, mtime)</td><td class="num">daily</td><td>paths only, never file bodies</td></tr>
+        <tr><th scope="row">PostHog events</th><td>batch export S3 Parquet → ClickHouse <code>s3()</code> ingest into bronze (or dlt from the hobby stack's own ClickHouse)</td><td class="num">hourly</td><td>anonymous by default; identify sparingly</td></tr>
+        <tr><th scope="row">LLM traces (Langfuse)</th><td>scheduled blob export (Parquet) → bronze</td><td class="num">hourly</td><td>warehouse gets ids, timings, tokens, scores; prompt/completion bodies stay in Langfuse + the training vault</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>Orchestration</h3>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th></th><th>Dagster</th><th>Airflow 3.x</th><th>Prefect 3.x</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">License</th><td class="lic">Apache-2.0</td><td class="lic">Apache-2.0</td><td class="lic">Apache-2.0</td></tr>
+        <tr><th scope="row">Self-host footprint</th><td>Moderate — webserver + daemon + code server (~0.5–1.5 GB); <code>dagster dev</code> = one process</td><td>Heaviest — api-server, scheduler, dag-processor, triggerer + metadata DB (2–4 GB+)</td><td>Lightest — single <code>prefect server</code> container</td></tr>
+        <tr><th scope="row">Core abstraction</th><td><b>Software-defined assets</b> — dbt models &amp; dlt tables become lineage nodes natively</td><td>DAG-of-tasks; assets bolted on (partitioning since 3.2)</td><td>Pythonic flows; asset model younger and shallower</td></tr>
+        <tr><th scope="row">dbt integration</th><td class="good">Best-in-class (<code>dagster-dbt</code>: every model/test = an asset)</td><td>Cosmos (Astronomer, bolt-on)</td><td><code>PrefectDbtRunner</code>; dbt Orchestrator in beta</td></tr>
+        <tr><th scope="row">Managed entry price</th><td class="num">Dagster+ Solo $10/mo + usage</td><td class="num">Astro ~$255/mo floor</td><td class="num">Cloud free hobby tier</td></tr>
+        <tr><th scope="row">Verdict</th><td><span class="chip pick">Pick — from day one</span> asset graph = free lineage</td><td><span class="chip skip">Enterprise résumé answer, heaviest in compose</span></td><td><span class="chip soft">Nicest pure-Python DX</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="note">
+    <b>Decision update: Dagster from day one.</b> The first draft staged cron → Dagster; the same
+    no-later-migration logic that picked ClickHouse applies here. The cost is genuinely small: two
+    containers (webserver + daemon) that <b>reuse the existing Postgres</b> for run storage
+    (<code>dagster-postgres</code> pointed at a separate database on the same instance). In exchange,
+    dlt sources and dbt models are software-defined assets from the first pipeline run — schedules,
+    retries, backfills, and the lineage graph exist before you need them. Everything underneath stays
+    plain CLI/Python, so cron/GitHub Actions remains the emergency-simple fallback, but it's no longer
+    a phase of the plan.
+  </div>
+
+  <h3>Transformation: dbt Core — with eyes open about the consolidation</h3>
+  <ul>
+    <li><b>dbt Core stays the pick.</b> The Fivetran–dbt Labs merger (announced 2025-10-13, closed 2026-06-01) went <i>toward</i> openness: the Rust <b>Fusion engine was relicensed Apache-2.0</b> and merged as dbt Core v2.0 (alpha); 1.x remains Apache-2.0 and maintained. Use 1.x now, move to v2 when stable for the parse-speed win.</li>
+    <li><b>The adapter:</b> <code>dbt-clickhouse</code> is ClickHouse-maintained, Apache-2.0, and marked production/stable (v1.10.x, tracking dbt-core 1.10; incremental strategies: append, delete+insert, microbatch). It's the one dialect the project ever tunes — written once, validated against the same engine dev and prod. Stay on dbt Core 1.x here; the Fusion adapter is still alpha.</li>
+    <li><b>Hedge:</b> SQLMesh was donated to the Linux Foundation (2026-03-25) and can consume dbt projects — keep models in portable SQL and off Cloud-only features and the exit stays open.</li>
+  </ul>
+
+  <h4>"dbt already has tests — do we really need elementary?"</h4>
+  <p>
+    They're different layers, and the adoption order matters. <b>dbt tests</b> are the assertions:
+    they pass/fail a build, and their results evaporate into <code>run_results.json</code>.
+    <b>elementary</b> (Apache-2.0) is a dbt <i>package</i>, not a service: it persists every test and
+    run result as warehouse tables, adds anomaly tests plain dbt can't express (volume, freshness,
+    distribution drift, schema changes), renders the <code>edr</code> HTML report — exactly the
+    "dashboard UI for test results" you were guessing at — and pushes Slack alerts. So: dbt tests from
+    the first model; add elementary the week you first wish test results had history. Bonus that pays
+    off later: because its results live <i>in the warehouse</i>, the optimizer agent can query pipeline
+    health like any other mart. Still avoid Soda Core v4 (ELv2 since 2026-01, awkward to embed in a
+    product you ship) and GX (stewardship in flux: GX Cloud discontinued 2026-06, Fivetran taking over
+    the OSS).
+  </p>
+</section>
+
+<!-- ================================ MODELING ================================ -->
+<section id="modeling">
+  <p class="sec-eyebrow">Shaping the data</p>
+  <h2>Modeling: medallion layers, star-schema marts</h2>
+  <p>
+    Medallion answers "how raw is this table?"; star schema answers "how do I query the gold layer?".
+    They compose — and the layer boundaries are exactly where governance attaches.
+  </p>
+
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>Layer</th><th>Schemas</th><th>Owner</th><th>Rules</th><th>Access</th></tr></thead>
+      <tbody>
+        <tr>
+          <th scope="row"><span class="chip bronze">bronze</span></th>
+          <td class="mono" style="font-size:12.5px">raw_app · raw_posthog · raw_langsmith</td>
+          <td>dlt / batch export</td>
+          <td>As landed + load metadata. Append/merge only, schema-evolving, <b>30–90 day retention</b>, pseudonymized identifiers</td>
+          <td>Pipeline + admin only</td>
+        </tr>
+        <tr>
+          <th scope="row"><span class="chip silver">silver</span></th>
+          <td class="mono" style="font-size:12.5px">staging · intermediate</td>
+          <td>dbt (<code>stg_*</code>, <code>int_*</code>)</td>
+          <td>Typed, deduped, conformed entities; PII columns tagged in <code>meta</code> and masked/hashed; one model per source entity</td>
+          <td>Analysts + pipeline</td>
+        </tr>
+        <tr>
+          <th scope="row"><span class="chip gold">gold</span></th>
+          <td class="mono" style="font-size:12.5px">marts</td>
+          <td>dbt (<code>fct_*</code>, <code>dim_*</code>)</td>
+          <td>Star schema; <b>enforced contracts</b> (<code>contract.enforced: true</code>); exposures declare Cube/BI/agent consumers; documented 100%</td>
+          <td>BI, Cube, agent (via Cube)</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>Star, snowflake, or one big table?</h3>
+  <ul>
+    <li><b>Star for the marts.</b> Fewer joins, simpler mental model — and markedly friendlier to an LLM agent than a normalized snowflake: every metric is one fact table plus named dimensions.</li>
+    <li><b>Snowflake only where a hierarchy earns it</b> (none in sight yet — company/role taxonomies might qualify later).</li>
+    <li><b>One-big-table is a fine accelerant</b> for a specific dashboard, but keep conformed dims underneath — Cube models want stable joins, and OBT ossifies badly once an agent depends on it.</li>
+    <li><b>ClickHouse physical design, decided once:</b> facts on MergeTree ordered by (date, user); dlt merge loads land on ReplacingMergeTree; let <code>dbt-clickhouse</code> own engine/order-by config in model YAML instead of hand-written DDL.</li>
+  </ul>
+
+  <figure>
+    <div class="dg-panel">
+    <svg viewBox="0 0 920 400" role="img" aria-label="Star schema: fct_agent_run fact table joined to dim_user, dim_assistant, dim_model and dim_date dimensions; sibling facts fct_agent_step, fct_message, fct_product_event and fct_artifact share the same dimensions." style="min-width:760px">
+      <defs>
+        <marker id="arr2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0 0 L10 5 L0 10 z" fill="var(--ink-3)"/>
+        </marker>
+      </defs>
+      <!-- dims -->
+      <rect x="40" y="42" width="200" height="70" class="dg-box" rx="8"/>
+      <text x="56" y="66" class="dg-title">dim_user</text>
+      <text x="56" y="84" class="dg-sub">signup cohort · auth provider</text>
+      <text x="56" y="100" class="dg-sub">plan · country (later)</text>
+
+      <rect x="40" y="286" width="200" height="70" class="dg-box" rx="8"/>
+      <text x="56" y="310" class="dg-title">dim_assistant</text>
+      <text x="56" y="328" class="dg-sub">graph_id · version</text>
+      <text x="56" y="344" class="dg-sub">subagent roster</text>
+
+      <rect x="680" y="42" width="200" height="70" class="dg-box" rx="8"/>
+      <text x="696" y="66" class="dg-title">dim_model</text>
+      <text x="696" y="84" class="dg-sub">provider · family · price/token</text>
+      <text x="696" y="100" class="dg-sub">override vs default</text>
+
+      <rect x="680" y="286" width="200" height="70" class="dg-box" rx="8"/>
+      <text x="696" y="310" class="dg-title">dim_date</text>
+      <text x="696" y="328" class="dg-sub">day · week · month</text>
+      <text x="696" y="344" class="dg-sub">cohort math</text>
+
+      <!-- fact -->
+      <rect x="330" y="110" width="260" height="180" class="dg-fact" rx="10"/>
+      <text x="348" y="138" class="dg-title">fct_agent_run</text>
+      <text x="348" y="156" class="dg-sub">grain: one row per run</text>
+      <text x="348" y="180" class="dg-sub">duration_s · steps · interrupts</text>
+      <text x="348" y="197" class="dg-sub">tokens_in · tokens_out · cost_usd</text>
+      <text x="348" y="214" class="dg-sub">artifacts_produced · status</text>
+      <text x="348" y="238" class="dg-sub" style="font-style:italic">siblings on the same dims:</text>
+      <text x="348" y="255" class="dg-sub">fct_agent_step · fct_message</text>
+      <text x="348" y="272" class="dg-sub">fct_product_event · fct_artifact</text>
+
+      <!-- joins -->
+      <line x1="330" y1="140" x2="244" y2="94" class="dg-arrow" marker-end="url(#arr2)"/>
+      <text x="252" y="126" class="dg-note">owner → user_id</text>
+      <line x1="330" y1="262" x2="244" y2="304" class="dg-arrow" marker-end="url(#arr2)"/>
+      <text x="248" y="272" class="dg-note">assistant_id + version</text>
+      <line x1="590" y1="140" x2="676" y2="94" class="dg-arrow" marker-end="url(#arr2)"/>
+      <text x="600" y="126" class="dg-note">configurable → model</text>
+      <line x1="590" y1="262" x2="676" y2="304" class="dg-arrow" marker-end="url(#arr2)"/>
+      <text x="608" y="272" class="dg-note">created_at::date</text>
+    </svg>
+    </div>
+    <figcaption>
+      <b>The gold layer's core star.</b> Every measure the product needs on day one — cost, reliability,
+      output, agent behavior — hangs off one run-grain fact; the four sibling facts reuse the same
+      conformed dimensions, which is what lets Cube define each metric exactly once.
+    </figcaption>
+  </figure>
+
+  <h3>The event taxonomy to instrument (PostHog)</h3>
+  <p>
+    Naming convention <code>object_action</code>, snake_case, properties typed. The funnel events are
+    the ones that matter most — they cover the product's critical path from upload to downloaded artifact.
+  </p>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>Event</th><th>Key properties</th><th>Answers</th></tr></thead>
+      <tbody>
+        <tr><th scope="row"><code>signup_completed</code> / <code>login</code></th><td class="mono" style="font-size:12px">provider</td><td>acquisition, auth mix</td></tr>
+        <tr><th scope="row"><code>file_uploaded</code></th><td class="mono" style="font-size:12px">kind: cv|jd, bytes, mime</td><td rowspan="5" style="vertical-align:middle"><b>Activation funnel:</b><br>upload → processed → tailored → rendered → downloaded<br><span class="sub">conversion + time-to-first-artifact per step</span></td></tr>
+        <tr><th scope="row"><code>jd_url_submitted</code></th><td class="mono" style="font-size:12px">domain</td></tr>
+        <tr><th scope="row"><code>document_processed</code></th><td class="mono" style="font-size:12px">kind, duration_ms (backend)</td></tr>
+        <tr><th scope="row"><code>resume_rendered</code></th><td class="mono" style="font-size:12px">pages, duration_ms (backend)</td></tr>
+        <tr><th scope="row"><code>artifact_downloaded</code></th><td class="mono" style="font-size:12px">area, file_type</td></tr>
+        <tr><th scope="row"><code>run_interrupted</code> / <code>hil_decision</code></th><td class="mono" style="font-size:12px">decision: approve|edit|reject, tool</td><td>HiL friction, approval rates</td></tr>
+        <tr><th scope="row"><code>model_overridden</code></th><td class="mono" style="font-size:12px">scope: main|subagent, model</td><td>model-picker adoption</td></tr>
+        <tr><th scope="row"><code>thread_created</code> · <code>message_sent</code></th><td class="mono" style="font-size:12px">thread_age, message_index</td><td>multi-turn habit depth</td></tr>
+        <tr><th scope="row"><code>file_printed</code> · <code>files_bulk_deleted</code> · <code>accent_changed</code></th><td class="mono" style="font-size:12px">count, value</td><td>feature discovery</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>
+    Frontend events go through the PostHog JS SDK; the backend emits the server-truth events
+    (<code>document_processed</code>, <code>resume_rendered</code>, <code>hil_decision</code>) via
+    <code>posthog-python</code> with the same <code>distinct_id</code>, so funnels stitch across the boundary.
+  </p>
+</section>
+
+<!-- ================================ SEMANTIC ================================ -->
+<section id="semantic">
+  <p class="sec-eyebrow">Metrics &amp; the agent</p>
+  <h2>Semantic layer: yes to Cube — self-hosted Cube Core</h2>
+  <p>
+    Your instinct is right, with one sharp caveat. <b>Cube Core (Apache-2.0, self-hosted) is the only
+    option today that gives all three things the analytics agent needs, for free:</b> programmatic metric
+    discovery (<code>/v1/meta</code>), governed queries with <b>per-end-user row-level security enforced
+    server-side</b> (JWT <code>securityContext</code> + <code>queryRewrite</code> + declarative access
+    policies), and no raw SQL — the agent emits Cube's JSON query language or SQL against Cube views over
+    the Postgres-wire API. Its drivers cover the whole scale path: DuckDB, ClickHouse, Postgres, BigQuery,
+    Snowflake, Databricks — including <i>per-tenant data sources</i> via <code>COMPILE_CONTEXT</code> /
+    <code>driverFactory</code>, which is precisely the BYO-warehouse enterprise story.
+  </p>
+  <div class="note warn">
+    <b>The caveat — everything marketed "AI" in Cube is Cloud-only:</b> the Chat API (the old AI API 404s
+    self-hosted), the hosted MCP server (Premium+; the local npm MCP package is deprecated), D3 / "Cube
+    Agentic Analytics", Semantic Catalog, Semantic Layer Sync, and <code>userAttributes</code> in access
+    policies. Plan for the OSS core to be a headless semantic layer and <b>build the agent yourself in
+    LangGraph over REST</b> — which you'd want anyway, since a hosted OAuth MCP can't carry your per-end-user
+    JWTs cleanly. Cube's LTS releases + membership in Open Semantic Interchange (v1.0 spec 2026-01, now
+    incubating as Apache Ossie) keep the model portable if their commercial pivot ever bites.
+  </div>
+
+  <figure>
+    <div class="dg-panel">
+    <svg viewBox="0 0 1100 320" role="img" aria-label="Permission flow: the end user's question reaches the LangGraph analytics agent with a JWT carrying user id and role; the agent calls Cube's meta and load REST endpoints; Cube's queryRewrite injects mandatory owner filters and fails closed; Cube queries the warehouse with a service account where native row-level security is defense in depth; only aggregated rows return. A crossed-out path shows the agent never queries the warehouse directly." style="min-width:860px">
+      <defs>
+        <marker id="arr3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0 0 L10 5 L0 10 z" fill="var(--ink-3)"/>
+        </marker>
+        <marker id="arr3a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0 0 L10 5 L0 10 z" fill="var(--accent)"/>
+        </marker>
+      </defs>
+
+      <rect x="16" y="80" width="150" height="70" class="dg-box" rx="8"/>
+      <text x="32" y="106" class="dg-title">End user</text>
+      <text x="32" y="124" class="dg-sub">"how many runs</text>
+      <text x="32" y="139" class="dg-sub">failed this week?"</text>
+
+      <rect x="226" y="80" width="180" height="70" class="dg-box" rx="8"/>
+      <text x="242" y="104" class="dg-title">NextRole backend</text>
+      <text x="242" y="122" class="dg-sub">mints short-lived JWT</text>
+      <text x="242" y="138" class="dg-sub mono" style="font-size:10px">{sub, org, role}</text>
+
+      <rect x="466" y="66" width="180" height="98" class="dg-accentbox" rx="10"/>
+      <text x="482" y="92" class="dg-title">Analytics agent</text>
+      <text x="482" y="110" class="dg-sub">LangGraph tools:</text>
+      <text x="482" y="126" class="dg-sub mono" style="font-size:10px">discover_metrics → /v1/meta</text>
+      <text x="482" y="142" class="dg-sub mono" style="font-size:10px">run_query → /v1/load</text>
+      <text x="482" y="158" class="dg-sub">JSON queries, never SQL</text>
+
+      <rect x="706" y="66" width="180" height="98" class="dg-box" rx="8"/>
+      <text x="722" y="92" class="dg-title">Cube Core</text>
+      <text x="722" y="110" class="dg-sub">checkAuth → securityContext</text>
+      <text x="722" y="126" class="dg-sub">queryRewrite adds owner filter</text>
+      <text x="722" y="142" class="dg-sub"><tspan class="mono" style="font-size:10px">row_level</tspan> policies · fail closed</text>
+      <text x="722" y="158" class="dg-sub">pre-aggregations (Cube Store)</text>
+
+      <rect x="946" y="80" width="140" height="70" class="dg-box" rx="8"/>
+      <text x="962" y="106" class="dg-title">Warehouse</text>
+      <text x="962" y="124" class="dg-sub">gold schema only</text>
+      <text x="962" y="139" class="dg-sub">native RLS = 2nd lock</text>
+
+      <line x1="166" y1="115" x2="222" y2="115" class="dg-arrow" marker-end="url(#arr3)"/>
+      <line x1="406" y1="115" x2="462" y2="115" class="dg-arrow accent" marker-end="url(#arr3a)"/>
+      <text x="408" y="104" class="dg-note">JWT</text>
+      <line x1="646" y1="115" x2="702" y2="115" class="dg-arrow accent" marker-end="url(#arr3a)"/>
+      <text x="650" y="104" class="dg-note">REST + JWT</text>
+      <line x1="886" y1="115" x2="942" y2="115" class="dg-arrow" marker-end="url(#arr3)"/>
+      <text x="884" y="104" class="dg-note">service acct</text>
+
+      <path d="M 556 168 C 556 250, 800 250, 1006 156" class="dg-arrow dashed" style="stroke: var(--err)"/>
+      <text x="700" y="262" class="dg-note" style="fill: var(--err)">✕ never: direct SQL or warehouse credentials to the agent</text>
+
+      <text x="722" y="196" class="dg-note">← the one place permissions are defined,</text>
+      <text x="740" y="212" class="dg-note">portable across every warehouse</text>
+    </svg>
+    </div>
+    <figcaption>
+      <b>Why the semantic layer is the governance keystone.</b> Permissions live once, in Cube's security
+      context — so they behave identically over DuckDB in dev, ClickHouse in prod, and a customer's
+      Snowflake later. Warehouse-native RLS (where it exists) becomes defense in depth, not the primary lock.
+    </figcaption>
+  </figure>
+
+  <h3>Alternatives, and why they lose today</h3>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>Option</th><th>License / self-host</th><th>Agent metadata API</th><th>Per-user RLS self-hosted</th><th>Bottom line</th></tr></thead>
+      <tbody>
+        <tr>
+          <th scope="row">Cube Core</th>
+          <td class="lic">Apache-2.0</td>
+          <td class="good"><code>/v1/meta</code> in OSS</td>
+          <td class="good">Yes — JWT + queryRewrite + policies</td>
+          <td><span class="chip pick">Pick</span> AI extras are Cloud-only; build agent over REST</td>
+        </tr>
+        <tr>
+          <th scope="row">dbt Semantic Layer <span class="sub">MetricFlow</span></th>
+          <td class="lic">engine Apache-2.0 (since 2025-10)</td>
+          <td>Discovery API = paid platform</td>
+          <td class="bad">Serving requires paid dbt platform</td>
+          <td><span class="chip skip">No OSS serving/RLS runtime; post-merger lock-in risk</span></td>
+        </tr>
+        <tr>
+          <th scope="row">Lightdash</th>
+          <td class="lic">MIT core + EE</td>
+          <td>Yes, but it's a BI app</td>
+          <td>App-level; AI agents/MCP paid</td>
+          <td><span class="chip skip">Not a headless layer for your own agent</span></td>
+        </tr>
+        <tr>
+          <th scope="row">Malloy Publisher</th>
+          <td class="lic">MIT/OSS</td>
+          <td class="good">REST + native MCP</td>
+          <td class="mid">Weak/DIY</td>
+          <td><span class="chip later">Only real OSS-MCP-native alternative; young ecosystem, new language</span></td>
+        </tr>
+        <tr>
+          <th scope="row">AtScale / Omni</th>
+          <td class="lic">proprietary / SaaS-only</td>
+          <td>Yes</td>
+          <td>Yes (paid)</td>
+          <td><span class="chip skip">No OSS; Omni can't self-host at all</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <p>
+    Division of labor: <b>dbt owns tables, Cube owns metrics.</b> Marts and contracts live in dbt; measures,
+    dimensions, and access policies live in Cube views (with <code>description</code> and <code>meta</code>
+    on every member — that text is literally the agent's prompt context via <code>/v1/meta</code>). The
+    proven wiring pattern is Cube's own LangChain integration: fetch meta, cache it, generate a JSON query,
+    POST <code>/v1/load</code> with the user's JWT, and let <code>queryRewrite</code> throw when the security
+    context is missing — fail closed by construction.
+  </p>
+</section>
+
+<!-- ================================ PRODUCT ================================ -->
+<section id="product">
+  <p class="sec-eyebrow">Behavioral data</p>
+  <h2>Product analytics: PostHog Cloud as the lens, your warehouse as the truth</h2>
+  <p>
+    The pattern that keeps your open-source stance intact regardless of how PostHog is run:
+    <b>capture once, land raw events in your own warehouse, treat the PostHog UI as a replaceable lens.</b>
+  </p>
+  <div class="note">
+    <b>"It's open source — do we really need to pay?" No. There are three $0 paths; you pay only for
+    convenience.</b><br>
+    <b>(1) Cloud free tier</b> — 1M events/mo with the full funnels/retention/replay UX and zero ops.
+    Even batch exports have a free allowance since the 2025-09 pipelines repricing (1M exported
+    rows + 10k trigger events/mo, then fractions of a cent per row) — so at phase-0 volume the whole
+    Cloud path is $0. Money enters beyond 1M events and for identified-event person profiles.
+    <b>(2) Self-host the MIT "hobby" compose</b> — free forever and data never leaves your infra; the
+    trade is that it's explicitly self-supported (no SLA, no versioned CVE releases, guidance ≤~300k
+    events/mo) and paid-plan features never activate. Its internal ClickHouse is yours, though — a dlt
+    job can pull the raw events table into the warehouse on schedule, replacing the paid export add-on.
+    <b>(3) No product-analytics UI at all</b> — capture via a thin Segment-compatible pipeline (Jitsu,
+    MIT) straight into ClickHouse and rebuild funnels in Superset/Cube: cheapest, most SQL work.
+    Recommendation: (1) for the UX-per-ops ratio while volume is free-tier-sized, with (2) as the
+    principled fallback the day a "no third parties" constraint appears — the warehouse copy makes the
+    switch painless either way.
+  </div>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>Option</th><th>License / model</th><th>Real product analytics?</th><th>Feeds your warehouse?</th><th>Verdict</th></tr></thead>
+      <tbody>
+        <tr>
+          <th scope="row">PostHog Cloud</th>
+          <td>SaaS; free tier: 1M events, 5K recordings, 100K exceptions / mo; EU or US residency</td>
+          <td class="good">Yes — funnels, retention, replay, flags, surveys</td>
+          <td class="good">Batch exports: S3 (+compatible), BigQuery, Snowflake, Redshift, Postgres, Databricks, Azure — hourly + backfills. No ClickHouse destination: route S3 Parquet → <code>s3()</code> ingest</td>
+          <td><span class="chip pick">Pick</span></td>
+        </tr>
+        <tr>
+          <th scope="row">PostHog self-host "hobby"</th>
+          <td class="lic">MIT core + ee/</td>
+          <td>Core analytics yes; paid-plan features never activate</td>
+          <td class="good">Its internal ClickHouse is queryable — dlt extracts events like any source</td>
+          <td><span class="chip soft">Legit at phase-0 volume — self-supported, ≤~300k events/mo guidance</span></td>
+        </tr>
+        <tr>
+          <th scope="row">Jitsu</th>
+          <td class="lic">MIT · active</td>
+          <td>No UI — Segment-compatible capture only</td>
+          <td class="good">Its whole purpose</td>
+          <td><span class="chip later">The vendor-neutral capture shim if PostHog must go (e.g. an enterprise "no third parties" rule)</span></td>
+        </tr>
+        <tr>
+          <th scope="row">RudderStack</th>
+          <td class="lic">ELv2 (off AGPL)</td>
+          <td>No UI — warehouse-native CDP</td>
+          <td class="good">First-class</td>
+          <td><span class="chip skip">ELv2 + heavier than Jitsu for this need</span></td>
+        </tr>
+        <tr>
+          <th scope="row">Snowplow</th>
+          <td class="lic">SLULA since 2024</td>
+          <td>Richest event grammar, no UI</td>
+          <td class="good">Warehouse-first</td>
+          <td><span class="chip skip">Production use needs a commercial license — not OSS anymore</span></td>
+        </tr>
+        <tr>
+          <th scope="row">Umami / Plausible / Matomo</th>
+          <td class="lic">MIT / AGPL / GPLv3+paid plugins</td>
+          <td>Web stats; Umami surprisingly has OSS funnels/retention</td>
+          <td class="mid">Weak / none / DIY</td>
+          <td><span class="chip skip">Wrong tool: site analytics, not identified product analytics</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <ul>
+    <li><b>Cost shape:</b> free to 1M events/mo; beyond that roughly $50 per additional million tapering down, plus a person-profile surcharge on identified events — so <b>capture anonymously by default and <code>identify()</code> only at signup/login</b>. Batch exports bill per exported row since 2025-09, with 1M rows/mo free.</li>
+    <li><b>Export schema</b> lands close to PostHog's internal table: <code>uuid, event, properties (JSON), distinct_id, timestamp</code> + person mappings — dbt staging turns it into <code>fct_product_event</code> joined to <code>dim_user</code> via the identify mapping.</li>
+    <li><b>PostHog's "Data Warehouse" feature is the reverse direction</b> (querying your sources from PostHog's UI, billed per synced row) — ignore it; your warehouse is the hub, not theirs.</li>
+    <li><b>GDPR:</b> person deletion in PostHog handles their copy; your exported copies are erased by your own deletion cascade (governance section).</li>
+  </ul>
+</section>
+
+<!-- ================================ BI ================================ -->
+<section id="bi">
+  <p class="sec-eyebrow">Dashboards</p>
+  <h2>BI: Superset — one tool, finalized</h2>
+  <p>
+    <b>Decision update:</b> the first draft staged Metabase now → Superset later; per review, we
+    finalize one tool on day one, and it's <b>Superset</b>. The reasoning: it's the only OSS BI where
+    everything the plan eventually needs — row-level security, alerts, and the embedded SDK — is free
+    Apache-2.0 rather than a paid tier, so the internal tool and the future customer-facing tool are
+    the same deployment. Its ops-footprint objection also shrinks in this stack: the metadata DB goes
+    in your existing Postgres and the Celery broker on your existing Redis, so it's ~2 new containers
+    (app + worker), not 5. The honest cost is UX: Superset's explore is dataset-centric and more
+    analyst-flavored than Metabase's click-to-query — acceptable for a technical solo owner, and the
+    self-serve gap closes anyway because ad-hoc questions increasingly go to the analytics agent, not
+    a BI explorer.
+  </p>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>Tool</th><th>License</th><th>What's paywalled</th><th>Self-host footprint</th><th>Cube / dbt fit</th><th>Verdict</th></tr></thead>
+      <tbody>
+        <tr>
+          <th scope="row">Metabase <span class="sub">v63, 2026-07</span></th>
+          <td class="lic">AGPL core</td>
+          <td>Row-level sandboxing, SAML SSO, interactive embed/SDK → Pro $517.50/mo (Starter $90)</td>
+          <td class="good">Lightest: 1 JVM container</td>
+          <td>Official Cube pairing via Postgres-wire SQL API; AI SQL generation in OSS since v59</td>
+          <td><span class="chip soft">Runner-up</span> friendliest UX, but RLS/SSO/embedding are paid — and running two BI tools loses</td>
+        </tr>
+        <tr>
+          <th scope="row">Superset <span class="sub">6.0, 2026-02</span></th>
+          <td class="lic">Apache-2.0</td>
+          <td class="good">Nothing — RLS, alerts, embedded SDK all OSS (Preset is the SaaS)</td>
+          <td>Heaviest: ~5 containers (web, Celery worker + beat, Redis, metadata DB)</td>
+          <td>Official Cube support; dataset-centric explore</td>
+          <td><span class="chip pick">The pick — day one</span> internal + embedded later from one deployment; ~2 containers here (reuses Postgres + Redis)</td>
+        </tr>
+        <tr>
+          <th scope="row">Lightdash</th>
+          <td class="lic">MIT core + EE</td>
+          <td>AI agents, embedding, SSO, row-level perms → Cloud $3,000/mo flat or EE key</td>
+          <td>App + Postgres + headless browser</td>
+          <td>dbt-native but its own semantic layer — competes with Cube</td>
+          <td><span class="chip skip">Redundant beside Cube; steep cloud pricing</span></td>
+        </tr>
+        <tr>
+          <th scope="row">Evidence</th>
+          <td class="lic">MIT</td>
+          <td>Evidence Studio (IDE, auth)</td>
+          <td class="good">~Zero: static site build</td>
+          <td>SQL + Markdown downstream of dbt</td>
+          <td><span class="chip soft">Nice for a public metrics page / investor report</span></td>
+        </tr>
+        <tr>
+          <th scope="row">Rill</th>
+          <td class="lic">Apache-2.0</td>
+          <td>Sharing, access policies → Cloud</td>
+          <td class="good">Single Go binary, embedded DuckDB</td>
+          <td>Own metrics layer, MCP-first pitch</td>
+          <td><span class="chip soft">Fast local exploration; overlaps Cube</span></td>
+        </tr>
+        <tr>
+          <th scope="row">Grafana</th>
+          <td class="lic">AGPLv3</td>
+          <td>Data-source permissions, reporting → Enterprise</td>
+          <td class="good">1 container</td>
+          <td>Via Postgres data source</td>
+          <td><span class="chip soft">Ops dashboards (pipeline health), not business BI</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <h3>Who sees dashboards, and through what</h3>
+  <p>
+    The Cube decision is what makes BI a per-audience choice instead of a migration: metric definitions
+    live in the semantic layer, so any front-end — yours or a customer's — reads the same numbers.
+  </p>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>Audience</th><th>Surface</th><th>How it connects</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">You (internal)</th><td>Superset</td><td>Cube's Postgres-wire SQL API (or gold marts directly for heavy exploration)</td></tr>
+        <tr><th scope="row">Your SaaS users<span class="sub">in-product analytics pages later</span></th><td>Embedded Superset</td><td>Embedded SDK + guest tokens + RLS — all in the Apache-2.0 core</td></tr>
+        <tr><th scope="row">Enterprise tenant with their own BI<span class="sub">Looker, Power BI, Tableau, Quick Suite</span></th><td>Their tool, unchanged</td><td>Point it at Cube's SQL API, or at the gold marts the pipeline builds <i>in their warehouse</i> — don't fight the BI their analysts already live in</td></tr>
+        <tr><th scope="row">Enterprise tenant without BI</th><td>Embedded Superset in your product, or a Superset instance in their VPC</td><td>Same deployment pattern as your own — that's the point of finalizing on it</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>
+    Cloud BI, for completeness: <b>Power BI</b> (Pro $14/user/mo) only wins inside an M365 shop;
+    <b>Amazon Quick Suite</b> (the QuickSight rebrand, 2025-10; Reader $3/user) is worth revisiting only
+    for capacity-priced embedding at large scale on AWS; <b>Looker</b> (~$60k+/yr) duplicates the
+    semantic layer you already get from Cube; <b>Tableau</b> ($15–115/user/mo) is for analyst-heavy
+    orgs. You never buy them — you meet them: when a customer already has one, it connects to Cube and
+    the metrics stay consistent, because <b>the metrics don't live in the BI tool.</b>
+  </p>
+</section>
+
+<!-- ================================ FLYWHEEL ================================ -->
+<section id="flywheel">
+  <p class="sec-eyebrow">Closing the loop</p>
+  <h2>The improvement flywheel: fine-tuned models and a self-tuning agent</h2>
+  <p>
+    Everything upstream of this section is about <i>seeing</i> the product. This section is about
+    feeding what you see back in. Two loops share one substrate — the warehouse plus a pair of
+    registries — and return to production through doors that already exist in NextRole:
+  </p>
+  <ul>
+    <li><b>Loop A — fine-tuned small models:</b> curated trace/outcome pairs train task-specific LoRA adapters that take over the mechanical stages (extraction, parsing, drafting), deployed through the existing <code>main_model</code>/<code>subagent_model</code> runtime overrides.</li>
+    <li><b>Loop B — the optimizer agent:</b> a second LangGraph agent that reads the marts and traces, and proposes changes to the career agent's prompts, <code>SKILL.md</code> files, tool descriptions, and model routing — as pull requests, never as live edits.</li>
+  </ul>
+
+  <h3>Step zero: own the traces</h3>
+  <p>
+    Traces are the training data — prompt/completion pairs, tool sequences, per-node timings — so
+    they can't live somewhere you can't bulk-read. That rules the current default out:
+    <b>LangSmith's bulk export became Enterprise-only for new signups on 2026-08-03</b> (existing
+    Plus customers keep it until 2027-02-01), and self-hosted LangSmith was already an Enterprise
+    add-on. The replacement is a gift to this exact stack: <b>Langfuse went fully MIT in June 2025</b>
+    — tracing, prompt management, LLM-as-a-judge evals, datasets/experiments, playground all OSS
+    (the enterprise key gates only ops extras like fine-grained RBAC, audit logs, SCIM) — and its
+    self-host architecture is web + worker containers over <b>Postgres, ClickHouse, Redis, and S3
+    — the four services this plan already runs</b>, with bring-your-own instances supported first-class.
+  </p>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th></th><th>Langfuse (self-hosted)</th><th>LangSmith (today's default)</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">License / hosting</th><td class="good">MIT — all product features since 2025-06; runs on your existing PG + Redis + S3 + ClickHouse</td><td>Proprietary SaaS; self-host is an Enterprise add-on</td></tr>
+        <tr><th scope="row">Getting data to the warehouse</th><td class="good">Built-in scheduled blob export (Parquet/JSONL to S3, 20-min → daily) → dlt → bronze; don't scrape its internal ClickHouse tables (schema isn't a stable contract)</td><td class="bad">Bulk export Enterprise-only for new signups (2026-08); per-run API reads on paid plans</td></tr>
+        <tr><th scope="row">Evals, prompts, datasets</th><td class="good">LLM-judge evals, prompt versioning, dataset/experiment tracking — all OSS</td><td>Paid features</td></tr>
+        <tr><th scope="row">Verdict</th><td><span class="chip pick">The trace store</span></td><td><span class="chip soft">Keep as a dev-time viewer, at most</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>The signals and the vault</h3>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>Signal</th><th>Where it comes from</th><th>What it labels</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">Implicit positives</th><td><code>artifact_downloaded</code> + no edit-request afterwards (PostHog × thread state)</td><td>Accepted outputs → training-pair candidates</td></tr>
+        <tr><th scope="row">Explicit feedback</th><td>Thumbs on artifacts (new events in the taxonomy)</td><td>Direct labels; optimizer triage queue</td></tr>
+        <tr><th scope="row">Edit requests</th><td>Multi-turn "fix X" messages, classified from traces</td><td>Which stage produces weak output, and how</td></tr>
+        <tr><th scope="row">Judge scores</th><td>LLM-as-judge rubrics (Langfuse evals / MLflow judges), written back to marts</td><td>Dense quality metric where humans are sparse</td></tr>
+        <tr><th scope="row">Ops health</th><td>elementary results, run failures, token costs</td><td>Context so the optimizer separates "bad prompt" from "bad pipeline"</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="note warn">
+    <b>The vault keeps the warehouse doctrine intact.</b> This plan's strongest privacy control is that
+    document bodies never land in the analytical warehouse — and fine-tuning doesn't break that rule.
+    Raw samples (prompt/completion text) live in a <b>training vault</b>: a restricted object-storage
+    area holding versioned JSONL datasets, written only by the dataset builder and readable only by
+    training jobs — the tightest ACL in the platform. The warehouse holds the <b>dataset registry</b>
+    (version, filters, counts, content hash, consent proof) and curation marts that point to trace IDs.
+    Only users with <code>training_consent</code> ever enter a dataset; erasure looks up the registry's
+    user→samples map and rebuilds affected dataset versions; model cards record which dataset versions
+    each adapter saw. And for enterprise tenants: <b>no cross-tenant training, ever</b> — structurally
+    (datasets are tenant-keyed) and contractually.
+  </div>
+
+  <figure>
+    <div class="dg-panel">
+    <svg viewBox="0 0 1160 640" role="img" aria-label="The improvement flywheel: the serving plane emits traces to Langfuse, events to PostHog, and state to Postgres; all land in the ClickHouse warehouse whose training marts and dataset registry feed two loops — a fine-tuning loop (dataset builds, Unsloth QLoRA, eval gate, MLflow registry, vLLM multi-LoRA endpoint) deploying back through the subagent_model override, and an optimizer-agent loop that reads governed metrics and trace samples, proposes prompt and skill changes as pull requests, passes offline evals and human merge, and returns to the serving plane." style="min-width:920px">
+      <defs>
+        <marker id="arr4" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0 0 L10 5 L0 10 z" fill="var(--ink-3)"/>
+        </marker>
+        <marker id="arr4a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0 0 L10 5 L0 10 z" fill="var(--accent)"/>
+        </marker>
+      </defs>
+
+      <!-- deploy rail (loop A return) -->
+      <path d="M 1036 350 C 1150 350, 1150 36, 1020 36 L 220 36 C 150 36, 136 46, 136 58" class="dg-arrow accent" marker-end="url(#arr4a)"/>
+      <text x="560" y="28" class="dg-note" text-anchor="middle">deploy — subagent_model: tuned adapter (the existing runtime override; zero backend changes)</text>
+
+      <!-- serving plane -->
+      <rect x="16" y="64" width="240" height="210" class="dg-container" rx="12"/>
+      <text x="32" y="88" class="dg-title">Serving plane</text>
+      <rect x="32" y="100" width="208" height="60" class="dg-box" rx="8"/>
+      <text x="46" y="122" class="dg-title">Career agent + subagents</text>
+      <text x="46" y="139" class="dg-sub">prompts &amp; skills = repo files</text>
+      <rect x="32" y="176" width="208" height="56" class="dg-box" rx="8"/>
+      <text x="46" y="198" class="dg-title">Model slots</text>
+      <text x="46" y="215" class="dg-sub mono" style="font-size:10px">main_model · subagent_model</text>
+
+      <!-- telemetry -->
+      <rect x="304" y="76" width="150" height="64" class="dg-box" rx="8"/>
+      <text x="316" y="98" class="dg-title">Langfuse</text>
+      <text x="316" y="114" class="dg-sub">traces · judges</text>
+      <text x="316" y="129" class="dg-sub">prompts (MIT)</text>
+
+      <rect x="304" y="156" width="150" height="52" class="dg-box" rx="8"/>
+      <text x="316" y="178" class="dg-title">PostHog</text>
+      <text x="316" y="194" class="dg-sub">product events</text>
+
+      <rect x="304" y="224" width="150" height="52" class="dg-box" rx="8"/>
+      <text x="316" y="246" class="dg-title">Postgres (OLTP)</text>
+      <text x="316" y="262" class="dg-sub">threads · runs · users</text>
+
+      <line x1="256" y1="108" x2="300" y2="108" class="dg-arrow" marker-end="url(#arr4)"/>
+      <text x="278" y="100" class="dg-note" text-anchor="middle">traces</text>
+      <line x1="256" y1="182" x2="300" y2="182" class="dg-arrow" marker-end="url(#arr4)"/>
+      <text x="278" y="174" class="dg-note" text-anchor="middle">events</text>
+      <line x1="256" y1="250" x2="300" y2="250" class="dg-arrow" marker-end="url(#arr4)"/>
+      <text x="278" y="242" class="dg-note" text-anchor="middle">state</text>
+
+      <!-- warehouse -->
+      <rect x="528" y="64" width="240" height="250" class="dg-container" rx="12"/>
+      <text x="544" y="88" class="dg-title">Warehouse — ClickHouse</text>
+      <rect x="544" y="100" width="208" height="44" class="dg-silver" rx="7"/>
+      <text x="556" y="127" class="dg-layer-t" fill="var(--silver)">bronze → silver → gold</text>
+      <rect x="544" y="156" width="208" height="44" class="dg-gold" rx="7"/>
+      <text x="556" y="175" class="dg-layer-t" fill="var(--gold)">training marts · eval results</text>
+      <text x="556" y="192" class="dg-sub">outcomes × judges × costs</text>
+      <rect x="544" y="212" width="208" height="40" class="dg-bronze" rx="7"/>
+      <text x="556" y="237" class="dg-layer-t" fill="var(--bronze)">dataset registry</text>
+
+      <line x1="454" y1="108" x2="524" y2="116" class="dg-arrow" marker-end="url(#arr4)"/>
+      <text x="489" y="100" class="dg-note" text-anchor="middle">hourly</text>
+      <line x1="454" y1="182" x2="524" y2="170" class="dg-arrow" marker-end="url(#arr4)"/>
+      <text x="489" y="166" class="dg-note" text-anchor="middle">hourly</text>
+      <line x1="454" y1="250" x2="524" y2="226" class="dg-arrow" marker-end="url(#arr4)"/>
+      <text x="489" y="248" class="dg-note" text-anchor="middle">15 min</text>
+
+      <!-- vault -->
+      <rect x="528" y="330" width="240" height="56" class="dg-box" rx="8" style="stroke: var(--warn); stroke-dasharray: 5 4;"/>
+      <text x="544" y="352" class="dg-title">Training vault — object storage</text>
+      <text x="544" y="369" class="dg-sub">consented raw samples · tightest ACL</text>
+      <line x1="648" y1="256" x2="648" y2="326" class="dg-arrow dashed" marker-end="url(#arr4)"/>
+
+      <!-- loop A chain -->
+      <rect x="836" y="64" width="200" height="52" class="dg-box" rx="8"/>
+      <text x="850" y="86" class="dg-title">Dataset builds (Dagster)</text>
+      <text x="850" y="102" class="dg-sub">consent-filtered · versioned</text>
+
+      <rect x="836" y="130" width="200" height="52" class="dg-box" rx="8"/>
+      <text x="850" y="152" class="dg-title">Fine-tune — Unsloth QLoRA</text>
+      <text x="850" y="168" class="dg-sub">rented GPU · $5–30/run</text>
+
+      <rect x="836" y="196" width="200" height="52" class="dg-accentbox" rx="8"/>
+      <text x="850" y="218" class="dg-title">Eval gate</text>
+      <text x="850" y="234" class="dg-sub">golden sets + MLflow judges</text>
+
+      <rect x="836" y="262" width="200" height="48" class="dg-box" rx="8"/>
+      <text x="850" y="284" class="dg-title">MLflow registry</text>
+      <text x="850" y="300" class="dg-sub">LoRA adapters + model cards</text>
+
+      <rect x="836" y="324" width="200" height="52" class="dg-box" rx="8"/>
+      <text x="850" y="346" class="dg-title">vLLM — multi-LoRA endpoint</text>
+      <text x="850" y="362" class="dg-sub">adapters = OpenAI model names</text>
+
+      <line x1="936" y1="116" x2="936" y2="126" class="dg-arrow" marker-end="url(#arr4)"/>
+      <line x1="936" y1="182" x2="936" y2="192" class="dg-arrow" marker-end="url(#arr4)"/>
+      <line x1="936" y1="248" x2="936" y2="258" class="dg-arrow" marker-end="url(#arr4)"/>
+      <line x1="936" y1="310" x2="936" y2="320" class="dg-arrow" marker-end="url(#arr4)"/>
+
+      <path d="M 768 232 C 812 232, 802 100, 832 94" class="dg-arrow" marker-end="url(#arr4)"/>
+      <text x="784" y="160" class="dg-note">curated</text>
+      <text x="784" y="174" class="dg-note">pairs</text>
+      <path d="M 832 108 C 800 112, 792 348, 772 354" class="dg-arrow dashed" marker-end="url(#arr4)"/>
+      <text x="788" y="322" class="dg-note">writes</text>
+      <text x="788" y="336" class="dg-note">JSONL</text>
+
+      <!-- loop B -->
+      <rect x="304" y="430" width="200" height="84" class="dg-box" rx="8"/>
+      <text x="318" y="454" class="dg-title">Optimizer agent</text>
+      <text x="318" y="471" class="dg-sub">LangGraph · reads marts via Cube,</text>
+      <text x="318" y="486" class="dg-sub">samples traces, reads eval history</text>
+      <text x="318" y="502" class="dg-sub">hypothesizes weak stages</text>
+
+      <rect x="560" y="430" width="220" height="84" class="dg-box" rx="8"/>
+      <text x="574" y="454" class="dg-title">PR — never self-applies</text>
+      <text x="574" y="471" class="dg-sub">prompts · SKILL.md · tool</text>
+      <text x="574" y="486" class="dg-sub">descriptions · model routing</text>
+      <text x="574" y="502" class="dg-sub">few-shots mined from top traces</text>
+
+      <rect x="836" y="430" width="200" height="84" class="dg-accentbox" rx="8"/>
+      <text x="850" y="454" class="dg-title">Offline evals</text>
+      <text x="850" y="471" class="dg-sub">golden questions +</text>
+      <text x="850" y="486" class="dg-sub">trace-replay A/B</text>
+      <text x="850" y="502" class="dg-sub">same judges as Loop A</text>
+
+      <path d="M 532 318 C 500 370, 462 400, 432 426" class="dg-arrow" marker-end="url(#arr4)"/>
+      <text x="440" y="386" class="dg-note">Cube — governed</text>
+      <path d="M 310 140 C 286 170, 286 240, 286 380 C 286 412, 300 424, 318 428" class="dg-arrow dashed" marker-end="url(#arr4)"/>
+      <text x="130" y="300" class="dg-note">trace samples</text>
+      <text x="130" y="314" class="dg-note">(scoped, consented)</text>
+
+      <line x1="504" y1="472" x2="556" y2="472" class="dg-arrow" marker-end="url(#arr4)"/>
+      <line x1="780" y1="472" x2="832" y2="472" class="dg-arrow" marker-end="url(#arr4)"/>
+
+      <!-- loop B return rail -->
+      <path d="M 936 514 C 936 585, 880 585, 800 585 L 240 585 C 160 585, 136 565, 136 510 L 136 278" class="dg-arrow accent" marker-end="url(#arr4a)"/>
+      <rect x="470" y="561" width="180" height="46" class="dg-box" rx="8" style="stroke: var(--accent);"/>
+      <text x="486" y="580" class="dg-title">Human merge (HiL)</text>
+      <text x="486" y="597" class="dg-sub">canary → measured in the marts</text>
+    </svg>
+    </div>
+    <figcaption>
+      <b>The flywheel.</b> One substrate, two loops. Loop A (right): warehouse-curated pairs become
+      versioned datasets, LoRA fine-tunes pass an eval gate into the MLflow registry, and vLLM serves
+      each adapter as an OpenAI-style model name that drops into the existing
+      <code>subagent_model</code> override. Loop B (bottom): the optimizer agent turns marts and trace
+      samples into pull requests that must survive offline evals and a human merge before canarying.
+      Both loops are measured by the same marts that triggered them — that's what makes it a flywheel
+      rather than a hunch.
+    </figcaption>
+  </figure>
+
+  <h3>Loop A mechanics — what actually gets fine-tuned</h3>
+  <ul>
+    <li><b>Targets, in order of payoff:</b> the mechanical stages where a 1–8B specialist beats a frontier generalist on cost and latency — JD parsing/skill extraction, CV section structuring, match scoring, battlecard drafting. The judgment-heavy stages (recon synthesis, coaching) stay on frontier models longest.</li>
+    <li><b>Toolchain:</b> curate in dbt (training marts join outcomes × judge scores × consent to trace IDs) → dataset builder as a Dagster asset (JSONL to the vault + a registry row) → <b>Unsloth</b> QLoRA on a rented GPU (Apache-2.0 core; Axolotl/TRL are fine alternatives — torchtune is no longer maintained, avoid) → <b>MLflow 3</b> for tracking, LLM-judge evals, and the registry (its PEFT flavor stores adapter-only weights) → <b>vLLM</b> with <code>--enable-lora</code>, where each adapter is its own OpenAI-compatible model name.</li>
+    <li><b>Deployment is a config string:</b> point <code>OPENAI_API_BASE</code>-style config at the vLLM endpoint and set one subagent's <code>subagent_model</code> to the adapter name — the override middleware NextRole already ships does the rest. Rollback is the same string, backwards.</li>
+    <li><b>Measurement:</b> the adapter's runs land in the same <code>fct_agent_run</code>/<code>fct_message</code> marts, tagged by model — cost, latency, edit-request rate, and judge scores before vs. after are one Cube query.</li>
+  </ul>
+
+  <h3>Loop B mechanics — the optimizer agent</h3>
+  <ul>
+    <li><b>Reads (all governed):</b> marts via Cube with an internal service security context; sampled traces from Langfuse's API (scoped and consent-filtered); eval history from MLflow; pipeline health from elementary's tables; the catalog via MCP once OpenMetadata exists.</li>
+    <li><b>Produces:</b> diffs to prompts, <code>SKILL.md</code> files, and tool descriptions (they're repo files — git is the prompt registry, PRs are the mechanism); model-routing proposals ("move stage X to adapter Y"); few-shot candidates mined from top-judged traces; eval-set additions for every failure mode it finds.</li>
+    <li><b>Never self-applies.</b> Every proposal is a PR that must pass the offline eval gate (golden questions + trace-replay A/B with the same judges as Loop A) and a human merge — the same HiL philosophy the execute tool already follows. Canary via the runtime configurables; the marts score the canary.</li>
+    <li><b>Why the metadata investment pays off here:</b> the optimizer's entire worldview is machine-readable surfaces this plan already builds — Cube <code>/v1/meta</code>, dbt manifest/docs, elementary tables, MLflow, the dataset registry. No scraping, no tribal knowledge.</li>
+  </ul>
+</section>
+
+<!-- ================================ GOVERNANCE ================================ -->
+<section id="governance">
+  <p class="sec-eyebrow">Trust</p>
+  <h2>Governance: dbt as the spine now, OpenMetadata when diligence starts</h2>
+  <p>
+    Governance for a solo-built platform has to be <b>generated, not authored</b> — tags, docs, lineage,
+    and quality results all emitted by the tools you already run, then surfaced by a catalog only when
+    there's an enterprise buyer to show them to.
+  </p>
+
+  <h3>Horizon 0 (now): the dbt governance spine — $0 extra infra</h3>
+  <ul>
+    <li><b>Documentation:</b> <code>description</code> on every model/column; dbt artifacts (<code>manifest.json</code>, <code>catalog.json</code>) are the machine-readable docs an LLM agent can consume directly — alongside Cube's <code>/v1/meta</code>.</li>
+    <li><b>Contracts:</b> <code>contract.enforced: true</code> + typed columns on every gold model — schema drift fails the build instead of the dashboard.</li>
+    <li><b>Lineage:</b> dbt manifest (table-level) + the Dagster asset graph (run-anchored, includes dlt sources). That combination answers enterprise "show me lineage" questions without any lineage server. Marquez is dormant — don't deploy it; emit OpenLineage only if a customer's platform demands it (DataHub has a native OL REST sink).</li>
+    <li><b>Quality:</b> dbt tests on keys/accepted values + elementary for anomaly, freshness, and volume monitoring inside <code>dbt build</code> — results land as warehouse tables the agent can also query ("is this dashboard stale?").</li>
+    <li><b>PII tags:</b> <code>meta: {pii: true, class: direct|quasi|content}</code> on columns in dbt YAML — the single source that later drives catalog classification and warehouse masking policies.</li>
+  </ul>
+
+  <h3>Horizon 1 (growth): add a catalog</h3>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th></th><th>OpenMetadata</th><th>DataHub</th><th>Unity Catalog OSS / Apache Polaris</th><th>Amundsen</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">License</th><td class="lic">Apache-2.0</td><td class="lic">Apache-2.0</td><td class="lic">Apache-2.0 (LF / ASF)</td><td class="lic">Apache-2.0</td></tr>
+        <tr><th scope="row">Deploy weight</th><td class="good">~4 containers (server, DB, OpenSearch)</td><td>~7–8 containers (Kafka, ES, GMS…)</td><td class="good">Light</td><td>5 svcs incl. neo4j, stale images</td></tr>
+        <tr><th scope="row">Column-level lineage</th><td class="good">Yes, OSS</td><td class="good">Yes, OSS — best SQL parser; native OpenLineage REST</td><td class="bad">None (table/permission catalogs)</td><td class="bad">Table-level only</td></tr>
+        <tr><th scope="row">PII auto-classification</th><td class="good">Built-in OSS (profiler + NLP)</td><td>Thin in OSS; automation in Cloud</td><td class="bad">No</td><td class="bad">No</td></tr>
+        <tr><th scope="row">Glossary + RBAC in OSS</th><td class="good">Yes — roles/policies/domains</td><td>Yes</td><td>Table permissions only</td><td>Minimal</td></tr>
+        <tr><th scope="row">Connectors we need</th><td>dbt, Dagster, ClickHouse, BigQuery, Snowflake, Postgres, Superset, Metabase ✓ · Cube ✗</td><td>Same set <b>plus Cube ✓</b> · DuckDB ✗</td><td>Engines only</td><td>Aging</td></tr>
+        <tr><th scope="row">Agent access</th><td class="good">REST + built-in MCP server (OSS)</td><td class="good">GraphQL/OpenAPI + MCP read/write (v1.4)</td><td>Iceberg REST</td><td>REST</td></tr>
+        <tr><th scope="row">Verdict</th><td><span class="chip pick">Default pick</span></td><td><span class="chip later">If Cube ingestion + OL REST outweigh the Kafka/ES footprint</span></td><td><span class="chip later">Only with an Iceberg lakehouse</span></td><td><span class="chip skip">Dormant since 2024</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>Which catalog when — the scenario matrix</h3>
+  <p>
+    The catalog question is never either/or with warehouse-native catalogs, because they play different
+    positions: <b>Unity Catalog / Horizon / Dataplex / Purview are enforcement catalogs</b> — they live
+    inside one vendor's engine and actually apply permissions there — while <b>OpenMetadata is a
+    federating catalog</b>: discovery, glossary, PII classification, and lineage <i>across</i> engines,
+    enforcing nothing itself. The portable truth is neither: it's the <code>meta</code> tags and
+    descriptions in your dbt project, which project into whichever catalogs a deployment has.
+  </p>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>Scenario</th><th>Catalog</th><th>Why / how</th></tr></thead>
+      <tbody>
+        <tr>
+          <th scope="row">Your self-hosted stack<span class="sub">ClickHouse + dbt + Cube + Superset</span></th>
+          <td><b>None yet → OpenMetadata</b> when diligence or discovery pain starts</td>
+          <td>A heterogeneous OSS estate has no built-in catalog; until then dbt docs + Dagster lineage answer every question you actually have</td>
+        </tr>
+        <tr>
+          <th scope="row">BYO Databricks tenant</th>
+          <td><b>Unity Catalog — theirs</b>, not OpenMetadata</td>
+          <td>Don't ship a second catalog into a workspace that already has the best enforcement catalog: mirror dbt <code>meta</code> → UC governed tags/ABAC, let UC capture lineage natively, and hand their governance team the pane they already use</td>
+        </tr>
+        <tr>
+          <th scope="row">BYO Snowflake tenant</th>
+          <td><b>Horizon</b> (+ Open Catalog for Iceberg)</td>
+          <td>Same logic; mind that policies/audit are Enterprise-edition-gated on their side</td>
+        </tr>
+        <tr>
+          <th scope="row">BYO BigQuery tenant</th>
+          <td><b>Dataplex Universal Catalog</b></td>
+          <td>dbt column YAML carries <code>policy_tags</code>; masking + RLS enforce natively</td>
+        </tr>
+        <tr>
+          <th scope="row">BYO Fabric tenant</th>
+          <td><b>Purview</b> + OneLake security</td>
+          <td>Microsoft estates keep governance in Purview; don't fight it</td>
+        </tr>
+        <tr>
+          <th scope="row">You, across all tenants<span class="sub">the vendor control plane</span></th>
+          <td><b>OpenMetadata</b></td>
+          <td>One internal pane federating your ClickHouse and every tenant warehouse (it has connectors for all of them); its OSS MCP server is how the optimizer agent reads the estate</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <p>
+    Rule of thumb: <b>ship projections, not a catalog, into customer environments</b> — their catalog
+    governs their warehouse; OpenMetadata is your view over everything you operate.
+  </p>
+
+  <h3>PII &amp; GDPR playbook (named patterns)</h3>
+  <ol>
+    <li><b>Tag at source, enforce at warehouse:</b> dbt <code>meta</code> PII tags → catalog classification → tag-based masking where native (Snowflake masking policies via post-hooks, BigQuery policy tags in dbt column YAML); on DuckDB/ClickHouse, mask in silver views instead.</li>
+    <li><b>Pseudonymize at bronze:</b> hash direct identifiers in the dlt transform (email → hash + domain, IP → /24); keep the identity map in a restricted vault schema. Still personal data — it narrows blast radius, not obligations.</li>
+    <li><b>Content never lands:</b> NextRole's strongest control is structural — CV/JD/chat text is dropped at extraction, so the warehouse holds counts, tokens, and statuses, not documents.</li>
+    <li><b>Deletion-requests cascade:</b> a <code>deletion_requests</code> table drives erasure — bronze deletes first, silver/gold rebuild on schedule; plus PostHog person-delete, object-storage prefix-delete (<code>users/&lt;id&gt;/…</code> makes this one call), and the OLTP's own cleanup.</li>
+    <li><b>Retention windows:</b> 30–90-day lifecycle on bronze bounds the replay surface and satisfies storage-limitation; gold keeps only pseudonymous aggregates long-term.</li>
+    <li><b>Crypto-shredding</b> (per-user keys, erase = destroy key) only if immutable stores/backups enter the picture.</li>
+    <li><b>Training is its own lawful purpose:</b> fine-tuning on user content needs an explicit <code>training_consent</code> flag on the user, purpose limitation in the DPA, and erasure that reaches dataset versions (and documents model lineage) — mechanics in the <a href="#flywheel">flywheel section</a>.</li>
+  </ol>
+
+  <h3>Horizon 2 (enterprise): BYO-warehouse without a rewrite</h3>
+  <p>
+    The pattern enterprise data vendors converged on is <b>control plane (you) / data plane (customer)</b>:
+    your orchestrator runs a <b>parameterized dbt package + dlt pipeline per tenant</b> against credentials
+    the customer grants, into <i>their</i> BigQuery/Snowflake/Databricks — their data never leaves their
+    perimeter, which is exactly what a recruiting company will demand for candidate PII. The design work
+    that makes this a config change instead of a rewrite is already in this plan:
+  </p>
+  <ul>
+    <li>dbt project stays a package with no hardcoded schemas/tenants; adapters cover their warehouse.</li>
+    <li>Cube compiles per tenant (<code>COMPILE_CONTEXT</code>) and can point at per-tenant data sources (<code>driverFactory</code>) — same models, their warehouse, <b>same RLS semantics</b>.</li>
+    <li>For shared-SaaS tenants: schema-per-tenant for isolation-sensitive buyers, row-level isolation via the semantic layer for the rest; warehouse-native sharing (Snowflake shares / BigQuery Analytics Hub) when they only want datasets, not pipelines.</li>
+    <li>What buyers will ask for in diligence: SSO/SAML + SCIM, immutable audit logs (Cube query logs + warehouse access logs), SOC 2 path, DPA + subprocessor list (PostHog Cloud appears here — or gets swapped for Jitsu), data residency, documented erasure, and lineage — which is the moment the OpenMetadata deploy pays for itself.</li>
+  </ul>
+</section>
+
+<!-- ================================ ROADMAP ================================ -->
+<section id="roadmap">
+  <p class="sec-eyebrow">Execution</p>
+  <h2>Roadmap: two weekends to dashboards, then grow on triggers</h2>
+
+  <h3>Phase 0 — the whole stack, day one <span class="chip soft">≈ 2–3 weekends</span></h3>
+  <ul>
+    <li><b>Compose it:</b> six services join <code>docker-compose.yml</code> — <code>clickhouse</code>, <code>dagster-webserver</code>, <code>dagster-daemon</code>, <code>cube</code>, <code>superset</code> (app + worker) — with Dagster's run storage and Superset's metadata in the <b>existing Postgres</b> and Superset's broker on the <b>existing Redis</b>. Budget 2–4 GB extra RAM on the dev box.</li>
+    <li><b>Instrument events:</b> the ~15-event taxonomy above via <code>posthog-js</code> + <code>posthog-python</code> (same <code>distinct_id</code> across the boundary), <i>plus</i> the flywheel's labels from day one: thumbs on artifacts, edit-request outcomes, and a <code>training_consent</code> flag on the user.</li>
+    <li><b>Land it:</b> an <code>analytics/</code> directory with the dlt pipeline → ClickHouse per the sync plan (content fields dropped at extract); PostHog events arrive by batch export + <code>s3()</code> ingest, or dlt straight from the hobby stack's ClickHouse.</li>
+    <li><b>Model it:</b> dbt project on <code>dbt-clickhouse</code> — <code>stg_*</code>/<code>int_*</code>/marts per the modeling section, contracts on gold, PII <code>meta</code> tags from the first model; plain dbt tests now, elementary when you want history and alerts.</li>
+    <li><b>Serve it:</b> Cube Core over gold (metrics + descriptions — the agent's future vocabulary), Superset pointed at Cube's Postgres-wire SQL API.</li>
+    <li><b>Schedule it:</b> one Dagster daily schedule materializes the whole asset graph — dlt sources → staging → marts (→ elementary) — with retries, backfills, and lineage in the UI from the first run.</li>
+    <li><b>First deliverables:</b> the activation funnel (upload → processed → tailored → rendered → downloaded), cost per user/model from <code>usage_metadata</code>, run reliability, WAU.</li>
+  </ul>
+
+  <h3>Phase 0.5 — the analytics agent MVP <span class="chip soft">≈ 1 weekend</span></h3>
+  <ul>
+    <li>A LangGraph subagent with two tools: <code>discover_metrics</code> (cached <code>/v1/meta</code>) and <code>run_query</code> (<code>POST /v1/load</code>). NextRole already mints EdDSA JWTs and publishes JWKS for Better Auth — reuse that identity to build the Cube security context, so the agent inherits each user's row-level scope automatically.</li>
+    <li>Read-only by construction (no warehouse credentials in the agent); <code>queryRewrite</code> throws when the security context is missing — fail closed.</li>
+    <li>Ship with a golden-question eval set ("how many runs failed this week?", "what did model X cost per artifact?") so semantic-model changes can't silently break it.</li>
+  </ul>
+
+  <h3>Phase 1 — same stack, its own box <span class="chip later">on triggers</span></h3>
+  <ul>
+    <li><b>Triggers:</b> laptop RAM pressure, always-on dashboards, &gt;1M events/mo, or the flywheel needing steady compute.</li>
+    <li><b>Move, don't migrate:</b> the identical compose stack relocates to a VM; ClickHouse gets real disks and backups; add row policies for any human warehouse logins (the engine-side second lock).</li>
+    <li><b>PostHog checkpoint:</b> outgrown the free tier? Pay, or switch lanes per the decision tree (hobby self-host / pipeline-only capture) — the warehouse copy makes it painless.</li>
+    <li><b>Flywheel starts:</b> self-host the trace store, build the training marts + dataset registry, run the first LoRA — milestones below, mechanics in the <a href="#flywheel">flywheel section</a>.</li>
+    <li><b>OpenMetadata</b> the moment discovery pain or a diligence request appears (scenario matrix in governance).</li>
+  </ul>
+
+  <h3>Phase 2 — enterprise &amp; BYO warehouse <span class="chip later">first enterprise deal</span></h3>
+  <ul>
+    <li>OpenMetadata catalog: ingest dbt, Dagster, the warehouse, and BI; its PII auto-classification reconciles against your dbt <code>meta</code> tags.</li>
+    <li>Tenant packaging: dbt package with per-tenant vars; Cube <code>COMPILE_CONTEXT</code> + <code>driverFactory</code> per tenant; secrets vaulted per customer.</li>
+    <li>BYO adapters in install-base order (Snowflake → Databricks → BigQuery → Fabric → Redshift), mirroring PII tags into each engine's native masking/RLS.</li>
+    <li>The diligence kit: SSO/SCIM, immutable audit (Cube query logs + warehouse access logs), documented erasure cascade, DPA + subprocessor list, data residency choices.</li>
+  </ul>
+
+  <h3>Flywheel milestones <span class="chip soft">details in the <a href="#flywheel">flywheel section</a></span></h3>
+  <ul>
+    <li><b>F0 (inside Phase 0):</b> the labels exist from day one — thumbs + edit-outcome events in the taxonomy, <code>training_consent</code> on the user, eval golden sets started.</li>
+    <li><b>F1:</b> own the traces (self-hosted trace store) and build the curation layer: training marts, dataset registry, the consented training vault in object storage.</li>
+    <li><b>F2:</b> first fine-tune — a LoRA on an extraction-grade task, tracked in MLflow, served on an OpenAI-compatible endpoint, deployed to one subagent via the existing <code>subagent_model</code> override. Classical ML rides the same marts (match-quality scoring, churn propensity) with scikit-learn/XGBoost as Dagster assets.</li>
+    <li><b>F3:</b> the optimizer agent ships its first prompt/skill PRs behind the eval gate.</li>
+    <li><b>Governance applies throughout:</b> datasets and features inherit PII tags; no raw-text training without consent; never cross-tenant.</li>
+  </ul>
+
+  <h3>What it costs</h3>
+  <div class="tablewrap">
+    <table>
+      <thead><tr><th>Phase</th><th>Infra</th><th>SaaS</th><th>Realistic total</th></tr></thead>
+      <tbody>
+        <tr><th scope="row">Phase 0</th><td>$0 — six extra compose containers on the existing box (~2–4 GB RAM)</td><td>PostHog free tier (or $0 hobby); a few GB of object storage</td><td class="num">≈ $0–5/mo</td></tr>
+        <tr><th scope="row">Phase 1</th><td>One 8–16 GB VM for the same stack ($60–150)</td><td>PostHog ≤2M events ($0–100); GPU rental per LoRA run ($5–30); Dagster+ Solo optional ($10)</td><td class="num">≈ $60–300/mo</td></tr>
+        <tr><th scope="row">Phase 2</th><td>Tenant warehouses are theirs; your stack unchanged + catalog VM ($40); BigQuery only if you take the zero-ops exit ($10–100)</td><td>PostHog w/ residency ($100–450) or swapped for self-host; misc</td><td class="num">≈ $300–1,500/mo</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>
+    Perspective: at every phase the analytics stack is a rounding error next to the product's own LLM
+    token spend — which is itself the first thing this platform will let you see clearly, per user, per
+    model, per artifact.
+  </p>
+</section>
+
+<!-- ================================ SOURCES ================================ -->
+<section id="sources">
+  <p class="sec-eyebrow">Receipts</p>
+  <h2>Sources</h2>
+  <p>
+    Fast-moving claims above (licenses, acquisitions, deprecations, prices, feature gating) were
+    verified against these as of <span class="mono">2026-08-29</span>; schema facts come from live
+    exploration of the local database.
+  </p>
+  <div style="columns: 2 340px; column-gap: 44px;">
+    <h4 style="margin-top:4px">Warehouse &amp; lakehouse</h4>
+    <ul style="font-size:13px">
+      <li><a href="https://ducklake.select/2026/04/13/ducklake-10/">DuckLake 1.0 announcement</a></li>
+      <li><a href="https://motherduck.com/blog/pg-duckdb-release/">pg_duckdb 1.0 "production ready"</a></li>
+      <li><a href="https://www.databricks.com/blog/mooncake-labs-joins-databricks-accelerate-vision-lakebase">Mooncake Labs joins Databricks</a></li>
+      <li><a href="https://github.com/paradedb/pg_analytics">pg_analytics — archived</a></li>
+      <li><a href="https://clickhouse.com/blog/clickhouse-is-data-lake-ready">ClickHouse is data-lake ready</a></li>
+      <li><a href="https://clickhouse.com/docs/knowledgebase/row-column-policy">ClickHouse row &amp; column policies</a></li>
+      <li><a href="https://learn.microsoft.com/en-us/answers/questions/5828755/do-we-have-any-indication-that-azure-synapse-analy">Synapse retirement status (MS Q&amp;A)</a></li>
+      <li><a href="https://learn.microsoft.com/en-us/fabric/onelake/security/table-column-row-security">OneLake table/column/row security</a></li>
+      <li><a href="https://motherduck.com/docs/concepts/security/">MotherDuck access model</a></li>
+      <li><a href="https://clickhouse.com/docs/operations/tips">ClickHouse low-memory tuning (usage tips)</a></li>
+    </ul>
+    <h4>Permissions &amp; catalogs</h4>
+    <ul style="font-size:13px">
+      <li><a href="https://docs.snowflake.com/en/user-guide/security-row-intro">Snowflake row access policies (Ent+)</a></li>
+      <li><a href="https://docs.snowflake.com/en/user-guide/security-column-ddm-intro">Snowflake dynamic masking (Ent+)</a></li>
+      <li><a href="https://www.databricks.com/blog/abac-row-filtering-and-column-masking-policies-governed-tags-and-data-classification-are-now">Databricks ABAC GA</a></li>
+      <li><a href="https://docs.cloud.google.com/biglake/docs/use-biglake-metastore-iceberg-rest-catalog">BigLake Iceberg REST catalog GA</a></li>
+      <li><a href="https://docs.aws.amazon.com/redshift/latest/dg/t_rls.html">Redshift RLS</a></li>
+      <li><a href="https://polaris.apache.org/blog/2026/02/19/apache-polaris-graduates-to-top-level-project/">Apache Polaris → ASF TLP</a></li>
+      <li><a href="https://lfaidata.foundation/projects/unity-catalog/">Unity Catalog OSS (LF sandbox)</a></li>
+      <li><a href="https://docs.snowflake.com/en/release-notes/2026/other/2026-02-24-snowflake-postgres-ga">Snowflake Postgres GA</a></li>
+    </ul>
+    <h4>Pipeline</h4>
+    <ul style="font-size:13px">
+      <li><a href="https://dlthub.com/docs/general-usage/destination-tables">dlt nested-data flattening</a></li>
+      <li><a href="https://docs.airbyte.com/platform/deploying-airbyte/migrating-from-docker-compose">Airbyte drops docker compose</a></li>
+      <li><a href="https://docs.getdbt.com/blog/dbt-core-v2-is-here">dbt Core v2 (Fusion, Apache-2.0)</a></li>
+      <li><a href="https://www.fivetran.com/press/fivetran-dbt-labs-complete-merger-to-create-the-data-infrastructure-for-trusted-ai-agents">Fivetran–dbt merger closes</a></li>
+      <li><a href="https://www.fivetran.com/press/fivetran-contributes-sqlmesh-to-the-linux-foundation-to-advance-open-data-infrastructure">SQLMesh → Linux Foundation</a></li>
+      <li><a href="https://airflow.apache.org/announcements/">Airflow 3.x announcements</a></li>
+      <li><a href="https://support.dagster.io/articles/3171123463-dagster-solo-and-starter-pricing-updates-may-2026">Dagster+ Solo pricing</a></li>
+      <li><a href="https://docs.peerdb.io/features/supported-connectors">PeerDB destination deprecations</a></li>
+      <li><a href="https://github.com/elementary-data/elementary">elementary</a></li>
+      <li><a href="https://soda.io/blog/soda-core-license-update-moving-to-elastic-license">Soda Core → ELv2</a></li>
+      <li><a href="https://greatexpectations.io/blog/an-update-from-great-expectations/">Great Expectations stewardship update</a></li>
+    </ul>
+    <h4>Semantic layer</h4>
+    <ul style="font-size:13px">
+      <li><a href="https://docs.cube.dev/docs/data-modeling/data-access-policies">Cube data access policies</a></li>
+      <li><a href="https://docs.cube.dev/docs/integrations/mcp-server">Cube MCP server (Cloud Premium+)</a></li>
+      <li><a href="https://cube.dev/blog/introducing-long-term-support-lts-for-cube-core">Cube Core LTS</a></li>
+      <li><a href="https://blog.langchain.com/cube-x-langchain-building-ai-experiences-with-llms-and-the-semantic-layer/">Cube × LangChain pattern</a></li>
+      <li><a href="https://www.getdbt.com/blog/open-source-metricflow-governed-metrics">MetricFlow relicensed Apache-2.0</a></li>
+      <li><a href="https://github.com/open-semantic-interchange/OSI">Open Semantic Interchange v1.0</a></li>
+      <li><a href="https://github.com/malloydata/publisher">Malloy Publisher (OSS MCP)</a></li>
+    </ul>
+    <h4>BI &amp; product analytics</h4>
+    <ul style="font-size:13px">
+      <li><a href="https://preset.io/blog/apache-superset-6-0-release/">Superset 6.0</a></li>
+      <li><a href="https://www.metabase.com/releases">Metabase releases (AI SQL in OSS, v59)</a></li>
+      <li><a href="https://www.lightdash.com/pricing">Lightdash pricing</a></li>
+      <li><a href="https://posthog.com/pricing">PostHog pricing &amp; free tier</a></li>
+      <li><a href="https://posthog.com/docs/self-host">PostHog self-host limits</a></li>
+      <li><a href="https://posthog.com/docs/cdp/batch-exports">PostHog batch exports</a></li>
+      <li><a href="https://docs.snowplow.io/docs/resources/limited-use-license-faq/">Snowplow SLULA FAQ</a></li>
+      <li><a href="https://aws.amazon.com/blogs/business-intelligence/reimagine-business-intelligence-amazon-quicksight-evolves-to-amazon-quick-suite/">QuickSight → Quick Suite</a></li>
+      <li><a href="https://posthog.com/blog/data-pipeline-pricing">PostHog pipelines repricing (rows-based, 2025-09)</a></li>
+    </ul>
+    <h4>Governance &amp; privacy</h4>
+    <ul style="font-size:13px">
+      <li><a href="https://open-metadata.org/mcp">OpenMetadata MCP server</a></li>
+      <li><a href="https://docs.open-metadata.org/latest/how-to-guides/data-governance/classification/auto-classification">OpenMetadata PII auto-classification</a></li>
+      <li><a href="https://docs.datahub.com/docs/lineage/openlineage">DataHub OpenLineage endpoint</a></li>
+      <li><a href="https://docs.datahub.com/docs/generated/ingestion/sources/cube">DataHub Cube ingestion</a></li>
+      <li><a href="https://github.com/MarquezProject/marquez/releases">Marquez (dormant since 2024-10)</a></li>
+      <li><a href="https://www.databricks.com/blog/handling-right-be-forgotten-gdpr-and-ccpa-using-delta-live-tables-dlt">Right-to-be-forgotten cascade pattern</a></li>
+      <li><a href="https://posthog.com/docs/privacy/gdpr-compliance">PostHog GDPR &amp; person deletion</a></li>
+      <li><a href="https://infinitelambda.com/tag-based-masking-in-snowflake/">Tag-based masking via dbt (Snowflake)</a></li>
+    </ul>
+    <h4>Flywheel &amp; LLMOps</h4>
+    <ul style="font-size:13px">
+      <li><a href="https://langfuse.com/changelog/2025-06-04-open-sourcing-langfuse">Langfuse: all product features → MIT</a></li>
+      <li><a href="https://langfuse.com/self-hosting">Langfuse self-hosting architecture (BYO PG/CH/Redis/S3)</a></li>
+      <li><a href="https://langfuse.com/docs/api-and-data-platform/features/export-to-blob-storage">Langfuse scheduled blob export</a></li>
+      <li><a href="https://docs.langchain.com/langsmith/data-export">LangSmith bulk export (Enterprise gating, 2026-08)</a></li>
+      <li><a href="https://github.com/ClickHouse/dbt-clickhouse">dbt-clickhouse (ClickHouse-maintained)</a></li>
+      <li><a href="https://clickhouse.com/docs/integrations/dbt/materializations">dbt-clickhouse incremental strategies</a></li>
+      <li><a href="https://mlflow.org/releases">MLflow 3.x releases (prompt registry, GenAI judges in OSS)</a></li>
+      <li><a href="https://mlflow.org/docs/latest/ml/deep-learning/transformers/tutorials/fine-tuning/transformers-peft/">MLflow PEFT/LoRA adapter logging</a></li>
+      <li><a href="https://docs.vllm.ai/en/latest/features/lora.html">vLLM multi-LoRA serving</a></li>
+      <li><a href="https://github.com/unslothai/unsloth">Unsloth</a></li>
+    </ul>
+  </div>
+</section>
+
+</div>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>NextRole Analytics Blueprint — prepared 2026-08-29, from live schema exploration + landscape research.</span>
+    <span>Palette &amp; type follow the NextRole design system (paper + espresso, Newsreader / Schibsted Grotesk / JetBrains Mono).</span>
+  </div>
+</footer>

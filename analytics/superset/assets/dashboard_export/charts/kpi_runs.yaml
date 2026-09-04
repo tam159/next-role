@@ -1,0 +1,26 @@
+slice_name: Agent runs (7d)
+description: null
+certified_by: null
+certification_details: null
+viz_type: big_number_total
+params:
+  datasource: 0__table
+  viz_type: big_number_total
+  metric: count
+  adhoc_filters:
+  - clause: WHERE
+    subject: run_date
+    operator: TEMPORAL_RANGE
+    comparator: 'DATEADD(DATETIME("now"), -7, day) : now'
+    expressionType: SIMPLE
+  header_font_size: 0.4
+  subheader: last 7 days
+  subheader_font_size: 0.125
+  y_axis_format: SMART_NUMBER
+  time_format: smart_date
+  extra_form_data: {}
+query_context: null
+cache_timeout: null
+uuid: 2365775e-a223-526c-a93d-e46b289a91f0
+version: 1.0.0
+dataset_uuid: ca976b20-c05b-5c13-b02c-43d6700e7924

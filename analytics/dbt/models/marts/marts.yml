@@ -1,0 +1,232 @@
+version: 2
+
+# Gold layer: the analytical column dictionary. Descriptions here are written
+# for the future analytics agent as much as for humans — they state grain,
+# semantics, value domains, and the caveats that change how a number should be
+# read. Shared prose lives in models/docs/shared.md ({{ doc(...) }}).
+models:
+  - name: dim_user
+    description: >
+      One row per user the product has ever seen: every registered (Better Auth) account —
+      including accounts that never ran the agent — plus the synthetic `default` owner that stands
+      for all single-user-mode activity. Emails exist only as hash + domain. "Active users" is not
+      a property of this table; derive it from `fct_run` / `fct_thread` owners in a time window.
+    columns:
+      - name: user_id
+        description: >
+          Primary key — the Better Auth user id that every `owner` column joins to. `'default'` is a
+          synthetic row standing for single-user-mode activity (no login), not a person.
+        tests: [unique, not_null]
+      - name: name
+        description: >
+          Display name entered at signup (direct PII — internal dashboards only). `'Single-user
+          mode'` for the default row, `'Unknown'` for an owner id with no auth record.
+        meta: {pii: true, class: direct}
+      - name: email_hash
+        description: sha256 of the lowercased email — a stable dedup/join key across systems, never reversible.
+        meta: {pii: true, class: quasi}
+      - name: email_domain
+        description: Domain part of the email (e.g. a company domain) — the only organisation-level cohort attribute available.
+        meta: {pii: true, class: quasi}
+      - name: provider
+        description: >
+          How the account authenticates: `credential` (email + password), `google` (OAuth),
+          `none` for the default row; NULL when a registered user has no account link.
+      - name: email_verified
+        description: Whether the address was verified; NULL for the default row.
+      - name: signup_date
+        description: Calendar date (UTC) the account was created — cohort key; NULL for the default row.
+      - name: signup_at
+        description: Account creation timestamp (UTC); NULL for the default row.
+
+  - name: dim_assistant
+    description: >
+      Agent definitions the runs were served by. Today exactly one row: the `career_agent` graph,
+      version 1 — the dimension exists so runs can be split by graph/version once more agents or
+      versions ship.
+    columns:
+      - name: assistant_id
+        description: Primary key; `fct_run.assistant_id` / `fct_thread.assistant_id` join here.
+        tests: [unique, not_null]
+      - name: graph_id
+        description: The LangGraph graph the assistant runs (`career_agent`).
+      - name: version
+        description: Assistant definition version — increments when its config changes.
+
+  - name: fct_run
+    description: >
+      Grain: one career-agent run — a single user turn (or a human-in-the-loop resume) being
+      processed end to end. The reliability, latency, and agent-effort fact. A conversation
+      (`fct_thread`) has several runs (median 2, up to 9). Default time dimension: `run_date`.
+      Model usage per run is not stored here — see `fct_message.model_name`.
+    columns:
+      - name: run_id
+        description: Primary key (LangGraph run id).
+        tests: [unique, not_null]
+      - name: run_date
+        description: Calendar date (UTC) the run was created — the default time dimension for reliability and latency questions.
+        tests: [not_null]
+      - name: owner
+        description: '{{ doc("owner") }}'
+        tests: [not_null]
+      - name: thread_id
+        description: Conversation thread the run belongs to (`fct_thread.thread_id`).
+      - name: assistant_id
+        description: Agent definition that served the run (`dim_assistant`).
+      - name: status
+        description: '{{ doc("run_status") }}'
+        tests:
+          - accepted_values:
+              config:
+                severity: warn
+              arguments:
+                values: [pending, running, error, success, timeout, interrupted]
+      - name: is_success
+        description: "`status = 'success'` as a boolean — sum for success counts, average for the success rate."
+      - name: was_interrupted
+        description: "`status = 'interrupted'`: the run paused for a human-in-the-loop decision (shell-command approval); the resume is a new run on the same thread."
+      - name: duration_s
+        description: '{{ doc("duration_s") }}'
+      - name: steps
+        description: '{{ doc("steps") }}'
+      - name: main_model_override
+        description: >
+          Model explicitly chosen for the main agent in this run's config (`configurable.main_agent_model`);
+          NULL = the deployment default. No run has set one so far — the models actually used are on
+          `fct_message.model_name`.
+      - name: subagent_model_override
+        description: Same as `main_model_override` for the subagents (`configurable.subagent_model`).
+      - name: multitask_strategy
+        description: How a new run on an already-busy thread is handled (reject|rollback|interrupt|enqueue); always `enqueue` in practice — an ops detail.
+      - name: created_at
+        description: Run creation timestamp (UTC) — when the user's turn was submitted.
+      - name: updated_at
+        description: Last status change (UTC); the completion time for terminal runs.
+
+  - name: fct_message
+    description: >
+      Grain: one message in a conversation's state — a user turn (`human`), a model turn (`ai`,
+      usually a tool-call request), or a tool result (`tool`). The token and cost fact. Event time
+      is the pipeline's first-seen ledger, and token usage is present on only ~10% of AI messages,
+      so read the `first_seen_at`, `input_tokens`, and `est_cost_usd` caveats before trending.
+    columns:
+      - name: message_key
+        description: Primary key — surrogate `thread_id:message_index`.
+        tests: [unique, not_null]
+      - name: thread_id
+        description: Conversation the message belongs to (`fct_thread.thread_id`).
+      - name: message_index
+        description: 0-based position within the conversation — ordering only, not a time.
+      - name: message_id
+        description: >
+          LangChain message id. Its shape reveals the response path: `resp_…` = OpenAI Responses API
+          call (carries token usage), `lc_run--…` = streamed, chunk-merged response (usually no usage).
+      - name: type
+        description: '{{ doc("message_type") }}'
+      - name: name
+        description: For `tool` messages, the tool that produced the result (see `tool_call_names` for the vocabulary); NULL for human/ai messages.
+      - name: model_name
+        description: '{{ doc("model_name") }}'
+      - name: model_provider
+        description: Provider of the model (`openai` only so far); NULL for non-AI messages.
+      - name: finish_reason
+        description: Not populated by the current provider stack (always NULL) — do not filter on it.
+      - name: content_length
+        description: >
+          Characters of message content (the text itself never leaves the OLTP database). Tool
+          results are long (avg ~3.5k), AI turns short (avg ~120) because most are tool-call
+          requests, user turns in between (avg ~300).
+      - name: tool_call_count
+        description: Number of tools an `ai` message requested; 0 for final answers and non-AI messages.
+      - name: tool_call_names
+        description: '{{ doc("tool_vocabulary") }} Comma-joined, sorted, deduplicated per message.'
+      - name: tool_call_id
+        description: For `tool` messages, the id of the AI tool call it answers.
+      - name: tool_status
+        description: For `tool` messages, `success` or `error` — the tool failure rate (about 1% so far).
+      - name: input_tokens
+        description: 'Prompt tokens billed for an `ai` message (includes cached ones). {{ doc("usage_coverage") }}'
+      - name: output_tokens
+        description: Completion tokens for an `ai` message (includes reasoning tokens); same coverage caveat as `input_tokens`.
+      - name: total_tokens
+        description: input + output tokens as reported by the provider.
+      - name: cache_creation_tokens
+        description: Prompt tokens written to the provider's prompt cache (subset of input_tokens).
+      - name: cache_read_tokens
+        description: Prompt tokens served from the provider's prompt cache (subset of input_tokens) — high because the system prompt and skills repeat every turn.
+      - name: reasoning_tokens
+        description: Reasoning tokens of reasoning models (subset of output_tokens).
+      - name: first_seen_at
+        description: '{{ doc("first_seen") }}'
+      - name: first_seen_date
+        description: Calendar date (UTC) of `first_seen_at`; the default time dimension for token/cost trends going forward.
+        tests: [not_null]
+      - name: owner
+        description: '{{ doc("owner") }}'
+        tests: [not_null]
+      - name: thread_created_date
+        description: Creation date (UTC) of the parent thread — use it to bucket messages backfilled before the pipeline existed.
+      - name: est_cost_usd
+        description: '{{ doc("est_cost") }}'
+
+  - name: fct_thread
+    description: >
+      Grain: one conversation thread with its message and run roll-ups — the unit of "a user
+      working on a role". Default time dimension: `created_date`; `updated_at` is the last activity.
+    columns:
+      - name: thread_id
+        description: Primary key (LangGraph thread id).
+        tests: [unique, not_null]
+      - name: created_date
+        description: Calendar date (UTC) the conversation started — the "new conversations" dimension.
+      - name: owner
+        description: '{{ doc("owner") }}'
+        tests: [not_null]
+      - name: graph_id
+        description: Agent graph serving the thread (`career_agent`).
+      - name: assistant_id
+        description: Agent definition (`dim_assistant`).
+      - name: status
+        description: '{{ doc("thread_status") }}'
+      - name: message_count
+        description: Messages of all types in the thread state (tool results included) — conversation length, not user effort (median 4, p90 ~45).
+      - name: file_count
+        description: Files held inside the thread state. Normally 0 because artifacts (resumes, PDFs, uploads) live in object storage — not an artifact count.
+      - name: todo_count
+        description: Plan items the agent wrote for itself; non-zero marks threads where it ran a multi-step plan (about a third of threads).
+      - name: has_interrupt
+        description: A human-in-the-loop interrupt is pending right now (snapshot, not history).
+      - name: run_count
+        description: Runs (user turns + resumes) processed in the thread; `1` = single-turn conversation.
+      - name: successful_runs
+        description: Runs with `status = 'success'`.
+      - name: failed_runs
+        description: Runs with `status = 'error'` (timeouts and interrupts not included).
+      - name: created_at
+        description: Thread creation timestamp (UTC).
+      - name: updated_at
+        description: Last activity on the thread (UTC) — the "last active" proxy for dormancy questions.
+
+  - name: fct_session
+    description: >
+      Grain: one login session (Better Auth) — registered users only, so empty in single-user
+      mode. Measures logins, not product activity; for "active users" prefer distinct
+      `fct_run.owner` per period.
+    columns:
+      - name: session_id
+        description: Primary key.
+        tests: [unique, not_null]
+      - name: session_date
+        description: Calendar date (UTC) the session was created — the login day.
+      - name: user_id
+        description: The user who logged in (`dim_user.user_id`).
+      - name: ip_prefix
+        description: Client IPv4 network truncated to /24 (NULL for IPv6) — coarse geography/network only.
+        meta: {pii: true, class: quasi}
+      - name: user_agent
+        description: Browser user agent, truncated to 256 characters — device/browser mix.
+        meta: {pii: true, class: quasi}
+      - name: created_at
+        description: Login timestamp (UTC).
+      - name: expires_at
+        description: Session expiry (UTC); sessions are refreshed on activity, so this is not a logout time.

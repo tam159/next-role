@@ -1,0 +1,305 @@
+dashboard_title: NextRole Overview
+description: 'Users and human-AI conversation activity: reliability, latency, tokens and estimated cost. Message time-series use pipeline capture time — history from before the analytics deployment appears lumped at deploy date.'
+css: ''
+slug: nextrole-overview
+certified_by: ''
+certification_details: ''
+published: true
+uuid: 14a656f5-a909-5bb8-8f7a-204e2be39ecb
+position:
+  DASHBOARD_VERSION_KEY: v2
+  ROOT_ID:
+    type: ROOT
+    id: ROOT_ID
+    children:
+    - GRID_ID
+  GRID_ID:
+    type: GRID
+    id: GRID_ID
+    children:
+    - ROW-1
+    - ROW-2
+    - ROW-3
+    - ROW-4
+    - ROW-5
+    - ROW-6
+    parents:
+    - ROOT_ID
+  HEADER_ID:
+    type: HEADER
+    id: HEADER_ID
+    meta:
+      text: NextRole Overview
+  ROW-1:
+    type: ROW
+    id: ROW-1
+    children:
+    - CHART-kpi-users
+    - CHART-kpi-active
+    - CHART-kpi-runs
+    - CHART-kpi-success
+    - CHART-kpi-cost
+    parents:
+    - ROOT_ID
+    - GRID_ID
+    meta:
+      background: BACKGROUND_TRANSPARENT
+  CHART-kpi-users:
+    type: CHART
+    id: CHART-kpi-users
+    children: []
+    parents:
+    - ROOT_ID
+    - GRID_ID
+    - ROW-1
+    meta:
+      uuid: 110b7c52-ed8b-57b2-acdf-698ddb898308
+      chartId: 1
+      width: 3
+      height: 16
+      sliceName: Total users
+  CHART-kpi-active:
+    type: CHART
+    id: CHART-kpi-active
+    children: []
+    parents:
+    - ROOT_ID
+    - GRID_ID
+    - ROW-1
+    meta:
+      uuid: b10cd5d0-a64d-5aed-a695-342b5cec3a7a
+      chartId: 2
+      width: 2
+      height: 16
+      sliceName: Active users (7d)
+  CHART-kpi-runs:
+    type: CHART
+    id: CHART-kpi-runs
+    children: []
+    parents:
+    - ROOT_ID
+    - GRID_ID
+    - ROW-1
+    meta:
+      uuid: 2365775e-a223-526c-a93d-e46b289a91f0
+      chartId: 3
+      width: 2
+      height: 16
+      sliceName: Agent runs (7d)
+  CHART-kpi-success:
+    type: CHART
+    id: CHART-kpi-success
+    children: []
+    parents:
+    - ROOT_ID
+    - GRID_ID
+    - ROW-1
+    meta:
+      uuid: 06f2a98a-83d9-5317-abf4-dcabefa77bdd
+      chartId: 4
+      width: 2
+      height: 16
+      sliceName: Run success rate (7d)
+  CHART-kpi-cost:
+    type: CHART
+    id: CHART-kpi-cost
+    children: []
+    parents:
+    - ROOT_ID
+    - GRID_ID
+    - ROW-1
+    meta:
+      uuid: cde21c4b-b96e-55ef-b916-f39eb0885f69
+      chartId: 5
+      width: 3
+      height: 16
+      sliceName: Est. LLM cost (30d)
+  ROW-2:
+    type: ROW
+    id: ROW-2
+    children:
+    - CHART-signups-week
+    - CHART-active-day
+    parents:
+    - ROOT_ID
+    - GRID_ID
+    meta:
+      background: BACKGROUND_TRANSPARENT
+  CHART-signups-week:
+    type: CHART
+    id: CHART-signups-week
+    children: []
+    parents:
+    - ROOT_ID
+    - GRID_ID
+    - ROW-2
+    meta:
+      uuid: 05a806c6-fd89-5d87-b79e-0b643e8d506d
+      chartId: 6
+      width: 6
+      height: 40
+      sliceName: Signups per week
+  CHART-active-day:
+    type: CHART
+    id: CHART-active-day
+    children: []
+    parents:
+    - ROOT_ID
+    - GRID_ID
+    - ROW-2
+    meta:
+      uuid: 5fd3399a-c48d-589e-836b-25c9b58950a9
+      chartId: 7
+      width: 6
+      height: 40
+      sliceName: Active users per day
+  ROW-3:
+    type: ROW
+    id: ROW-3
+    children:
+    - CHART-threads-runs-day
+    - CHART-status-week
+    parents:
+    - ROOT_ID
+    - GRID_ID
+    meta:
+      background: BACKGROUND_TRANSPARENT
+  CHART-threads-runs-day:
+    type: CHART
+    id: CHART-threads-runs-day
+    children: []
+    parents:
+    - ROOT_ID
+    - GRID_ID
+    - ROW-3
+    meta:
+      uuid: 4b27d798-8d8f-5a67-9371-6e705e32749d
+      chartId: 8
+      width: 6
+      height: 40
+      sliceName: Threads & runs per day
+  CHART-status-week:
+    type: CHART
+    id: CHART-status-week
+    children: []
+    parents:
+    - ROOT_ID
+    - GRID_ID
+    - ROW-3
+    meta:
+      uuid: 50655e96-8dfb-5b3d-8a92-75fe4441aad6
+      chartId: 9
+      width: 6
+      height: 40
+      sliceName: Run status mix per week
+  ROW-4:
+    type: ROW
+    id: ROW-4
+    children:
+    - CHART-duration
+    - CHART-messages-type
+    parents:
+    - ROOT_ID
+    - GRID_ID
+    meta:
+      background: BACKGROUND_TRANSPARENT
+  CHART-duration:
+    type: CHART
+    id: CHART-duration
+    children: []
+    parents:
+    - ROOT_ID
+    - GRID_ID
+    - ROW-4
+    meta:
+      uuid: 0e8b6dab-6e4b-585b-bd70-59d36e62b820
+      chartId: 10
+      width: 6
+      height: 40
+      sliceName: Run duration p50 / p95 (s)
+  CHART-messages-type:
+    type: CHART
+    id: CHART-messages-type
+    children: []
+    parents:
+    - ROOT_ID
+    - GRID_ID
+    - ROW-4
+    meta:
+      uuid: ea122d76-f8e1-5a6c-8830-3f8e56a63d1b
+      chartId: 11
+      width: 6
+      height: 40
+      sliceName: Messages per day by type
+  ROW-5:
+    type: ROW
+    id: ROW-5
+    children:
+    - CHART-tokens-model
+    - CHART-cost-model
+    parents:
+    - ROOT_ID
+    - GRID_ID
+    meta:
+      background: BACKGROUND_TRANSPARENT
+  CHART-tokens-model:
+    type: CHART
+    id: CHART-tokens-model
+    children: []
+    parents:
+    - ROOT_ID
+    - GRID_ID
+    - ROW-5
+    meta:
+      uuid: 9a5ed232-8dd2-59c4-8feb-5de5b208714c
+      chartId: 12
+      width: 6
+      height: 40
+      sliceName: Tokens per day by model
+  CHART-cost-model:
+    type: CHART
+    id: CHART-cost-model
+    children: []
+    parents:
+    - ROOT_ID
+    - GRID_ID
+    - ROW-5
+    meta:
+      uuid: 75dd2e35-8224-5245-9251-91b192eee808
+      chartId: 13
+      width: 6
+      height: 40
+      sliceName: Est. cost per day by model
+  ROW-6:
+    type: ROW
+    id: ROW-6
+    children:
+    - CHART-top-users
+    parents:
+    - ROOT_ID
+    - GRID_ID
+    meta:
+      background: BACKGROUND_TRANSPARENT
+  CHART-top-users:
+    type: CHART
+    id: CHART-top-users
+    children: []
+    parents:
+    - ROOT_ID
+    - GRID_ID
+    - ROW-6
+    meta:
+      uuid: f0fa4c7d-1407-59f4-ad12-9ccb35adf2da
+      chartId: 14
+      width: 12
+      height: 40
+      sliceName: Top users by runs & cost
+metadata:
+  color_scheme: supersetColors
+  cross_filters_enabled: true
+  expanded_slices: {}
+  label_colors: {}
+  refresh_frequency: 0
+  timed_refresh_immune_slices: []
+  default_filters: '{}'
+version: 1.0.0

@@ -1,0 +1,34 @@
+views:
+  - name: overview
+    title: Product overview
+    description: >
+      The headline questions in one place — how many users, how active, how reliable, how fast —
+      built on agent runs joined to their users and agent definitions. Members from the joined
+      cubes are prefixed (users_registered_count, assistants_graph_id). Cost lives in the
+      engagement view.
+    meta:
+      example_questions:
+        - How many users were active this week versus last?
+        - What is the daily success rate and p95 duration?
+        - How many registered users do we have, and how many of them ran the agent?
+
+    cubes:
+      - join_path: runs
+        includes: "*"
+        excludes:
+          - run_id
+          - thread_id
+          - assistant_id
+      - join_path: runs.users
+        prefix: true
+        includes:
+          - count
+          - registered_count
+          - email_domain
+          - provider
+          - signup_date
+      - join_path: runs.assistants
+        prefix: true
+        includes:
+          - graph_id
+          - version

@@ -3,6 +3,12 @@ volumes:
     driver: local
   seaweed-data:
     driver: local
+  clickhouse-data:
+    driver: local
+  dagster-home-data:
+    driver: local
+  superset-home-data:
+    driver: local
 
 services:
   frontend:
@@ -259,3 +265,413 @@ services:
       # gRPC readiness.
       start_period: 60s
       start_interval: 2s
+
+  # ============================ Analytics stack ============================
+  # ClickHouse + Dagster + Cube + Superset (docs/ideas/analytics-platform-plan.html
+  # Phase 0). Strictly additive: nothing below gates the app services above.
+  # Pipeline/model code lives in analytics/ (see analytics/CLAUDE.md).
+
+  # Columnar warehouse for product analytics: dlt lands bronze (raw_app___*/
+  # raw_auth___* tables), dbt builds nextrole_staging/nextrole_marts. Single
+  # node, dev-tuned: config.d caps memory well under the container limit and
+  # disables the cluster-observability system logs; users.d adds a per-query
+  # memory guard. Data survives `compose down` in clickhouse-data.
+  clickhouse:
+    image: clickhouse/clickhouse-server:26.3
+    ports:
+      - "${CLICKHOUSE_HTTP_LOCAL_PORT}:8123" # HTTP API (+ /play query UI)
+      - "${CLICKHOUSE_NATIVE_LOCAL_PORT}:9000" # native TCP (clickhouse-client, dlt loads)
+    environment:
+      CLICKHOUSE_DB: ${CLICKHOUSE_DB}
+      CLICKHOUSE_USER: ${CLICKHOUSE_USER}
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD}
+    volumes:
+      - clickhouse-data:/var/lib/clickhouse
+      - ./analytics/clickhouse/config.d/low-memory.xml:/etc/clickhouse-server/config.d/low-memory.xml:ro
+      - ./analytics/clickhouse/users.d/query-limits.xml:/etc/clickhouse-server/users.d/query-limits.xml:ro
+    ulimits:
+      nofile:
+        soft: 262144
+        hard: 262144
+    mem_limit: 2g
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "clickhouse-client --user \"$$CLICKHOUSE_USER\" --password \"$$CLICKHOUSE_PASSWORD\" --query 'SELECT 1'",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+      start_interval: 1s
+
+  # One-shot Postgres bootstrap for the analytics stack. backend/init.sql only
+  # runs on a FRESH pg volume, so the extra databases/roles are created
+  # idempotently here on every `up`: the `dagster` DB (run/event/schedule
+  # storage), the `superset` DB (BI metadata), and the read-only analytics_ro
+  # role the dlt extraction connects through (SELECT on all current and future
+  # public tables — never write access to the operational schema).
+  analytics-db-init:
+    image: pgvector/pgvector:pg18
+    restart: "no"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      PGHOST: postgres
+      PGUSER: ${POSTGRES_USER}
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+      PGDATABASE: ${POSTGRES_DB}
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - >-
+        set -e;
+        psql -tAc "SELECT 1 FROM pg_database WHERE datname='dagster'" | grep -q 1 ||
+        psql -c "CREATE DATABASE dagster";
+        psql -tAc "SELECT 1 FROM pg_database WHERE datname='superset'" | grep -q 1 ||
+        psql -c "CREATE DATABASE superset";
+        psql -tAc "SELECT 1 FROM pg_roles WHERE rolname='analytics_ro'" | grep -q 1 ||
+        psql -c "CREATE ROLE analytics_ro LOGIN";
+        psql -c "ALTER ROLE analytics_ro WITH LOGIN PASSWORD '${ANALYTICS_RO_PASSWORD}'";
+        psql -c "GRANT CONNECT ON DATABASE \"${POSTGRES_DB}\" TO analytics_ro";
+        psql -c "GRANT USAGE ON SCHEMA public TO analytics_ro";
+        psql -c "GRANT SELECT ON ALL TABLES IN SCHEMA public TO analytics_ro";
+        psql -c "ALTER DEFAULT PRIVILEGES FOR ROLE \"${POSTGRES_USER}\" IN SCHEMA public GRANT SELECT ON TABLES TO analytics_ro"
+
+  # Dagster UI + GraphQL (the orchestrator's front door). Parses the dbt
+  # project into a container-local manifest first (each container owns its
+  # copy — no shared-write race through the bind mount), then serves the
+  # nextrole_analytics code location. No hot reload: after editing analytics
+  # code, `docker compose restart dagster-webserver dagster-daemon`.
+  dagster-webserver:
+    build:
+      context: ./analytics
+      dockerfile: Dockerfile
+    image: next-role-analytics:local
+    restart: on-failure
+    command:
+      [
+        "sh",
+        "-c",
+        "dbt parse --project-dir /deps/next-role/analytics/dbt --profiles-dir /deps/next-role/analytics/dbt --target-path /tmp/dbt-target && exec dagster-webserver -h 0.0.0.0 -p 3000 -w /deps/next-role/analytics/dagster/workspace.yaml",
+      ]
+    ports:
+      - "${DAGSTER_LOCAL_PORT}:3000"
+    volumes:
+      - .:/deps/next-role
+      # Same isolation pattern as backend .venv / frontend node_modules.
+      - /deps/next-role/analytics/.venv
+      - dagster-home-data:/opt/dagster/home
+      - ./analytics/dagster/dagster.yaml:/opt/dagster/home/dagster.yaml:ro
+    environment:
+      DAGSTER_HOME: /opt/dagster/home
+      DAGSTER_PG_USERNAME: ${POSTGRES_USER}
+      DAGSTER_PG_PASSWORD: ${POSTGRES_PASSWORD}
+      DAGSTER_PG_HOST: postgres
+      DAGSTER_PG_DB: dagster
+      DBT_MANIFEST_PATH: /tmp/dbt-target/manifest.json
+      # dlt source: the read-only role from analytics-db-init.
+      ANALYTICS_SOURCE_PG_URI: postgresql+psycopg2://analytics_ro:${ANALYTICS_RO_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      # dlt destination (native protocol for loads, HTTP for staging).
+      DESTINATION__CLICKHOUSE__CREDENTIALS__HOST: clickhouse
+      DESTINATION__CLICKHOUSE__CREDENTIALS__PORT: "9000"
+      DESTINATION__CLICKHOUSE__CREDENTIALS__HTTP_PORT: "8123"
+      DESTINATION__CLICKHOUSE__CREDENTIALS__USERNAME: ${CLICKHOUSE_USER}
+      DESTINATION__CLICKHOUSE__CREDENTIALS__PASSWORD: ${CLICKHOUSE_PASSWORD}
+      DESTINATION__CLICKHOUSE__CREDENTIALS__DATABASE: ${CLICKHOUSE_DB}
+      DESTINATION__CLICKHOUSE__CREDENTIALS__SECURE: "0"
+      # dbt profile (analytics/dbt/profiles.yml reads these).
+      ANALYTICS_CH_HOST: clickhouse
+      ANALYTICS_CH_PORT: "8123"
+      ANALYTICS_CH_USER: ${CLICKHOUSE_USER}
+      ANALYTICS_CH_PASSWORD: ${CLICKHOUSE_PASSWORD}
+      ANALYTICS_CH_DATABASE: ${CLICKHOUSE_DB}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      clickhouse:
+        condition: service_healthy
+      analytics-db-init:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:3000/server_info > /dev/null"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 45s
+      start_interval: 2s
+
+  # Dagster daemon: ticks the hourly analytics schedule and launches runs.
+  # Same image/env/volumes as the webserver, different command.
+  dagster-daemon:
+    build:
+      context: ./analytics
+      dockerfile: Dockerfile
+    image: next-role-analytics:local
+    restart: on-failure
+    command:
+      [
+        "sh",
+        "-c",
+        "dbt parse --project-dir /deps/next-role/analytics/dbt --profiles-dir /deps/next-role/analytics/dbt --target-path /tmp/dbt-target && exec dagster-daemon run -w /deps/next-role/analytics/dagster/workspace.yaml",
+      ]
+    volumes:
+      - .:/deps/next-role
+      - /deps/next-role/analytics/.venv
+      - dagster-home-data:/opt/dagster/home
+      - ./analytics/dagster/dagster.yaml:/opt/dagster/home/dagster.yaml:ro
+    environment:
+      DAGSTER_HOME: /opt/dagster/home
+      DAGSTER_PG_USERNAME: ${POSTGRES_USER}
+      DAGSTER_PG_PASSWORD: ${POSTGRES_PASSWORD}
+      DAGSTER_PG_HOST: postgres
+      DAGSTER_PG_DB: dagster
+      DBT_MANIFEST_PATH: /tmp/dbt-target/manifest.json
+      ANALYTICS_SOURCE_PG_URI: postgresql+psycopg2://analytics_ro:${ANALYTICS_RO_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      DESTINATION__CLICKHOUSE__CREDENTIALS__HOST: clickhouse
+      DESTINATION__CLICKHOUSE__CREDENTIALS__PORT: "9000"
+      DESTINATION__CLICKHOUSE__CREDENTIALS__HTTP_PORT: "8123"
+      DESTINATION__CLICKHOUSE__CREDENTIALS__USERNAME: ${CLICKHOUSE_USER}
+      DESTINATION__CLICKHOUSE__CREDENTIALS__PASSWORD: ${CLICKHOUSE_PASSWORD}
+      DESTINATION__CLICKHOUSE__CREDENTIALS__DATABASE: ${CLICKHOUSE_DB}
+      DESTINATION__CLICKHOUSE__CREDENTIALS__SECURE: "0"
+      ANALYTICS_CH_HOST: clickhouse
+      ANALYTICS_CH_PORT: "8123"
+      ANALYTICS_CH_USER: ${CLICKHOUSE_USER}
+      ANALYTICS_CH_PASSWORD: ${CLICKHOUSE_PASSWORD}
+      ANALYTICS_CH_DATABASE: ${CLICKHOUSE_DB}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      clickhouse:
+        condition: service_healthy
+      analytics-db-init:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "dagster-daemon", "liveness-check"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 45s
+      start_interval: 2s
+
+  # dbt docs site (model/column catalog, compiled SQL, tests, lineage). Same
+  # image as Dagster; regenerates the catalog against the warehouse at boot,
+  # so refresh after model edits with `docker compose restart dbt-docs`. Served
+  # from a container-local target dir (nothing written into the bind mount).
+  # dbt-clickhouse leaves `database` blank (ClickHouse has one level), which
+  # empties the docs' Database tab — dbt_docs_patch labels the artifacts first.
+  dbt-docs:
+    build:
+      context: ./analytics
+      dockerfile: Dockerfile
+    image: next-role-analytics:local
+    restart: on-failure
+    command:
+      [
+        "sh",
+        "-c",
+        "dbt docs generate --project-dir /deps/next-role/analytics/dbt --profiles-dir /deps/next-role/analytics/dbt --target-path /tmp/dbt-target && python -m nextrole_analytics.dbt_docs_patch /tmp/dbt-target && exec dbt docs serve --project-dir /deps/next-role/analytics/dbt --profiles-dir /deps/next-role/analytics/dbt --target-path /tmp/dbt-target --host 0.0.0.0 --port 8080 --no-browser",
+      ]
+    ports:
+      - "${DBT_DOCS_LOCAL_PORT}:8080"
+    volumes:
+      - .:/deps/next-role
+      - /deps/next-role/analytics/.venv
+    environment:
+      ANALYTICS_CH_HOST: clickhouse
+      ANALYTICS_CH_PORT: "8123"
+      ANALYTICS_CH_USER: ${CLICKHOUSE_USER}
+      ANALYTICS_CH_PASSWORD: ${CLICKHOUSE_PASSWORD}
+      ANALYTICS_CH_DATABASE: ${CLICKHOUSE_DB}
+    depends_on:
+      clickhouse:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8080/index.html > /dev/null"]
+      interval: 60s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+      start_interval: 2s
+
+  # Cube semantic layer over the gold marts — metric definitions with
+  # descriptions (the future analytics agent's vocabulary via /v1/meta), plus
+  # a Postgres-wire SQL API for BI/SQL Lab. Dev mode embeds Cube Store (no
+  # extra container) and enables the Playground UI; production hardening
+  # (JWT security context, queryRewrite) is a later phase.
+  cube:
+    image: cubejs/cube:v1.7.31
+    restart: on-failure
+    ports:
+      - "${CUBE_LOCAL_PORT}:4000" # REST API + Playground
+      - "${CUBE_SQL_LOCAL_PORT}:15432" # Postgres-wire SQL API
+    environment:
+      CUBEJS_DEV_MODE: "true"
+      CUBEJS_API_SECRET: ${CUBE_API_SECRET}
+      CUBEJS_DB_TYPE: clickhouse
+      CUBEJS_DB_HOST: clickhouse
+      CUBEJS_DB_PORT: "8123"
+      CUBEJS_DB_NAME: ${CLICKHOUSE_DB}_marts # the dbt marts database
+      CUBEJS_DB_USER: ${CLICKHOUSE_USER}
+      CUBEJS_DB_PASS: ${CLICKHOUSE_PASSWORD}
+      CUBEJS_DB_CLICKHOUSE_READONLY: "true"
+      CUBEJS_PG_SQL_PORT: "15432"
+      CUBEJS_SQL_USER: ${CUBE_SQL_USER}
+      CUBEJS_SQL_PASSWORD: ${CUBE_SQL_PASSWORD}
+    volumes:
+      - ./analytics/cube/model:/cube/conf/model
+    depends_on:
+      clickhouse:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "node -e \"fetch('http://localhost:4000/readyz').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))\"",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+      start_interval: 2s
+
+  # One-shot Superset bootstrap: migrate the metadata DB, ensure the admin
+  # user, and import the committed "NextRole Overview" dashboard bundle
+  # (connection passwords sed-ed in from env, zipped with stdlib). The import
+  # is UUID-keyed, so re-running updates in place; the bundle guard keeps the
+  # init green while the bundle is being (re)authored.
+  superset-init:
+    build:
+      context: ./analytics/superset
+      dockerfile: Dockerfile
+    image: next-role-superset:local
+    restart: "no"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      analytics-db-init:
+        condition: service_completed_successfully
+    environment:
+      SUPERSET_CONFIG_PATH: /app/pythonpath/superset_config.py
+      SUPERSET_SECRET_KEY: ${SUPERSET_SECRET_KEY}
+      SUPERSET_META_DB_URI: postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/superset
+      SUPERSET_REDIS_BROKER: redis://redis:6379/2
+      SUPERSET_REDIS_RESULTS: redis://redis:6379/3
+      SUPERSET_REDIS_CACHE: redis://redis:6379/4
+      SUPERSET_ADMIN_USERNAME: ${SUPERSET_ADMIN_USERNAME}
+      SUPERSET_ADMIN_PASSWORD: ${SUPERSET_ADMIN_PASSWORD}
+      # For the bundle's __CLICKHOUSE_URI__/__CUBE_URI__ placeholders.
+      CLICKHOUSE_USER: ${CLICKHOUSE_USER}
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD}
+      CLICKHOUSE_DB: ${CLICKHOUSE_DB}
+      CUBE_SQL_USER: ${CUBE_SQL_USER}
+      CUBE_SQL_PASSWORD: ${CUBE_SQL_PASSWORD}
+    volumes:
+      - ./analytics/superset/superset_config.py:/app/pythonpath/superset_config.py:ro
+      - ./analytics/superset/import_assets.py:/app/import_assets.py:ro
+      - ./analytics/superset/assets:/bootstrap:ro
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - >-
+        set -e;
+        superset db upgrade;
+        (superset fab create-admin
+        --username "$$SUPERSET_ADMIN_USERNAME"
+        --firstname NextRole --lastname Admin
+        --email admin@nextrole.local
+        --password "$$SUPERSET_ADMIN_PASSWORD" || true);
+        superset init;
+        if [ -d /bootstrap/dashboard_export ]; then
+        rm -rf /tmp/bundle /tmp/bundle.zip &&
+        cp -r /bootstrap/dashboard_export /tmp/bundle &&
+        sed -i "s|__CLICKHOUSE_URI__|clickhousedb://$$CLICKHOUSE_USER:$$CLICKHOUSE_PASSWORD@clickhouse:8123/$${CLICKHOUSE_DB}_marts|" /tmp/bundle/databases/*.yaml &&
+        sed -i "s|__CUBE_URI__|postgresql+psycopg2://$$CUBE_SQL_USER:$$CUBE_SQL_PASSWORD@cube:15432/cube|" /tmp/bundle/databases/*.yaml &&
+        (cd /tmp && python -m zipfile -c bundle.zip bundle/) &&
+        python /app/import_assets.py /tmp/bundle.zip "$$SUPERSET_ADMIN_USERNAME";
+        else echo "no dashboard bundle to import"; fi
+
+  # Superset web app — the BI front door. Metadata in the shared Postgres
+  # (database `superset`), caches + Celery broker on the shared Redis (DB
+  # numbers /2 /3 /4). Login with SUPERSET_ADMIN_USERNAME/PASSWORD from .env.
+  superset:
+    build:
+      context: ./analytics/superset
+      dockerfile: Dockerfile
+    image: next-role-superset:local
+    restart: on-failure
+    ports:
+      - "${SUPERSET_LOCAL_PORT}:8088"
+    environment:
+      SUPERSET_CONFIG_PATH: /app/pythonpath/superset_config.py
+      SUPERSET_SECRET_KEY: ${SUPERSET_SECRET_KEY}
+      SUPERSET_META_DB_URI: postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/superset
+      SUPERSET_REDIS_BROKER: redis://redis:6379/2
+      SUPERSET_REDIS_RESULTS: redis://redis:6379/3
+      SUPERSET_REDIS_CACHE: redis://redis:6379/4
+    volumes:
+      - ./analytics/superset/superset_config.py:/app/pythonpath/superset_config.py:ro
+      - superset-home-data:/app/superset_home
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      superset-init:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8088/health > /dev/null"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+      start_interval: 2s
+
+  # Superset Celery worker: async queries, alerts, thumbnails. Same image and
+  # config as the web app. The image's default healthcheck probes the web
+  # port, so the worker overrides it with a celery ping.
+  superset-worker:
+    build:
+      context: ./analytics/superset
+      dockerfile: Dockerfile
+    image: next-role-superset:local
+    restart: on-failure
+    command:
+      [
+        "celery",
+        "--app=superset.tasks.celery_app:app",
+        "worker",
+        "--pool=prefork",
+        "-c",
+        "2",
+      ]
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "celery --app=superset.tasks.celery_app:app inspect ping -d celery@$$HOSTNAME",
+        ]
+      interval: 60s
+      timeout: 20s
+      retries: 5
+      start_period: 60s
+    environment:
+      SUPERSET_CONFIG_PATH: /app/pythonpath/superset_config.py
+      SUPERSET_SECRET_KEY: ${SUPERSET_SECRET_KEY}
+      SUPERSET_META_DB_URI: postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/superset
+      SUPERSET_REDIS_BROKER: redis://redis:6379/2
+      SUPERSET_REDIS_RESULTS: redis://redis:6379/3
+      SUPERSET_REDIS_CACHE: redis://redis:6379/4
+    volumes:
+      - ./analytics/superset/superset_config.py:/app/pythonpath/superset_config.py:ro
+      - superset-home-data:/app/superset_home
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      superset-init:
+        condition: service_completed_successfully

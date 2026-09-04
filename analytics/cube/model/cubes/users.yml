@@ -1,0 +1,68 @@
+cubes:
+  - name: users
+    sql_table: dim_user
+    title: Users
+    description: >
+      Every user the product has ever seen — each registered account (including ones that never
+      ran the agent) plus the synthetic 'default' owner standing for single-user-mode activity.
+      Emails are stored only as hash + domain. For "active users" use runs.active_users.
+    meta:
+      grain: one user
+      primary_time_dimension: signup_date
+      example_questions:
+        - How many users signed up per week?
+        - Which email domains (organisations) do our users come from?
+        - What share of users authenticate with Google vs email + password?
+      caveats:
+        - includes registered users with zero activity and the synthetic 'default' row — exclude user_id = 'default' for people counts
+        - name is PII — internal use only
+
+    dimensions:
+      - name: user_id
+        sql: user_id
+        type: string
+        primary_key: true
+        description: Better Auth user id (what run/thread owners join to); 'default' is the synthetic single-user-mode row.
+      - name: name
+        sql: name
+        type: string
+        description: Display name (PII — internal dashboards only); 'Single-user mode' for the default row, 'Unknown' when no auth record exists.
+      - name: email_domain
+        sql: email_domain
+        type: string
+        description: Domain part of the email — the only organisation-level cohort attribute.
+        meta:
+          synonyms: [organisation, company domain]
+      - name: provider
+        sql: provider
+        type: string
+        description: "Auth method: credential (email + password), google (OAuth), none (the default row)."
+        meta:
+          values: [credential, google, none]
+      - name: email_verified
+        sql: email_verified
+        type: boolean
+        description: Whether the email address was verified.
+      - name: signup_date
+        sql: signup_date
+        type: time
+        description: Calendar date the account was created — the cohort dimension.
+        meta:
+          synonyms: [signup, registration date, joined]
+
+    measures:
+      - name: count
+        type: count
+        description: Total users known to the product, including the synthetic default row.
+      - name: registered_count
+        type: count
+        filters:
+          - sql: "{CUBE}.user_id != 'default'"
+        description: Registered (Better Auth) users — the people count.
+        meta:
+          synonyms: [signups, registered users, accounts]
+      - name: verified_count
+        type: count
+        filters:
+          - sql: "{CUBE}.email_verified"
+        description: Registered users with a verified email.

@@ -60,7 +60,7 @@ Preparing for an interview takes hours of tedious resume tailoring and company r
 
 ## Quick Start
 
-The whole stack — frontend, backend, Postgres, Redis, S3-compatible object storage — runs in Docker.
+The whole stack — frontend, backend, Postgres, Redis, S3-compatible object storage, and an analytics stack (ClickHouse, Dagster, Cube, Superset) — runs in Docker.
 
 ```bash
 # 1. Clone & configure
@@ -101,12 +101,15 @@ docker ps                     # read the 0.0.0.0:<host>->... mappings
 | `SANDBOX_PROVIDER` (+ `SANDBOX_E2B_*`, `SANDBOX_TEMPLATE`) | preset | Where the shell tool executes: host or isolated sandbox — see below |
 | `FRONTEND_LOCAL_PORT` / `LANGGRAPH_LOCAL_PORT` / `POSTGRES_LOCAL_PORT` / `REDIS_LOCAL_PORT` / `OBJECT_STORE_LOCAL_PORT` | preset | Host port mappings |
 | `OBJECT_STORE_*` | preset | Artifact object storage — see below |
+| `CLICKHOUSE_*` / `DAGSTER_*` / `DBT_DOCS_LOCAL_PORT` / `CUBE_*` / `SUPERSET_*` / `ANALYTICS_RO_PASSWORD` | preset | Analytics stack (warehouse, orchestration, semantic layer, BI) — see below |
 
 **Shell-command approval.** Risky `execute` (bash) commands pause in the UI for approve / edit / reject; a conservative read-only allowlist auto-approves trivial pokes. The gate applies in **both** sandbox modes below — isolation contains blast radius, not exfiltration or API misuse. On by default — set `CAREER_AGENT_EXECUTE_APPROVAL=false` only for offline evals or emergency rollback (env changes need `docker compose up -d backend` to recreate, not `restart`). Full policy in [`backend/agents/career_agent/README.md`](backend/agents/career_agent/README.md#human-in-the-loop-execute-approval).
 
 **Sandbox.** `SANDBOX_PROVIDER` picks where `execute` commands (and `rendercv` renders) run. `local` (default) executes on the backend host — right for local dev and a trusted team, zero extra moving parts. `e2b` runs every command in an isolated remote **microVM** over the E2B API: point `SANDBOX_E2B_API_URL` at a self-hosted [CubeSandbox](https://github.com/TencentCloud/CubeSandbox) (open source, Apache-2.0 — your data never leaves your infra; provisioning + template guide in [`deploy/cubesandbox/`](deploy/cubesandbox/README.md)), or leave it empty to use [E2B Cloud](https://e2b.dev) with the same code path. CubeSandbox requires its own Linux host (custom PVM kernel or native KVM), so it is reached over HTTP rather than run inside docker compose.
 
 **Object storage.** Binary artifacts (uploads + rendered PDFs) live in S3-compatible object storage. Locally that's the compose `object-store` service (SeaweedFS) and the presets work as-is: S3 API on `OBJECT_STORE_LOCAL_PORT`, a browsable bucket UI on `OBJECT_STORE_UI_LOCAL_PORT`, and placeholder credentials that the local emulator accepts but doesn't enforce. For the cloud, point `OBJECT_STORE_ENDPOINT` / `OBJECT_STORE_BUCKET` / credentials at a managed bucket — AWS S3, GCS, Azure, or any S3-compatible store — with no code changes. Note: the `AWS_*` variables are reserved for Bedrock models; the object store reads only `OBJECT_STORE_*`.
+
+**Analytics.** A self-contained analytics stack ([`docs/ideas/analytics-platform-plan.html`](docs/ideas/analytics-platform-plan.html) Phase 0) rides the same compose file: dlt extracts the operational Postgres into a ClickHouse warehouse (structure and metrics only — chat/CV text never lands there), dbt models it into star-schema marts, Cube serves the metric definitions, and Superset ships a seeded **NextRole Overview** dashboard (users, threads & runs, reliability, tokens + estimated cost), all orchestrated by Dagster on an hourly schedule. Fill the three `generate:` secrets in the analytics block of `.env`, then after first boot trigger the initial pipeline run once — `docker compose exec dagster-daemon dagster asset materialize --select "*" -m nextrole_analytics.definitions` (or "Materialize all" in the Dagster UI on `DAGSTER_LOCAL_PORT`) — and log into Superset on `SUPERSET_LOCAL_PORT` with `SUPERSET_ADMIN_USERNAME`/`SUPERSET_ADMIN_PASSWORD`. Cube's Playground is on `CUBE_LOCAL_PORT`, the generated dbt docs site (model/column catalog + lineage) on `DBT_DOCS_LOCAL_PORT`, ClickHouse's query UI on `CLICKHOUSE_HTTP_LOCAL_PORT``/play`. Budget ~2–4 GB extra RAM; overview and screenshots in [`analytics/README.md`](analytics/README.md), developer guide in [`analytics/CLAUDE.md`](analytics/CLAUDE.md). Product analytics (PostHog) and LLM-trace storage (Langfuse) are deliberate follow-ups per the blueprint.
 
 Secrets live only in `.env` (gitignored); `gitleaks` runs on every commit.
 
@@ -140,7 +143,7 @@ Output quality tracks the model you pick — smaller local models trade some qua
 - **Add a frontend dep:** `pnpm --dir frontend add <pkg>` → `docker compose restart frontend`
 - **Add a backend dep:** `uv add <pkg>` → `docker compose up -d --build backend`
 - **Change `.env`:** `docker compose restart <service>`
-- **Stop:** `docker compose down` (add `-v` to wipe the DB, Redis & object-storage volumes)
+- **Stop:** `docker compose down` (add `-v` to wipe the DB, Redis, object-storage, warehouse, Dagster & Superset volumes)
 
 </details>
 
@@ -154,7 +157,7 @@ NextRole is a **supervisor agent orchestrating three specialist subagents** on L
 
 A five-stage pipeline. Stage 4 runs the resume tailor and interview coach **in parallel**; Stage 6 routes follow-up edits to whichever agent owns the target file.
 
-![How NextRole works](docs/images/how-next-role-works.png)
+![How NextRole works](docs/images/next-role-how-it-works.png)
 
 <details>
 <summary><b>Stage-by-stage detail</b></summary>

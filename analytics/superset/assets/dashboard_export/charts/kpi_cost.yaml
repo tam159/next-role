@@ -1,0 +1,34 @@
+slice_name: Est. LLM cost (30d)
+description: null
+certified_by: null
+certification_details: null
+viz_type: big_number_total
+params:
+  datasource: 0__table
+  viz_type: big_number_total
+  metric:
+    expressionType: SQL
+    sqlExpression: SUM(est_cost_usd)
+    column: null
+    aggregate: null
+    datasourceWarning: false
+    hasCustomLabel: true
+    label: Est. cost
+    optionName: metric_59313a728f40
+  adhoc_filters:
+  - clause: WHERE
+    subject: first_seen_at
+    operator: TEMPORAL_RANGE
+    comparator: 'DATEADD(DATETIME("now"), -30, day) : now'
+    expressionType: SIMPLE
+  header_font_size: 0.4
+  subheader: priced models, last 30 days
+  subheader_font_size: 0.125
+  y_axis_format: $,.2f
+  time_format: smart_date
+  extra_form_data: {}
+query_context: null
+cache_timeout: null
+uuid: cde21c4b-b96e-55ef-b916-f39eb0885f69
+version: 1.0.0
+dataset_uuid: f50943bb-bc98-576a-b230-178456a155a6

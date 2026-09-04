@@ -1,0 +1,210 @@
+cubes:
+  - name: messages
+    sql_table: fct_message
+    title: Conversation messages
+    description: >
+      One row per message in a conversation — a user turn (human), a model turn (ai, usually a
+      tool-call request) or a tool result (tool). The token and LLM-cost fact. Token usage is
+      present on only ~10% of AI messages (streamed responses rarely carry it), so token and
+      cost measures are lower bounds; event time is the pipeline's first-seen timestamp.
+    meta:
+      grain: one message
+      primary_time_dimension: first_seen_date
+      example_questions:
+        - How many tokens did we spend per model this week?
+        - What did the agent cost per user last month?
+        - Which tools are called most, and how often do tool calls fail?
+        - How many user turns (human messages) per conversation on average?
+      caveats:
+        - token/cost measures are floors — usage is missing on most streamed responses (see usage_coverage)
+        - first_seen_* is capture time; messages from before 2026-09-02 all appear on that day — bucket history by thread_created_date
+        - message counts overstate user activity — tool results are ~5x user turns; use human_messages, or runs/threads
+
+    joins:
+      - name: users
+        sql: "{CUBE}.owner = {users}.user_id"
+        relationship: many_to_one
+      - name: threads
+        sql: "{CUBE}.thread_id = {threads}.thread_id"
+        relationship: many_to_one
+
+    dimensions:
+      - name: message_key
+        sql: message_key
+        type: string
+        primary_key: true
+        description: Surrogate key (thread_id:message_index).
+      - name: thread_id
+        sql: thread_id
+        type: string
+        description: Conversation the message belongs to.
+      - name: owner
+        sql: owner
+        type: string
+        description: User id owning the conversation; 'default' = single-user mode.
+        meta:
+          synonyms: [user, user_id]
+      - name: type
+        sql: type
+        type: string
+        description: "Message role: human (user turn), ai (model turn — usually a tool-call request), tool (tool result), system."
+        meta:
+          values: [human, ai, tool, system]
+          synonyms: [role, message type]
+      - name: name
+        sql: name
+        type: string
+        description: For tool messages, the tool that produced the result; null otherwise.
+        meta:
+          synonyms: [tool name]
+      - name: model_name
+        sql: model_name
+        type: string
+        description: LLM that produced an AI message (e.g. gpt-5.4 = main agent, gpt-5.6-terra = subagents so far); null for non-AI messages.
+        meta:
+          synonyms: [model, LLM]
+      - name: model_provider
+        sql: model_provider
+        type: string
+        description: Provider of the model (openai only so far).
+      - name: tool_call_names
+        sql: tool_call_names
+        type: string
+        description: >
+          Comma-joined tools an AI message requested. Vocabulary: write_todos, task (subagent
+          delegation), read_file, list_files, ls, write_file, overwrite_file, edit_file,
+          parse_document, extract_jd, execute (shell, approval-gated), render_battlecard_pdf.
+      - name: tool_status
+        sql: tool_status
+        type: string
+        description: For tool messages, success or error.
+        meta:
+          values: [success, error]
+      - name: message_index
+        sql: message_index
+        type: number
+        description: 0-based position within the conversation (ordering, not time).
+      - name: first_seen_at
+        sql: first_seen_at
+        type: time
+        description: When the pipeline first captured the message — the event-time proxy (hourly resolution going forward).
+      - name: first_seen_date
+        sql: first_seen_date
+        type: time
+        description: Calendar date of first capture — the default time dimension for token/cost trends.
+        meta:
+          synonyms: [date, day]
+      - name: thread_created_date
+        sql: thread_created_date
+        type: time
+        description: Creation date of the parent conversation — use for bucketing messages older than the pipeline.
+
+    measures:
+      - name: count
+        type: count
+        description: Number of messages of all roles (tool results included — not a user-activity measure).
+      - name: human_messages
+        type: count
+        filters:
+          - sql: "{CUBE}.type = 'human'"
+        description: User turns — the message-level measure of user activity.
+        meta:
+          synonyms: [user messages, user turns, prompts]
+      - name: ai_messages
+        type: count
+        filters:
+          - sql: "{CUBE}.type = 'ai'"
+        description: Model turns (final answers and tool-call requests).
+      - name: tool_messages
+        type: count
+        filters:
+          - sql: "{CUBE}.type = 'tool'"
+        description: Tool results returned to the model.
+      - name: tool_errors
+        type: count
+        filters:
+          - sql: "{CUBE}.tool_status = 'error'"
+        description: Tool results that reported an error.
+      - name: tool_error_rate
+        sql: "{tool_errors} / nullIf({tool_messages}, 0)"
+        type: number
+        format: percent
+        description: Share of tool results that errored (tool_errors / tool_messages).
+        meta:
+          formula: tool_errors / tool_messages
+      - name: tool_calls
+        sql: tool_call_count
+        type: sum
+        description: Total tool calls requested by AI messages.
+      - name: subagent_delegations
+        type: count
+        filters:
+          - sql: "has(splitByChar(',', coalesce({CUBE}.tool_call_names, '')), 'task')"
+        description: AI messages that delegated work to a subagent via the task tool — the marker of heavy multi-agent runs.
+      - name: messages_with_usage
+        type: count
+        filters:
+          - sql: "{CUBE}.input_tokens IS NOT NULL"
+        description: AI messages that carry provider token usage (the denominator behind every token/cost figure).
+      - name: usage_coverage
+        sql: "{messages_with_usage} / nullIf({ai_messages}, 0)"
+        type: number
+        format: percent
+        description: Share of AI messages with token usage — how much of the spend the token measures can see (~10% today).
+        meta:
+          formula: messages_with_usage / ai_messages
+      - name: input_tokens
+        sql: input_tokens
+        type: sum
+        description: Prompt tokens (cached ones included) over messages with usage — a floor.
+        meta:
+          unit: tokens
+      - name: output_tokens
+        sql: output_tokens
+        type: sum
+        description: Completion tokens (reasoning included) over messages with usage — a floor.
+        meta:
+          unit: tokens
+      - name: total_tokens
+        sql: total_tokens
+        type: sum
+        description: Input + output tokens over messages with usage — a floor.
+        meta:
+          unit: tokens
+          synonyms: [tokens, token usage]
+      - name: cache_read_tokens
+        sql: cache_read_tokens
+        type: sum
+        description: Prompt tokens served from the provider cache (subset of input_tokens) — high because the system prompt and skills repeat every turn.
+        meta:
+          unit: tokens
+      - name: cache_creation_tokens
+        sql: cache_creation_tokens
+        type: sum
+        description: Prompt tokens written to the provider cache (subset of input_tokens).
+        meta:
+          unit: tokens
+      - name: reasoning_tokens
+        sql: reasoning_tokens
+        type: sum
+        description: Reasoning tokens of reasoning models (subset of output_tokens).
+        meta:
+          unit: tokens
+      - name: est_cost_usd
+        sql: est_cost_usd
+        type: sum
+        format: currency
+        description: >
+          Estimated LLM spend in USD: tokens × list prices from the model_prices seed (longest
+          pattern wins). Null-costed messages (no usage, or unpriced model) are excluded — a floor,
+          not an invoice.
+        meta:
+          unit: USD
+          synonyms: [cost, spend, LLM cost]
+          formula: sum(input_tokens * input_usd_per_1m + output_tokens * output_usd_per_1m) / 1e6
+      - name: avg_content_length
+        sql: content_length
+        type: avg
+        description: Average message length in characters (content itself is never stored).
+        meta:
+          unit: characters

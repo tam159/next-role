@@ -1,0 +1,147 @@
+version: 2
+
+# Staging = typed, renamed, owner-defaulted views over bronze (one per source
+# entity) plus the message first-seen ledger. Column docs here cover only what
+# staging derives; the full analytical column dictionary lives on the marts.
+models:
+  - name: stg_app__runs
+    description: >
+      One row per agent run, cast and owner-defaulted, with `run_date` and the terminal-only
+      `duration_s` derived. Source of `fct_run`.
+    columns:
+      - name: run_id
+        tests: [unique, not_null]
+      - name: owner
+        description: '{{ doc("owner") }}'
+        tests: [not_null]
+      - name: status
+        description: '{{ doc("run_status") }}'
+        tests:
+          - accepted_values:
+              config:
+                severity: warn
+              arguments:
+                values: [pending, running, error, success, timeout, interrupted]
+      - name: duration_s
+        description: '{{ doc("duration_s") }}'
+      - name: run_date
+        description: Calendar date (UTC) of `created_at`; non-nullable so it can key the marts.
+
+  - name: stg_app__threads
+    description: >
+      One row per conversation thread with the state-body counts computed at extract
+      (messages, files, todos), owner-defaulted. Source of `fct_thread`.
+    columns:
+      - name: thread_id
+        tests: [unique, not_null]
+      - name: owner
+        description: '{{ doc("owner") }}'
+      - name: status
+        description: '{{ doc("thread_status") }}'
+        tests:
+          - accepted_values:
+              config:
+                severity: warn
+              arguments:
+                values: [idle, busy, interrupted, error]
+      - name: created_date
+        description: Calendar date (UTC) the thread was created — the "new conversations" date.
+
+  - name: stg_app__messages
+    description: >
+      The message event-time ledger: insert-only incremental table stamping `first_seen_at`
+      when a (thread_id, message_index) first appears to the pipeline, because source messages
+      carry no timestamp. Rows are never restated, so token counts here are frozen at first
+      capture. Source of `fct_message`.
+    columns:
+      - name: message_key
+        description: Surrogate key `thread_id:message_index`.
+        tests: [unique, not_null]
+      - name: type
+        description: '{{ doc("message_type") }}'
+        tests:
+          - accepted_values:
+              config:
+                severity: warn
+              arguments:
+                values: [ai, human, tool, system]
+      - name: first_seen_at
+        description: '{{ doc("first_seen") }}'
+      - name: thread_updated_at
+        description: The parent thread's updated_at at capture time (the dlt cursor), not a message time.
+
+  - name: stg_app__checkpoint_meta
+    description: >
+      One row per LangGraph checkpoint (agent step) with the whitelisted metadata. Not surfaced
+      as a mart on its own — `fct_run.steps` is its roll-up — but queryable for step-level
+      behaviour: `source` is `input` (a user turn arrived) or `loop` (a graph super-step);
+      `checkpoint_ns = ''` is the main graph, anything else a subagent subgraph.
+    columns:
+      - name: checkpoint_id
+        tests: [not_null]
+      - name: checkpoint_ts
+        description: Checkpoint timestamp (UTC) parsed from the checkpoint body — the only true per-step event time in the warehouse.
+      - name: step
+        description: Super-step index within the run; `-1` is the input checkpoint.
+      - name: run_id
+        description: Run the step belongs to; empty for checkpoints written outside a run (e.g. state updates).
+      - name: owner
+        description: '{{ doc("owner") }}'
+
+  - name: stg_app__store_items
+    description: >
+      Long-term memory / artifact inventory from the LangGraph store, one row per stored item,
+      with the `<user>.career_agent.<area>` prefix split into `owner` and `area`. Answers
+      "which memory areas are in use and how large are they" — never what they contain.
+    columns:
+      - name: area
+        description: >
+          Memory area: `memory` (user preferences / long-term facts), `processed` (parsed CV/JD
+          documents), `research` (company recon), `interview_coach` (prep material),
+          `workspace`, `large_tool_results` (spill-over of big tool outputs).
+        tests: [not_null]
+      - name: owner
+        description: '{{ doc("owner") }}'
+      - name: value_length
+        description: Size of the stored value in characters of its JSON encoding — a footprint measure, not a word count.
+
+  - name: stg_app__assistants
+    description: Agent definitions (graph id, name, version); source of `dim_assistant`.
+    columns:
+      - name: assistant_id
+        tests: [unique, not_null]
+
+  - name: stg_auth__users
+    description: >
+      Registered users, pseudonymized (email as hash + domain only). Empty on checkouts where the
+      Better Auth migration has not run. Source of `dim_user`.
+    columns:
+      - name: user_id
+        tests: [unique, not_null]
+      - name: name
+        description: Display name — direct PII, kept for internal dashboards only.
+        meta: {pii: true, class: direct}
+      - name: email_hash
+        meta: {pii: true, class: quasi}
+      - name: email_domain
+        meta: {pii: true, class: quasi}
+      - name: signup_date
+        description: Calendar date (UTC) the account was created.
+
+  - name: stg_auth__sessions
+    description: Login sessions with coarsened network identifiers; source of `fct_session`.
+    columns:
+      - name: session_id
+        tests: [unique, not_null]
+      - name: ip_prefix
+        meta: {pii: true, class: quasi}
+      - name: user_agent
+        meta: {pii: true, class: quasi}
+      - name: session_date
+        description: Calendar date (UTC) the session was created — the login day.
+
+  - name: stg_auth__accounts
+    description: Auth provider links per user (credential / google); folded into `dim_user.provider`.
+    columns:
+      - name: account_id
+        tests: [unique, not_null]

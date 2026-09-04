@@ -1,0 +1,171 @@
+cubes:
+  - name: runs
+    sql_table: fct_run
+    title: Agent runs
+    description: >
+      One row per career-agent run — a single user turn (or a human-in-the-loop resume) being
+      processed end to end. The reliability, latency, and agent-effort fact; a conversation
+      (threads) has several runs. Default time dimension: run_date.
+    meta:
+      grain: one agent run
+      primary_time_dimension: run_date
+      example_questions:
+        - How many runs failed this week, and what is the success rate?
+        - What is the p95 run duration per day this month?
+        - How many distinct users ran the agent last week?
+        - How much agent effort (steps) does an average run take?
+      caveats:
+        - "'interrupted' means paused for human approval — not a failure"
+        - duration_s is end-to-end (includes queue and approval wait), only set once a run is terminal
+        - model choice is not on this cube — see messages.model_name
+
+    joins:
+      - name: users
+        sql: "{CUBE}.owner = {users}.user_id"
+        relationship: many_to_one
+      - name: assistants
+        sql: "{CUBE}.assistant_id = {assistants}.assistant_id"
+        relationship: many_to_one
+      - name: threads
+        sql: "{CUBE}.thread_id = {threads}.thread_id"
+        relationship: many_to_one
+
+    dimensions:
+      - name: run_id
+        sql: run_id
+        type: string
+        primary_key: true
+        description: Unique run id (LangGraph run_id).
+      - name: owner
+        sql: owner
+        type: string
+        description: User id that owns the run; 'default' = single-user mode / pre-auth history. Join users for name and provider.
+        meta:
+          synonyms: [user, user_id, customer]
+      - name: thread_id
+        sql: thread_id
+        type: string
+        description: Conversation thread the run belongs to.
+      - name: assistant_id
+        sql: assistant_id
+        type: string
+        description: Agent definition that served the run (join assistants for graph/version).
+      - name: status
+        sql: status
+        type: string
+        description: "Lifecycle state: pending, running, success, error, timeout, interrupted (paused for human approval)."
+        meta:
+          values: [pending, running, success, error, timeout, interrupted]
+      - name: is_success
+        sql: is_success
+        type: boolean
+        description: True when status = 'success'.
+      - name: was_interrupted
+        sql: was_interrupted
+        type: boolean
+        description: True when the run paused at a human-in-the-loop checkpoint (e.g. shell-command approval).
+      - name: main_model_override
+        sql: main_model_override
+        type: string
+        description: Main-agent model explicitly chosen for the run; null = deployment default (true for every run so far).
+      - name: subagent_model_override
+        sql: subagent_model_override
+        type: string
+        description: Subagent model explicitly chosen for the run; null = deployment default.
+      - name: steps
+        sql: steps
+        type: number
+        description: LangGraph checkpoint steps in the run (agent-effort proxy); use for bucketing, avg_steps for averages.
+      - name: run_date
+        sql: run_date
+        type: time
+        description: Calendar date the run was created — the default time dimension.
+        meta:
+          synonyms: [date, day, when]
+      - name: created_at
+        sql: created_at
+        type: time
+        description: Run creation timestamp (when the user's turn was submitted).
+      - name: updated_at
+        sql: updated_at
+        type: time
+        description: Last status change — the completion time for terminal runs.
+
+    measures:
+      - name: count
+        type: count
+        description: Number of agent runs (user turns + resumes processed).
+        meta:
+          synonyms: [runs, invocations, turns]
+      - name: success_count
+        type: count
+        filters:
+          - sql: "{CUBE}.status = 'success'"
+        description: Runs that finished successfully.
+      - name: error_count
+        type: count
+        filters:
+          - sql: "{CUBE}.status = 'error'"
+        description: Runs that ended in an error.
+      - name: failed_count
+        type: count
+        filters:
+          - sql: "{CUBE}.status IN ('error', 'timeout')"
+        description: Runs that failed for any reason (error or timeout); excludes human-approval pauses.
+      - name: interrupted_count
+        type: count
+        filters:
+          - sql: "{CUBE}.status = 'interrupted'"
+        description: Runs paused by a human-in-the-loop interrupt (approval friction, not failures).
+      - name: success_rate
+        sql: "{success_count} / nullIf({count}, 0)"
+        type: number
+        format: percent
+        description: Share of runs that finished successfully (success_count / count).
+        meta:
+          formula: success_count / count
+      - name: failure_rate
+        sql: "{failed_count} / nullIf({count}, 0)"
+        type: number
+        format: percent
+        description: Share of runs that errored or timed out (failed_count / count).
+        meta:
+          formula: failed_count / count
+      - name: active_users
+        sql: owner
+        type: count_distinct
+        description: Distinct users with at least one run in the selected window — the product-activity definition of "active".
+        meta:
+          synonyms: [DAU, WAU, MAU, active users]
+      - name: active_threads
+        sql: thread_id
+        type: count_distinct
+        description: Distinct conversations with at least one run in the window.
+      - name: avg_duration_s
+        sql: duration_s
+        type: avg
+        description: Average end-to-end run duration in seconds (terminal runs only; includes queue and approval wait).
+        meta:
+          unit: seconds
+      - name: p50_duration_s
+        sql: "quantile(0.5)(duration_s)"
+        type: number
+        description: Median run duration in seconds.
+        meta:
+          unit: seconds
+      - name: p95_duration_s
+        sql: "quantile(0.95)(duration_s)"
+        type: number
+        description: 95th-percentile run duration in seconds — the tail users feel.
+        meta:
+          unit: seconds
+      - name: max_duration_s
+        sql: duration_s
+        type: max
+        description: Longest run in the window, in seconds.
+        meta:
+          unit: seconds
+      - name: avg_steps
+        sql: steps
+        type: avg
+        description: Average LangGraph steps per run — agent effort (quick replies ~5, full resume tailoring 100+).
