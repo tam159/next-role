@@ -6,8 +6,11 @@ from typing import Any
 
 from langchain.agents.middleware import AgentMiddleware
 from langchain.chat_models import init_chat_model
+from langchain_anthropic import ChatAnthropic
+from langchain_aws import ChatBedrock, ChatBedrockConverse
 from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import SystemMessage
+from langchain_core.tools import BaseTool
 from langgraph.config import get_config
 
 logger = logging.getLogger(__name__)
@@ -158,10 +161,120 @@ def _without_streaming(model: BaseChatModel) -> BaseChatModel:
         return model
 
 
+# Claude buffers each tool-input parameter server-side until its value is
+# complete unless the request opts into fine-grained tool streaming, so a large
+# `write_file.content` reached the client as one late chunk — the UI showed
+# `file_path`, then nothing until the whole document landed. Opted in, fragments
+# stream as generated (like OpenAI does by default). Two knobs, one per transport:
+#   - Direct Anthropic API: the per-tool definition field `eager_input_streaming`.
+#   - Bedrock (Converse or legacy InvokeModel): no per-tool field — the tool
+#     schema is AWS-normalized — but the legacy beta flag on the Anthropic-native
+#     request body still turns it on for every tool that leaves the field unset.
+# Gemini's generateContent API has no equivalent: a function call arrives whole.
+_EAGER_INPUT_STREAMING = "eager_input_streaming"
+_FINE_GRAINED_TOOL_STREAMING_BETA = "fine-grained-tool-streaming-2025-05-14"
+
+
+def _with_eager_tool_streaming(tools: list[Any]) -> list[Any] | None:
+    """Return copies of `tools` opted into Anthropic fine-grained tool streaming.
+
+    `langchain_anthropic` lifts `BaseTool.extras["eager_input_streaming"]` onto
+    the wire tool definition (`convert_to_anthropic_tool`), so the flag rides
+    the tool objects handed to `bind_tools`. `model_copy` keeps the agent's
+    shared tool instances provider-neutral (the same objects are bound to
+    OpenAI/Gemini/Bedrock requests, whose converters ignore the key). Dict tools
+    (provider built-ins) and tools that already set the key — an explicit
+    `False` keeps buffered streaming — pass through untouched.
+
+    Returns `None` when no tool needed the flag so the caller skips the override.
+    """
+    changed = False
+    out: list[Any] = []
+    for tool in tools:
+        if not isinstance(tool, BaseTool):
+            out.append(tool)
+            continue
+        extras = tool.extras or {}
+        if _EAGER_INPUT_STREAMING in extras:
+            out.append(tool)
+            continue
+        out.append(tool.model_copy(update={"extras": {**extras, _EAGER_INPUT_STREAMING: True}}))
+        changed = True
+    return out if changed else None
+
+
+def _serves_anthropic(model: ChatBedrockConverse | ChatBedrock) -> bool:
+    """Whether a Bedrock model wrapper fronts a Claude model (mirrors `langchain_aws`).
+
+    Inference-profile ids (`global.anthropic.claude-…`, `us.anthropic.…`) and
+    foundation-model ARNs all carry the `anthropic.` provider segment; an
+    application inference profile hides it, so `provider`/`base_model_id` are
+    consulted too. Unknown → `False`: buffered streaming, never a bad request.
+    """
+    ids = f"{getattr(model, 'base_model_id', None) or ''} {model.model_id}".lower()
+    return (model.provider or "") == "anthropic" or "anthropic" in ids
+
+
+def _with_fine_grained_beta(betas: object) -> list[str] | None:
+    """Append the fine-grained flag to a user-configured `anthropic_beta` list.
+
+    Returns `None` when the flag is already present so callers skip the copy.
+    """
+    existing = [betas] if isinstance(betas, str) else list(betas) if isinstance(betas, list) else []
+    if _FINE_GRAINED_TOOL_STREAMING_BETA in existing:
+        return None
+    return [*existing, _FINE_GRAINED_TOOL_STREAMING_BETA]
+
+
+def _with_bedrock_fine_grained_streaming(
+    model: ChatBedrockConverse | ChatBedrock,
+) -> ChatBedrockConverse | ChatBedrock:
+    """Return a copy of a Bedrock Claude model with fine-grained tool streaming on.
+
+    `anthropic_beta` rides `additional_model_request_fields` on the Converse API
+    and `model_kwargs` (merged into the InvokeModel body) on legacy `ChatBedrock`.
+    Both are passed through verbatim by `langchain_aws`; other keys the user
+    configured (e.g. `reasoningConfig`) are preserved. Returns `model` itself
+    when the flag is already set.
+    """
+    if isinstance(model, ChatBedrockConverse):
+        fields = dict(model.additional_model_request_fields or {})
+        betas = _with_fine_grained_beta(fields.get("anthropic_beta"))
+        if betas is None:
+            return model
+        fields["anthropic_beta"] = betas
+        return model.model_copy(update={"additional_model_request_fields": fields})
+    kwargs = dict(model.model_kwargs or {})
+    betas = _with_fine_grained_beta(kwargs.get("anthropic_beta"))
+    if betas is None:
+        return model
+    kwargs["anthropic_beta"] = betas
+    return model.model_copy(update={"model_kwargs": kwargs})
+
+
+def _fine_grained_tool_streaming_overrides(
+    model: BaseChatModel,
+    tools: list[Any],
+) -> dict[str, Any]:
+    """`ModelRequest.override` kwargs that opt a Claude call into fine-grained streaming.
+
+    Keyed off the model the call will actually use (default or override, main
+    or subagent). Empty for non-Claude providers and when nothing needs changing.
+    """
+    if isinstance(model, ChatAnthropic):
+        tools_ = _with_eager_tool_streaming(tools)
+        return {"tools": tools_} if tools_ is not None else {}
+    if isinstance(model, ChatBedrockConverse | ChatBedrock) and _serves_anthropic(model):
+        model_ = _with_bedrock_fine_grained_streaming(model)
+        return {"model": model_} if model_ is not model else {}
+    return {}
+
+
 class ModelOverrideMiddleware(AgentMiddleware):
     """Shape the request model per main-agent-vs-subagent context.
 
-    Two responsibilities, both keyed off whether the call belongs to a subagent:
+    Three responsibilities; the first two are keyed off whether the call
+    belongs to a subagent, the third off the model the call ends up using:
 
     1. **Model override.** Reads two `RunnableConfig.configurable` keys:
          - `main_agent_model` — applies to the top-level career_agent call.
@@ -177,6 +290,20 @@ class ModelOverrideMiddleware(AgentMiddleware):
        or default model) gets `disable_streaming=True` so parallel subagents
        emitting large tool-call args don't flood the client (see
        `_without_streaming`). The main agent always keeps streaming.
+
+    3. **Fine-grained tool streaming for Claude.** Keyed off the *effective*
+       model (default or override, main or subagent) so large tool-call args
+       (`write_file.content`, `edit_file.new_string`) stream token-by-token in
+       the UI instead of arriving in one late chunk — see
+       `_fine_grained_tool_streaming_overrides`:
+         - `ChatAnthropic` (direct API): the request's tools are swapped for
+           copies carrying `extras["eager_input_streaming"]=True`.
+         - `ChatBedrockConverse` / legacy `ChatBedrock` fronting a Claude model:
+           the model is swapped for a copy whose Anthropic-native request body
+           carries the `fine-grained-tool-streaming-2025-05-14` beta flag.
+       Lives here rather than in its own middleware because it must see the
+       model *after* the override in (1) — the same ordering argument that put
+       (2) here (PRD 16).
 
     Subagent vs. main is differentiated by `metadata.lc_agent_name`, which
     deepagents stamps onto each subagent's runnable (see
@@ -206,13 +333,17 @@ class ModelOverrideMiddleware(AgentMiddleware):
     def _maybe_override(cls, request: Any) -> Any:  # noqa: ANN401
         is_subagent, name, disable_streaming = cls._read_config()
         model = _resolve_model(name) if name else None  # None → keep request's default
+        overrides: dict[str, Any] = {}
         if is_subagent and disable_streaming:
             # Disable streaming on whichever model the subagent ends up using.
             base = model if model is not None else request.model
-            return request.override(model=_without_streaming(base))
-        if model is not None:
-            return request.override(model=model)
-        return request
+            overrides["model"] = _without_streaming(base)
+        elif model is not None:
+            overrides["model"] = model
+        # Provider tweak keyed off the model the call will actually use.
+        effective_model = overrides.get("model", request.model)
+        overrides.update(_fine_grained_tool_streaming_overrides(effective_model, request.tools))
+        return request.override(**overrides) if overrides else request
 
     def wrap_model_call(self, request: Any, handler: Any) -> Any:  # noqa: ANN401
         """Sync entry point."""
