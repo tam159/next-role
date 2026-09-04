@@ -55,6 +55,8 @@ dependencies = [
   # v2 streaming wire format; >=0.0.18 matches the frontend SDK's bundled version
   "langchain-protocol>=0.0.18,<0.1",
   "langgraph-checkpoint>=4.2.0,<5",
+  # Hard floor: runtime_postgres/checkpoint.py's delta-channel walk mirrors the >=3.1.2
+  # stage-1 contract (hb_i/inline_i columns) of this package's private walk helpers.
   "langgraph-checkpoint-postgres>=3.1.2",
   "langgraph-runtime-inmem>=0.30.3,<0.31.0",
   "langgraph-sdk>=0.4.4",

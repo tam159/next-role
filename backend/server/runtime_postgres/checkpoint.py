@@ -142,7 +142,12 @@ from checkpoints """
 #   WALK    The first SQL pass. It scans checkpoint metadata only (no blob
 #           bytes), one page at a time, following parent pointers and noting
 #           for each requested channel whether the checkpoint has a recorded
-#           version (it is part of the chain) and/or a snapshot (it is a seed).
+#           version (it is part of the chain) and/or a stored value (it is a
+#           seed). A stored value lives in one of two places, because ``put``
+#           splits them: non-primitive values (and ``_DeltaSnapshot``) go to
+#           ``checkpoint_blobs`` — WALK probes that table by (channel, version);
+#           ``None``/``str``/``int``/``float``/``bool`` stay inline in the
+#           checkpoint's own ``channel_values`` — WALK reads that value directly.
 #   FETCH   The second SQL pass. Given the chains and seed versions discovered
 #           by WALK, it pulls the actual write blobs from ``checkpoint_writes``
 #           and the seed blobs from ``checkpoint_blobs`` in a single round trip.
@@ -178,26 +183,43 @@ _DELTA_PAGE_SIZE = 1024
 def _build_delta_walk_sql(channels: Sequence[str]) -> str:
     """SQL for the WALK pass — scans checkpoint metadata only.
 
-    Returns one row per checkpoint with `2*K` parallel JSONB key lookups
-    (one `ver_i` / `hs_i` column pair per requested channel). No blob
-    bytes; the result set fits a paged `LIMIT` cleanly.
+    Returns one row per checkpoint with `3*K` parallel lookups (a `ver_i` /
+    `hb_i` / `inline_i` column triple per requested channel). No blob bytes;
+    the result set fits a paged `LIMIT` cleanly. Mirrors upstream
+    `langgraph.checkpoint.postgres.base._build_delta_stage1_sql` (>= 3.1.2),
+    whose `_ingest_stage1_page` / `_try_advance_walks` consume these columns
+    by name — keep the aliases in lockstep with that version.
 
-    Caller must extend params with
-    `[ch_0, ch_0, ch_1, ch_1, ..., thread_id, ns, cursor, cursor, page_size]`.
-    The `cursor` is the smallest `checkpoint_id` from the previous page
-    (or `None` on the first page); `(%s::text IS NULL OR ...)` makes the
+    Caller must extend params with `[ch_0 x4, ch_1 x4, ..., thread_id, ns,
+    cursor, cursor, page_size]` — four per channel: the version lookup, the
+    blob probe's channel, the version the blob must match, and the inline
+    lookup. The `cursor` is the smallest `checkpoint_id` from the previous
+    page (or `None` on the first page); `(%s::text IS NULL OR ...)` makes the
     first-page `WHERE` a no-op.
     """
     cols = []
     for i in range(len(channels)):
-        # Two parallel lookups per channel, both keyed by the channel name
-        # bound as a parameter (hence two ``%s`` placeholders per iteration):
-        #   ver_i  the recorded channel version at this checkpoint, or NULL
-        #   hs_i   whether this checkpoint carries a snapshot for the channel
-        # The suffix ``i`` keeps the output columns positional per channel.
+        # Three parallel lookups per channel, all keyed by the channel name
+        # bound as a parameter (hence four ``%s`` placeholders per iteration):
+        #   ver_i     the recorded channel version at this checkpoint, or NULL
+        #   hb_i      whether a ``checkpoint_blobs`` row exists for that exact
+        #             (channel, version) — an index lookup on its primary key;
+        #             ``type <> 'empty'`` keeps WALK and FETCH in agreement on
+        #             tombstone rows
+        #   inline_i  the value kept inline in ``channel_values`` (primitives
+        #             get no blob row), or NULL when the key is absent
+        # A blob wins over an inline reading: for a ``_DeltaSnapshot`` the
+        # inline slot holds a ``true`` marker, not the value. The suffix ``i``
+        # keeps the output columns positional per channel.
         cols.append(
             f"checkpoint -> 'channel_versions' ->> %s AS ver_{i}"
-            f", (checkpoint -> 'channel_values' -> %s) IS NOT NULL AS hs_{i}",
+            f", EXISTS (SELECT 1 FROM checkpoint_blobs b{i}"
+            f" WHERE b{i}.thread_id = checkpoints.thread_id"
+            f" AND b{i}.checkpoint_ns = checkpoints.checkpoint_ns"
+            f" AND b{i}.channel = %s"
+            f" AND b{i}.version = checkpoint -> 'channel_versions' ->> %s"
+            f" AND b{i}.type <> 'empty') AS hb_{i}"
+            f", checkpoint -> 'channel_values' -> %s AS inline_{i}",
         )
     return (
         "SELECT checkpoint_id::text, parent_checkpoint_id::text, "
@@ -254,6 +276,35 @@ def _build_delta_fetch_sql(
     # with UNION ALL (not UNION) preserves duplicates and avoids a needless
     # sort/dedup over what are already distinct rows.
     return " UNION ALL ".join(branches)
+
+
+def _decode_inline_readings(page: Sequence[dict[str, Any]], n_channels: int) -> None:
+    """Normalise a WALK page's `inline_i` cells to plain Python values, in place.
+
+    Our connections load JSONB as :class:`Fragment` (raw bytes — see
+    `database.connect`), while upstream's walk helpers expect the decoded value:
+    `_try_advance_walks` reads `None` as "no stored value" (so a JSON ``null``
+    counts as absent, exactly as upstream) and copies the cell into
+    `seed_inline_by_ch` as the channel's seed.
+
+    With checkpoint encryption configured, `channel_values` holds ciphertext
+    rather than the primitives, so the cells are blanked instead: the walk then
+    relies on the blob probe alone, which is the pre-3.1.2 behaviour for inline
+    primitives (no seed → "start empty") and never surfaces ciphertext as a seed.
+    """
+    from server.api.encryption import get_encryption
+
+    encrypted = get_encryption() is not None
+    keys = [f"inline_{i}" for i in range(n_channels)]
+    for row in page:
+        for key in keys:
+            value = row.get(key)
+            if value is None:
+                continue
+            if encrypted:
+                row[key] = None
+            elif isinstance(value, Fragment | bytes | bytearray | memoryview):
+                row[key] = json_loads(value if isinstance(value, Fragment) else bytes(value))
 
 
 class CheckpointBlob(NamedTuple):
@@ -823,6 +874,7 @@ class Checkpointer(BaseCheckpointSaver):
         *,
         chain_by_ch: Mapping[str, builtins.list[str]],
         seed_ver_by_ch: Mapping[str, str | None],
+        seed_inline_by_ch: Mapping[str, Any],
         fetch_rows: "Sequence[_DeltaStage2Row]",
     ) -> "dict[str, DeltaChannelHistory]":
         """Turn the FETCH rowset into per-channel `DeltaChannelHistory`.
@@ -837,7 +889,10 @@ class Checkpointer(BaseCheckpointSaver):
              oldest→newest (the order `replay_writes` expects).
           3. Deserialize the seed blob if present and not the "empty"
              tombstone (an explicit non-snapshot marker the saver uses
-             for blob slots that were created but carry no value).
+             for blob slots that were created but carry no value). A
+             channel whose seed WALK found inline (a primitive kept in the
+             checkpoint's `channel_values`, so FETCH has no row for it)
+             takes its seed from `seed_inline_by_ch` instead.
 
         Async-flavored equivalent of upstream
         `BasePostgresSaver._build_delta_channels_writes_history` — same
@@ -888,6 +943,10 @@ class Checkpointer(BaseCheckpointSaver):
                 blob = seed_blob_by_ver.get((ch, seed_version))
                 if blob is not None and blob[0] != "empty":
                     entry["seed"] = await self.serde.aloads_typed(blob)
+                elif ch in seed_inline_by_ch:
+                    # Inline primitive: stored in the checkpoint, not the blobs
+                    # table, so FETCH never returned a row for it.
+                    entry["seed"] = seed_inline_by_ch[ch]
             result[ch] = entry
         return result
 
@@ -904,8 +963,9 @@ class Checkpointer(BaseCheckpointSaver):
         seed, WALK / FETCH).
 
         Loop shape: drive WALK in pages until every channel either found
-        its snapshot or hit the root. WALK accumulates `chain_by_ch`
-        (newest-first per channel) and `seed_ver_by_ch`. FETCH then
+        its stored value (a blob or an inline primitive) or hit the root.
+        WALK accumulates `chain_by_ch` (newest-first per channel),
+        `seed_ver_by_ch` and `seed_inline_by_ch`. FETCH then
         executes a single per-channel UNION ALL covering both — one
         roundtrip regardless of how many channels are requested.
 
@@ -930,10 +990,12 @@ class Checkpointer(BaseCheckpointSaver):
         parent_of = {}
 
         ver_by_i_by_cid = [{} for _ in channels]
-        hs_by_i_by_cid = [{} for _ in channels]
+        hb_by_i_by_cid = [{} for _ in channels]
+        inline_by_i_by_cid = [{} for _ in channels]
 
         chain_by_ch = {ch: [] for ch in channels}
         seed_ver_by_ch = {ch: None for ch in channels}
+        seed_inline_by_ch = {}
 
         walk_cursor_by_ch = {}
         seeded = set()
@@ -942,7 +1004,8 @@ class Checkpointer(BaseCheckpointSaver):
         while True:
             walk_params = []
             for ch in channels:
-                walk_params.extend([ch, ch])
+                # ver_i, blob channel, blob version, inline_i
+                walk_params.extend([ch, ch, ch, ch])
             walk_params.extend(
                 [thread_id, checkpoint_ns, cursor, cursor, _DELTA_PAGE_SIZE],
             )
@@ -955,12 +1018,15 @@ class Checkpointer(BaseCheckpointSaver):
             if not page:
                 break
 
+            _decode_inline_readings(page, len(channels))
+
             oldest = BasePostgresSaver._ingest_stage1_page(
                 cast("list[Mapping[str, Any]]", page),
                 channels,
                 parent_of,
                 ver_by_i_by_cid,
-                hs_by_i_by_cid,
+                hb_by_i_by_cid,
+                inline_by_i_by_cid,
             )
 
             BasePostgresSaver._try_advance_walks(
@@ -968,9 +1034,11 @@ class Checkpointer(BaseCheckpointSaver):
                 channels,
                 parent_of,
                 ver_by_i_by_cid,
-                hs_by_i_by_cid,
+                hb_by_i_by_cid,
+                inline_by_i_by_cid,
                 chain_by_ch,
                 seed_ver_by_ch,
+                seed_inline_by_ch,
                 walk_cursor_by_ch,
                 seeded,
             )
@@ -1005,6 +1073,7 @@ class Checkpointer(BaseCheckpointSaver):
             channels=channels,
             chain_by_ch=chain_by_ch,
             seed_ver_by_ch=seed_ver_by_ch,
+            seed_inline_by_ch=seed_inline_by_ch,
             fetch_rows=cast("list[_DeltaStage2Row]", fetch_rows),
         )
 
