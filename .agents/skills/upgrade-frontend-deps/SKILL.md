@@ -8,11 +8,12 @@ Upgrade the frontend's pnpm dependencies in revertable waves, preserving exact-p
 ## Ground rules
 
 - **Exact pins stay exact.** `react`, `react-dom`, and `@langchain/langgraph-sdk` have no `^` in `package.json`. Upgrade them with `pnpm --dir frontend add -E pkg@x.y.z`; everything else gets a new `^` floor (`pnpm --dir frontend add pkg@^x.y.z`).
+- **A held-back line needs a `~` range.** `^x.y.z` admits every later minor, and pnpm resolves the highest match — `pnpm add better-auth@^1.6.30` installed 1.7.2, the version being held back. When a package must stay on its current minor (schema migration, peer gate), pin `~x.y.z`, say so under "Held back", and restore `^` in the PR that lifts the hold. Always read the `+ pkg x.y.z` line pnpm prints after `add` — it is the installed version, not the range you typed.
 - **One resolved version per dep.** The lockfile must not carry two copies of anything that crosses a package boundary (the `@langchain/langgraph-sdk` single-copy invariant in `frontend/CLAUDE.md` is the critical one; `scripts/check-langchain-sdk-sync.mjs` guards it).
 - **One commit per wave** (majors: one per package) so any regression reverts surgically.
 - **Lockfile changes need `docker compose restart frontend`; source edits hot-reload.** Never restart for source-only changes; never skip the restart after `pnpm add/remove`.
 - **`@types/node` tracks the Docker runtime**, not npm `latest`. Read the major from `frontend/Dockerfile`'s `FROM node:XX-alpine` and stay on `@types/node@^XX`. Document it under "Held back".
-- **`vitest` + `@vitest/coverage-v8` are an exact-version lockstep pair** (coverage is an exact peer of the runner) — bump both together in one command; a split pair breaks `pnpm test:coverage`.
+- **`vitest` + `@vitest/coverage-v8` are an exact-version lockstep pair** (coverage is an exact peer of the runner) — bump both together in one command; a split pair breaks `pnpm test:coverage`. Since vitest 5, `vite` is a *required peer* rather than a dependency: keep it as an explicit devDependency (`vite@^8`) so the resolved version is declared, not left to pnpm's auto-installed peers.
 
 ## Workflow
 
@@ -29,6 +30,8 @@ pnpm view "pkg@<target>" peerDependencies   # quote the spec; zsh doesn't word-s
 ```
 
 Gate examples that have mattered: typescript-eslint's `typescript: <X` upper bound gates TS majors; eslint plugins' `eslint` peer range gates eslint majors. A major whose peers don't fit gets held back, not forced.
+
+Read release notes for the auth/database libraries even below a major: better-auth **1.7** (a minor) added a NOT NULL `account.issuer` column with a required backfill of existing rows — a one-way migration on every deployment (`@better-auth/cli migrate`, see README). A schema migration is not a wave; hold the package on its current minor (`~` range) and leave the bump to its own PR that also updates the README migration steps.
 
 ### 2. Branch + baseline
 
@@ -138,3 +141,4 @@ Push  using `gh` or `git push` (already uses the right SSH identity), open the P
 - **Screenshots save relative to the daemon's cwd, not the shell's** — always pass absolute paths (`agent-browser screenshot /tmp/...png`), or strays land in the repo.
 - **pnpm 10 blocks postinstall scripts of new deps** (e.g. `@tailwindcss/oxide`). If pnpm warns "Ignored build scripts", allowlist via `pnpm.onlyBuiltDependencies` and reinstall.
 - **The E2E creates real threads/files in the dev stack** — they overwrite by deterministic path on re-runs; leave or bulk-delete at the end, but say which.
+- **The E2E depends on the model provider, and a provider failure looks like a frontend bug.** When the backend's model call dies (Azure OpenAI "peak load" / 5xx), the run ends with an empty assistant turn and no toast. Check `docker compose logs backend` for `Background run failed` before suspecting the upgrade. Unblock by setting the demo user's **Main agent** and **Subagents** fields in Settings to a healthy `provider:model` (e.g. `anthropic:claude-sonnet-5`); it is a per-browser preference, so the owner's config is untouched.
