@@ -1,0 +1,36 @@
+slice_name: Top users by runs & cost
+description: Per-user runs, threads, tokens, and estimated spend (all time).
+certified_by: null
+certification_details: null
+viz_type: table
+params:
+  datasource: 0__table
+  viz_type: table
+  query_mode: raw
+  all_columns:
+  - name
+  - email_domain
+  - runs
+  - threads
+  - total_tokens
+  - est_cost_usd
+  order_by_cols:
+  - '["runs", false]'
+  adhoc_filters: []
+  row_limit: 20
+  server_page_length: 10
+  table_timestamp_format: smart_date
+  column_config:
+    est_cost_usd:
+      d3NumberFormat: $,.2f
+    total_tokens:
+      d3NumberFormat: ',d'
+  show_cell_bars: true
+  color_pn: true
+  allow_render_html: false
+  extra_form_data: {}
+query_context: null
+cache_timeout: null
+uuid: f0fa4c7d-1407-59f4-ad12-9ccb35adf2da
+version: 1.0.0
+dataset_uuid: 69e4bde5-54c6-553e-b126-36725bbb98fe

@@ -1,0 +1,210 @@
+table_name: fct_run
+main_dttm_col: run_date
+description: One row per agent run.
+default_endpoint: null
+offset: 0
+cache_timeout: null
+schema: nextrole_marts
+catalog: null
+sql: null
+params: null
+template_params: null
+filter_select_enabled: true
+fetch_values_predicate: null
+extra: null
+normalize_columns: false
+always_filter_main_dttm: false
+uuid: ca976b20-c05b-5c13-b02c-43d6700e7924
+metrics:
+- metric_name: count
+  verbose_name: COUNT(*)
+  metric_type: count
+  expression: COUNT(*)
+  description: null
+  d3format: null
+  currency: null
+  extra: {}
+  warning_text: null
+columns:
+- column_name: run_id
+  verbose_name: null
+  is_dttm: false
+  is_active: true
+  type: String
+  advanced_data_type: null
+  groupby: true
+  filterable: true
+  expression: null
+  description: null
+  python_date_format: null
+  extra: {}
+- column_name: run_date
+  verbose_name: null
+  is_dttm: true
+  is_active: true
+  type: Date
+  advanced_data_type: null
+  groupby: true
+  filterable: true
+  expression: null
+  description: null
+  python_date_format: null
+  extra: {}
+- column_name: owner
+  verbose_name: null
+  is_dttm: false
+  is_active: true
+  type: String
+  advanced_data_type: null
+  groupby: true
+  filterable: true
+  expression: null
+  description: null
+  python_date_format: null
+  extra: {}
+- column_name: thread_id
+  verbose_name: null
+  is_dttm: false
+  is_active: true
+  type: Nullable(String)
+  advanced_data_type: null
+  groupby: true
+  filterable: true
+  expression: null
+  description: null
+  python_date_format: null
+  extra: {}
+- column_name: assistant_id
+  verbose_name: null
+  is_dttm: false
+  is_active: true
+  type: Nullable(String)
+  advanced_data_type: null
+  groupby: true
+  filterable: true
+  expression: null
+  description: null
+  python_date_format: null
+  extra: {}
+- column_name: status
+  verbose_name: null
+  is_dttm: false
+  is_active: true
+  type: Nullable(String)
+  advanced_data_type: null
+  groupby: true
+  filterable: true
+  expression: null
+  description: null
+  python_date_format: null
+  extra: {}
+- column_name: is_success
+  verbose_name: null
+  is_dttm: false
+  is_active: true
+  type: Bool
+  advanced_data_type: null
+  groupby: true
+  filterable: true
+  expression: null
+  description: null
+  python_date_format: null
+  extra: {}
+- column_name: was_interrupted
+  verbose_name: null
+  is_dttm: false
+  is_active: true
+  type: Bool
+  advanced_data_type: null
+  groupby: true
+  filterable: true
+  expression: null
+  description: null
+  python_date_format: null
+  extra: {}
+- column_name: duration_s
+  verbose_name: null
+  is_dttm: false
+  is_active: true
+  type: Nullable(Int64)
+  advanced_data_type: null
+  groupby: true
+  filterable: true
+  expression: null
+  description: null
+  python_date_format: null
+  extra: {}
+- column_name: steps
+  verbose_name: null
+  is_dttm: false
+  is_active: true
+  type: Nullable(Int64)
+  advanced_data_type: null
+  groupby: true
+  filterable: true
+  expression: null
+  description: null
+  python_date_format: null
+  extra: {}
+- column_name: main_model_override
+  verbose_name: null
+  is_dttm: false
+  is_active: true
+  type: Nullable(String)
+  advanced_data_type: null
+  groupby: true
+  filterable: true
+  expression: null
+  description: null
+  python_date_format: null
+  extra: {}
+- column_name: subagent_model_override
+  verbose_name: null
+  is_dttm: false
+  is_active: true
+  type: Nullable(String)
+  advanced_data_type: null
+  groupby: true
+  filterable: true
+  expression: null
+  description: null
+  python_date_format: null
+  extra: {}
+- column_name: multitask_strategy
+  verbose_name: null
+  is_dttm: false
+  is_active: true
+  type: Nullable(String)
+  advanced_data_type: null
+  groupby: true
+  filterable: true
+  expression: null
+  description: null
+  python_date_format: null
+  extra: {}
+- column_name: created_at
+  verbose_name: null
+  is_dttm: true
+  is_active: true
+  type: DateTime64(3)
+  advanced_data_type: null
+  groupby: true
+  filterable: true
+  expression: null
+  description: null
+  python_date_format: null
+  extra: {}
+- column_name: updated_at
+  verbose_name: null
+  is_dttm: true
+  is_active: true
+  type: DateTime64(3)
+  advanced_data_type: null
+  groupby: true
+  filterable: true
+  expression: null
+  description: null
+  python_date_format: null
+  extra: {}
+version: 1.0.0
+database_uuid: 23b237b9-850f-59ce-a930-cc088b03d36f

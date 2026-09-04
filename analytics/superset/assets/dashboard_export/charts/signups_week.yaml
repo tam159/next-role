@@ -1,0 +1,56 @@
+slice_name: Signups per week
+description: null
+certified_by: null
+certification_details: null
+viz_type: echarts_timeseries_bar
+params:
+  datasource: 0__table
+  viz_type: echarts_timeseries_bar
+  x_axis: signup_date
+  time_grain_sqla: P1W
+  x_axis_sort_asc: true
+  metrics:
+  - count
+  groupby: []
+  adhoc_filters:
+  - clause: WHERE
+    subject: signup_date
+    operator: TEMPORAL_RANGE
+    comparator: No filter
+    expressionType: SIMPLE
+  - clause: WHERE
+    subject: signup_date
+    operator: IS NOT NULL
+    comparator: null
+    expressionType: SIMPLE
+  order_desc: true
+  row_limit: 10000
+  truncate_metric: true
+  show_empty_columns: true
+  comparison_type: values
+  annotation_layers: []
+  forecastPeriods: 10
+  forecastInterval: 0.8
+  x_axis_title_margin: 15
+  y_axis_title_margin: 15
+  y_axis_title_position: Left
+  sort_series_type: sum
+  color_scheme: supersetColors
+  only_total: true
+  show_legend: true
+  legendType: scroll
+  legendOrientation: top
+  x_axis_time_format: smart_date
+  rich_tooltip: true
+  tooltipTimeFormat: smart_date
+  y_axis_format: SMART_NUMBER
+  truncateXAxis: true
+  y_axis_bounds:
+  - null
+  - null
+  extra_form_data: {}
+query_context: null
+cache_timeout: null
+uuid: 05a806c6-fd89-5d87-b79e-0b643e8d506d
+version: 1.0.0
+dataset_uuid: 2d360a35-9337-5b2f-a383-2aff116a4c93

@@ -1,0 +1,74 @@
+table_name: threads_runs_daily
+main_dttm_col: day
+description: Daily thread + run creation counts.
+default_endpoint: null
+offset: 0
+cache_timeout: null
+schema: nextrole_marts
+catalog: null
+sql: 'SELECT created_date AS day, ''threads'' AS kind, count(*) AS n
+
+  FROM nextrole_marts.fct_thread GROUP BY day
+
+  UNION ALL
+
+  SELECT run_date AS day, ''runs'' AS kind, count(*) AS n
+
+  FROM nextrole_marts.fct_run GROUP BY day'
+params: null
+template_params: null
+filter_select_enabled: true
+fetch_values_predicate: null
+extra: null
+normalize_columns: false
+always_filter_main_dttm: false
+uuid: d7a95913-e1ea-5d9d-b851-f5205b43621b
+metrics:
+- metric_name: count
+  verbose_name: COUNT(*)
+  metric_type: count
+  expression: COUNT(*)
+  description: null
+  d3format: null
+  currency: null
+  extra: {}
+  warning_text: null
+columns:
+- column_name: day
+  verbose_name: null
+  is_dttm: true
+  is_active: true
+  type: Date
+  advanced_data_type: null
+  groupby: true
+  filterable: true
+  expression: null
+  description: null
+  python_date_format: null
+  extra: {}
+- column_name: kind
+  verbose_name: null
+  is_dttm: false
+  is_active: true
+  type: String
+  advanced_data_type: null
+  groupby: true
+  filterable: true
+  expression: null
+  description: null
+  python_date_format: null
+  extra: {}
+- column_name: n
+  verbose_name: null
+  is_dttm: false
+  is_active: true
+  type: Int64
+  advanced_data_type: null
+  groupby: true
+  filterable: true
+  expression: null
+  description: null
+  python_date_format: null
+  extra: {}
+version: 1.0.0
+database_uuid: 23b237b9-850f-59ce-a930-cc088b03d36f

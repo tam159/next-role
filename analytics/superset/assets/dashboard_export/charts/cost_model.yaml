@@ -1,0 +1,60 @@
+slice_name: Est. cost per day by model
+description: null
+certified_by: null
+certification_details: null
+viz_type: echarts_timeseries_bar
+params:
+  datasource: 0__table
+  viz_type: echarts_timeseries_bar
+  x_axis: first_seen_at
+  time_grain_sqla: P1D
+  x_axis_sort_asc: true
+  metrics:
+  - expressionType: SQL
+    sqlExpression: SUM(est_cost_usd)
+    column: null
+    aggregate: null
+    datasourceWarning: false
+    hasCustomLabel: true
+    label: Est. cost (USD)
+    optionName: metric_df2aa5d6f98e
+  groupby:
+  - model_name
+  adhoc_filters:
+  - clause: WHERE
+    subject: first_seen_at
+    operator: TEMPORAL_RANGE
+    comparator: No filter
+    expressionType: SIMPLE
+  order_desc: true
+  row_limit: 10000
+  truncate_metric: true
+  show_empty_columns: true
+  comparison_type: values
+  annotation_layers: []
+  forecastPeriods: 10
+  forecastInterval: 0.8
+  x_axis_title_margin: 15
+  y_axis_title_margin: 15
+  y_axis_title_position: Left
+  sort_series_type: sum
+  color_scheme: supersetColors
+  only_total: true
+  show_legend: true
+  legendType: scroll
+  legendOrientation: top
+  x_axis_time_format: smart_date
+  rich_tooltip: true
+  tooltipTimeFormat: smart_date
+  y_axis_format: $,.2f
+  truncateXAxis: true
+  y_axis_bounds:
+  - null
+  - null
+  extra_form_data: {}
+  stack: Stack
+query_context: null
+cache_timeout: null
+uuid: 75dd2e35-8224-5245-9251-91b192eee808
+version: 1.0.0
+dataset_uuid: f50943bb-bc98-576a-b230-178456a155a6

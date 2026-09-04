@@ -1,0 +1,59 @@
+slice_name: Threads & runs per day
+description: null
+certified_by: null
+certification_details: null
+viz_type: echarts_timeseries_bar
+params:
+  datasource: 0__table
+  viz_type: echarts_timeseries_bar
+  x_axis: day
+  time_grain_sqla: P1D
+  x_axis_sort_asc: true
+  metrics:
+  - expressionType: SQL
+    sqlExpression: SUM(n)
+    column: null
+    aggregate: null
+    datasourceWarning: false
+    hasCustomLabel: true
+    label: Created
+    optionName: metric_749364b05c49
+  groupby:
+  - kind
+  adhoc_filters:
+  - clause: WHERE
+    subject: day
+    operator: TEMPORAL_RANGE
+    comparator: No filter
+    expressionType: SIMPLE
+  order_desc: true
+  row_limit: 10000
+  truncate_metric: true
+  show_empty_columns: true
+  comparison_type: values
+  annotation_layers: []
+  forecastPeriods: 10
+  forecastInterval: 0.8
+  x_axis_title_margin: 15
+  y_axis_title_margin: 15
+  y_axis_title_position: Left
+  sort_series_type: sum
+  color_scheme: supersetColors
+  only_total: true
+  show_legend: true
+  legendType: scroll
+  legendOrientation: top
+  x_axis_time_format: smart_date
+  rich_tooltip: true
+  tooltipTimeFormat: smart_date
+  y_axis_format: SMART_NUMBER
+  truncateXAxis: true
+  y_axis_bounds:
+  - null
+  - null
+  extra_form_data: {}
+query_context: null
+cache_timeout: null
+uuid: 4b27d798-8d8f-5a67-9371-6e705e32749d
+version: 1.0.0
+dataset_uuid: d7a95913-e1ea-5d9d-b851-f5205b43621b

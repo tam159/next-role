@@ -1,0 +1,58 @@
+slice_name: Active users per day
+description: null
+certified_by: null
+certification_details: null
+viz_type: echarts_timeseries_line
+params:
+  datasource: 0__table
+  viz_type: echarts_timeseries_line
+  x_axis: run_date
+  time_grain_sqla: P1D
+  x_axis_sort_asc: true
+  metrics:
+  - expressionType: SQL
+    sqlExpression: COUNT(DISTINCT owner)
+    column: null
+    aggregate: null
+    datasourceWarning: false
+    hasCustomLabel: true
+    label: Active users
+    optionName: metric_c3631ec83ef6
+  groupby: []
+  adhoc_filters:
+  - clause: WHERE
+    subject: run_date
+    operator: TEMPORAL_RANGE
+    comparator: No filter
+    expressionType: SIMPLE
+  order_desc: true
+  row_limit: 10000
+  truncate_metric: true
+  show_empty_columns: true
+  comparison_type: values
+  annotation_layers: []
+  forecastPeriods: 10
+  forecastInterval: 0.8
+  x_axis_title_margin: 15
+  y_axis_title_margin: 15
+  y_axis_title_position: Left
+  sort_series_type: sum
+  color_scheme: supersetColors
+  only_total: true
+  show_legend: true
+  legendType: scroll
+  legendOrientation: top
+  x_axis_time_format: smart_date
+  rich_tooltip: true
+  tooltipTimeFormat: smart_date
+  y_axis_format: SMART_NUMBER
+  truncateXAxis: true
+  y_axis_bounds:
+  - null
+  - null
+  extra_form_data: {}
+query_context: null
+cache_timeout: null
+uuid: 5fd3399a-c48d-589e-836b-25c9b58950a9
+version: 1.0.0
+dataset_uuid: ca976b20-c05b-5c13-b02c-43d6700e7924
