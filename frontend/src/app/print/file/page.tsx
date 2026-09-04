@@ -97,12 +97,15 @@ export default function PrintFilePage(): React.JSX.Element {
     <>
       <style>{PRINT_STYLES}</style>
       <div className="print-root mx-auto max-w-[7in] p-6">
-        {missing ? (
+        {/* A captured payload wins over `missing`: React Strict Mode (dev) runs the
+            mount effect twice, and the first pass already consumed the one-shot
+            sessionStorage entry, so the second pass sees nothing and flags `missing`. */}
+        {payload ? (
+          <PrintBody payload={payload} />
+        ) : missing ? (
           <p className="text-sm text-(--color-text-secondary)">
             No file to print. Open a file from the Workspace and click <em>Save as PDF</em>.
           </p>
-        ) : payload ? (
-          <PrintBody payload={payload} />
         ) : null}
       </div>
     </>
