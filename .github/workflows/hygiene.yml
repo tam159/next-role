@@ -42,5 +42,5 @@ jobs:
         env:
           # Code linters run in the code-quality pipeline, not here. Keep this in
           # sync with the SKIP list in ci.yml — the two partition the hook set.
-          SKIP: ruff-check,ruff-format,backend-typecheck,frontend-lint,frontend-format,frontend-typecheck,frontend-langchain-sdk-sync
+          SKIP: ruff-check,ruff-format,backend-typecheck,analytics-typecheck,analytics-sqlfluff-fix,analytics-sqlfluff-lint,frontend-lint,frontend-format,frontend-typecheck,frontend-langchain-sdk-sync
         run: uvx pre-commit run --all-files --show-diff-on-failure --color always

@@ -67,6 +67,10 @@ jobs:
         working-directory: backend
         run: uv sync
 
+      - name: "Sync analytics (ty env for the analytics-typecheck hook)"
+        working-directory: analytics
+        run: uv sync
+
       - name: Install pnpm
         uses: pnpm/action-setup@v6
         with:

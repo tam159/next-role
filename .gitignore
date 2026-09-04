@@ -3,6 +3,12 @@
 CLAUDE.local.md
 .claude/settings.local.json
 
+# dbt build artifacts (analytics/)
+analytics/dbt/target/
+analytics/dbt/logs/
+analytics/dbt/dbt_packages/
+analytics/dbt/.user.yml
+
 # Understand-Anything graph: ship the graph, not its rebuild artifacts
 .ua/intermediate/
 .ua/diff-overlay.json
