@@ -1,6 +1,6 @@
 ---
 name: upgrade-backend-deps
-description: Upgrade Python backend dependencies to their latest compatible versions. Resolves the lockfile with `uv lock --upgrade`, syncs the venv, bumps the matching `>=` pins in `backend/pyproject.toml` and `ruff-pre-commit` rev in `.pre-commit-config.yaml`, runs the backend unit tests, rebuilds the backend Docker image if requested, opens a PR with the change (watching CI for upgrade fallout), and reports what moved vs. what stayed pinned by transitive constraints. Use when the user says "upgrade backend libs", "bump backend deps", "update Python dependencies", or after they've manually run `uv lock --upgrade` and want the pyproject/config files reconciled.
+description: Upgrade Python backend dependencies to their latest compatible versions. Resolves the lockfile with `uv lock --upgrade`, syncs the venv, bumps the matching `>=` pins in `backend/pyproject.toml` and `ruff-pre-commit` rev in `.pre-commit-config.yaml`, runs the backend unit tests, rebuilds the backend Docker image if requested, verifies thread state still loads on the restarted stack, opens a PR with the change (watching CI for upgrade fallout), and reports what moved vs. what stayed pinned by transitive constraints. Use when the user says "upgrade backend libs", "bump backend deps", "update Python dependencies", or after they've manually run `uv lock --upgrade` and want the pyproject/config files reconciled.
 ---
 
 Upgrade the backend's Python dependencies, reconcile the version pins in tracked config, and (optionally) rebuild the Docker image so the running container picks up the new versions.
@@ -68,7 +68,11 @@ If something fails it's almost always an upgraded library changing a contract �
 
 > Real example: a `deepagents` 0.6.x bump changed `CompositeBackend.ls()` to report a missing directory as a `path_not_found` error instead of an empty listing, which broke `list_files`. The fix was to normalize it back to `[]`. This local run is exactly the gate that catches that before CI.
 
-Integration tests (`uv run pytest -m integration`) need the local stack up — run them too if it's already running, but don't start it just for this.
+> Second real example (2026-09, PR #78): `langgraph-checkpoint-postgres` 3.1.1 → 3.1.2 changed the *private* stage-1 walk helpers (`BasePostgresSaver._ingest_stage1_page` / `_try_advance_walks`) that the vendored checkpointer calls, and every `GET /threads/{id}/state` returned 500 — the UI looked like all threads had vanished — while this suite **and CI stayed green**, because the server packages carry no mirrored unit tests. `tests/server/test_delta_walk_contract.py` now pins that contract; if it trips, port the upstream `aio.py` diff into `server/runtime_postgres/checkpoint.py` and raise the floor (see `backend/ARCHITECTURE.md` §10) rather than pinning the package back.
+
+**A green unit run says nothing about `backend/server/**`.** Those packages are deliberately untested at the unit level and they couple to library internals — step 8b is their gate.
+
+Integration tests (`uv run pytest -m integration`) need the local stack up — run them too if it's already running, but don't start it just for this. Be aware that the thread/store smoke tests in `tests/server/test_smoke.py` **skip when `LANGGRAPH_AUTH` is set** (the default local multi-user setup), so a green `-m integration` run does not prove the thread path works either — again, step 8b does.
 
 ### 6. Check the backend container state
 
@@ -101,14 +105,53 @@ docker compose ps backend
 docker compose logs backend --tail 30
 ```
 
+### 8b. Verify thread state on the restarted server
+
+A healthy `/ok` only proves the process booted. Loading a thread runs the vendored checkpointer's delta-channel walk, which depends on `langgraph-checkpoint-postgres` internals (step 5's second example) — exercise it against a real thread before calling the upgrade good. Either reload the UI and confirm the backend logs show `GET /threads/.../state 200` rather than `500`:
+
+```bash
+docker compose logs backend --since 5m --no-log-prefix | grep -E 'GET /threads/[^ ]+/state [0-9]{3}'
+```
+
+or drive the walk directly inside the container — this works with auth enabled, no token needed:
+
+```bash
+TID=$(docker compose exec -T postgres sh -c \
+  'psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -At -c "select thread_id from checkpoints order by checkpoint_id desc limit 1"')
+docker compose exec -T -e TID="$TID" backend python - <<'EOF'
+import asyncio, os
+from server.runtime_postgres import database
+from server.runtime_postgres.checkpoint import Checkpointer
+
+async def main():
+    await database.start_pool()
+    try:
+        cp = Checkpointer()
+        cfg = {"configurable": {"thread_id": os.environ["TID"], "checkpoint_ns": ""}}
+        tup = await cp.aget_tuple(cfg)
+        channels = sorted(tup.checkpoint["channel_versions"])
+        hist = await cp.aget_delta_channel_history(cfg, channels=channels)
+        print("walk OK —", {ch: len(h.get("writes", [])) for ch, h in hist.items()})
+    finally:
+        await database.stop_pool()
+
+asyncio.run(main())
+EOF
+```
+
+A `TypeError` or missing-argument failure here means a checkpoint-library bump changed the private helper contract: fix forward in `server/runtime_postgres/checkpoint.py`, in this same PR.
+
+Hot-reload note: the `backend` service bind-mounts the repo and runs uvicorn `--reload`, so a source fix to the vendored runtime is live in the running container the moment you save it — re-run this check without rebuilding. `core-server` imports the same runtime modules but has **no** hot reload, so after such a fix run `docker compose up -d core-server`, and rebuild (step 7) so the image matches the source before the PR.
+
 ### 9. Lint the edited config files
 
 ```bash
 cd ..  # back to repo root
 pre-commit run --files backend/pyproject.toml .pre-commit-config.yaml backend/uv.lock
+# `pre-commit` not on PATH in this shell? It's a dev dep: backend/.venv/bin/pre-commit run --files ...
 ```
 
-This runs `toml-sort` / yaml checks so the edits match the repo's formatting. Include `backend/uv.lock` so any reconciliation from step 4 gets validated too.
+This runs `toml-sort` / yaml checks so the edits match the repo's formatting. Include `backend/uv.lock` so any reconciliation from step 4 gets validated too, plus any source/test files you touched to fix fallout (ruff + ty run on those). If `ruff` or `ty` themselves moved, also run the full sweep once (`pre-commit run --all-files`) — new rules can bite `analytics/` and `frontend/` hooks that share the config.
 
 ### 10. Commit and open a PR
 
@@ -153,5 +196,7 @@ After `uv lock --upgrade`, anything that *could* upgrade within the current cons
 
 - **Don't run `pip install` or edit `uv.lock` by hand.** `uv` owns the lock.
 - **`uv lock --upgrade` does two things, one of them silent.** It re-resolves PyPI for newer versions (the `Updated <pkg>` log lines), and it snapshots `pyproject.toml`'s current `requires-dist` into the lockfile's `[package.metadata]` block. The snapshot is silent — no log line. If you hand-edit `>=` pins in `pyproject.toml` and don't follow up with `uv lock`, the lockfile metadata drifts and the next person's `uv lock --upgrade` will produce a noisy "metadata-only" diff with zero `Updated` lines. Step 4 of this skill exists to prevent that.
-- **The Docker image bakes deps at build time** (see [backend/Dockerfile](backend/Dockerfile)) — boot does not re-resolve. So a fresh `uv.lock` on the host only reaches the container after `docker compose build`.
+- **The Docker image bakes deps at build time** (see [backend/Dockerfile](backend/Dockerfile)) — boot does not re-resolve. So a fresh `uv.lock` on the host only reaches the container after `docker compose build`. Source is different: the repo is bind-mounted into `backend` with hot reload, so code fixes are live on save, while `core-server` needs `docker compose up -d core-server` to see them.
+- **The vendored server couples to private library APIs.** `backend/server/runtime_postgres/checkpoint.py` calls `BasePostgresSaver._ingest_stage1_page` / `_try_advance_walks` from `langgraph-checkpoint-postgres` and mirrors their stage-1 SQL column contract (`ver_i`/`hb_i`/`inline_i`). A bump of that package can break `GET /threads/{id}/state` with every other gate green. `tests/server/test_delta_walk_contract.py` trips first; the fix is to port the upstream `aio.py` diff into the vendored walk and raise the floor, not to pin the package back (`backend/ARCHITECTURE.md` §10). Step 8b is the runtime check.
+- **`-m integration` is weaker than it looks under local auth.** The thread/store smoke tests skip when `LANGGRAPH_AUTH` is set, so they can't catch a broken thread path on a default local stack — step 8b can.
 - **Frontend deps are a separate flow** — this skill is backend-only.

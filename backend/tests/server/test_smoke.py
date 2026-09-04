@@ -3,6 +3,9 @@
 The server packages carry no mirrored unit tests (see backend/CLAUDE.md,
 "Server packages") — these integration checks against the running local
 stack are the regression net for the server and future dependency bumps.
+
+The tests that touch owner-scoped resources (threads, store) skip when the
+server enforces bearer auth (``LANGGRAPH_AUTH`` set) — they carry no token.
 """
 
 import asyncio
@@ -26,6 +29,17 @@ def _base_url() -> str:
     if not port:
         pytest.skip("LANGGRAPH_LOCAL_PORT not configured (env or repo .env)")
     return f"http://localhost:{port}"
+
+
+def _backend_auth_enabled() -> bool:
+    """True when the server enforces bearer auth (LANGGRAPH_AUTH; env first, then repo .env)."""
+    return bool(os.getenv("LANGGRAPH_AUTH") or dotenv_values(_REPO_ENV).get("LANGGRAPH_AUTH"))
+
+
+_requires_anonymous_access = pytest.mark.skipif(
+    _backend_auth_enabled(),
+    reason="LANGGRAPH_AUTH is set — /threads and /store require a Better Auth bearer token",
+)
 
 
 def test_ok_endpoint_reports_healthy() -> None:
@@ -66,6 +80,7 @@ def test_openapi_spec_keeps_builtin_docs_with_custom_app() -> None:
     assert "/files/list" in paths
 
 
+@_requires_anonymous_access
 def test_store_roundtrip() -> None:
     """PUT → GET → search → DELETE through the KV store (DeepAgents memory path)."""
     base = _base_url()
@@ -96,6 +111,7 @@ def test_store_roundtrip() -> None:
             assert deleted.status_code == 204
 
 
+@_requires_anonymous_access
 async def test_thread_event_stream_survives_idle() -> None:
     """The v2 thread stream is connection-scoped — it must stay open while idle.
 

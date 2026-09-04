@@ -417,6 +417,11 @@ restored by the worker, so storage scoping (§8) holds on `api-worker` pods exac
   `protobuf<7`, `sse-starlette<3.4`, `jsonschema-rs<0.45`, `structlog<26`, `langgraph<2`,
   `langchain-protocol<0.1` (wire format shared with the frontend SDK — bump both sides
   together).
+- **`langgraph-checkpoint-postgres>=3.1.2` is a contract floor, not staleness:**
+  `runtime_postgres/checkpoint.py` re-implements the delta-channel WALK on top of that
+  package's private stage-1 helpers (`_ingest_stage1_page` / `_try_advance_walks`) and
+  mirrors their SQL column contract (`ver_i`/`hb_i`/`inline_i`). Both changed in 3.1.2;
+  `tests/server/test_delta_walk_contract.py` trips when they drift again.
 - **Quality gates:** the server packages run under a scoped `per-file-ignores` entry in
   `backend/pyproject.toml` (noisy stylistic families off; `F`/`E`/`W`/`B`/`I`/`DTZ`/`RUF`
   stay on and are clean) and are excluded from `ty` (`[tool.ty.src]`). `agents/` and
