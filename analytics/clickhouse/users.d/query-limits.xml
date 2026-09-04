@@ -1,0 +1,9 @@
+<!-- Per-query guard rail for the dev box: one runaway aggregation can't take
+     the whole container to its memory limit. -->
+<clickhouse>
+    <profiles>
+        <default>
+            <max_memory_usage>1000000000</max_memory_usage>
+        </default>
+    </profiles>
+</clickhouse>
