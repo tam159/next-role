@@ -102,3 +102,13 @@ repos:
         language: system
         files: ^frontend/(package\.json|pnpm-lock\.yaml)$
         pass_filenames: false
+
+      # Claude Code skills (.claude/skills) and their Codex mirrors (.agents/skills)
+      # must stay byte-identical, or the two agents get conflicting instructions
+      # for the same task. The script explains each mismatch and prints the fix.
+      - id: skill-mirror-sync
+        name: Skill mirror sync (.claude <-> .agents)
+        entry: scripts/check-skill-mirrors.sh
+        language: script
+        files: ^(\.claude|\.agents)/skills/
+        pass_filenames: false
