@@ -250,12 +250,18 @@ NextRole runs **zero-login single-user by default** — `docker compose up` and 
 **Enable it** — set these in `.env`, then `docker compose up -d frontend backend`:
 
 1. `AUTH_ENABLED=true` and `BETTER_AUTH_SECRET=$(openssl rand -base64 32)`.
-2. Create the Better Auth tables once (it owns `user` / `session` / `account` / `jwks`, separate from `backend/storage/migrations/`):
+2. Create the Better Auth tables once (it owns `user` / `session` / `account` / `jwks`, separate from `backend/storage/migrations/`). Pin the CLI (`auth` on npm) to the `better-auth` version in `frontend/package.json`:
    ```bash
    AUTH_DATABASE_URL="postgresql://<POSTGRES_USER>:<POSTGRES_PASSWORD>@localhost:<POSTGRES_LOCAL_PORT>/<POSTGRES_DB>" \
    BETTER_AUTH_SECRET=<same secret> \
-     pnpm --dir frontend dlx @better-auth/cli@latest migrate --config src/lib/auth/server.ts
+     pnpm --dir frontend dlx auth@1.7.2 migrate --config src/lib/auth/server.ts
    ```
+   **Upgrading a deployment that already has accounts from Better Auth ≤ 1.6:** 1.7 keys every account on `(issuer, accountId)` and the CLI cannot add that `NOT NULL` column to a populated table. Back up the auth tables (`pg_dump -t '"user"' -t account -t session -t verification -t jwks`), stop the frontend, run the backfill script, then the `migrate` command above (it adds the new `jwks` columns), then start the frontend on 1.7:
+   ```bash
+   docker compose exec -T postgres psql -U <POSTGRES_USER> -d <POSTGRES_DB> -v ON_ERROR_STOP=1 -f - \
+     < frontend/scripts/better-auth-1.7-account-issuer-backfill.sql   # or: psql "$AUTH_DATABASE_URL" -f <script>
+   ```
+   The script maps `credential` → `local:credential` and `google` → `https://accounts.google.com`, and aborts (schema untouched) on any other provider or on an identity collision — see [Better Auth's 1.7 upgrade guide](https://better-auth.com/docs/guides/1-7-upgrade-guide).
 3. `LANGGRAPH_AUTH` — turns on backend enforcement. (Login without this is fine for trying the UI, but provides no isolation.) One line:
 
    ```env
