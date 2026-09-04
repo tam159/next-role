@@ -1,0 +1,166 @@
+[dependency-groups]
+dev = [
+  "ruff>=0.16.1",
+  "pytest>=9.1.1",
+  "ty>=0.0.65",
+  "sqlfluff>=4.3.0",
+]
+
+[project]
+name = "nextrole-analytics"
+version = "0.0.1"
+description = "NextRole analytics platform: dlt + dbt + Dagster pipelines, Cube models, Superset bootstrap"
+authors = [
+  {name = "Tam Nguyen", email = "npt.dc@outlook.com"}
+]
+readme = "CLAUDE.md"
+# Ceiling from dagster-dbt (<3.14); everything else supports 3.13.
+requires-python = ">=3.13,<3.14"
+dependencies = [
+  # --- Extraction: dlt core ships the sql_database source; sqlalchemy +
+  # psycopg2 drive the Postgres side, the clickhouse extra the destination.
+  "dlt[clickhouse]>=1.30.0",
+  "sqlalchemy>=2.0.0",
+  "psycopg2-binary>=2.9.0",
+  # --- Transformation: dbt-clickhouse tracks dbt-core 1.10.x — hold <1.11
+  # until dbt-clickhouse raises its ceiling.
+  "dbt-core>=1.10.23,<1.11",
+  "dbt-clickhouse>=1.10.2",
+  # --- Orchestration: dagster-* integration libs (0.29.x) exact-pin the
+  # dagster core they were released with (1.13.x) — always bump in lockstep.
+  "dagster>=1.13.20,<1.14",
+  "dagster-webserver>=1.13.20,<1.14",
+  "dagster-postgres>=0.29.20,<0.30",
+  "dagster-dbt>=0.29.20,<0.30",
+  "dagster-dlt>=0.29.20,<0.30"
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+addopts = "--import-mode=importlib"
+
+[tool.ruff]
+target-version = "py313"
+line-length = 100
+# Top-level exclude applies to BOTH the linter and the formatter (same
+# rationale as backend/pyproject.toml).
+exclude = [
+  ".git",
+  ".ruff_cache",
+  ".venv",
+  "build",
+  "dist",
+  "node_modules",
+  "venv",
+  # dbt build artifacts (gitignored, but ruff may still walk them locally).
+  "dbt/target",
+  "dbt/dbt_packages",
+  "dbt/logs"
+]
+
+[tool.ruff.format]
+docstring-code-format = true
+
+[tool.ruff.lint]
+# Allow unused variables when underscore-prefixed.
+dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
+select = ["ALL"]
+# Mirrors backend/pyproject.toml — keep the two ignore lists in sync.
+ignore = [
+  "BLE001", # Blind exception catching - OK for health checks and error handlers
+  "CPY001", # Copyright notice at top of file - no such convention in this repo
+  "D104", # "Missing docstring in public package"
+  "PLC0415" # Import not at top-level - OK for conditional imports in functions
+]
+fixable = ["ALL"]
+unfixable = []
+
+[tool.ruff.lint.isort]
+# The local ./dagster/ config directory would otherwise make isort classify
+# the dagster PACKAGE as first-party.
+known-third-party = ["dagster"]
+
+[tool.ruff.lint.flake8-type-checking]
+# Dagster resolves parameter type hints at runtime (typing.get_type_hints) to
+# bind context/resources — annotations on these decorated functions must stay
+# importable at runtime, so don't move them into TYPE_CHECKING blocks.
+runtime-evaluated-decorators = ["dagster_dlt.dlt_assets", "dagster_dbt.dbt_assets"]
+
+[tool.ruff.lint.mccabe]
+max-complexity = 10
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["F401"]
+# dlt's incremental-cursor API requires a call in the parameter default
+# (`cursor: dlt.sources.incremental[Any] = dlt.sources.incremental(...)`).
+"nextrole_analytics/dlt_sources/*.py" = ["B008"]
+# Runs inside the superset image (not this venv): scripts, not a package.
+"superset/*.py" = ["INP001", "T201"]
+"tests/**/*.py" = [
+  "S101",
+  "D100",
+  "D103",
+  "D401",
+  "ANN001",
+  "ANN002",
+  "ANN003",
+  "ANN201",
+  "ANN202",
+  "ANN204",
+  "ARG001",
+  "ARG002",
+  "INP001",
+  "PLR2004"
+]
+
+[tool.ty.environment]
+root = ["."]
+
+[tool.ty.src]
+# superset/*.py runs inside the superset image — its imports don't exist in
+# this venv (mirrors the backend's server/ exclusion pattern).
+exclude = [
+  "superset/"
+]
+
+# --- sqlfluff (dbt SQL under dbt/) ---
+# Deliberately light: the curated `core` rule group only (low false-positive
+# rules everyone agrees on) plus `sqlfluff format` layout — the team goal is
+# consistent dbt SQL, not a lint treadmill. ClickHouse function/type names are
+# case-sensitive camelCase (toString, assumeNotNull, Nullable(String),
+# DateTime64), so the two capitalisation rules that would fight the dialect
+# (CP03 functions, CP05 types) are excluded.
+[tool.sqlfluff.core]
+dialect = "clickhouse"
+templater = "jinja"
+rules = "core"
+exclude_rules = "CP03, CP05"
+max_line_length = 100
+# Path exclusions (dbt/target etc.) live in .sqlfluffignore — sqlfluff has no
+# config-file equivalent.
+
+[tool.sqlfluff.indentation]
+indent_unit = "space"
+tab_space_size = 4
+
+[tool.sqlfluff.templater.jinja]
+# Stubs for ref/source/config/is_incremental/this/etc.; project macros are
+# loaded so calls like source_relation_exists() resolve without a warehouse.
+apply_dbt_builtins = true
+load_macros_from_path = "dbt/macros"
+
+[tool.sqlfluff.rules.capitalisation.keywords]
+capitalisation_policy = "lower"
+
+[tool.sqlfluff.rules.capitalisation.identifiers]
+extended_capitalisation_policy = "lower"
+
+[tool.sqlfluff.rules.capitalisation.literals]
+capitalisation_policy = "lower"
+
+[tool.sqlfluff.rules.aliasing.table]
+aliasing = "explicit"
+
+[tool.sqlfluff.rules.aliasing.column]
+aliasing = "explicit"
