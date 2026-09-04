@@ -8,8 +8,9 @@ import { Pool } from "pg";
  *
  * Server-only. Evaluated lazily: the /api/auth route dynamic-imports this
  * module only when auth is enabled, so zero-login mode never constructs the
- * DB pool or needs BETTER_AUTH_SECRET. The Better Auth CLI also loads it for
- * its one-time schema migration (see .env.example).
+ * DB pool or needs BETTER_AUTH_SECRET. The Better Auth CLI (`auth migrate`,
+ * see README "Authentication & multi-user") also loads it for schema
+ * migrations.
  *
  * The jwt plugin adds:
  *   GET /api/auth/token — mints a short-lived JWT from the session cookie
