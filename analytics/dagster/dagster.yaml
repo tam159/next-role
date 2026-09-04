@@ -1,0 +1,18 @@
+# Dagster instance config (mounted at $DAGSTER_HOME/dagster.yaml). Run, event,
+# and schedule storage live in the shared Postgres instance, database `dagster`
+# (created idempotently by the analytics-db-init compose one-shot).
+storage:
+  postgres:
+    postgres_db:
+      username:
+        env: DAGSTER_PG_USERNAME
+      password:
+        env: DAGSTER_PG_PASSWORD
+      hostname:
+        env: DAGSTER_PG_HOST
+      db_name:
+        env: DAGSTER_PG_DB
+      port: 5432
+
+telemetry:
+  enabled: false
