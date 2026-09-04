@@ -29,7 +29,8 @@ flowchart LR
   GM --> SS["Superset<br/>NextRole Overview dashboard"]
   GM --> DOCS["dbt docs<br/>data dictionary · lineage"]
   CUBE -. "SQL Lab" .-> SS
-  CUBE -. "next phase" .-> AGENT["Analytics agent"]
+  CUBE -. "metric definitions + governed queries · next phase" .-> AGENT["Analytics agent"]
+  DOCS -. "column semantics (manifest · catalog) · next phase" .-> AGENT
   DAG["Dagster<br/>analytics_all · every hour"] -. orchestrates .-> BR
   DAG -. orchestrates .-> GM
 ```
