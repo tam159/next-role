@@ -1,0 +1,30 @@
+views:
+  - name: conversations
+    title: Conversations
+    description: >
+      Conversation-level behaviour — new threads, turn depth, planning, and pending human
+      approvals — joined to users and agent definitions (prefixed members).
+    meta:
+      example_questions:
+        - How many conversations started per week, and what share became multi-turn?
+        - How many conversations are waiting on human approval?
+        - Which organisations (email domains) start the most conversations?
+
+    cubes:
+      - join_path: threads
+        includes: "*"
+        excludes:
+          - thread_id
+          - assistant_id
+      - join_path: threads.users
+        prefix: true
+        includes:
+          - name
+          - email_domain
+          - provider
+          - signup_date
+      - join_path: threads.assistants
+        prefix: true
+        includes:
+          - graph_id
+          - version

@@ -1,0 +1,36 @@
+cubes:
+  - name: assistants
+    sql_table: dim_assistant
+    title: Agent definitions
+    description: >
+      The agent definitions runs and conversations were served by. A single row today
+      (career_agent, version 1); the cube exists so metrics can be split by graph/version once
+      more agents or versions ship.
+    meta:
+      grain: one assistant definition
+
+    dimensions:
+      - name: assistant_id
+        sql: assistant_id
+        type: string
+        primary_key: true
+        description: Unique assistant id.
+      - name: graph_id
+        sql: graph_id
+        type: string
+        description: The LangGraph graph the assistant runs (career_agent).
+        meta:
+          synonyms: [agent, graph]
+      - name: name
+        sql: name
+        type: string
+        description: Assistant name as registered.
+      - name: version
+        sql: version
+        type: number
+        description: Assistant definition version (increments when its config changes).
+
+    measures:
+      - name: count
+        type: count
+        description: Number of assistant definitions.

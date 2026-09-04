@@ -1,0 +1,32 @@
+views:
+  - name: engagement
+    title: Engagement & LLM spend
+    description: >
+      Conversation volume, tool usage, tokens, and estimated cost by model, message role, and
+      user — built on messages joined to their users and conversations (prefixed members). Token
+      and cost members are floors: usage is captured on only part of the AI messages, and event
+      time is the pipeline's first-seen timestamp (see the messages cube caveats).
+    meta:
+      example_questions:
+        - How many tokens and dollars per model per week?
+        - Which users generate the most spend?
+        - How often do tool calls fail, and which tools are used most?
+        - What share of AI messages carry token usage (usage coverage)?
+
+    cubes:
+      - join_path: messages
+        includes: "*"
+        excludes:
+          - message_key
+          - message_index
+      - join_path: messages.users
+        prefix: true
+        includes:
+          - name
+          - email_domain
+          - provider
+      - join_path: messages.threads
+        prefix: true
+        includes:
+          - status
+          - created_date
