@@ -1,6 +1,7 @@
 # PRD
 
 * [@langchain/react migration + subagent streaming re-enable](18_langchain_react_migration.md) - Swap the frontend to @langchain/react's v2 stream runtime — killing the O(n²) token concat — and flip subagent streaming back on.
+* [Analytics Platform Phase 0 — warehouse, pipeline, semantic layer, BI](31_analytics_platform_phase0.md) - A compose-native analytics stack — dlt into ClickHouse, dbt marts, Cube metrics, Superset, orchestrated hourly by Dagster — that lands structure and metrics from the agent's Postgres (never document bodies) and ships a seeded users/conversations/runs/cost dashboard plus an agent-facing metadata dictionary.
 * [Bulk-Delete Dialog Shows Full Paths](19_bulk_delete_dialog_full_paths.md) - The bulk-delete confirmation lists full virtual paths keyed by path, fixing duplicate-basename React key collisions and ambiguous rows.
 * [Career-agent Stages 3–5 — recon, tailor, coach, battlecard](04_initialize_subagents.md) - Ship workflow stages 3–5: hiring-recon, resume-tailor, and interview-coach subagents plus the interview-battlecard skill.
 * [Career-Agent Workflow Orchestration](08_agent_workflow.md) - Canonical v2 reference for the 5-stage workflow: skills-based subagents, parallel Stage 4, and the YAML→PDF resume pipeline end-to-end.

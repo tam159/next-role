@@ -6,10 +6,11 @@ NextRole is a GenAI career assistant. See `README.md` for product overview.
 
 ## Layout
 
-Monorepo with two top-level apps. Each has its own `CLAUDE.md` with stack-specific guidance:
+Monorepo with three top-level apps. Each has its own `CLAUDE.md` with stack-specific guidance:
 
 - `backend/` — Python 3.13, `uv`, FastAPI-style agents (LangChain / LangGraph / DeepAgents). See `@backend/CLAUDE.md`.
 - `frontend/` — Next.js 16, React 19, TypeScript, Tailwind, `pnpm`. See `@frontend/CLAUDE.md`.
+- `analytics/` — Python 3.13, `uv`; dlt + dbt + Dagster pipelines into ClickHouse, Cube models, Superset bootstrap. See `@analytics/CLAUDE.md`.
 - `docker-compose.yml` runs the full local stack.
 
 ## `.ua/` — generated codebase graph (never read)
@@ -32,12 +33,17 @@ The local stack runs in Docker via `docker compose up -d`. To find host ports fo
 docker ps
 ```
 
-Read the `0.0.0.0:<host>->...` mappings — host ports come from `.env` (`FRONTEND_LOCAL_PORT`, `LANGGRAPH_LOCAL_PORT`, `POSTGRES_LOCAL_PORT`, `REDIS_LOCAL_PORT`, `OBJECT_STORE_LOCAL_PORT`) and vary per machine, so don't assume defaults. Once you know the port, hit endpoints directly:
+Read the `0.0.0.0:<host>->...` mappings — host ports come from `.env` (`FRONTEND_LOCAL_PORT`, `LANGGRAPH_LOCAL_PORT`, `POSTGRES_LOCAL_PORT`, `REDIS_LOCAL_PORT`, `OBJECT_STORE_LOCAL_PORT`, `DAGSTER_LOCAL_PORT`, `SUPERSET_LOCAL_PORT`, …) and vary per machine, so don't assume defaults. Once you know the port, hit endpoints directly:
 
 - `http://localhost:<LANGGRAPH_LOCAL_PORT>/docs` — backend API docs (LangGraph)
 - `http://localhost:<LANGGRAPH_LOCAL_PORT>/files/list?prefixes=/upload/` — artifact files API (object storage)
 - `http://localhost:<FRONTEND_LOCAL_PORT>/` — frontend UI
 - `http://localhost:<OBJECT_STORE_UI_LOCAL_PORT>/buckets/next-role-artifacts/` — SeaweedFS filer UI (browse bucket objects)
+- `http://localhost:<DAGSTER_LOCAL_PORT>/` — Dagster UI (analytics pipeline: lineage, runs, schedule)
+- `http://localhost:<SUPERSET_LOCAL_PORT>/` — Superset BI (login: `SUPERSET_ADMIN_USERNAME`/`SUPERSET_ADMIN_PASSWORD` from `.env`)
+- `http://localhost:<CUBE_LOCAL_PORT>/` — Cube Playground (semantic layer; REST at `/cubejs-api/v1/meta`)
+- `http://localhost:<DBT_DOCS_LOCAL_PORT>/` — dbt docs (model/column catalog, compiled SQL, lineage)
+- `http://localhost:<CLICKHOUSE_HTTP_LOCAL_PORT>/play` — ClickHouse query UI (warehouse)
 
 Use the `agent-browser` skill for visual verification, or `curl` for API checks.
 
@@ -53,6 +59,7 @@ Restart (`docker compose restart <service>`) when:
 - Changing `.env` values — use `docker compose up -d <service>`, **not** `restart`: env vars are baked in when the container is created, and `restart` reuses the old container, so only a recreate picks them up.
 - Editing `docker-compose.yml` (use `docker compose up -d` to apply the diff).
 - Editing `backend/server/core_server/` or `backend/server/grpc_common/` — **core-server has no hot reload**; run `docker compose restart core-server`.
+- Editing `analytics/` pipeline or dbt code — **the Dagster services have no hot reload**; run `docker compose restart dagster-webserver dagster-daemon dbt-docs` (the boot commands re-parse the dbt manifest / regenerate the docs site). Superset bundle changes re-import via `docker compose up -d superset-init`.
 
 Rebuild (`docker compose up -d --build <service>`) when:
 
@@ -67,7 +74,7 @@ Pre-commit is already installed (`pre-commit install` was run). Edit freely acro
 pre-commit run --files $(git ls-files --modified --others --exclude-standard)
 ```
 
-This picks up both modified-tracked files and new (untracked, non-ignored) files, and runs ruff (backend), prettier + eslint (frontend), and the relevant type checker on just those paths. Don't run pre-commit after every individual edit — batch it.
+This picks up both modified-tracked files and new (untracked, non-ignored) files, and runs ruff (backend + analytics), sqlfluff (analytics dbt SQL), prettier + eslint (frontend), and the relevant type checker on just those paths. Don't run pre-commit after every individual edit — batch it.
 
 If a hook auto-fixes a file (ruff format, prettier, EOL fixer), re-read the file before reporting the change to the user, since the on-disk content may differ from what was just written.
 
