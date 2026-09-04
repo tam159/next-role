@@ -1,0 +1,16 @@
+# Committed on purpose: fully env-driven (no secrets in the file). The compose
+# services set DBT_PROFILES_DIR to this directory; host-side runs need the
+# ANALYTICS_CH_* variables exported (see analytics/CLAUDE.md).
+nextrole_clickhouse:
+  target: dev
+  outputs:
+    dev:
+      type: clickhouse
+      driver: http
+      host: "{{ env_var('ANALYTICS_CH_HOST', 'clickhouse') }}"
+      port: "{{ env_var('ANALYTICS_CH_PORT', '8123') | int }}"
+      user: "{{ env_var('ANALYTICS_CH_USER', 'nextrole') }}"
+      password: "{{ env_var('ANALYTICS_CH_PASSWORD', '') }}"
+      schema: "{{ env_var('ANALYTICS_CH_DATABASE', 'nextrole') }}"
+      secure: false
+      threads: 4

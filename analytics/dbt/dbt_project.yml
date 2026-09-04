@@ -1,0 +1,28 @@
+# NextRole analytics dbt project — bronze (dlt) → staging views → gold marts.
+# dbt-clickhouse maps `schema` to a ClickHouse database, so with the profile
+# schema `nextrole` the custom schemas land in `nextrole_staging` /
+# `nextrole_marts` (auto-created).
+name: nextrole_analytics
+version: "1.0.0"
+profile: nextrole_clickhouse
+
+model-paths: ["models"]
+seed-paths: ["seeds"]
+macro-paths: ["macros"]
+test-paths: ["tests"]
+
+target-path: target
+clean-targets: ["target", "dbt_packages", "logs"]
+
+models:
+  nextrole_analytics:
+    staging:
+      +schema: staging
+      +materialized: view
+    marts:
+      +schema: marts
+      +materialized: table
+
+seeds:
+  nextrole_analytics:
+    +schema: marts

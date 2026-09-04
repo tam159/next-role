@@ -1,0 +1,87 @@
+version: 2
+
+# Bronze tables written by dlt. The dataset name becomes a table-name prefix in
+# ClickHouse (`<dataset>___<table>`), all inside the one warehouse database —
+# hence the identifiers. Source names deliberately equal the dlt dataset names
+# so Dagster's dbt source asset keys (["raw_app", "run"], …) line up with the
+# dlt asset keys and the lineage graph connects.
+#
+# Extraction doctrine (analytics/nextrole_analytics/dlt_sources/transforms.py):
+# structure and metrics only. Chat/CV/JD text, run input payloads, memory
+# contents, and checkpoint channel state never leave Postgres, so none of the
+# tables below can answer "what did the user say / what did the agent write".
+sources:
+  - name: raw_app
+    description: >
+      LangGraph runtime tables (the career agent's conversation state), extracted by the
+      app_to_clickhouse dlt pipeline with incremental merge on each table's updated_at cursor.
+      Dedup is handled by dlt's merge disposition — read these tables plain (no FINAL).
+    schema: "{{ target.schema }}"
+    tables:
+      - name: run
+        identifier: raw_app___run
+        description: >
+          One agent invocation (a user turn being processed). Kept: ids, timestamps, status,
+          multitask_strategy, `owner` (from metadata) and the two model-override strings from
+          `kwargs.config.configurable`. Dropped: the rest of `kwargs` (user input) and `metadata`.
+        columns:
+          - name: owner
+            description: Better Auth user id from run metadata; NULL in single-user mode.
+          - name: main_model_override
+            description: "`configurable.main_agent_model` if the run set one; NULL = default."
+          - name: subagent_model_override
+            description: "`configurable.subagent_model` if the run set one; NULL = default."
+      - name: thread
+        identifier: raw_app___thread
+        description: >
+          One conversation thread. The `values` body (messages, files, todos) is reduced to
+          counts at extract; `owner`/`graph_id`/`assistant_id` come from metadata; `error`
+          (msgpack) and `config` are never selected.
+      - name: message
+        identifier: raw_app___message
+        description: >
+          One row per element of `thread.values.messages`, keyed by (thread_id, message_index):
+          role, model, token usage, tool-call names, and `content_length` — never the content or
+          tool-call arguments. Re-extracted whenever the parent thread's updated_at moves.
+      - name: checkpoint_meta
+        identifier: raw_app___checkpoint_meta
+        description: >
+          LangGraph checkpoint telemetry: whitelisted metadata keys (source, step, graph_id,
+          assistant_id, owner/user_id) plus the checkpoint timestamp; channel state is never
+          extracted. Both the root graph (checkpoint_ns = '') and subagent subgraph namespaces.
+      - name: store_item
+        identifier: raw_app___store_item
+        description: >
+          Long-term memory / workspace inventory (LangGraph store): prefix, key, timestamps and
+          `length(value)` computed in Postgres — the memory text itself never crosses the wire.
+      - name: assistant
+        identifier: raw_app___assistant
+        description: Agent definitions (graph id, name, version); config/context never selected.
+
+  - name: raw_auth
+    description: >
+      Better Auth identity tables, extracted by the auth_to_clickhouse dlt pipeline. Absent until
+      the one-time auth migration has run — staging models guard with source_relation_exists().
+      Column names are dlt-normalized to snake_case (createdAt → created_at, userId → user_id).
+    schema: "{{ target.schema }}"
+    tables:
+      - name: user
+        identifier: raw_auth___user
+        description: >
+          Registered users. `email` is replaced at extract by `email_hash` (sha256 of the
+          lowercased address) + `email_domain`; `image` is dropped; `name` is kept (PII).
+        columns:
+          - name: email_hash
+            description: sha256 of the lowercased email — stable join/dedup key, not reversible.
+          - name: email_domain
+            description: Domain part of the email (quasi-identifier for org/cohort analysis).
+      - name: session
+        identifier: raw_auth___session
+        description: >
+          Login sessions. The session token is never extracted; `ipAddress` becomes `ip_prefix`
+          (IPv4 /24, NULL for IPv6) and `userAgent` is truncated to 256 characters.
+      - name: account
+        identifier: raw_auth___account
+        description: >
+          Auth provider links per user (`provider_id`: credential = email+password, google).
+          Credential hashes and OAuth tokens are never extracted.

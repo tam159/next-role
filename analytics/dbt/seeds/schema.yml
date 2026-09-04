@@ -1,0 +1,22 @@
+version: 2
+
+seeds:
+  - name: model_prices
+    description: >
+      Editable per-1M-token list prices used for `fct_message.est_cost_usd`. Patterns are
+      ClickHouse LIKE patterns matched against `response_metadata.model_name`; the longest matching
+      pattern wins. Unknown models simply get a NULL cost — update this file (and `dbt seed`) when
+      new models show up in the tokens-by-model chart. Prices are list prices at authoring time,
+      not negotiated rates.
+    config:
+      column_types:
+        model_pattern: String
+        input_usd_per_1m: Float64
+        output_usd_per_1m: Float64
+    columns:
+      - name: model_pattern
+        description: "ClickHouse LIKE pattern for the model name (e.g. `gpt-5%`); more specific patterns are longer and therefore win."
+      - name: input_usd_per_1m
+        description: USD per 1M prompt tokens (applied to all input tokens, cached or not).
+      - name: output_usd_per_1m
+        description: USD per 1M completion tokens (applied to all output tokens, reasoning included).
