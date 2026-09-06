@@ -211,7 +211,7 @@ flowchart LR
     CB{{"CompositeBackend<br/>routes virtual paths"}}
     Agent --> CB
     subgraph Shell["Shell default route · SANDBOX_PROVIDER"]
-        SH["`execute` — local: host subprocess,<br/>/virtual/path → on-disk path ·<br/>e2b: remote E2B microVM<br/>(CubeSandbox self-hosted / E2B Cloud)<br/>renders run in a throwaway scratch dir"]
+        SH["execute — local: host subprocess,<br/>/virtual/path → on-disk path ·<br/>e2b: remote E2B microVM<br/>(CubeSandbox self-hosted / E2B Cloud)<br/>renders run in a throwaway scratch dir"]
     end
     subgraph Store["StoreBackend · Postgres + pgvector"]
         ST["/memory/ · /processed/ · /research/<br/>/interview_coach/<br/>/large_tool_results/ · /workspace/"]
