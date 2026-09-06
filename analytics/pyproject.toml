@@ -56,8 +56,14 @@ exclude = [
   # dbt build artifacts (gitignored, but ruff may still walk them locally).
   "dbt/target",
   "dbt/dbt_packages",
-  "dbt/logs"
+  "dbt/logs",
+  # Ruff 0.16 formats Python code blocks inside Markdown, reflowing snippets
+  # that are illustrations rather than code. Same exclusion as backend/.
+  "*.md"
 ]
+# Apply the exclusions above even to files passed explicitly on the command
+# line, so `ruff format path/to/README.md` is a no-op rather than a surprise.
+force-exclude = true
 
 [tool.ruff.format]
 docstring-code-format = true
