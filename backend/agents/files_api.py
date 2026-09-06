@@ -16,6 +16,11 @@ routes so the frontend components stay unchanged):
 - `PUT  /files/write` (`{path, content, encoding?}`) → `{ok: true}`
 - `DELETE /files/delete?path=...` → `{ok: true}` (404 when absent)
 
+Plus one endpoint that is not about files: `GET /agents/available` reports which
+registered graphs this caller may run, so the UI can disable an agent in its
+picker instead of letting someone start a run that will be refused. It lives
+here because this is the only custom app the server mounts.
+
 Deliberately imports nothing from `server.*` (those modules require env at
 import time); the server wraps this app with its own CORS + logging middleware
 and, later, auth via `enable_custom_route_auth`. Storage calls run in worker
@@ -28,9 +33,11 @@ import asyncio
 import base64
 import binascii
 import functools
+import json
 import os
 from typing import TYPE_CHECKING, Any
 
+from backend.agents.analytics_agent.access import is_allowed as analytics_is_allowed
 from backend.agents.career_agent.object_storage import (
     AREAS,
     area_key_prefix,
@@ -48,6 +55,8 @@ from starlette.responses import JSONResponse
 from starlette.routing import Route
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+
     from starlette.requests import Request
 
 _ALLOWED_UPLOAD_EXTS = {"pdf", "doc", "docx", "txt", "md"}
@@ -290,8 +299,61 @@ async def delete_file(request: Request) -> JSONResponse:
     return JSONResponse({"ok": True})
 
 
+#: Per-graph access predicates, keyed by graph id. A graph with no entry is
+#: open to everyone who can reach the server. Kept here rather than in each
+#: agent package so the endpoint has one place to look.
+#:
+#: Each takes the caller's identity and email plus whether this deployment runs
+#: multi-user. That last one is passed rather than re-derived so the answer can
+#: never disagree with the `_authenticated` guard on the same request.
+_AGENT_GATES: dict[str, Callable[[str | None, str | None, bool], bool]] = {
+    "analytics_agent": lambda identity, email, multi_user: analytics_is_allowed(
+        identity,
+        email,
+        multi_user=multi_user,
+    ),
+}
+
+
+def _registered_graphs() -> list[str]:
+    """Graph ids the server was configured with, in registration order."""
+    try:
+        graphs = json.loads(os.environ.get("LANGSERVE_GRAPHS") or "{}")
+    except json.JSONDecodeError:
+        return []
+    return [str(name) for name in graphs]
+
+
+async def agents_available(request: Request) -> JSONResponse:
+    """Report which agents this caller may run.
+
+    The gate is enforced inside each agent; this only tells the UI what to
+    disable, so a user sees a greyed-out entry with a reason instead of
+    starting a run that ends in a refusal.
+    """
+    user = request.scope.get("user")
+    identity = _scope(request)
+    email = getattr(user, "email", None) if user is not None else None
+    return JSONResponse(
+        {
+            "agents": [
+                {
+                    "graph_id": graph_id,
+                    "allowed": _AGENT_GATES.get(graph_id, lambda *_: True)(
+                        identity,
+                        email,
+                        _AUTH_ENABLED,
+                    ),
+                }
+                for graph_id in _registered_graphs()
+            ],
+        },
+    )
+
+
 app = Starlette(
     routes=[
+        Route("/agents/available", _authenticated(agents_available), methods=["GET"]),
         Route("/files/list", _authenticated(list_files), methods=["GET"]),
         Route("/files/read", _authenticated(read_file), methods=["GET"]),
         Route("/files/upload", _authenticated(upload_files), methods=["POST"]),
