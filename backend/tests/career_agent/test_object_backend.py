@@ -280,3 +280,14 @@ def test_upload_overwrites_silently(backend):
     backend.upload_files([("/cv.pdf", b"v1")])
     backend.upload_files([("/cv.pdf", b"v2")])
     assert backend.download_files(["/cv.pdf"])[0].content == b"v2"
+
+
+def test_analytics_areas_use_their_own_key_root(mem_store):
+    """`ObjectStoreBackend` is agent-agnostic: the area picks the key space."""
+    backend = ObjectStoreBackend("charts", store_factory=lambda: mem_store)
+
+    result = backend.write("/thread-1/runs.plotly.json", '{"schema": "nextrole.chart/v1"}')
+
+    assert result.error is None
+    keys = [str(m["path"]) for m in mem_store.list().collect()]
+    assert keys == ["users/default/analytics_agent/charts/thread-1/runs.plotly.json"]

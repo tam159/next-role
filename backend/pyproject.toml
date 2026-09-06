@@ -84,6 +84,9 @@ dependencies = [
   "python-multipart>=0.0.32",
   "pyyaml>=6.0.3",
   "e2b>=2.46.4",
+  "clickhouse-connect>=1.8.0",
+  "plotly>=7.0.0",
+  "pandas>=3.0.5",
 ]
 
 [tool.pytest.ini_options]

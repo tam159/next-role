@@ -167,7 +167,8 @@ services:
       # graph itself is loaded by the backend service.
       LANGSERVE_GRAPHS: >-
         {
-          "career_agent": "/deps/next-role/backend/agents/career_agent/agents.py:career_agent"
+          "career_agent": "/deps/next-role/backend/agents/career_agent/agents.py:career_agent",
+          "analytics_agent": "/deps/next-role/backend/agents/analytics_agent/agents.py:analytics_agent"
         }
     healthcheck:
       test:
@@ -224,6 +225,13 @@ services:
       REDIS_URI: redis://redis:6379
       # In-network S3 endpoint (overrides the host-side value in .env).
       OBJECT_STORE_ENDPOINT: http://object-store:8333
+      # In-network analytics endpoints for the analytics agent. `.env` only
+      # carries host-published ports (CLICKHOUSE_HTTP_LOCAL_PORT etc.), which
+      # don't resolve from inside the network.
+      CLICKHOUSE_HOST: clickhouse
+      CLICKHOUSE_PORT: "8123"
+      CUBE_API_URL: http://cube:4000
+      DBT_DOCS_URL: http://dbt-docs:8080
       # Mounts the artifact files API (backend/agents/files_api.py) into the
       # agent server — the vendored server's designed custom-app hook.
       # enable_custom_route_auth puts the mounted routes behind the server's
@@ -247,7 +255,8 @@ services:
       MIGRATIONS_PATH: /deps/next-role/backend/storage/migrations
       LANGSERVE_GRAPHS: >-
         {
-          "career_agent": "/deps/next-role/backend/agents/career_agent/agents.py:career_agent"
+          "career_agent": "/deps/next-role/backend/agents/career_agent/agents.py:career_agent",
+          "analytics_agent": "/deps/next-role/backend/agents/analytics_agent/agents.py:analytics_agent"
         }
     env_file: .env
     healthcheck:
@@ -285,10 +294,15 @@ services:
       CLICKHOUSE_DB: ${CLICKHOUSE_DB}
       CLICKHOUSE_USER: ${CLICKHOUSE_USER}
       CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD}
+      # Read-only identity for the analytics agent, referenced by
+      # users.d/analytics-agent.xml via `from_env`. Always defined (an
+      # undefined variable fails ClickHouse's config load, not just the user).
+      CLICKHOUSE_AGENT_PASSWORD: ${CLICKHOUSE_AGENT_PASSWORD:-}
     volumes:
       - clickhouse-data:/var/lib/clickhouse
       - ./analytics/clickhouse/config.d/low-memory.xml:/etc/clickhouse-server/config.d/low-memory.xml:ro
       - ./analytics/clickhouse/users.d/query-limits.xml:/etc/clickhouse-server/users.d/query-limits.xml:ro
+      - ./analytics/clickhouse/users.d/analytics-agent.xml:/etc/clickhouse-server/users.d/analytics-agent.xml:ro
     ulimits:
       nofile:
         soft: 262144

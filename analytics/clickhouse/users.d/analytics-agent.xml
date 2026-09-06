@@ -1,0 +1,45 @@
+<!-- Read-only warehouse identity for the analytics agent (backend graph
+     `analytics_agent`). The agent writes model-authored SQL, so the boundary is
+     here in the server, not in the tool: SELECT on the two curated layers only,
+     `readonly=2` (read queries; per-query SETTINGS allowed so the client can
+     lower a limit), and <constraints><max> so a SETTINGS clause can never raise
+     one. Bronze (`nextrole`) stays out of reach — it holds dlt load metadata and
+     hashed identifiers the agent has no business reading.
+
+     Database names are literal because compose interpolation does not reach
+     mounted files: they track CLICKHOUSE_DB=nextrole from .env.example. -->
+<clickhouse>
+    <profiles>
+        <analytics_agent>
+            <readonly>2</readonly>
+            <max_execution_time>30</max_execution_time>
+            <max_result_rows>10000</max_result_rows>
+            <result_overflow_mode>break</result_overflow_mode>
+            <max_rows_to_read>50000000</max_rows_to_read>
+            <max_bytes_to_read>2000000000</max_bytes_to_read>
+            <max_memory_usage>1000000000</max_memory_usage>
+            <constraints>
+                <max_execution_time><max>30</max></max_execution_time>
+                <max_result_rows><max>10000</max></max_result_rows>
+                <max_rows_to_read><max>50000000</max></max_rows_to_read>
+                <max_bytes_to_read><max>2000000000</max></max_bytes_to_read>
+                <max_memory_usage><max>1000000000</max></max_memory_usage>
+                <result_overflow_mode><readonly/></result_overflow_mode>
+            </constraints>
+        </analytics_agent>
+    </profiles>
+    <users>
+        <analytics_agent>
+            <password from_env="CLICKHOUSE_AGENT_PASSWORD"/>
+            <networks><ip>::/0</ip></networks>
+            <profile>analytics_agent</profile>
+            <quota>default</quota>
+            <!-- No <default_database>: the marts database does not exist before
+                 the first dbt run, and the agent always qualifies names. -->
+            <grants>
+                <query>GRANT SELECT ON nextrole_marts.*</query>
+                <query>GRANT SELECT ON nextrole_staging.*</query>
+            </grants>
+        </analytics_agent>
+    </users>
+</clickhouse>

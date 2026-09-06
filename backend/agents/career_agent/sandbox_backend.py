@@ -336,6 +336,8 @@ class E2BSandboxBackend(BaseSandbox):
 
 def make_default_shell_backend(
     settings: SandboxSettings | None = None,
+    *,
+    root_dir: Path = _CAREER_AGENT_DIR,
 ) -> VirtualPathShellBackend | E2BSandboxBackend:
     """Composite-default shell backend for the configured `SANDBOX_PROVIDER`.
 
@@ -343,12 +345,17 @@ def make_default_shell_backend(
     construction (byte-for-byte pre-sandbox behavior — the rollback lever);
     ``e2b`` returns the remote sandbox backend. Read at graph build time, so
     changing `.env` needs a `docker compose up -d backend` recreate.
+
+    ``root_dir`` is the virtual root the local backend jails paths under, and
+    the directory relative skill/memory sources resolve against. It defaults to
+    the career agent's package so that agent's construction is unchanged; a
+    second agent passes its own package directory.
     """
     settings = settings or SandboxSettings()
     if settings.provider == "e2b":
         return E2BSandboxBackend(settings)
     return VirtualPathShellBackend(
-        root_dir=_CAREER_AGENT_DIR,
+        root_dir=root_dir,
         virtual_mode=True,
         timeout=60,
         env=default_shell_env(),
