@@ -18,6 +18,11 @@ beforeEach(() => {
   openFile.mockReset();
 });
 
+// The chart body is exercised in its own test; here we only assert routing.
+vi.mock("@/app/components/charts/InlineChart", () => ({
+  InlineChart: ({ path }: { path: string }) => <div data-testid="inline-chart" data-path={path} />,
+}));
+
 describe("MarkdownContent", () => {
   it("renders GFM tables as real <table> markup", () => {
     render(<MarkdownContent content={"| Col A | Col B |\n| --- | --- |\n| 1 | 2 |"} />);
@@ -94,5 +99,64 @@ describe("MarkdownContent", () => {
     const highlighted = container.querySelector("code.language-js");
     expect(highlighted).not.toBeNull();
     expect(highlighted!.textContent).toContain("const x = 1;");
+  });
+});
+
+describe("chart embeds", () => {
+  const CHART = "![Runs per day](/charts/t-1/runs.plotly.json)";
+
+  it("draws the chart in a report, where the embed is the content", () => {
+    render(<MarkdownContent content={CHART} embedCharts />);
+
+    expect(screen.getByTestId("inline-chart")).toHaveAttribute(
+      "data-path",
+      "/charts/t-1/runs.plotly.json"
+    );
+  });
+
+  it("does not wrap an embedded chart in a paragraph", () => {
+    // Plotly draws block elements, which are invalid inside <p> and trip
+    // React's hydration check.
+    const { container } = render(<MarkdownContent content={CHART} embedCharts />);
+
+    expect(container.querySelector("p [data-testid='inline-chart']")).toBeNull();
+    expect(container.querySelector("[data-testid='inline-chart']")).not.toBeNull();
+  });
+
+  it("links rather than redraws in chat, where the card already showed it", () => {
+    // The chart tool call renders its own card above the reply; drawing the
+    // same figure again from the prose showed it twice.
+    resolveFile.mockReturnValue("/charts/t-1/runs.plotly.json");
+
+    render(<MarkdownContent content={CHART} />);
+
+    expect(screen.queryByTestId("inline-chart")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Runs per day/ })).toBeInTheDocument();
+  });
+
+  it("opens the chart from that link", async () => {
+    resolveFile.mockReturnValue("/charts/t-1/runs.plotly.json");
+    render(<MarkdownContent content={CHART} />);
+
+    await userEvent.click(screen.getByRole("button", { name: /Runs per day/ }));
+
+    expect(openFile).toHaveBeenCalledWith("/charts/t-1/runs.plotly.json");
+  });
+
+  it("falls back to the caption when the chart file is unknown", () => {
+    // Same rule as file-path links: never link a path that does not resolve.
+    resolveFile.mockReturnValue(null);
+
+    render(<MarkdownContent content={CHART} />);
+
+    expect(screen.getByText("Runs per day")).toBeInTheDocument();
+    expect(screen.queryByRole("button")).not.toBeInTheDocument();
+  });
+
+  it("leaves an ordinary image alone", () => {
+    render(<MarkdownContent content="![A photo](https://example.com/a.png)" />);
+
+    expect(screen.getByRole("img")).toHaveAttribute("src", "https://example.com/a.png");
+    expect(screen.queryByTestId("inline-chart")).not.toBeInTheDocument();
   });
 });

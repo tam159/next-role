@@ -2,7 +2,8 @@
 
 import React, { useState, useEffect, useCallback, Suspense } from "react";
 import { useQueryState } from "nuqs";
-import { getConfig, saveConfig, StandaloneConfig } from "@/lib/config";
+import { getConfig, getEffectiveAgentId, saveConfig, StandaloneConfig } from "@/lib/config";
+import { useAgentAvailability } from "@/app/hooks/useAgentAvailability";
 import { ConfigDialog } from "@/app/components/ConfigDialog";
 import { Button } from "@/components/ui/button";
 import { Assistant } from "@langchain/langgraph-sdk";
@@ -34,6 +35,26 @@ function HomePageInner({
 }: HomePageInnerProps) {
   const client = useClient();
   const [threadId, setThreadId] = useQueryState("threadId");
+  const [agentParam, setAgentParam] = useQueryState("agent");
+  const agentAvailability = useAgentAvailability();
+
+  // The URL wins over the stored pick, so an agent link is shareable; both fall
+  // back to the deployment's configured assistant.
+  const activeAgentId = getEffectiveAgentId(
+    agentParam ? { ...config, selectedAgentId: agentParam } : config
+  );
+
+  const handleSelectAgent = useCallback(
+    (graphId: string) => {
+      handleSaveConfig({ ...config, selectedAgentId: graphId });
+      setAgentParam(graphId);
+      // Threads belong to the agent that created them: changing the assistant
+      // recreates the stream controller, and a career thread cannot hydrate
+      // under the analytics assistant.
+      setThreadId(null);
+    },
+    [config, handleSaveConfig, setAgentParam, setThreadId]
+  );
 
   const [mutateThreads, setMutateThreads] = useState<(() => void) | null>(null);
   const [interruptCount, setInterruptCount] = useState(0);
@@ -67,19 +88,19 @@ function HomePageInner({
 
   const fetchAssistant = useCallback(async () => {
     const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
-      config.assistantId
+      activeAgentId
     );
 
     if (isUUID) {
       // We should try to fetch the assistant directly with this UUID
       try {
-        const data = await client.assistants.get(config.assistantId);
+        const data = await client.assistants.get(activeAgentId);
         setAssistant(data);
       } catch (error) {
         console.error("Failed to fetch assistant:", error);
         setAssistant({
-          assistant_id: config.assistantId,
-          graph_id: config.assistantId,
+          assistant_id: activeAgentId,
+          graph_id: activeAgentId,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
           config: {},
@@ -94,7 +115,7 @@ function HomePageInner({
         // We should try to list out the assistants for this graph, and then use the default one.
         // TODO: Paginate this search, but 100 should be enough for graph name
         const assistants = await client.assistants.search({
-          graphId: config.assistantId,
+          graphId: activeAgentId,
           limit: 100,
         });
         const defaultAssistant = assistants.find(
@@ -110,19 +131,19 @@ function HomePageInner({
           error
         );
         setAssistant({
-          assistant_id: config.assistantId,
-          graph_id: config.assistantId,
+          assistant_id: activeAgentId,
+          graph_id: activeAgentId,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
           config: {},
           metadata: {},
           version: 1,
-          name: config.assistantId,
+          name: activeAgentId,
           context: {},
         });
       }
     }
-  }, [client, config.assistantId]);
+  }, [client, activeAgentId]);
 
   useEffect(() => {
     fetchAssistant();
@@ -140,13 +161,15 @@ function HomePageInner({
         <FilePreviewProvider>
           <div className="flex h-screen flex-col bg-background text-foreground">
             <TopBar
-              assistant={assistant}
               threadId={threadId}
               interruptCount={interruptCount}
               threadsOpen={threadsOpen}
               onToggleThreads={toggleThreads}
               onOpenSettings={() => setConfigDialogOpen(true)}
               onNewThread={() => setThreadId(null)}
+              activeAgentId={activeAgentId}
+              agentAvailability={agentAvailability}
+              onSelectAgent={handleSelectAgent}
             />
 
             <div className="relative flex flex-1 overflow-hidden bg-canvas">
@@ -169,6 +192,7 @@ function HomePageInner({
                   className="flex w-[var(--sidebar-width)] shrink-0 flex-col border-r border-border bg-surface max-lg:shadow-[var(--shadow-lg)]"
                 >
                   <ThreadList
+                    graphId={activeAgentId}
                     pinned={threadsPinned}
                     onTogglePin={toggleThreadsPin}
                     onThreadSelect={handleThreadSelect}
@@ -227,28 +251,17 @@ function HomePageInner({
 function HomePageContent() {
   const [config, setConfig] = useState<StandaloneConfig | null>(null);
   const [configDialogOpen, setConfigDialogOpen] = useState(false);
-  const [assistantId, setAssistantId] = useQueryState("assistantId");
 
-  // On mount, check for saved config, otherwise show config dialog
+  // On mount, check for saved config, otherwise show config dialog.
+  // (The agent selection rides `?agent=`, owned by HomePageInner.)
   useEffect(() => {
     const savedConfig = getConfig();
     if (savedConfig) {
       setConfig(savedConfig);
-      if (!assistantId) {
-        setAssistantId(savedConfig.assistantId);
-      }
     } else {
       setConfigDialogOpen(true);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  // If config changes, update the assistantId
-  useEffect(() => {
-    if (config && !assistantId) {
-      setAssistantId(config.assistantId);
-    }
-  }, [config, assistantId, setAssistantId]);
 
   const handleSaveConfig = useCallback((newConfig: StandaloneConfig) => {
     saveConfig(newConfig);

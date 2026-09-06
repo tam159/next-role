@@ -96,3 +96,51 @@ describe("saveConfig (SSR / node, no window)", () => {
     ).not.toThrow();
   });
 });
+
+describe("getEffectiveAgentId", () => {
+  it("prefers the user's selection", async () => {
+    const { getEffectiveAgentId } = await import("@/lib/config");
+
+    expect(
+      getEffectiveAgentId({
+        deploymentUrl: "http://d",
+        assistantId: "career_agent",
+        selectedAgentId: "analytics_agent",
+      })
+    ).toBe("analytics_agent");
+  });
+
+  it("falls back to the deployment default when nothing is selected", async () => {
+    const { getEffectiveAgentId } = await import("@/lib/config");
+
+    expect(getEffectiveAgentId({ deploymentUrl: "http://d", assistantId: "career_agent" })).toBe(
+      "career_agent"
+    );
+  });
+
+  it("ignores a selection that names no agent this build knows", async () => {
+    // A stored pick can outlive the graph it named; landing on the default
+    // beats talking to an assistant that no longer exists.
+    const { getEffectiveAgentId } = await import("@/lib/config");
+
+    expect(
+      getEffectiveAgentId({
+        deploymentUrl: "http://d",
+        assistantId: "career_agent",
+        selectedAgentId: "retired_agent",
+      })
+    ).toBe("career_agent");
+  });
+
+  it("passes a deployment's own assistant id through untouched", async () => {
+    // Deployed graphs are addressed by UUID, which is not in the registry.
+    const { getEffectiveAgentId } = await import("@/lib/config");
+
+    expect(
+      getEffectiveAgentId({
+        deploymentUrl: "http://d",
+        assistantId: "0f1e2d3c-4b5a-6978-8899-aabbccddeeff",
+      })
+    ).toBe("0f1e2d3c-4b5a-6978-8899-aabbccddeeff");
+  });
+});

@@ -107,6 +107,8 @@ function EmptyState() {
 }
 
 interface ThreadListProps {
+  /** Only this agent's threads are listed. */
+  graphId: string;
   onThreadSelect: (id: string) => void;
   onMutateReady?: (mutate: () => void) => void;
   onClose?: () => void;
@@ -116,6 +118,7 @@ interface ThreadListProps {
 }
 
 export function ThreadList({
+  graphId,
   onThreadSelect,
   onMutateReady,
   onClose,
@@ -127,6 +130,7 @@ export function ThreadList({
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
 
   const threads = useThreads({
+    graphId,
     status: statusFilter === "all" ? undefined : statusFilter,
     limit: 20,
   });

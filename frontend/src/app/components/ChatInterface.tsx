@@ -11,6 +11,10 @@ import {
   ClipboardList,
   GraduationCap,
   Upload,
+  Activity,
+  DollarSign,
+  Users,
+  Wrench,
 } from "lucide-react";
 import { ChatMessage } from "@/app/components/ChatMessage";
 import { LogoMark } from "@/app/components/LogoMark";
@@ -25,6 +29,8 @@ import {
   isHumanMessage,
   isToolMessage,
 } from "@langchain/core/messages";
+import { ANALYTICS_AGENT_ID, CAREER_AGENT_ID } from "@/app/config/agents";
+import { CHART_TOOL_NAME } from "@/app/lib/charts";
 import { extractStringFromMessageContent, parsePartialArgs } from "@/app/utils/utils";
 import { useChatContext } from "@/providers/ChatProvider";
 import { useFileUpload, useUploadDrop } from "@/app/hooks/useFileUpload";
@@ -38,7 +44,7 @@ interface ChatInterfaceProps {
 }
 
 // Empty-state suggestion chips. Clicking fills the composer.
-const SUGGESTIONS = [
+const CAREER_SUGGESTIONS = [
   {
     label: "Research a company",
     icon: Search,
@@ -61,10 +67,86 @@ const SUGGESTIONS = [
   },
 ];
 
+// Each asks for a chart explicitly: without that the agent often answers in
+// prose alone, which is a fine answer but a poor first impression of what it
+// can do.
+const ANALYTICS_SUGGESTIONS = [
+  {
+    label: "Run reliability",
+    icon: Activity,
+    prompt: "How many runs failed this week versus last, by day? Chart it.",
+  },
+  {
+    label: "LLM cost",
+    icon: DollarSign,
+    prompt:
+      "What did the LLM cost per model over the last 30 days? Chart it and note " +
+      "how much of the spend the usage data actually covers.",
+  },
+  {
+    label: "Active users",
+    icon: Users,
+    prompt: "Chart active users per day over the last 30 days, excluding single-user history.",
+  },
+  {
+    label: "Tool usage",
+    icon: Wrench,
+    prompt: "Which tools does the agent call most, and which of them fail? Chart it.",
+  },
+];
+
+/**
+ * What the empty state says, per agent.
+ *
+ * The hero is the first thing a user reads, and career copy under the
+ * analytics agent would be simply wrong. Keyed by graph id, falling back to
+ * the career agent for anything unrecognised.
+ */
+const EMPTY_STATES: Record<
+  string,
+  {
+    heading: React.ReactNode;
+    blurb: string;
+    suggestions: typeof CAREER_SUGGESTIONS;
+    showUpload: boolean;
+    placeholder: string;
+  }
+> = {
+  [ANALYTICS_AGENT_ID]: {
+    heading: (
+      <>
+        Ask about <em className="text-brand-accent-text italic">your product</em>.
+      </>
+    ),
+    blurb:
+      "Activity, reliability, LLM cost and agent behaviour, straight from the warehouse. " +
+      "Ask in plain language and get the number, the caveat, and a chart when it helps.",
+    suggestions: ANALYTICS_SUGGESTIONS,
+    showUpload: false,
+    placeholder: "Message NextRole — ask about usage, reliability, or cost…",
+  },
+  [CAREER_AGENT_ID]: {
+    heading: (
+      <>
+        Land your <em className="text-brand-accent-text italic">next role</em>, faster.
+      </>
+    ),
+    blurb:
+      "Drop in your resume and a job post. NextRole tailors your application, researches " +
+      "the company, and preps you for every round — all in one workspace.",
+    suggestions: CAREER_SUGGESTIONS,
+    showUpload: true,
+    placeholder: "Message NextRole — paste a job link, or describe the role…",
+  },
+};
+
 // The composer's paperclip attach is hidden by default — uploads are handled in
 // the Workspace (Files → Upload), which uses the same path. Flip to `true` to
 // re-show the paperclip in the composer; the upload logic below stays wired.
 const COMPOSER_ATTACH_ENABLED = false;
+
+/** Tools rendered as their own card in the message column, not in the rail. */
+const CARD_TOOL_NAMES = new Set<string>(["task", CHART_TOOL_NAME]);
 
 export const ChatInterface = React.memo<ChatInterfaceProps>(({ assistant }) => {
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
@@ -72,6 +154,10 @@ export const ChatInterface = React.memo<ChatInterfaceProps>(({ assistant }) => {
   const { uploading, uploadFiles, onInputChange } = useFileUpload();
   const { dragActive, dropHandlers } = useUploadDrop(uploadFiles, uploading);
   const { showUploadCta } = useUploadCue();
+
+  // The empty state belongs to the agent: career copy under the analytics
+  // agent would simply be wrong, and its upload cue meaningless.
+  const emptyState = EMPTY_STATES[assistant?.graph_id ?? ""] ?? EMPTY_STATES[CAREER_AGENT_ID];
 
   const { scrollRef, contentRef } = useStickToBottom();
 
@@ -339,7 +425,9 @@ export const ChatInterface = React.memo<ChatInterfaceProps>(({ assistant }) => {
       if (cached && cached.source === toolCalls) {
         regular = cached.regular;
       } else {
-        regular = toolCalls.filter((tc) => tc.name !== "task");
+        // Excluded because they render as their own cards (see ChatMessage):
+        // `task` becomes a subagent card, `create_chart` a chart.
+        regular = toolCalls.filter((tc) => !CARD_TOOL_NAMES.has(tc.name));
         if (
           cached &&
           cached.regular.length === regular.length &&
@@ -421,13 +509,12 @@ export const ChatInterface = React.memo<ChatInterfaceProps>(({ assistant }) => {
                 <LogoMark size={56} />
               </div>
               <h1 className="font-serif text-[40px] leading-[1.08] font-medium tracking-[-0.01em] text-primary">
-                Land your <em className="text-brand-accent-text italic">next role</em>, faster.
+                {emptyState.heading}
               </h1>
               <p className="mx-auto mt-4 max-w-[480px] text-[15.5px] leading-relaxed text-secondary">
-                Drop in your resume and a job post. NextRole tailors your application, researches
-                the company, and preps you for every round — all in one workspace.
+                {emptyState.blurb}
               </p>
-              {showUploadCta && (
+              {showUploadCta && emptyState.showUpload && (
                 <button
                   type="button"
                   onClick={() => attachInputRef.current?.click()}
@@ -463,7 +550,7 @@ export const ChatInterface = React.memo<ChatInterfaceProps>(({ assistant }) => {
                   showUploadCta ? "mt-5" : "mt-7"
                 )}
               >
-                {SUGGESTIONS.map((s) => (
+                {emptyState.suggestions.map((s) => (
                   <button
                     key={s.label}
                     type="button"
@@ -543,7 +630,7 @@ export const ChatInterface = React.memo<ChatInterfaceProps>(({ assistant }) => {
                   requestAnimationFrame(resizeTextarea);
                 }}
                 onKeyDown={handleKeyDown}
-                placeholder="Message NextRole — paste a job link, or describe the role…"
+                placeholder={emptyState.placeholder}
                 className="block w-full resize-none border-0 bg-transparent px-5 pt-4 pb-3 text-[15px] leading-7 text-primary outline-hidden placeholder:text-tertiary"
                 rows={2}
               />

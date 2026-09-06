@@ -7,6 +7,9 @@ cubes:
       ran the agent) plus the synthetic 'default' owner standing for single-user-mode activity.
       Emails are stored only as hash + domain. For "active users" use runs.active_users.
     meta:
+      # /v1/meta does not expose sql_table; the analytics agent reads this
+      # to link the metric layer to the mart the cube is defined on.
+      table: dim_user
       grain: one user
       primary_time_dimension: signup_date
       example_questions:

@@ -35,6 +35,16 @@ export const FILE_CATEGORIES: readonly FileCategory[] = [
     label: "Upload",
     iconVar: "var(--color-category-rose)",
   },
+  {
+    prefix: "charts",
+    label: "Chart",
+    iconVar: "var(--color-category-indigo)",
+  },
+  {
+    prefix: "reports",
+    label: "Report",
+    iconVar: "var(--color-category-amber)",
+  },
 ] as const;
 
 export function getFileCategory(virtualPath: string): FileCategory | null {

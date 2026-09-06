@@ -108,11 +108,11 @@ vi.mock("@/app/components/ChatMessage", () => ({
 
 const assistant = { assistant_id: "assistant-1", graph_id: "career_agent" } as unknown as Assistant;
 
-function renderChat() {
+function renderChat(overrides: Partial<Assistant> = {}) {
   // use-stick-to-bottom runs for real in every render (ResizeObserver/scrollTo
   // polyfills come from vitest.setup.ts) — rendering without crashing is the
   // smoke assertion for it.
-  return render(<ChatInterface assistant={assistant} />);
+  return render(<ChatInterface assistant={{ ...assistant, ...overrides }} />);
 }
 
 const composer = () => screen.getByPlaceholderText(/Message NextRole/);
@@ -513,5 +513,29 @@ describe("ChatInterface HITL approvals", () => {
     expect(screen.queryByText("Approval Required")).not.toBeInTheDocument();
     const statuses = new Map(statusesOf(screen.getByTestId("chat-message")));
     expect(statuses.get("t1")).toBe("pending");
+  });
+});
+
+describe("per-agent empty state", () => {
+  it("greets analytics users with analytics copy and prompts", () => {
+    // Career copy under the analytics agent would simply be wrong.
+    renderChat({ graph_id: "analytics_agent" });
+
+    expect(screen.getByText(/Ask about/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /LLM cost/ })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Tailor my resume/ })).not.toBeInTheDocument();
+  });
+
+  it("hides the resume upload cue for an agent that takes no files", () => {
+    renderChat({ graph_id: "analytics_agent" });
+
+    expect(screen.queryByText(/Add your resume/)).not.toBeInTheDocument();
+  });
+
+  it("keeps the career empty state for the career agent", () => {
+    renderChat({ graph_id: "career_agent" });
+
+    expect(screen.getByText(/Land your/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Tailor my resume/ })).toBeInTheDocument();
   });
 });

@@ -9,6 +9,8 @@ import type { ToolCall } from "@/app/types/types";
 import type { ApprovalsBundle } from "@/app/hooks/useInterruptApprovals";
 import type { BaseMessage } from "@langchain/core/messages";
 import type { AnyStream } from "@langchain/react";
+import { ChartCard } from "@/app/components/charts/ChartCard";
+import { CHART_TOOL_NAME } from "@/app/lib/charts";
 import { extractStringFromMessageContent } from "@/app/utils/utils";
 import { cn } from "@/lib/utils";
 
@@ -56,6 +58,13 @@ export const ChatMessage = React.memo<ChatMessageProps>(
             toolCall.args["subagent_type"] !== "" &&
             toolCall.args["subagent_type"] !== null
         ),
+      [toolCalls]
+    );
+
+    // Charts get their own card for the same reason subagents do: they are the
+    // answer, not a step toward it, and the tool rail collapses when a run ends.
+    const chartToolCalls = useMemo(
+      () => toolCalls.filter((toolCall) => toolCall.name === CHART_TOOL_NAME),
       [toolCalls]
     );
 
@@ -116,6 +125,13 @@ export const ChatMessage = React.memo<ChatMessageProps>(
               queuedDecisions={approvals?.queuedDecisions}
               onDecide={approvals?.decide}
             />
+          )}
+          {!isUser && chartToolCalls.length > 0 && (
+            <div className="mt-4 flex w-full flex-col gap-4">
+              {chartToolCalls.map((toolCall) => (
+                <ChartCard key={toolCall.id} toolCall={toolCall} />
+              ))}
+            </div>
           )}
           {!isUser && taskToolCalls.length > 0 && (
             <div className="mt-4 flex w-full flex-col gap-4">

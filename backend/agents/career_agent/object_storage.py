@@ -10,6 +10,12 @@ Object keys are a pure function of the virtual path and the caller's scope —
 there is no database registry. `/upload/cv.pdf` maps to
 `users/<scope>/career_agent/upload/cv.pdf`; `<scope>` is the authenticated
 identity in multi-user mode and `default` otherwise (see `scope.object_scope`).
+The agent segment comes from `AREA_ROOTS`, which maps each routed area to the
+agent that owns it — the analytics agent's `/charts/` and `/reports/` land under
+`users/<scope>/analytics_agent/` through these same builders.
+The agent segment comes from `AREA_ROOTS`, which maps each routed area to the
+agent that owns it — the analytics agent's `/charts/` and `/reports/` land
+under `users/<scope>/analytics_agent/` through the same builders.
 
 Everything here is shared by two consumers: `ObjectStoreBackend` (the
 deepagents filesystem backend mounted as CompositeBackend routes) and
@@ -22,23 +28,46 @@ from __future__ import annotations
 
 import functools
 from pathlib import PurePosixPath
+from types import MappingProxyType
 from typing import TYPE_CHECKING, Any
 
-from backend.agents.career_agent.scope import object_scope
+from backend.agents.career_agent.scope import DEFAULT_OBJECT_SCOPE, KV_ROOT, object_scope
 from obstore.store import S3Store
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 if TYPE_CHECKING:
+    from collections.abc import Mapping
+
     from obstore.store import ObjectStore
 
-# Single-user / unauthenticated key prefix (identity == "default"). Kept as a
-# module constant for the default layout; multi-user callers pass an explicit
-# `scope` to the key builders below.
+# Single-user / unauthenticated key prefix (identity == "default") for the
+# career agent's areas. Kept as a module constant for the default layout;
+# multi-user callers pass an explicit `scope` to the key builders below.
 KEY_SCOPE = object_scope(None)
 
-# Artifact areas routed to object storage. Keep in sync with the
-# CompositeBackend routes in agents.py and the files-API allowlist.
-AREAS = ("upload", "tailored_resume", "interview_battlecard")
+#: Root segment for the analytics agent's areas (mirrors `scope.KV_ROOT`,
+#: which is the career agent's).
+ANALYTICS_ROOT = "analytics_agent"
+
+# Artifact areas routed to object storage, mapped to the agent whose key space
+# they live in: `/upload/cv.pdf` -> `users/<scope>/career_agent/upload/cv.pdf`,
+# `/charts/t1/runs.plotly.json` -> `users/<scope>/analytics_agent/charts/...`.
+# An area name is globally unique — it is the first segment of the virtual path
+# every agent's CompositeBackend routes on. Keep in sync with the routes in each
+# agent's `agents.py`; this mapping doubles as the files-API allowlist.
+AREA_ROOTS: Mapping[str, str] = MappingProxyType(
+    {
+        "upload": KV_ROOT,
+        "tailored_resume": KV_ROOT,
+        "interview_battlecard": KV_ROOT,
+        "charts": ANALYTICS_ROOT,
+        "reports": ANALYTICS_ROOT,
+    },
+)
+
+#: Every routed area, in registration order. Retained as the public name the
+#: files API and tests import.
+AREAS = tuple(AREA_ROOTS)
 
 
 class ObjectStoreSettings(BaseSettings):
@@ -109,21 +138,24 @@ def area_key_prefix(area: str, scope: str | None = None) -> str:
     """Object-key prefix (no trailing slash) holding everything in `area`.
 
     `scope` is the caller's identity; omitted/`None` uses the default
-    single-user layout (`object_scope` resolves it).
+    single-user layout (`object_scope` resolves it). The agent segment comes
+    from :data:`AREA_ROOTS`, so each area lands in its owning agent's space.
     """
-    return f"{object_scope(scope)}/{area}"
+    return f"{object_scope(scope, agent_root=AREA_ROOTS[area])}/{area}"
 
 
 def key_for_area(area: str, rel_path: str, scope: str | None = None) -> str | None:
     """Map a composite-stripped path within `area` to its object key.
 
-    `area="upload"`, `rel_path="/cv.pdf"` → `users/<scope>/career_agent/upload/cv.pdf`.
-    Returns `None` for unsafe paths.
+    `area="upload"`, `rel_path="/cv.pdf"` → `users/<scope>/career_agent/upload/cv.pdf`;
+    `area="charts"` → `users/<scope>/analytics_agent/charts/...`.
+    Returns `None` for unsafe paths and unregistered areas.
     """
     rel = _safe_relative(rel_path)
-    if rel is None:
+    root = AREA_ROOTS.get(area)
+    if rel is None or root is None:
         return None
-    return f"{object_scope(scope)}/{area}/{rel}"
+    return f"{object_scope(scope, agent_root=root)}/{area}/{rel}"
 
 
 def key_for_virtual_path(path: str, scope: str | None = None) -> str | None:
@@ -136,19 +168,25 @@ def key_for_virtual_path(path: str, scope: str | None = None) -> str | None:
     if rel is None:
         return None
     area, _, remainder = rel.partition("/")
-    if area not in AREAS or not remainder:
+    root = AREA_ROOTS.get(area)
+    if root is None or not remainder:
         return None
-    return f"{object_scope(scope)}/{rel}"
+    return f"{object_scope(scope, agent_root=root)}/{rel}"
 
 
 def virtual_path_for_key(key: str, scope: str | None = None) -> str | None:
-    """Invert `key_for_virtual_path`: object key → `/area/...` virtual path."""
-    prefix = f"{object_scope(scope)}/"
-    if not key.startswith(prefix):
+    """Invert `key_for_virtual_path`: object key → `/area/...` virtual path.
+
+    The key must carry the agent root that owns its area, so a key filed under
+    another agent's root is rejected rather than mapped back to a valid-looking
+    virtual path.
+    """
+    user_prefix = f"users/{scope or DEFAULT_OBJECT_SCOPE}/"
+    if not key.startswith(user_prefix):
         return None
-    rel = key[len(prefix) :]
+    root, _, rel = key[len(user_prefix) :].partition("/")
     area, _, remainder = rel.partition("/")
-    if area not in AREAS or not remainder:
+    if not remainder or AREA_ROOTS.get(area) != root:
         return None
     return f"/{rel}"
 

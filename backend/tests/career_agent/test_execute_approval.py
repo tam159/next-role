@@ -1,5 +1,6 @@
 """Unit tests for the execute-tool approval policy (allowlist + kill switch)."""
 
+import tempfile
 from types import SimpleNamespace
 from typing import TYPE_CHECKING, cast
 
@@ -123,3 +124,61 @@ def test_execute_interrupt_on_kill_switch(monkeypatch) -> None:
     """CAREER_AGENT_EXECUTE_APPROVAL=false disables the gate entirely."""
     monkeypatch.setenv("CAREER_AGENT_EXECUTE_APPROVAL", "false")
     assert execute_interrupt_on() is None
+
+
+# ---------------------------------------------------------------------------
+# scratch paths: read-only commands there run without review
+# ---------------------------------------------------------------------------
+
+SCRATCH = "/tmp/nextrole-analytics/thread-1"  # noqa: S108 — the sandbox path under test
+
+
+@pytest.mark.parametrize(
+    "command",
+    [
+        f"ls {SCRATCH}/",
+        f"cat {SCRATCH}/rows.csv",
+        f"head -5 {SCRATCH}/rows.csv",
+        f"wc -l {SCRATCH}/rows.csv",
+        f"stat {SCRATCH}/rows.csv",
+    ],
+)
+def test_reading_a_scratch_file_needs_no_review(command: str) -> None:
+    """The agent exported that data itself, and these binaries only read.
+
+    Prompting for `ls` of the directory the agent just wrote to is friction
+    without a benefit — it made the fallback flow unusable in practice.
+    """
+    assert is_auto_approvable(command) is True
+
+
+@pytest.mark.parametrize(
+    "command",
+    [
+        "cat /etc/passwd",
+        "ls /",
+        "ls /tmp",
+        f"cat {SCRATCH}/../../etc/passwd",
+        "cat /tmp/nextrole-analytics-evil/secrets",
+    ],
+)
+def test_absolute_paths_outside_scratch_still_review(command: str) -> None:
+    """The relaxation is scoped to the scratch tree, including its own prefix."""
+    assert is_auto_approvable(command) is False
+
+
+def test_a_write_binary_in_scratch_still_reviews() -> None:
+    """Only the read-only binaries are allowlisted; the path relaxation adds none."""
+    assert is_auto_approvable(f"rm -rf {SCRATCH}") is False
+
+
+def test_a_scratch_read_chained_to_something_else_still_reviews() -> None:
+    """Shell operators keep prompting regardless of the paths involved."""
+    assert is_auto_approvable(f"ls {SCRATCH} && cat /etc/passwd") is False
+
+
+def test_the_host_scratch_root_is_allowed_too(monkeypatch) -> None:
+    """The local shell backend puts scratch under the system temp dir, not /tmp."""
+    monkeypatch.setattr(tempfile, "gettempdir", lambda: "/var/folders/xx/T")
+
+    assert is_auto_approvable("ls /var/folders/xx/T/nextrole-analytics/thread-1") is True

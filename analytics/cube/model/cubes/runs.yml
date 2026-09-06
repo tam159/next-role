@@ -7,6 +7,9 @@ cubes:
       processed end to end. The reliability, latency, and agent-effort fact; a conversation
       (threads) has several runs. Default time dimension: run_date.
     meta:
+      # /v1/meta does not expose sql_table; the analytics agent reads this
+      # to link the metric layer to the mart the cube is defined on.
+      table: fct_run
       grain: one agent run
       primary_time_dimension: run_date
       example_questions:

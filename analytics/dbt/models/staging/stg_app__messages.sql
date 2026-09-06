@@ -4,12 +4,17 @@
 -- backfill lumps pre-deployment history at deploy time (fct_message carries
 -- thread_created_date for backfill-aware bucketing). Insert-only append: rows
 -- are never restated, which is the point of a ledger.
+--
+-- The only table in this layer, so unlike the staging views it can carry
+-- column comments; the layer default in dbt_project.yml is relation-only
+-- because ClickHouse views reject COMMENT COLUMN.
 {{
     config(
         materialized='incremental',
         incremental_strategy='append',
         engine='MergeTree()',
         order_by=['thread_id', 'message_index'],
+        persist_docs={'relation': true, 'columns': true},
     )
 }}
 

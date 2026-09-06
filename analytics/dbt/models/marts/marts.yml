@@ -107,8 +107,9 @@ models:
     description: >
       Grain: one message in a conversation's state — a user turn (`human`), a model turn (`ai`,
       usually a tool-call request), or a tool result (`tool`). The token and cost fact. Event time
-      is the pipeline's first-seen ledger, and token usage is present on only ~10% of AI messages,
-      so read the `first_seen_at`, `input_tokens`, and `est_cost_usd` caveats before trending.
+      is the pipeline's first-seen ledger, and provider token usage is present on only part of the
+      AI messages (the share varies by model and streaming path), so read the `first_seen_at`,
+      `input_tokens`, and `est_cost_usd` caveats before trending.
     columns:
       - name: message_key
         description: Primary key — surrogate `thread_id:message_index`.

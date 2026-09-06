@@ -92,6 +92,8 @@
     --color-category-slate: #4a6b8a;
     --color-category-rose: #b56a7a;
     --color-category-sage: #5a8a4a;
+    --color-category-indigo: #5b5bd6;
+    --color-category-amber: #c47a16;
     --scrollbar-thumb: #d8d1c2;
     --scrollbar-thumb-hover: #b8ad9e;
 
@@ -294,6 +296,8 @@
     --color-file-button-hover: #2f2a20;
     --color-category-plum: #c9a4dc;
     --color-category-slate: #8fb0d0;
+    --color-category-indigo: #a3a3f0;
+    --color-category-amber: #e0b055;
     --color-category-rose: #d8a0ad;
     --color-category-sage: #a8c98e;
     --scrollbar-thumb: #403a2f;

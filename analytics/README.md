@@ -29,8 +29,9 @@ flowchart LR
   GM --> SS["Superset<br/>NextRole Overview dashboard"]
   GM --> DOCS["dbt docs<br/>data dictionary · lineage"]
   CUBE -. "SQL Lab" .-> SS
-  CUBE -. "metric definitions + governed queries · next phase" .-> AGENT["Analytics agent"]
-  DOCS -. "column semantics (manifest · catalog) · next phase" .-> AGENT
+  GM -- "read-only SQL · marts + staging only" --> AGENT["Analytics agent<br/>backend/agents/analytics_agent"]
+  CUBE -. "metric definitions · /v1/meta" .-> AGENT
+  DOCS -. "column semantics (manifest · catalog)" .-> AGENT
   DAG["Dagster<br/>analytics_all · every hour"] -. orchestrates .-> BR
   DAG -. orchestrates .-> GM
 ```
@@ -97,8 +98,9 @@ the dashboard is reproducible on any machine.
 Two caveats travel with every number and are spelled out in the metadata itself:
 
 - **Token and cost figures are a floor.** Provider token usage is present on only part of the AI
-  messages (streamed responses rarely carry it), so treat spend as a lower bound and compare
-  periods only when the streaming setup is unchanged.
+  messages, and the share varies by model and streaming path — it has swung between ~100% and near
+  zero across releases. Treat spend as a lower bound, check `usage_coverage` for the slice you are
+  quoting, and compare periods only when their coverage matches.
 - **Message time is capture time.** Source messages carry no timestamp; the pipeline stamps each
   message when it first sees it, so message-level trends are accurate from deployment onward, while
   earlier history lumps at the first backfill. Runs, threads and sessions have real timestamps.
@@ -138,16 +140,29 @@ a catalog service:
 
 - **What a field means** (grain, semantics, value domains, data-quality caveats, PII class) lives
   once in dbt YAML, machine-readable from the `dbt-docs` service at `/manifest.json` and
-  `/catalog.json`.
+  `/catalog.json`. `persist_docs` also writes it into ClickHouse itself, so `DESCRIBE` and
+  `system.columns` carry the same prose and the warehouse stays self-describing when dbt-docs is
+  down. Staging gets relation comments only — ClickHouse views reject column comments.
 - **How to compute a KPI** (formula, canonical time dimension, allowed joins, synonyms, example
-  questions) lives on Cube members and is served verbatim by `/cubejs-api/v1/meta` — the agent's
-  query interface, since it never writes SQL against the warehouse.
+  questions) lives on Cube members and is served verbatim by `/cubejs-api/v1/meta`. Each cube also
+  carries `meta.table`, because `/v1/meta` does not expose the underlying relation and the agent
+  needs to link a metric back to the mart it is defined on.
+
+The agent (`backend/agents/analytics_agent/`) merges all three sources into one dictionary and
+reads the warehouse over SQL as a dedicated, read-only ClickHouse user
+(`analytics/clickhouse/users.d/analytics-agent.xml`): SELECT on the marts and staging databases
+only, under a `readonly=2` profile whose limits it cannot raise. This departs from the blueprint,
+which routed the agent through Cube's REST API instead. The reason is that Cube Core's per-user
+security context is not wired here yet, and this agent is operator-facing: it answers across all
+users by design, gated by an allowlist rather than scoped per caller. Cube remains the metric
+dictionary the agent reads; it is not the query path. Per-user row scoping stays a follow-up.
 
 ## Deliberately not here yet
 
 Per the blueprint's phasing, the following are follow-ups rather than gaps: product-analytics events
 (PostHog — the activation funnel), an LLM trace store (Langfuse — which also fixes token coverage
-with real per-call usage and timing), dbt test history and anomaly detection (elementary), the
-analytics agent itself (Phase 0.5, over Cube's REST API with per-user security context), embedded
-dashboards with row-level security, and a metadata catalog (OpenMetadata) once there is an
-enterprise audience for it.
+with real per-call usage and timing), dbt test history and anomaly detection (elementary),
+per-user row scoping for the analytics agent (ClickHouse row policies and a Cube security context,
+which would let it be offered to every user rather than an allowlist), embedded dashboards with
+row-level security, and a metadata catalog (OpenMetadata) once there is an enterprise audience
+for it.

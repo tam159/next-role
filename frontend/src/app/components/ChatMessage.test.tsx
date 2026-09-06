@@ -31,6 +31,11 @@ vi.mock("@/app/components/ToolCallBox", () => ({
   ),
 }));
 
+vi.mock("@/app/components/charts/ChartCard", () => ({
+  ChartCard: ({ toolCall }: { toolCall: { id: string } }) => (
+    <div data-testid="chart-card" data-call={toolCall.id} />
+  ),
+}));
 vi.mock("@/app/components/SubagentCard", () => ({
   SubagentCard: ({
     snapshot,
@@ -186,5 +191,16 @@ describe("ChatMessage", () => {
     renderMessage(new AIMessage(""), { isLoading: true });
 
     expect(screen.getByText("Working through your request")).toBeInTheDocument();
+  });
+
+  it("renders a chart call as its own card, not a tool-rail row", () => {
+    // Charts are the answer, not a step toward it, and the rail collapses when
+    // a run ends — so they get a card next to the subagent cards instead.
+    renderMessage(new AIMessage("Here is the trend"), {
+      toolCalls: [toolCall({ id: "chart-1", name: "create_chart" })],
+      toolBatches: [[toolCall({ id: "chart-1", name: "create_chart" })]],
+    });
+
+    expect(screen.getByTestId("chart-card")).toHaveAttribute("data-call", "chart-1");
   });
 });

@@ -56,13 +56,30 @@ class VirtualPathShellBackend(LocalShellBackend):
         return super().execute(self._translate(command), timeout=timeout)
 
     def _translate(self, command: str) -> str:
+        """Rewrite virtual-path tokens to their on-disk equivalents.
+
+        Substitutes those tokens *in place* rather than re-joining the parsed
+        command. `shlex.join` quotes every token it emits, which turns shell
+        operators into literal arguments — `a && b` became `a '&&' b`, so any
+        command using `&&`, `|`, `;` or a heredoc silently did the wrong thing.
+        A command with no virtual paths is returned untouched.
+        """
         try:
             tokens = shlex.split(command, posix=True)
         except ValueError:
             # Unbalanced quotes — let the shell surface the real error.
             return command
-        rewritten = [self._rewrite_token(t) for t in tokens]
-        return shlex.join(rewritten)
+        replacements: dict[str, str] = {}
+        for token in tokens:
+            if not token.startswith("/") or token in replacements:
+                continue
+            rewritten = self._rewrite_token(token)
+            if rewritten != token:
+                replacements[token] = rewritten
+        translated = command
+        for original, rewritten in replacements.items():
+            translated = translated.replace(original, rewritten)
+        return translated
 
     def _rewrite_token(self, token: str) -> str:
         if not token.startswith("/"):
@@ -75,6 +92,13 @@ class VirtualPathShellBackend(LocalShellBackend):
             candidate.relative_to(root)
         except ValueError:
             return token
-        if candidate.exists() or candidate.parent.exists():
+        if candidate.exists():
+            return str(candidate)
+        # A not-yet-created file translates via its parent directory, so an
+        # output path works. The parent must be a real subdirectory of the
+        # root: otherwise every top-level absolute path qualifies (root always
+        # exists), and `/tmp/` would be captured into the agent's own tree.
+        parent = candidate.parent
+        if parent != root and parent.exists():
             return str(candidate)
         return token

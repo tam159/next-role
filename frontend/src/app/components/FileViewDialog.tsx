@@ -11,6 +11,8 @@ import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { oneDark } from "react-syntax-highlighter/dist/esm/styles/prism";
 import { toast } from "sonner";
 import { MarkdownContent } from "@/app/components/MarkdownContent";
+import { InlineChart } from "@/app/components/charts/InlineChart";
+import { isChartPath } from "@/app/lib/charts";
 import {
   PRINT_FILE_STORAGE_KEY,
   type PrintKind,
@@ -386,9 +388,15 @@ export const FileViewDialog = React.memo<{
                         Binary file ({fileExtension}). Use Download to save it.
                       </p>
                     </div>
+                  ) : isChartPath(fileName) ? (
+                    <div className="rounded-md p-6">
+                      <InlineChart path={fileName} />
+                    </div>
                   ) : isMarkdown ? (
                     <div className="rounded-md p-6">
-                      <MarkdownContent content={fileContent} />
+                      {/* A saved report's embedded charts are its content, so
+                          draw them here rather than linking. */}
+                      <MarkdownContent content={fileContent} embedCharts />
                     </div>
                   ) : (
                     <SyntaxHighlighter

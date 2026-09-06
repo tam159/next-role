@@ -520,3 +520,13 @@ describe("writeAgentFile", () => {
     expect(client.threads.updateState).not.toHaveBeenCalled();
   });
 });
+
+describe("analytics agent file sources", () => {
+  it("lists charts and reports as artifact areas", () => {
+    const sources = getAgentFileSources("analytics_agent");
+
+    expect(sources?.artifacts?.pathPrefixes).toEqual(["/charts/", "/reports/"]);
+    // This agent keeps nothing between conversations.
+    expect(sources?.store).toBeUndefined();
+  });
+});

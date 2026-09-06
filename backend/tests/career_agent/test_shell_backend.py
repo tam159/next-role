@@ -55,9 +55,62 @@ def test_translate_blocks_dotdot_escape(backend: VirtualPathShellBackend) -> Non
     assert backend._translate("cat /../../etc/passwd") == "cat /../../etc/passwd"  # noqa: SLF001
 
 
-def test_translate_preserves_quoted_arguments(backend: VirtualPathShellBackend) -> None:
-    translated = backend._translate('echo "hello world"')  # noqa: SLF001
-    assert translated == "echo 'hello world'"
+def test_translate_leaves_a_command_without_virtual_paths_untouched(
+    backend: VirtualPathShellBackend,
+) -> None:
+    """Nothing to rewrite means the string reaches the shell exactly as written."""
+    assert backend._translate('echo "hello world"') == 'echo "hello world"'  # noqa: SLF001
+
+
+@pytest.mark.parametrize(
+    "command",
+    [
+        "echo one && echo two",
+        "pwd; ls",
+        "echo a | wc -l",
+        'cd /tmp && python3 -c "print(1)"',
+        "python3 << 'EOF'\nprint(1)\nEOF",
+        "ls > out.txt 2>&1",
+    ],
+)
+def test_translate_preserves_shell_operators(
+    command: str,
+    backend: VirtualPathShellBackend,
+) -> None:
+    """Operators must survive translation.
+
+    Re-joining the parsed command quoted every token, so `a && b` became
+    `a '&&' b` and the operator was passed to `echo` as a literal argument.
+    Commands using `&&`, `|`, `;`, redirects or heredocs all did the wrong
+    thing without failing.
+    """
+    assert backend._translate(command) == command  # noqa: SLF001
+
+
+def test_translate_does_not_capture_top_level_real_paths(
+    backend: VirtualPathShellBackend,
+) -> None:
+    """`/tmp/` must stay `/tmp/`, not become `<root>/tmp`.
+
+    Every top-level absolute path has the root as its parent, and the root
+    always exists — so the parent-exists rule alone rewrote `/tmp`, `/etc` and
+    `/usr` into the agent's own tree.
+    """
+    assert backend._translate("ls /tmp/") == "ls /tmp/"  # noqa: SLF001
+    assert backend._translate("ls /etc") == "ls /etc"  # noqa: SLF001
+
+
+def test_translate_still_rewrites_a_virtual_path_inside_a_pipeline(
+    tmp_path: Path,
+    backend: VirtualPathShellBackend,
+) -> None:
+    """Rewriting and operators are not mutually exclusive."""
+    yaml = tmp_path / "cv.yaml"
+    yaml.write_text("name: Tam")
+
+    translated = backend._translate("cat /cv.yaml | wc -l")  # noqa: SLF001
+
+    assert translated == f"cat {yaml} | wc -l"
 
 
 def test_translate_leaves_flags_unchanged(backend: VirtualPathShellBackend) -> None:

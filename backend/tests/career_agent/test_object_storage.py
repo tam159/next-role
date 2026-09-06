@@ -2,6 +2,8 @@
 
 import pytest
 from backend.agents.career_agent.object_storage import (
+    AREA_ROOTS,
+    AREAS,
     KEY_SCOPE,
     ObjectStoreSettings,
     area_key_prefix,
@@ -173,3 +175,66 @@ def test_list_meta_filters_by_prefix():
 
     paths = sorted(str(m["path"]) for m in list_meta(store, "a/"))
     assert paths == ["a/one.txt", "a/sub/two.txt"]
+
+
+# ---------------------------------------------------------------------------
+# area registry: a second agent's areas share the builders, not the key space
+# ---------------------------------------------------------------------------
+
+
+def test_area_roots_cover_every_advertised_area():
+    assert set(AREAS) == set(AREA_ROOTS)
+    assert AREA_ROOTS["upload"] == "career_agent"
+    assert AREA_ROOTS["charts"] == "analytics_agent"
+
+
+def test_key_for_virtual_path_files_analytics_areas_under_their_own_root():
+    assert (
+        key_for_virtual_path("/charts/thread-1/runs.plotly.json")
+        == "users/default/analytics_agent/charts/thread-1/runs.plotly.json"
+    )
+    assert (
+        key_for_virtual_path("/reports/thread-1/weekly.md", "alice")
+        == "users/alice/analytics_agent/reports/thread-1/weekly.md"
+    )
+
+
+def test_career_keys_are_unchanged_by_the_registry():
+    assert key_for_virtual_path("/upload/cv.pdf") == "users/default/career_agent/upload/cv.pdf"
+    assert (
+        key_for_virtual_path("/tailored_resume/cv.yaml", "alice")
+        == "users/alice/career_agent/tailored_resume/cv.yaml"
+    )
+
+
+def test_key_for_area_resolves_the_owning_root():
+    assert (
+        key_for_area("charts", "/t1/x.plotly.json")
+        == "users/default/analytics_agent/charts/t1/x.plotly.json"
+    )
+    assert key_for_area("upload", "/cv.pdf") == "users/default/career_agent/upload/cv.pdf"
+
+
+def test_key_for_area_rejects_unregistered_areas():
+    assert key_for_area("secrets", "/x.txt") is None
+
+
+def test_area_key_prefix_resolves_the_owning_root():
+    assert area_key_prefix("reports", "alice") == "users/alice/analytics_agent/reports"
+    assert area_key_prefix("upload", "alice") == "users/alice/career_agent/upload"
+
+
+def test_virtual_path_round_trips_for_analytics_areas():
+    key = key_for_virtual_path("/charts/t1/x.plotly.json", "alice")
+    assert key is not None
+    assert virtual_path_for_key(key, "alice") == "/charts/t1/x.plotly.json"
+
+
+def test_virtual_path_rejects_a_key_filed_under_the_wrong_root():
+    # `charts` belongs to the analytics agent; the same area under the career
+    # root is not a valid virtual path.
+    assert virtual_path_for_key("users/default/career_agent/charts/t1/x.json") is None
+
+
+def test_virtual_path_rejects_an_unknown_root():
+    assert virtual_path_for_key("users/default/other_agent/charts/t1/x.json") is None

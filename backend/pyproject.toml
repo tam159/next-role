@@ -84,6 +84,9 @@ dependencies = [
   "python-multipart>=0.0.32",
   "pyyaml>=6.0.3",
   "e2b>=2.46.4",
+  "clickhouse-connect>=1.8.0",
+  "plotly>=7.0.0",
+  "pandas>=3.0.5",
 ]
 
 [tool.pytest.ini_options]
@@ -131,8 +134,18 @@ exclude = [
   # Regenerate with grpcio-tools==1.80.0; never hand-edit or lint.
   # `**/` prefix required: `ruff check .` produces ./-prefixed candidate paths
   # that an anchored `grpc_common/proto` pattern fails to match.
-  "**/grpc_common/proto"
+  "**/grpc_common/proto",
+  # Ruff 0.16 formats Python code blocks inside Markdown. Our docs use fenced
+  # snippets as illustrations, not as code to be formatted — reflowing them
+  # corrupts the prose around them (it mangled the `subagents=[...]` example in
+  # agents/career_agent/README.md twice). Pre-commit never passes .md to ruff,
+  # so this only guards a bare `ruff format .`; that is exactly the case that
+  # bit us.
+  "*.md"
 ]
+# Apply the exclusions above even to files passed explicitly on the command
+# line, so `ruff format path/to/README.md` is a no-op rather than a surprise.
+force-exclude = true
 
 [tool.ruff.format]
 docstring-code-format = true

@@ -19,9 +19,20 @@ models:
     staging:
       +schema: staging
       +materialized: view
+      # Relation comments only: ClickHouse views reject `COMMENT COLUMN`, so
+      # asking for column docs here fails the build. The one MergeTree model in
+      # this layer opts into columns itself.
+      +persist_docs:
+        relation: true
     marts:
       +schema: marts
       +materialized: table
+      # Write the column dictionary into ClickHouse itself, so `DESCRIBE` and
+      # `system.columns` carry the same prose as the dbt docs. The analytics
+      # agent reads both, and this keeps it answerable when dbt-docs is down.
+      +persist_docs:
+        relation: true
+        columns: true
 
 seeds:
   nextrole_analytics:
