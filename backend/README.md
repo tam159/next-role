@@ -14,8 +14,11 @@ extra code. See [`ARCHITECTURE.md`](ARCHITECTURE.md) for the full design.
 
 ```
 backend/
-├── agents/                  # First-party agents (full strict lint/type gates)
-│   └── career_agent/        #   the career agent: graph, tools, prompts, skills
+├── agents/                  # First-party agents and their shared HTTP/auth modules
+│   ├── career_agent/        #   career workflow: graph, tools, prompts, skills
+│   ├── analytics_agent/     #   warehouse analysis and persistent charts
+│   ├── auth.py              #   optional multi-user authentication/authorization
+│   └── files_api.py         #   allowlisted /files/* API over object storage
 ├── server/                  # The agent server platform
 │   ├── api/                 #   ASGI app — routes, auth, streaming, graph
 │   │                        #   loading, run workers, gRPC client
@@ -26,10 +29,13 @@ backend/
 │   ├── core_server/         #   gRPC data plane (python -m server.core_server)
 │   ├── openapi.json         #   Served API spec — must sit next to api/
 │   └── logging.json         #   Uvicorn log config
-├── storage/migrations/      # Consolidated SQL schema (000001_init), applied at boot
-├── tests/                   # Unit tests (mirror agents/) + server smoke tests
+├── storage/migrations/      # Consolidated schema (000001_init.up.sql), applied at boot
+├── tests/                   # Agent/auth/files tests plus server integration smoke tests
+├── ARCHITECTURE.md          # Agent-server topology and maintenance guide
+├── init.sql                 # Enables pgvector when Postgres is first initialized
 ├── Dockerfile               # One image for both services (python:3.13-slim + uv)
-└── pyproject.toml           # Single uv project: agent + server dependencies
+├── pyproject.toml           # Single uv project: agent + server dependencies
+└── uv.lock                  # Reproducible Python dependency lock
 ```
 
 Everything under `server/` runs under deliberately relaxed lint/type gates; `agents/` and
@@ -41,7 +47,7 @@ Everything under `server/` runs under deliberately relaxed lint/type gates; `age
 The whole stack runs from the repo root:
 
 ```bash
-docker compose up -d          # frontend · backend · core-server · postgres · redis
+docker compose up -d          # app, data, object-storage, and analytics services
 ```
 
 - API: `http://localhost:${LANGGRAPH_LOCAL_PORT}` — health at `/ok`, docs at `/docs`

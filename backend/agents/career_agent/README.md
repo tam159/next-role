@@ -8,11 +8,14 @@
 
 ## How It Works
 
-The agent is configured by files:
+The agent is configured and assembled by files:
 
 ```
 career_agent/
-├── CAREER_AGENT.md   # Per-stage procedure (loaded as memory)
+├── agents.py                    # Graph assembly and CompositeBackend routes
+├── CAREER_AGENT.md              # Per-stage procedure (loaded as memory)
+├── prompts.py                   # Main-agent and middleware prompts
+├── middleware.py                # Model override, UTC date, and preference loading
 ├── subagents.yaml               # Subagent definitions (hiring-recon, resume-tailor, interview-coach)
 ├── skills/                      # Per-consumer skill grouping (one source path per agent)
 │   ├── career-agent/            # main agent
@@ -27,7 +30,15 @@ career_agent/
 │   └── interview-coach/         # interview-coach subagent
 │       └── interview-coach/
 │           └── SKILL.md
-├── tools.py                     # Tools for the agents and subagents
+├── tools.py                     # Parsing, extraction, and document rendering tools
+├── object_backend.py            # ObjectStoreBackend for binary artifact routes
+├── object_storage.py            # Virtual-path ↔ object-key mapping and area registry
+├── scope.py                     # Per-user KV namespaces and object scopes
+├── sandbox_backend.py           # Local/E2B backend selection
+├── shell_backend.py             # Host subprocess backend
+├── execute_approval.py          # Human-in-the-loop policy for shell commands
+├── render_scratch.py            # Throwaway host or sandbox render directories
+├── templates/battlecard/        # WeasyPrint HTML, CSS, and fonts
 └── utils.py                     # Utilities
 ```
 
@@ -112,22 +123,26 @@ Both surfaces POST `multipart/form-data` to the backend files API
 (`/files/upload`, served by `backend/agents/files_api.py` via the agent
 server's `LANGGRAPH_HTTP` custom-app hook), which validates the extension,
 size, and path prefix, then stores the bytes in the object store at
-`users/default/career_agent/upload/<filename>`. The agent's
+`users/<scope>/career_agent/upload/<filename>` (`<scope>` is the authenticated user id, or
+`default` in single-user mode). The agent's
 `ObjectStoreBackend` route (`/upload/`) sees the file on its next tool call.
 
-Re-uploading the same filename overwrites. Scoping is global per the layout above
-(no per-thread subdirectories).
+Re-uploading the same filename overwrites within that user's scope. Files are per-user but not
+per-thread.
 
-## File Structure
+## Virtual File Structure
 
 ```
 /upload/                                                      # ObjectStoreBackend
-└── Senior AI Engineer - Tam NGUYEN.pdf                       # Uploaded resume
+├── Senior AI Engineer - Tam NGUYEN.pdf                       # Uploaded resume
 └── AWS AI Solution Engineer.pdf                              # Uploaded JD
 
+/memory/                                                      # StoreBackend
+└── preferences.md                                            # Standing user preferences
+
 /processed/                                                   # StoreBackend
-└── tam-nguyen-senior-ai-engineer-resume.md                   # Processed resume
-└── aws-ai-solution-engineer-jd.md                            # Processed JD
+├── tam-nguyen-senior-ai-engineer-resume.md                   # Processed resume
+├── aws-ai-solution-engineer-jd.md                            # Processed JD
 └── tam-nguyen-senior-ai-engineer-resume-aws-ai-solution-engineer-jd-intake.md  # Intake (per resume×JD pair)
 
 /research/                                                    # StoreBackend
@@ -148,6 +163,10 @@ Re-uploading the same filename overwrites. Scoping is global per the layout abov
 └── tam-nguyen-senior-ai-engineer-resume/
     ├── aws-ai-solution-engineer-jd.json                      # weasyprint source (LLM-written, user-editable)
     └── aws-ai-solution-engineer-jd.pdf                       # weasyprint-rendered day-of cheat sheet
+
+/workspace/                                                   # StoreBackend — ad-hoc working files
+
+/large_tool_results/                                          # StoreBackend — deepagents result offload
 ```
 
-Note: both the tailored resume and the interview battlecard follow the same source-then-render pattern. Tailored resumes use `rendercv` (YAML → `.typ` intermediate → `.pdf`, via the one-shot `render_resume_pdf` tool, which hydrates a scratch copy, renders, and publishes — the throwaway scratch dir lives on the host in `local` sandbox mode and inside the sandbox in `e2b` mode; see `render_scratch.py`). Battlecards use `weasyprint` (JSON → `.pdf`, via `render_battlecard_pdf`). The JSON / YAML side is the user-editable source of truth; the PDF is regenerated on demand. `/upload/`, `/tailored_resume/`, and `/interview_battlecard/` live in S3-compatible object storage (SeaweedFS locally; S3/GCS/Azure in the cloud) under deterministic keys — `users/default/career_agent/<area>/<relpath>` — so binary PDFs live neither on shared disk nor in Postgres.
+Note: both the tailored resume and the interview battlecard follow the same source-then-render pattern. Tailored resumes use `rendercv` (YAML → `.typ` intermediate → `.pdf`, via the one-shot `render_resume_pdf` tool, which hydrates a scratch copy, renders, and publishes — the throwaway scratch dir lives on the host in `local` sandbox mode and inside the sandbox in `e2b` mode; see `render_scratch.py`). Battlecards use `weasyprint` (JSON → `.pdf`, via `render_battlecard_pdf`). The JSON / YAML side is the user-editable source of truth; the PDF is regenerated on demand. `/upload/`, `/tailored_resume/`, and `/interview_battlecard/` live in S3-compatible object storage (SeaweedFS locally; S3/GCS/Azure in the cloud) under deterministic keys — `users/<scope>/career_agent/<area>/<relpath>` — so binary PDFs live neither on shared disk nor in Postgres.
