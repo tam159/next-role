@@ -26,7 +26,7 @@ from __future__ import annotations
 
 import asyncio
 import os
-from typing import Any
+from typing import Any, cast
 
 import jwt
 from jwt import PyJWKClient
@@ -80,11 +80,19 @@ async def authenticate(authorization: str | None) -> Auth.types.MinimalUserDict:
             status_code=401,
             detail=f"Invalid token: {e}",
         ) from None
-    # Only `identity` drives authorization/scoping; carry a display name when
-    # the token provides one (MinimalUserDict has no email field).
+    # Only `identity` drives authorization/scoping — every namespace, key and
+    # ownership filter is built from it. The display name and email ride along
+    # as descriptive claims: `MinimalUserDict` declares neither, but the server
+    # preserves extra keys through to the run config, and an allowlist keyed on
+    # a human-readable address beats one keyed on an opaque id (see
+    # `agents/analytics_agent/access.py`).
     user: Auth.types.MinimalUserDict = {"identity": claims["sub"]}
     if isinstance(name := claims.get("name"), str):
         user["display_name"] = name
+    if isinstance(email := claims.get("email"), str):
+        # `MinimalUserDict` declares no `email`, hence the cast; the value is
+        # carried verbatim and never used for scoping.
+        cast("dict[str, Any]", user)["email"] = email
     return user
 
 

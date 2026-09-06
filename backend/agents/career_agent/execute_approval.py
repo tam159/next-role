@@ -30,6 +30,8 @@ module load.
 from __future__ import annotations
 
 import shlex
+import tempfile
+from pathlib import Path, PurePosixPath
 from typing import TYPE_CHECKING
 
 from langchain.agents.middleware import InterruptOnConfig
@@ -72,6 +74,40 @@ _UNSAFE_CHARS = frozenset(";&|<>`$(){}\\~\n\r")
 
 _MAX_AUTO_APPROVE_LEN = 500
 
+#: Directory name the agents use for their own scratch files (see
+#: `analytics_agent/scratch.py`). Named here rather than imported so this policy
+#: module stays a leaf that any agent can depend on.
+_SCRATCH_DIR_NAME = "nextrole-analytics"
+
+
+def _scratch_roots() -> tuple[str, ...]:
+    """Absolute prefixes an allowlisted read-only binary may touch unreviewed.
+
+    Only the agents' own scratch directories: they hold data an agent exported
+    for itself, every binary on the allowlist is read-only, and the sandbox
+    flavour puts them under a fixed `/tmp` path while the host flavour follows
+    the system temp dir. Listing or reading them discloses nothing the agent did
+    not already have, so prompting for `ls` there is friction without a benefit.
+    Every other absolute path — host config, another user's files — still
+    prompts.
+    """
+    host = Path(tempfile.gettempdir()) / _SCRATCH_DIR_NAME
+    return (f"/tmp/{_SCRATCH_DIR_NAME}", str(host))  # noqa: S108 — sandbox-internal
+
+
+def _is_allowed_path(token: str) -> bool:
+    """Whether a command token is a path this policy will run unreviewed."""
+    if ".." in token or "~" in token:
+        return False
+    if not token.startswith("/"):
+        # Relative paths stay under the shell backend's cwd.
+        return True
+    candidate = PurePosixPath(token)
+    return any(
+        candidate == PurePosixPath(root) or candidate.is_relative_to(PurePosixPath(root))
+        for root in _scratch_roots()
+    )
+
 
 class HitlSettings(BaseSettings):
     """Env toggle for execute-tool human approval.
@@ -90,9 +126,10 @@ def is_auto_approvable(command: str) -> bool:
 
     Fail-closed allowlist: the command must be short, free of shell
     control/substitution characters, tokenize cleanly, invoke an allowlisted
-    read-only binary, and touch no absolute (`/...`, host files like
-    `/etc/passwd`) or traversal (`..`) paths — relative paths stay under the
-    shell backend's cwd. Do NOT rely on `VirtualPathShellBackend._translate`'s
+    read-only binary, and touch no traversal (`..`) paths and no absolute path
+    outside the agents' own scratch directories (so `/etc/passwd` reviews but
+    `ls /tmp/nextrole-analytics/<thread>/` does not) — relative paths stay under
+    the shell backend's cwd. Do NOT rely on `VirtualPathShellBackend._translate`'s
     shlex-rejoin quoting as a guard: it passes the raw command through on
     shlex errors, so it is not a security boundary.
     """
@@ -108,7 +145,7 @@ def is_auto_approvable(command: str) -> bool:
         return False
     if not tokens or tokens[0] not in _SAFE_BINARIES:
         return False
-    return all(not t.startswith("/") and ".." not in t for t in tokens)
+    return all(_is_allowed_path(t) for t in tokens)
 
 
 def should_interrupt_execute(request: ToolCallRequest) -> bool:
