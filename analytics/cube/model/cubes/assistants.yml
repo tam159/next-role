@@ -7,6 +7,9 @@ cubes:
       (career_agent, version 1); the cube exists so metrics can be split by graph/version once
       more agents or versions ship.
     meta:
+      # /v1/meta does not expose sql_table; the analytics agent reads this
+      # to link the metric layer to the mart the cube is defined on.
+      table: dim_assistant
       grain: one assistant definition
 
     dimensions:

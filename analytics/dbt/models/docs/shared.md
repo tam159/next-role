@@ -35,11 +35,15 @@ per-run override yet (`fct_run.*_model_override` are NULL).
 {% enddocs %}
 
 {% docs usage_coverage %}
-Token counts come from LangChain `usage_metadata`, present on every AI message so far (814 of
-814 at the 2026-09-03 rebuild). Messages persisted before 2026-09-03 carried it misfiled under
-`additional_kwargs` (a since-fixed lossy coercion in the agent server); the extraction reads both
-locations, so history is complete. Treat `usage_coverage` as a health check — it should stay
-at ~100%, and a drop means a provider or streaming path stopped reporting usage.
+Token counts come from LangChain `usage_metadata`, and coverage is **not uniform** — it depends on
+the provider and on how the response was streamed, and it has changed abruptly in the past.
+Messages persisted before 2026-09-03 carried usage misfiled under `additional_kwargs` (a
+since-fixed lossy coercion in the agent server) and the extraction reads both locations, so that
+history is complete; coverage then fell sharply for threads created from 2026-09-04, where several
+models report no usage at all. Every token and cost figure is therefore a **floor**, not a total.
+Check `usage_coverage` for the same slice before quoting spend, and never compare two periods
+without confirming their coverage matches. A sustained drop is a bug in the agent's streaming path,
+not a drop in usage.
 {% enddocs %}
 
 {% docs first_seen %}

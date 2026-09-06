@@ -4,10 +4,14 @@ cubes:
     title: Conversation messages
     description: >
       One row per message in a conversation — a user turn (human), a model turn (ai, usually a
-      tool-call request) or a tool result (tool). The token and LLM-cost fact. Token usage is
-      present on only ~10% of AI messages (streamed responses rarely carry it), so token and
-      cost measures are lower bounds; event time is the pipeline's first-seen timestamp.
+      tool-call request) or a tool result (tool). The token and LLM-cost fact. Provider token
+      usage is present on only part of the AI messages and the share varies by model and streaming
+      path, so token and cost measures are lower bounds — check usage_coverage for the same slice
+      before quoting spend; event time is the pipeline's first-seen timestamp.
     meta:
+      # /v1/meta does not expose sql_table; the analytics agent reads this
+      # to link the metric layer to the mart the cube is defined on.
+      table: fct_message
       grain: one message
       primary_time_dimension: first_seen_date
       example_questions:
@@ -150,7 +154,7 @@ cubes:
         sql: "{messages_with_usage} / nullIf({ai_messages}, 0)"
         type: number
         format: percent
-        description: Share of AI messages with token usage — how much of the spend the token measures can see (~10% today).
+        description: Share of AI messages carrying token usage — how much of the spend the token measures can see. Varies by model and streaming path; check it for the same slice before quoting cost.
         meta:
           formula: messages_with_usage / ai_messages
       - name: input_tokens

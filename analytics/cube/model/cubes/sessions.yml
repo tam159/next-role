@@ -6,6 +6,9 @@ cubes:
       One row per Better Auth login session — registered users only, so empty in single-user
       mode. Measures logins, not product activity: prefer runs.active_users for "active".
     meta:
+      # /v1/meta does not expose sql_table; the analytics agent reads this
+      # to link the metric layer to the mart the cube is defined on.
+      table: fct_session
       grain: one login session
       primary_time_dimension: session_date
       example_questions:

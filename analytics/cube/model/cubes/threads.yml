@@ -6,6 +6,9 @@ cubes:
       One row per conversation thread — the unit of "a user working on a role" — with message and
       run roll-ups. Default time dimension: created_date; updated_at is the last activity.
     meta:
+      # /v1/meta does not expose sql_table; the analytics agent reads this
+      # to link the metric layer to the mart the cube is defined on.
+      table: fct_thread
       grain: one conversation thread
       primary_time_dimension: created_date
       example_questions:
