@@ -8,8 +8,26 @@ import { FileText } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useFilePreview } from "@/providers/FilePreviewProvider";
 import { FILE_PATH_URL_PREFIX, remarkFilePaths } from "@/app/utils/filePaths";
+import { InlineChart } from "@/app/components/charts/InlineChart";
+import { isChartPath } from "@/app/lib/charts";
+
+/**
+ * The hast node react-markdown hands each component.
+ *
+ * hast, not mdast: by the time components run, an image is an `img` element
+ * with `properties.src`, not an mdast `image` with `url`.
+ */
+type HastNode = { children?: { tagName?: string; properties?: { src?: unknown } }[] };
 
 interface MarkdownContentProps {
+  /**
+   * Draw referenced charts inline instead of linking to them.
+   *
+   * On in a saved report, where the embed *is* the content. Off in chat, where
+   * the chart already has its own card above the reply — drawing it again from
+   * the prose would show the same figure twice.
+   */
+  embedCharts?: boolean;
   content: string;
   className?: string;
 }
@@ -73,152 +91,181 @@ const adaptiveCodeTheme = {
   deleted: { color: "var(--color-error)" },
 } as const;
 
-export const MarkdownContent = React.memo<MarkdownContentProps>(({ content, className = "" }) => {
-  const preview = useFilePreview();
-  return (
-    <div
-      className={cn(
-        "prose prose-sm max-w-full min-w-0 overflow-hidden leading-relaxed wrap-break-word text-inherit [&_h1]:mt-6 [&_h1]:mb-4 [&_h1]:font-semibold [&_h1:first-child]:mt-0 [&_h2]:mt-6 [&_h2]:mb-4 [&_h2]:font-semibold [&_h2:first-child]:mt-0 [&_h3]:mt-6 [&_h3]:mb-4 [&_h3]:font-semibold [&_h3:first-child]:mt-0 [&_h4]:mt-6 [&_h4]:mb-4 [&_h4]:font-semibold [&_h4:first-child]:mt-0 [&_h5]:mt-6 [&_h5]:mb-4 [&_h5]:font-semibold [&_h5:first-child]:mt-0 [&_h6]:mt-6 [&_h6]:mb-4 [&_h6]:font-semibold [&_h6:first-child]:mt-0 [&_li_p:last-child]:mb-0 [&>p]:mb-4 [&>p:last-child]:mb-0",
-        className
-      )}
-    >
-      <ReactMarkdown
-        remarkPlugins={[remarkGfm, remarkFilePaths]}
-        // Preserve our sentinel file scheme (react-markdown would otherwise
-        // sanitize the unknown protocol to an empty href).
-        urlTransform={(url) =>
-          url.startsWith(FILE_PATH_URL_PREFIX) ? url : defaultUrlTransform(url)
-        }
-        components={{
-          code({
-            className,
-            children,
-            ...props
-          }: {
-            className?: string;
-            children?: React.ReactNode;
-          }) {
-            const codeStr = String(children ?? "");
-            const match = /language-(\w+)/.exec(className || "");
-            const isBlock = !!match || codeStr.includes("\n");
-            return isBlock ? (
-              <SyntaxHighlighter
-                style={adaptiveCodeTheme}
-                language={match?.[1] ?? "text"}
-                PreTag="div"
-                className="max-w-full rounded-xl border border-border text-sm"
-                wrapLines={true}
-                wrapLongLines={true}
-                lineProps={{
-                  style: {
-                    wordBreak: "break-all",
-                    whiteSpace: "pre-wrap",
-                    overflowWrap: "break-word",
-                  },
-                }}
-                customStyle={{
-                  margin: 0,
-                  maxWidth: "100%",
-                  overflowX: "auto",
-                  fontSize: "0.875rem",
-                  borderRadius: "0.75rem",
-                  padding: "1rem",
-                }}
-              >
-                {codeStr.replace(/\n$/, "")}
-              </SyntaxHighlighter>
-            ) : (
-              (() => {
-                // Inline code that names a real workspace file → make it openable.
-                const fileKey = preview?.resolveFile(codeStr) ?? null;
+export const MarkdownContent = React.memo<MarkdownContentProps>(
+  ({ content, className = "", embedCharts = false }) => {
+    const preview = useFilePreview();
+    return (
+      <div
+        className={cn(
+          "prose prose-sm max-w-full min-w-0 overflow-hidden leading-relaxed wrap-break-word text-inherit [&_h1]:mt-6 [&_h1]:mb-4 [&_h1]:font-semibold [&_h1:first-child]:mt-0 [&_h2]:mt-6 [&_h2]:mb-4 [&_h2]:font-semibold [&_h2:first-child]:mt-0 [&_h3]:mt-6 [&_h3]:mb-4 [&_h3]:font-semibold [&_h3:first-child]:mt-0 [&_h4]:mt-6 [&_h4]:mb-4 [&_h4]:font-semibold [&_h4:first-child]:mt-0 [&_h5]:mt-6 [&_h5]:mb-4 [&_h5]:font-semibold [&_h5:first-child]:mt-0 [&_h6]:mt-6 [&_h6]:mb-4 [&_h6]:font-semibold [&_h6:first-child]:mt-0 [&_li_p:last-child]:mb-0 [&>p]:mb-4 [&>p:last-child]:mb-0",
+          className
+        )}
+      >
+        <ReactMarkdown
+          remarkPlugins={[remarkGfm, remarkFilePaths]}
+          // Preserve our sentinel file scheme (react-markdown would otherwise
+          // sanitize the unknown protocol to an empty href).
+          urlTransform={(url) =>
+            url.startsWith(FILE_PATH_URL_PREFIX) ? url : defaultUrlTransform(url)
+          }
+          components={{
+            code({
+              className,
+              children,
+              ...props
+            }: {
+              className?: string;
+              children?: React.ReactNode;
+            }) {
+              const codeStr = String(children ?? "");
+              const match = /language-(\w+)/.exec(className || "");
+              const isBlock = !!match || codeStr.includes("\n");
+              return isBlock ? (
+                <SyntaxHighlighter
+                  style={adaptiveCodeTheme}
+                  language={match?.[1] ?? "text"}
+                  PreTag="div"
+                  className="max-w-full rounded-xl border border-border text-sm"
+                  wrapLines={true}
+                  wrapLongLines={true}
+                  lineProps={{
+                    style: {
+                      wordBreak: "break-all",
+                      whiteSpace: "pre-wrap",
+                      overflowWrap: "break-word",
+                    },
+                  }}
+                  customStyle={{
+                    margin: 0,
+                    maxWidth: "100%",
+                    overflowX: "auto",
+                    fontSize: "0.875rem",
+                    borderRadius: "0.75rem",
+                    padding: "1rem",
+                  }}
+                >
+                  {codeStr.replace(/\n$/, "")}
+                </SyntaxHighlighter>
+              ) : (
+                (() => {
+                  // Inline code that names a real workspace file → make it openable.
+                  const fileKey = preview?.resolveFile(codeStr) ?? null;
+                  if (fileKey) {
+                    return <FileLink label={children} onOpen={() => preview!.openFile(fileKey)} />;
+                  }
+                  return (
+                    <code
+                      className="rounded-md border border-border bg-tool-surface px-1.5 py-0.5 font-mono text-[0.9em] text-foreground"
+                      {...props}
+                    >
+                      {children}
+                    </code>
+                  );
+                })()
+              );
+            },
+            p({ children, node }: { children?: React.ReactNode; node?: unknown }) {
+              // A chart renders as block markup (Plotly draws divs), which is
+              // invalid inside <p> and trips React's hydration check. When a
+              // paragraph is just a chart reference, drop the paragraph.
+              const hasChart = (node as HastNode | undefined)?.children?.some(
+                (child) =>
+                  child.tagName === "img" &&
+                  typeof child.properties?.src === "string" &&
+                  isChartPath(child.properties.src)
+              );
+              if (hasChart && embedCharts) {
+                return <>{children}</>;
+              }
+              return <p>{children}</p>;
+            },
+            pre({ children }: { children?: React.ReactNode }) {
+              return <div className="my-4 max-w-full overflow-hidden last:mb-0">{children}</div>;
+            },
+            a({ href, children }: { href?: string; children?: React.ReactNode }) {
+              // Bare file paths are rewritten to this scheme by remarkFilePaths.
+              // Link only if the path resolves to a real file; otherwise (e.g. a
+              // hallucinated path) render as plain text.
+              if (href?.startsWith(FILE_PATH_URL_PREFIX)) {
+                const candidate = href.slice(FILE_PATH_URL_PREFIX.length);
+                const fileKey = preview?.resolveFile(candidate) ?? null;
                 if (fileKey) {
                   return <FileLink label={children} onOpen={() => preview!.openFile(fileKey)} />;
                 }
-                return (
-                  <code
-                    className="rounded-md border border-border bg-tool-surface px-1.5 py-0.5 font-mono text-[0.9em] text-foreground"
-                    {...props}
-                  >
-                    {children}
-                  </code>
-                );
-              })()
-            );
-          },
-          pre({ children }: { children?: React.ReactNode }) {
-            return <div className="my-4 max-w-full overflow-hidden last:mb-0">{children}</div>;
-          },
-          a({ href, children }: { href?: string; children?: React.ReactNode }) {
-            // Bare file paths are rewritten to this scheme by remarkFilePaths.
-            // Link only if the path resolves to a real file; otherwise (e.g. a
-            // hallucinated path) render as plain text.
-            if (href?.startsWith(FILE_PATH_URL_PREFIX)) {
-              const candidate = href.slice(FILE_PATH_URL_PREFIX.length);
-              const fileKey = preview?.resolveFile(candidate) ?? null;
-              if (fileKey) {
-                return <FileLink label={children} onOpen={() => preview!.openFile(fileKey)} />;
+                return <>{children}</>;
               }
-              return <>{children}</>;
-            }
-            return (
-              <a
-                href={href}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="font-medium text-primary no-underline underline-offset-4 hover:underline"
-              >
-                {children}
-              </a>
-            );
-          },
-          blockquote({ children }: { children?: React.ReactNode }) {
-            return (
-              <blockquote className="my-4 rounded-r-xl border-l-4 border-primary/30 bg-accent/40 py-2 pr-3 pl-4 text-muted-foreground">
-                {children}
-              </blockquote>
-            );
-          },
-          ul({ children }: { children?: React.ReactNode }) {
-            return (
-              <ul className="my-4 list-disc pl-6 [&_.task-list-item]:ml-0 [&_.task-list-item]:list-none [&_ul]:list-[circle] [&_ul_ul]:list-[square] [&>li]:mb-1 [&>li:last-child]:mb-0">
-                {children}
-              </ul>
-            );
-          },
-          ol({ children }: { children?: React.ReactNode }) {
-            return (
-              <ol className="my-4 list-decimal pl-6 [&>li]:mb-1 [&>li:last-child]:mb-0">
-                {children}
-              </ol>
-            );
-          },
-          table({ children }: { children?: React.ReactNode }) {
-            return (
-              <div className="my-4 overflow-x-auto">
-                <table className="w-full border-separate border-spacing-0 overflow-hidden rounded-xl border border-border text-sm [&_td]:border-b [&_td]:border-border [&_td]:p-2 [&_th]:border-b [&_th]:border-border [&_th]:bg-tool-surface [&_th]:p-2 [&_th]:text-left [&_th]:font-semibold [&_tr:last-child_td]:border-b-0">
+              return (
+                <a
+                  href={href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-medium text-primary no-underline underline-offset-4 hover:underline"
+                >
                   {children}
-                </table>
-              </div>
-            );
-          },
-          img({ src, alt }: { src?: string | Blob; alt?: string }) {
-            return (
-              <img
-                src={typeof src === "string" ? src : undefined}
-                alt={alt ?? ""}
-                className="my-4 h-auto max-w-full rounded-md border border-border"
-              />
-            );
-          },
-          hr() {
-            return <hr className="my-6 border-border" />;
-          },
-        }}
-      >
-        {content}
-      </ReactMarkdown>
-    </div>
-  );
-});
+                </a>
+              );
+            },
+            blockquote({ children }: { children?: React.ReactNode }) {
+              return (
+                <blockquote className="my-4 rounded-r-xl border-l-4 border-primary/30 bg-accent/40 py-2 pr-3 pl-4 text-muted-foreground">
+                  {children}
+                </blockquote>
+              );
+            },
+            ul({ children }: { children?: React.ReactNode }) {
+              return (
+                <ul className="my-4 list-disc pl-6 [&_.task-list-item]:ml-0 [&_.task-list-item]:list-none [&_ul]:list-[circle] [&_ul_ul]:list-[square] [&>li]:mb-1 [&>li:last-child]:mb-0">
+                  {children}
+                </ul>
+              );
+            },
+            ol({ children }: { children?: React.ReactNode }) {
+              return (
+                <ol className="my-4 list-decimal pl-6 [&>li]:mb-1 [&>li:last-child]:mb-0">
+                  {children}
+                </ol>
+              );
+            },
+            table({ children }: { children?: React.ReactNode }) {
+              return (
+                <div className="my-4 overflow-x-auto">
+                  <table className="w-full border-separate border-spacing-0 overflow-hidden rounded-xl border border-border text-sm [&_td]:border-b [&_td]:border-border [&_td]:p-2 [&_th]:border-b [&_th]:border-border [&_th]:bg-tool-surface [&_th]:p-2 [&_th]:text-left [&_th]:font-semibold [&_tr:last-child_td]:border-b-0">
+                    {children}
+                  </table>
+                </div>
+              );
+            },
+            img({ src, alt }: { src?: string | Blob; alt?: string }) {
+              // Charts are data, not images: an <img> to one renders nothing.
+              if (typeof src === "string" && isChartPath(src)) {
+                // In a report the embed is the content, so draw it. In chat the
+                // chart already has a card above the reply, so link instead —
+                // drawing it here would repeat the same figure.
+                if (embedCharts) return <InlineChart path={src} alt={alt} />;
+                const fileKey = preview?.resolveFile(src) ?? null;
+                if (fileKey) {
+                  return <FileLink label={alt || src} onOpen={() => preview!.openFile(fileKey)} />;
+                }
+                return <>{alt}</>;
+              }
+              return (
+                <img
+                  src={typeof src === "string" ? src : undefined}
+                  alt={alt ?? ""}
+                  className="my-4 h-auto max-w-full rounded-md border border-border"
+                />
+              );
+            },
+            hr() {
+              return <hr className="my-6 border-border" />;
+            },
+          }}
+        >
+          {content}
+        </ReactMarkdown>
+      </div>
+    );
+  }
+);
 
 MarkdownContent.displayName = "MarkdownContent";

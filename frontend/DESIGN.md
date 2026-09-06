@@ -362,7 +362,7 @@ The accent is **user-selectable** and persisted (`data-accent` on the root); **e
 
 Files are colored **by their top-level folder**, so related artifacts share a hue (the format is shown on the badge text):
 
-- `tailored_resume` → `{colors.cat-tailored-resume}` (the accent) · `interview_battlecard` → `{colors.cat-interview-battlecard}` (#c47a16) · `interview_coach` → `{colors.cat-interview-coach}` (#8a5a9e) · `research` → `{colors.cat-research}` (#4a6b8a) · `processed` → `{colors.cat-processed}` (#5a8a4a) · `upload` → `{colors.cat-upload}` (#b56a7a).
+- `tailored_resume` → `{colors.cat-tailored-resume}` (the accent) · `interview_battlecard` → `{colors.cat-interview-battlecard}` (#c47a16) · `interview_coach` → `{colors.cat-interview-coach}` (#8a5a9e) · `research` → `{colors.cat-research}` (#4a6b8a) · `processed` → `{colors.cat-processed}` (#5a8a4a) · `upload` → `{colors.cat-upload}` (#b56a7a) · `charts` → `{colors.cat-charts}` (#5b5bd6) · `reports` → `{colors.cat-reports}` (#c47a16).
 
 ## Typography
 
@@ -456,7 +456,7 @@ Depth is **color-block first** — surface contrast (canvas → surface → surf
 
 **`icon-button`** — 38px, `{rounded.button}`, `{colors.text-2}`, hover fills `{colors.surface-3}`. Threads, theme (sun/moon), settings.
 
-**`roster-pill`** — accent dot + active agent name + chevron → a **read-only "Your prep team" popover** listing the Career Agent and the specialist subagents it delegates to (not a switcher — it surfaces the multi-agent architecture honestly).
+**`roster-pill`** — accent dot (in the active agent's hue) + agent name + chevron → the **agent picker**. Two sections: selectable **Agents** rows (name + one-line description + `{colors.accent}` check on the active one), and, under the Career Agent only, its read-only "prep team" of specialist subagents. An agent the caller may not run is disabled at 50% with "Administrators only" in place of its description — the backend's `/agents/available` decides, and the agent itself enforces. Choosing an agent starts a fresh thread, since a conversation belongs to the agent that created it.
 
 ### Buttons
 
@@ -466,11 +466,11 @@ Depth is **color-block first** — surface contrast (canvas → surface → surf
 
 ### Conversation
 
-**`hero`** — centered empty state: glowing brand mark, `{typography.hero}` headline with the accent italic emphasis, a `{colors.text-2}` subtitle, then (first-run only) `{component.upload-dropzone}`, and a row of `{component.suggestion-chip}` that fill the composer.
+**`hero`** — centered empty state: glowing brand mark, `{typography.hero}` headline with the accent italic emphasis, a `{colors.text-2}` subtitle, then (first-run only) `{component.upload-dropzone}`, and a row of `{component.suggestion-chip}` that fill the composer. **Per agent**: the headline, subtitle, chips and composer placeholder all come from the active agent, and the dropzone appears only for agents that take files. Career copy under the analytics agent would simply be wrong.
 
 **`upload-dropzone`** — the first-run featured action: a dashed-hairline `{rounded.card}`-scale card (`{colors.surface-2}` at 70%) with a `{component.card-icon-chip}`, a bold one-line ask ("Add your resume or a job description") and a `{colors.text-3}` sub-line; click opens the file picker, drag-over/drop uploads in place (accent border + `{colors.accent-soft}` wash while dragging). Renders only while the user has **zero uploads** (`filesReady && !hasUploads` from `useUploadCue`) — it retires permanently on the first upload, never via a dismiss control.
 
-**`suggestion-chip`** — icon + label, `{colors.surface-2}` + hairline, hover lifts + accent border. Order: Research → Tailor → Prepare for an interview → Build a battlecard.
+**`suggestion-chip`** — icon + label, `{colors.surface-2}` + hairline, hover lifts + accent border. Career: Research → Tailor → Prepare for an interview → Build a battlecard. Analytics: Run reliability → LLM cost → Active users → Tool usage.
 
 **`user-bubble`** — right-aligned, `{colors.accent-soft}` bg, 1px border, `{rounded.user-bubble}`, max-width 78%; optional mono attachment chips.
 
@@ -481,6 +481,8 @@ Depth is **color-block first** — surface contrast (canvas → surface → surf
 **`tool-call-group`** — a consecutive run of main-agent tool calls as a single disclosure unit, spanning AI messages until broken by prose, a subagent card, or a user message. Progressive disclosure: expanded with live rows while the run is active (the transcript-tip group holds open across the model's think-pauses between batches), then **auto-collapses the moment the run ends** to a summary row in the same `[node | content]` rail geometry — group status node + "N tool calls" + up to 3 deduped mono names (+K overflow) + a `{colors.error}`-tinted "n failed" pill when applicable + chevron. The expanded body preserves per-message batches: calls issued together are clustered, labeled with an "N in parallel" micro-header, and closed with a light hairline break so the cluster's end stays legible. A manual toggle always wins and disables auto-driving; a pending tool approval pins the group open. A run of one call renders as its plain `{component.tool-rail-row}`. Historical messages mount collapsed with no animation.
 
 **`subagent-card`** — one subagent as a single `{colors.surface-2}` + hairline `{rounded.card}` card (replaces the old separate indicator chip + panel). Always-visible header row: neutral Bot chip + subagent name + status badge (Running / Complete / Failed / Queued) + `{colors.surface-3}` "n tools" count pill + duration (terminal only) + `{component.workspace-card}`-style chevron; `tool-running-sweep` on the header while running. Body below a hairline divider: INPUT / ACTIVITY (nested tool rail) / OUTPUT. Same auto-collapse rules as `{component.tool-call-group}`, keyed on the subagent's own completion. The queued state is the same header without a body, so discovery landing doesn't jump.
+
+**`chart-card`** — a chart the analytics agent produced, rendered in the message column rather than the tool rail (like `{component.subagent-card}`, because a chart is the answer, not a step toward it, and the rail auto-collapses when a run ends). `{colors.surface-2}` + hairline `{rounded.card}`. Header: chart icon in the accent + title + optional caveat line in `{colors.text-2}` + row count on the right. Body: the drawing, or a native table / single KPI figure for those kinds — deliberately not Plotly traces, so they inherit the app's type and colour and the browser keeps the small chart bundle. Footer: an "SQL" disclosure over `{component.collapse}`. **Charts carry no colour of their own**: the stored figure is theme-neutral and the viewer's palette, fonts and grid are applied at render, so one chart reads correctly in light and dark. States: skeleton while the run builds it, the tool's own error text when it failed, an explanation when the file has gone missing.
 
 **`composer`** — `{colors.surface-2}`, `{rounded.composer}`, `{shadow.lg}`, focus-within ring in the accent. Auto-growing textarea, a paperclip attach (reuses the file-upload path), the "Enter to send · Shift+Enter" hint, and a circular **`send-button`** (`{colors.accent}` when there's text, `{colors.border-2}` when empty; a red Stop while the agent runs).
 

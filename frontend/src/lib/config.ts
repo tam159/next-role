@@ -1,8 +1,18 @@
 import { isAuthEnabled } from "@/lib/auth/enabled";
+import { DEFAULT_AGENT_ID, isKnownAgentId } from "@/app/config/agents";
 
 export interface StandaloneConfig {
   deploymentUrl: string;
   assistantId: string;
+  /**
+   * Which agent the user picked, as a LangGraph `graph_id`.
+   *
+   * Not pinned in auth mode like `deploymentUrl`/`assistantId` are: it only
+   * chooses between graphs already registered on the same pinned deployment,
+   * and it is validated against the static registry on read, so it cannot
+   * redirect anything anywhere.
+   */
+  selectedAgentId?: string;
   langsmithApiKey?: string;
   mainAgentModel?: string;
   subagentModel?: string;
@@ -48,4 +58,17 @@ export function getConfig(): StandaloneConfig | null {
 export function saveConfig(config: StandaloneConfig): void {
   if (typeof window === "undefined") return;
   localStorage.setItem(CONFIG_KEY, JSON.stringify(config));
+}
+
+/**
+ * The graph id to talk to: the user's pick, else the deployment's default.
+ *
+ * Unknown ids fall back rather than throwing — a stored pick can outlive the
+ * graph it named (a renamed or removed agent), and the deployment default is
+ * always a safe landing place.
+ */
+export function getEffectiveAgentId(config: StandaloneConfig | null): string {
+  if (isKnownAgentId(config?.selectedAgentId)) return config.selectedAgentId;
+  if (isKnownAgentId(config?.assistantId)) return config.assistantId;
+  return config?.assistantId || DEFAULT_AGENT_ID;
 }

@@ -15,6 +15,13 @@ export type AgentFileSources = {
 };
 
 export const AGENT_FILE_SOURCES: Record<string, AgentFileSources> = {
+  analytics_agent: {
+    // Charts and written reports, both durable per thread. No store sources:
+    // this agent keeps nothing between conversations.
+    artifacts: {
+      pathPrefixes: ["/charts/", "/reports/"],
+    },
+  },
   career_agent: {
     store: {
       namespacePrefix: ["career_agent"],

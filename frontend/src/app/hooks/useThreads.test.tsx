@@ -58,7 +58,9 @@ describe("useThreads", () => {
   it("returns no data and never constructs a client when config is null", async () => {
     getConfigMock.mockReturnValue(null);
 
-    const { result } = renderHook(() => useThreads({}), { wrapper: makeWrapper() });
+    const { result } = renderHook(() => useThreads({ graphId: "career_agent" }), {
+      wrapper: makeWrapper(),
+    });
     await act(async () => {});
 
     expect(result.current.data).toBeUndefined();
@@ -66,7 +68,7 @@ describe("useThreads", () => {
     expect(searchMock).not.toHaveBeenCalled();
   });
 
-  it("filters by assistant_id metadata for UUID assistant ids and sends the api key header", async () => {
+  it("scopes the listing to the deployment's agent and sends the api key header", async () => {
     getConfigMock.mockReturnValue({
       ...baseConfig,
       assistantId: UUID_ASSISTANT,
@@ -74,7 +76,9 @@ describe("useThreads", () => {
     });
     searchMock.mockResolvedValue([]);
 
-    renderHook(() => useThreads({ status: "idle" }), { wrapper: makeWrapper() });
+    renderHook(() => useThreads({ graphId: UUID_ASSISTANT, status: "idle" }), {
+      wrapper: makeWrapper(),
+    });
     await waitFor(() => expect(searchMock).toHaveBeenCalled());
 
     expect(ClientMock).toHaveBeenCalledWith({
@@ -88,15 +92,17 @@ describe("useThreads", () => {
       sortBy: "updated_at",
       sortOrder: "desc",
       status: "idle",
-      metadata: { assistant_id: UUID_ASSISTANT },
+      metadata: { graph_id: UUID_ASSISTANT },
     });
   });
 
-  it("omits the metadata filter for graph-name assistant ids and sends empty headers", async () => {
+  it("filters graph-name deployments too, so two agents' threads never mix", async () => {
+    // The server stamps `graph_id` on every thread, unlike `assistant_id`,
+    // which local graph-name deployments never set.
     getConfigMock.mockReturnValue(baseConfig);
     searchMock.mockResolvedValue([]);
 
-    renderHook(() => useThreads({}), { wrapper: makeWrapper() });
+    renderHook(() => useThreads({ graphId: "career_agent" }), { wrapper: makeWrapper() });
     await waitFor(() => expect(searchMock).toHaveBeenCalled());
 
     expect(ClientMock).toHaveBeenCalledWith({
@@ -104,9 +110,33 @@ describe("useThreads", () => {
       defaultHeaders: {},
       onRequest: expect.any(Function),
     });
-    const args = searchMock.mock.calls[0][0];
-    expect(args).not.toHaveProperty("metadata");
-    expect(args).toMatchObject({ limit: 20, offset: 0, sortBy: "updated_at", sortOrder: "desc" });
+    expect(searchMock).toHaveBeenCalledWith(
+      expect.objectContaining({ metadata: { graph_id: "career_agent" } })
+    );
+  });
+
+  it("honours the caller's agent over the stored default", async () => {
+    getConfigMock.mockReturnValue(baseConfig);
+    searchMock.mockResolvedValue([]);
+
+    renderHook(() => useThreads({ graphId: "analytics_agent" }), { wrapper: makeWrapper() });
+    await waitFor(() => expect(searchMock).toHaveBeenCalled());
+
+    expect(searchMock).toHaveBeenCalledWith(
+      expect.objectContaining({ metadata: { graph_id: "analytics_agent" } })
+    );
+  });
+
+  it("carries each thread's own graph id through to the item", async () => {
+    getConfigMock.mockReturnValue(baseConfig);
+    searchMock.mockResolvedValue([makeThread({ metadata: { graph_id: "analytics_agent" } })]);
+
+    const { result } = renderHook(() => useThreads({ graphId: "career_agent" }), {
+      wrapper: makeWrapper(),
+    });
+    await waitFor(() => expect(result.current.data?.[0]).toHaveLength(1));
+
+    expect(result.current.data?.[0][0].graphId).toBe("analytics_agent");
   });
 
   it("maps threads to titles and descriptions with truncation", async () => {
@@ -135,7 +165,9 @@ describe("useThreads", () => {
       }),
     ]);
 
-    const { result } = renderHook(() => useThreads({}), { wrapper: makeWrapper() });
+    const { result } = renderHook(() => useThreads({ graphId: "career_agent" }), {
+      wrapper: makeWrapper(),
+    });
     await waitFor(() => expect(result.current.data?.[0]).toHaveLength(2));
 
     const [first, second] = result.current.data![0];
@@ -146,6 +178,7 @@ describe("useThreads", () => {
       title: "a".repeat(50) + "...",
       description: "b".repeat(100),
       assistantId: "career_agent",
+      graphId: "career_agent",
     });
     // Array-of-blocks content resolves through the first block's text; short
     // titles get no ellipsis and the ai description is never suffixed.
@@ -164,7 +197,9 @@ describe("useThreads", () => {
       makeThread({ thread_id: "feedface-0000-4000-8000-000000000000", values: null }),
     ]);
 
-    const { result } = renderHook(() => useThreads({}), { wrapper: makeWrapper() });
+    const { result } = renderHook(() => useThreads({ graphId: "career_agent" }), {
+      wrapper: makeWrapper(),
+    });
     await waitFor(() => expect(result.current.data?.[0]).toHaveLength(2));
 
     const [broken, missing] = result.current.data![0];
@@ -185,7 +220,9 @@ describe("useThreads", () => {
         : []
     );
 
-    const { result } = renderHook(() => useThreads({ limit: 2 }), { wrapper: makeWrapper() });
+    const { result } = renderHook(() => useThreads({ graphId: "career_agent", limit: 2 }), {
+      wrapper: makeWrapper(),
+    });
     await waitFor(() => expect(result.current.data?.[0]).toHaveLength(2));
 
     await act(async () => {

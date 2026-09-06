@@ -77,6 +77,9 @@ importers:
       pg:
         specifier: ^8.23.0
         version: 8.23.0
+      plotly.js:
+        specifier: npm:plotly.js-cartesian-dist-min@^4.0.0
+        version: plotly.js-cartesian-dist-min@4.0.0
       react:
         specifier: 19.2.8
         version: 19.2.8
@@ -86,6 +89,9 @@ importers:
       react-markdown:
         specifier: ^10.1.0
         version: 10.1.0(@types/react@19.2.18)(react@19.2.8)
+      react-plotly.js:
+        specifier: ^4.1.0
+        version: 4.1.0(plotly.js-cartesian-dist-min@4.0.0)(react@19.2.8)
       react-resizable-panels:
         specifier: ^4.12.3
         version: 4.12.3(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
@@ -138,12 +144,18 @@ importers:
       '@types/pg':
         specifier: ^8.23.1
         version: 8.23.1
+      '@types/plotly.js':
+        specifier: ^3.0.13
+        version: 3.0.13
       '@types/react':
         specifier: ^19.2.18
         version: 19.2.18
       '@types/react-dom':
         specifier: ^19.2.7
         version: 19.2.7(@types/react@19.2.18)
+      '@types/react-plotly.js':
+        specifier: ^2.6.4
+        version: 2.6.4
       '@vitejs/plugin-react':
         specifier: ^6.1.1
         version: 6.1.1(vite@8.2.2(@types/node@24.13.3)(jiti@2.7.0)(sass@1.99.0))
@@ -1489,6 +1501,9 @@ packages:
   '@types/pg@8.23.1':
     resolution: {integrity: sha512-fKVHpikPdg4GKks3JuLEhvwSyvwzF23hnabPy6DD8ljVbC7+6J5dQzdv4arV6jqq57djnMgs1HKBxX4P8aBI3A==}
 
+  '@types/plotly.js@3.0.13':
+    resolution: {integrity: sha512-mWI1NZRDHDoiFiPEvUjR0P12fv21kmT8XSLrEjfNwIDahELaXXkSz38n6o+5SYsq0YEGxkK3ANqqM0cRl8uZdg==}
+
   '@types/prismjs@1.26.6':
     resolution: {integrity: sha512-vqlvI7qlMvcCBbVe0AKAb4f97//Hy0EBTaiW8AalRnG/xAN5zOiWWyrNqNXeq8+KAuvRewjCVY1+IPxk4RdNYw==}
 
@@ -1496,6 +1511,9 @@ packages:
     resolution: {integrity: sha512-I8bPpDLcHBv1qiIiXDCy71Rt8eQDKJP0sMSWJphDdAcdqiJ1sGpZamavoEIRZmYzjia9LuEb2HlYdDpmoENpvQ==}
     peerDependencies:
       '@types/react': ^19.2.0
+
+  '@types/react-plotly.js@2.6.4':
+    resolution: {integrity: sha512-AU6w1u3qEGM0NmBA69PaOgNc0KPFA/+qkH6Uu9EBTJ45/WYOUoXi9AF5O15PRM2klpHSiHAAs4WnlI+OZAFmUA==}
 
   '@types/react-syntax-highlighter@15.5.13':
     resolution: {integrity: sha512-uLGJ87j6Sz8UaBAooU0T6lWJ0dBmjZgN1PZTrj05TNql2/XpC6+4HhMT5syIdFUUt+FASfCeLLv4kBygNU+8qA==}
@@ -2737,6 +2755,9 @@ packages:
     resolution: {integrity: sha512-qcJu88Q2IWqJsDD529JKMdwGm/dvInW4HvQnRwiH9JtihJvzGOscDtHE3x1pBKeUOTysQ8kVmLnJ2kJu7yhcGA==}
     engines: {node: '>=12'}
 
+  plotly.js-cartesian-dist-min@4.0.0:
+    resolution: {integrity: sha512-E92EYametOeltzD3pdiTLngtTjA+lNBdTAe0zk8Jdzto+9ZCHxUxJ/lTnpbOGpfTDE+vCus8kaKxpdzPkxARUA==}
+
   postcss@8.5.23:
     resolution: {integrity: sha512-g50586zr4bZmwFiTlflMu8E0bDTb5I5gertgwAKmsdUlTQIhZtunzUlD1WSzwcVWPoAVpsrA6vlfCD7oXvRwgg==}
     engines: {node: ^10 || ^12 || >=14}
@@ -2856,6 +2877,13 @@ packages:
     peerDependencies:
       '@types/react': '>=18'
       react: '>=18'
+
+  react-plotly.js@4.1.0:
+    resolution: {integrity: sha512-+CJA9xOY4UjH1RnRqQnpBGoFSzsrB/e7CR4k8AMQ20RkBlXjqkiIVLdIA5N1hinEVdoTdhaS6krKEARyfSixXg==}
+    engines: {node: '>=18'}
+    peerDependencies:
+      plotly.js: '>=3.0.0'
+      react: ^18.0.0 || ^19.0.0
 
   react-remove-scroll-bar@2.3.8:
     resolution: {integrity: sha512-9r+yi9+mgU33AKcj6IbT9oRCO78WriSj6t/cF8DWBZJ9aOGPOTEDvdUDz1FwKim7QXWwmHqtdHnRJfhAxEG46Q==}
@@ -4459,10 +4487,17 @@ snapshots:
       pg-protocol: 1.16.0
       pg-types: 2.2.0
 
+  '@types/plotly.js@3.0.13': {}
+
   '@types/prismjs@1.26.6': {}
 
   '@types/react-dom@19.2.7(@types/react@19.2.18)':
     dependencies:
+      '@types/react': 19.2.18
+
+  '@types/react-plotly.js@2.6.4':
+    dependencies:
+      '@types/plotly.js': 3.0.13
       '@types/react': 19.2.18
 
   '@types/react-syntax-highlighter@15.5.13':
@@ -5800,6 +5835,8 @@ snapshots:
 
   picomatch@4.0.7: {}
 
+  plotly.js-cartesian-dist-min@4.0.0: {}
+
   postcss@8.5.23:
     dependencies:
       nanoid: 3.3.18
@@ -5868,6 +5905,11 @@ snapshots:
       vfile: 6.0.3
     transitivePeerDependencies:
       - supports-color
+
+  react-plotly.js@4.1.0(plotly.js-cartesian-dist-min@4.0.0)(react@19.2.8):
+    dependencies:
+      plotly.js: plotly.js-cartesian-dist-min@4.0.0
+      react: 19.2.8
 
   react-remove-scroll-bar@2.3.8(@types/react@19.2.18)(react@19.2.8):
     dependencies:

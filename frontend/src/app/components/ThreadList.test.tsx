@@ -42,7 +42,7 @@ function renderList(
   const onThreadSelect = props.onThreadSelect ?? vi.fn();
   const utils = render(
     <NuqsTestingAdapter searchParams={searchParams}>
-      <ThreadList onThreadSelect={onThreadSelect} {...props} />
+      <ThreadList graphId="career_agent" onThreadSelect={onThreadSelect} {...props} />
     </NuqsTestingAdapter>
   );
   return { ...utils, onThreadSelect };
@@ -105,12 +105,20 @@ describe("ThreadList", () => {
     vi.mocked(useThreads).mockReturnValue(swrState({ data: [[threadItem("t-1")]] }));
     renderList();
 
-    expect(vi.mocked(useThreads)).toHaveBeenCalledWith({ status: undefined, limit: 20 });
+    expect(vi.mocked(useThreads)).toHaveBeenCalledWith({
+      graphId: "career_agent",
+      status: undefined,
+      limit: 20,
+    });
 
     await user.click(screen.getByRole("combobox"));
     await user.click(await screen.findByRole("option", { name: "Error" }));
 
-    expect(vi.mocked(useThreads)).toHaveBeenLastCalledWith({ status: "error", limit: 20 });
+    expect(vi.mocked(useThreads)).toHaveBeenLastCalledWith({
+      graphId: "career_agent",
+      status: "error",
+      limit: 20,
+    });
   });
 
   it("invokes onThreadSelect with the thread id when a thread is clicked", async () => {
