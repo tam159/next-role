@@ -8,11 +8,10 @@
 ![Superset](https://img.shields.io/badge/Superset-BI-20A7C9?logo=apachesuperset&logoColor=white)
 
 The analytics platform behind NextRole: it turns the career agent's operational data (users,
-conversations, agent runs, tool calls, tokens) into governed metrics and dashboards, and lays the
-metadata foundation for an analytics agent that will answer questions about the product in natural
-language. It is Phase 0 of the [analytics platform blueprint](../docs/ideas/analytics-platform-plan.html):
-one open-source stack, the same containers from laptop to production, chosen so nothing has to be
-migrated later.
+conversations, agent runs, tool calls, tokens) into governed metrics and dashboards, and powers an
+analytics agent that answers questions about the product in natural language. It is Phase 0 of the
+[analytics platform blueprint](../docs/ideas/analytics-platform-plan.html): one open-source stack,
+the same containers from laptop to production, chosen so nothing has to be migrated later.
 
 > This page is the overview for people and AI assistants. The working guide — tooling, layout,
 > dev loop, warehouse gotchas — is [`CLAUDE.md`](CLAUDE.md).
@@ -42,7 +41,7 @@ Five principles from the blueprint shape every layer:
    the warehouse, so the app's JSON can evolve without breaking extractors.
 2. **One stack you operate.** ClickHouse, Dagster, dbt, Cube and Superset are the stack from the
    first commit — dev and prod differ by hardware, not dialect.
-3. **The warehouse is the source of truth**; BI and (later) the agent are lenses over the same marts.
+3. **The warehouse is the source of truth**; BI and the agent are lenses over the same marts.
 4. **Governance rides the pipeline.** Descriptions, PII tags, tests and lineage are emitted by dbt
    and Dagster, not documented by hand.
 5. **Structure and metrics, never document bodies.** See [Privacy by construction](#privacy-by-construction).
@@ -71,7 +70,7 @@ LLM can consume directly.
 
 Cube owns the *metrics*: measures, dimensions, joins and curated views over the gold marts, each with
 a description plus `meta` hints (synonyms, units, formulas, example questions, caveats). This is the
-vocabulary the future analytics agent reads through `/cubejs-api/v1/meta`, and the same definitions
+vocabulary the analytics agent reads through `/cubejs-api/v1/meta`, and the same definitions
 serve BI through a Postgres-wire SQL API — so a number means the same thing everywhere.
 
 <img alt="Cube Core data-model view of cubes/runs.yml with descriptions, meta hints, joins and dimensions" src="../docs/images/analytics-cube-core.png" width="100%">
@@ -130,7 +129,7 @@ keeps it fresh from there. Host ports come from `.env`:
 | dbt docs | `http://localhost:<DBT_DOCS_LOCAL_PORT>/` | The data dictionary and column-level lineage |
 | ClickHouse | `http://localhost:<CLICKHOUSE_HTTP_LOCAL_PORT>/play` | Ad-hoc SQL against bronze, staging and marts |
 
-Budget roughly 2–4 GB of RAM for the six long-running containers. Editing the pipeline, refreshing
+Budget roughly 2–4 GB of RAM for the seven long-running containers. Editing the pipeline, refreshing
 docs, and the warehouse's quirks are covered in [`CLAUDE.md`](CLAUDE.md).
 
 ## Metadata for the analytics agent

@@ -110,7 +110,7 @@ docker ps                     # read the 0.0.0.0:<host>->... mappings
 
 **Object storage.** Binary artifacts (uploads + rendered PDFs) live in S3-compatible object storage. Locally that's the compose `object-store` service (SeaweedFS) and the presets work as-is: S3 API on `OBJECT_STORE_LOCAL_PORT`, a browsable bucket UI on `OBJECT_STORE_UI_LOCAL_PORT`, and placeholder credentials that the local emulator accepts but doesn't enforce. For the cloud, point `OBJECT_STORE_ENDPOINT` / `OBJECT_STORE_BUCKET` / credentials at a managed bucket — AWS S3, GCS, Azure, or any S3-compatible store — with no code changes. Note: the `AWS_*` variables are reserved for Bedrock models; the object store reads only `OBJECT_STORE_*`.
 
-**Analytics.** A self-contained analytics stack ([`docs/ideas/analytics-platform-plan.html`](docs/ideas/analytics-platform-plan.html) Phase 0) rides the same compose file: dlt extracts the operational Postgres into a ClickHouse warehouse (structure and metrics only — chat/CV text never lands there), dbt models it into star-schema marts, Cube serves the metric definitions, and Superset ships a seeded **NextRole Overview** dashboard (users, threads & runs, reliability, tokens + estimated cost), all orchestrated by Dagster on an hourly schedule. Fill the three `generate:` secrets in the analytics block of `.env`, then after first boot trigger the initial pipeline run once — `docker compose exec dagster-daemon dagster asset materialize --select "*" -m nextrole_analytics.definitions` (or "Materialize all" in the Dagster UI on `DAGSTER_LOCAL_PORT`) — and log into Superset on `SUPERSET_LOCAL_PORT` with `SUPERSET_ADMIN_USERNAME`/`SUPERSET_ADMIN_PASSWORD`. Cube's Playground is on `CUBE_LOCAL_PORT`, the generated dbt docs site (model/column catalog + lineage) on `DBT_DOCS_LOCAL_PORT`, ClickHouse's query UI on `CLICKHOUSE_HTTP_LOCAL_PORT``/play`. Budget ~2–4 GB extra RAM; overview and screenshots in [`analytics/README.md`](analytics/README.md), developer guide in [`analytics/CLAUDE.md`](analytics/CLAUDE.md). Product analytics (PostHog) and LLM-trace storage (Langfuse) are deliberate follow-ups per the blueprint.
+**Analytics.** A self-contained analytics stack ([`docs/ideas/analytics-platform-plan.html`](docs/ideas/analytics-platform-plan.html) Phase 0) rides the same compose file: dlt extracts the operational Postgres into a ClickHouse warehouse (structure and metrics only — chat/CV text never lands there), dbt models it into star-schema marts, Cube serves the metric definitions, and Superset ships a seeded **NextRole Overview** dashboard (users, threads & runs, reliability, tokens + estimated cost), all orchestrated by Dagster on an hourly schedule. Fill the three `generate:` secrets in the analytics block of `.env`, then after first boot trigger the initial pipeline run once — `docker compose exec dagster-daemon dagster asset materialize --select "*" -m nextrole_analytics.definitions` (or "Materialize all" in the Dagster UI on `DAGSTER_LOCAL_PORT`) — and log into Superset on `SUPERSET_LOCAL_PORT` with `SUPERSET_ADMIN_USERNAME`/`SUPERSET_ADMIN_PASSWORD`. Cube's Playground is on `CUBE_LOCAL_PORT`, the generated dbt docs site (model/column catalog + lineage) on `DBT_DOCS_LOCAL_PORT`, ClickHouse's query UI on `http://localhost:<CLICKHOUSE_HTTP_LOCAL_PORT>/play`. Budget ~2–4 GB extra RAM; overview and screenshots in [`analytics/README.md`](analytics/README.md), developer guide in [`analytics/CLAUDE.md`](analytics/CLAUDE.md). Product analytics (PostHog) and LLM-trace storage (Langfuse) are deliberate follow-ups per the blueprint.
 
 **Analytics agent.** A second agent, picked from the agent switcher in the top bar, answers questions about the product itself — activity, reliability, LLM cost, agent behaviour — by querying the warehouse above and drawing the answer. It reads the marts' own documentation (dbt descriptions, Cube metric definitions, ClickHouse schema) before writing SQL, and charts persist with the conversation, so reopening a thread months later still shows them. It connects as a dedicated ClickHouse user with SELECT on the marts and staging databases only, under a settings profile whose limits it cannot raise — generate `CLICKHOUSE_AGENT_PASSWORD` alongside the other analytics secrets. Because it reads every user's activity, access is an explicit allowlist: with auth on, list the user ids or emails allowed to run it in `ANALYTICS_AGENT_ALLOWED_USERS` (empty denies everyone; single-user deployments are unaffected). Details in [`backend/agents/analytics_agent/README.md`](backend/agents/analytics_agent/README.md).
 
@@ -145,7 +145,7 @@ Output quality tracks the model you pick — smaller local models trade some qua
 - **Code edits** hot-reload in both containers — just save the file.
 - **Add a frontend dep:** `pnpm --dir frontend add <pkg>` → `docker compose restart frontend`
 - **Add a backend dep:** `uv add <pkg>` → `docker compose up -d --build backend`
-- **Change `.env`:** `docker compose restart <service>`
+- **Change `.env`:** `docker compose up -d <service>` (recreates the container with the new values)
 - **Stop:** `docker compose down` (add `-v` to wipe the DB, Redis, object-storage, warehouse, Dagster & Superset volumes)
 
 </details>
@@ -158,7 +158,7 @@ NextRole is a **supervisor agent orchestrating three specialist subagents** on L
 
 ## How It Works
 
-A five-stage pipeline. Stage 4 runs the resume tailor and interview coach **in parallel**; Stage 6 routes follow-up edits to whichever agent owns the target file.
+A five-stage generation pipeline. Stage 4 runs the resume tailor and interview coach **in parallel**; after generation, Stage 6 routes follow-up edits to whichever agent owns the target file.
 
 ![How NextRole works](docs/images/next-role-how-it-works.png)
 
@@ -302,7 +302,7 @@ NextRole runs **zero-login single-user by default** — `docker compose up` and 
 | **Agent I/O** | Tavily (web search) · LlamaParse / LlamaCloud (document parsing) · `rendercv` (resume → PDF) · WeasyPrint (battlecard → PDF) |
 | **Frontend** | Next.js 16 · React 19 · TypeScript · Tailwind · `pnpm` · `@langchain/react` (v2 `useStream`) |
 | **Data** | PostgreSQL 18 + pgvector · Redis 8 · S3-compatible object storage (SeaweedFS locally; S3 / GCS / Azure in the cloud) |
-| **Infra** | Docker Compose (frontend · backend · core-server · postgres · redis · object-store) |
+| **Infra** | Docker Compose (app services · PostgreSQL · Redis · object storage · ClickHouse · Dagster · dbt docs · Cube · Superset) |
 | **Observability** | LangSmith |
 
 </details>
@@ -380,7 +380,7 @@ The same treatment exists for the product's *design history*: every feature ship
 
 ## Contributing
 
-PRs and issues are welcome! Start with **[`CONTRIBUTING.md`](CONTRIBUTING.md)** — it walks through the fork → PR workflow, local setup, the CI quality gate (code quality + backend tests + frontend tests), testing, and conventions. Stack-specific details live in [`backend/CLAUDE.md`](backend/CLAUDE.md) and [`frontend/CLAUDE.md`](frontend/CLAUDE.md); commits follow [Conventional Commits](https://www.conventionalcommits.org/).
+PRs and issues are welcome! Start with **[`CONTRIBUTING.md`](CONTRIBUTING.md)** — it walks through the fork → PR workflow, local setup, the CI quality gate (code quality + backend tests + frontend tests), testing, and conventions. Stack-specific details live in [`backend/CLAUDE.md`](backend/CLAUDE.md), [`frontend/CLAUDE.md`](frontend/CLAUDE.md), and [`analytics/CLAUDE.md`](analytics/CLAUDE.md); commits follow [Conventional Commits](https://www.conventionalcommits.org/).
 
 New here? Issues labelled [`good first issue`](https://github.com/tam159/next-role/labels/good%20first%20issue) are a gentle place to start, and questions are welcome in [Discussions](https://github.com/tam159/next-role/discussions).
 

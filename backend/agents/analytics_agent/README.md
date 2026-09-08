@@ -76,14 +76,17 @@ agents/analytics_agent/
 ├── access.py              the admin allowlist
 ├── middleware.py          the gate that ends a run before the model sees it
 └── skills/analytics-agent/
-    ├── warehouse-analysis/  discovery loop, query safety, dialect + recipes
-    └── charts/              chart selection, dashboards, the Python fallback
+    ├── warehouse-analysis/
+    │   ├── SKILL.md          discovery loop and query safety
+    │   └── references/       ClickHouse dialect and question recipes
+    └── charts/
+        └── SKILL.md          chart selection, dashboards, the Python fallback
 ```
 
 Shared plumbing is imported from `career_agent/` rather than duplicated: the model override and
-UTC-date middleware, the shell backend factory, the execute-approval policy, and the
-object-storage key builders. Only `career_agent/agents.py` builds a graph at import, and nothing
-here imports it.
+UTC-date middleware, shell backend factory, execute-approval policy, object backend, scoping, and
+object-key mapping. Only `career_agent/agents.py` builds a graph at import, and nothing here
+imports it.
 
 ## Tools
 
