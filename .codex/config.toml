@@ -10,16 +10,6 @@ bearer_token_env_var = "PERSONAL_GITHUB_PAT_TOKEN"
 [mcp_servers.docs-langchain]
 url = "https://docs.langchain.com/mcp"
 
-[mcp_servers.llama-index-docs]
-command = "uvx"
-args = [
-    "--from",
-    "mcpdoc",
-    "mcpdoc",
-    "--urls",
-    "LlamaIndex:https://developers.llamaindex.ai/llms.txt",
-]
-
 [mcp_servers.next-role-postgres]
 command = "sh"
 args = [
