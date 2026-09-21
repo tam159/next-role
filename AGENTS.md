@@ -33,6 +33,19 @@ Per-feature design docs are an [OKF](https://github.com/GoogleCloudPlatform/know
 
 Every skill under `.claude/skills/<name>/` (Claude Code) has a byte-identical Codex mirror under `.agents/skills/<name>/`. Edit one copy, then `cp` it over the other; keep the wording agent-neutral (no "Claude"/"Codex" in the body) and reference the `AGENTS.md` files, which every agent loads natively. The `.agents` side may carry Codex-only extras (`agents/openai.yaml`, the `current-docs` skill) that are not mirrored back. The `skill-mirror-sync` pre-commit hook (`scripts/check-skill-mirrors.sh`, also run by the hygiene CI job) fails on any drift and prints the fix.
 
+## Library docs — use Context7
+
+Use the Context7 MCP server to fetch current documentation whenever the task involves a library, framework, SDK, API, CLI tool, or cloud service — even well-known ones like React, Next.js, Prisma, Express, Tailwind, Django, or Spring Boot. This covers API syntax, configuration, version migration, library-specific debugging, setup instructions, and CLI usage. Use it even when you think you know the answer — training data may not reflect recent releases. Prefer it over web search for library docs.
+
+Don't use it for refactoring, writing scripts from scratch, debugging business logic, code review, or general programming concepts.
+
+1. Call `resolve-library-id` with `libraryName` in its official spelling and punctuation (`Next.js`, not `nextjs`; `Three.js`, not `threejs`) and `query` describing what you're trying to accomplish — the query ranks the matches, so it isn't optional. Skip this step only when the user already gave an ID as `/org/project` or `/org/project/version`.
+2. Pick the match on name similarity, description relevance, code-snippet count, source reputation (High/Medium are the authoritative ones), and benchmark score (100 is the top). Use the version-specific ID when the user names a version. If nothing fits, rephrase or try the alternate name — never invent an ID.
+3. Call `query-docs` with that `libraryId` and a `query` scoped to a single concept. Split a multi-topic question into one call per concept: "how to set up JWT auth in Express" is right, "routing and auth and caching in Next.js" is too broad and "auth" is too vague. Keep them together only when the question is about how the concepts interact.
+4. Answer from the fetched docs.
+
+Both tools cap at **3 calls per question**; past that, work with the best result you have. Queries are sent to the Context7 API, so never put credentials, personal data (CVs, job descriptions, anything from `upload/`), or proprietary source into one.
+
 ## Local development
 
 The local stack runs in Docker via `docker compose up -d`. To find host ports for any running service:
