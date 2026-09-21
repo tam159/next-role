@@ -14,7 +14,7 @@ analytics agent that answers questions about the product in natural language. It
 the same containers from laptop to production, chosen so nothing has to be migrated later.
 
 > This page is the overview for people and AI assistants. The working guide — tooling, layout,
-> dev loop, warehouse gotchas — is [`CLAUDE.md`](CLAUDE.md).
+> dev loop, warehouse gotchas — is [`AGENTS.md`](AGENTS.md).
 
 ## Architecture
 
@@ -130,7 +130,7 @@ keeps it fresh from there. Host ports come from `.env`:
 | ClickHouse | `http://localhost:<CLICKHOUSE_HTTP_LOCAL_PORT>/play` | Ad-hoc SQL against bronze, staging and marts |
 
 Budget roughly 2–4 GB of RAM for the seven long-running containers. Editing the pipeline, refreshing
-docs, and the warehouse's quirks are covered in [`CLAUDE.md`](CLAUDE.md).
+docs, and the warehouse's quirks are covered in [`AGENTS.md`](AGENTS.md).
 
 ## Metadata for the analytics agent
 

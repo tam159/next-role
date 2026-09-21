@@ -1,4 +1,4 @@
-# NextRole analytics — the Dagster code-location image (see analytics/CLAUDE.md).
+# NextRole analytics — the Dagster code-location image (see analytics/AGENTS.md).
 # One image, two compose services: `dagster-webserver` (UI + GraphQL) and
 # `dagster-daemon` (schedules + run launcher). Both parse the dbt project into a
 # container-local manifest at boot, then exec their dagster process.

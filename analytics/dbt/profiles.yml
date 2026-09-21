@@ -1,6 +1,6 @@
 # Committed on purpose: fully env-driven (no secrets in the file). The compose
 # services set DBT_PROFILES_DIR to this directory; host-side runs need the
-# ANALYTICS_CH_* variables exported (see analytics/CLAUDE.md).
+# ANALYTICS_CH_* variables exported (see analytics/AGENTS.md).
 nextrole_clickhouse:
   target: dev
   outputs:

@@ -13,7 +13,7 @@ description = "NextRole analytics platform: dlt + dbt + Dagster pipelines, Cube 
 authors = [
   {name = "Tam Nguyen", email = "npt.dc@outlook.com"}
 ]
-readme = "CLAUDE.md"
+readme = "AGENTS.md"
 # Ceiling from dagster-dbt (<3.14); everything else supports 3.13.
 requires-python = ">=3.13,<3.14"
 dependencies = [

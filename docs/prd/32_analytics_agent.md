@@ -108,7 +108,7 @@ skill carries workflow; `references/` carries the long tail.
 - **A Cube `/v1/load` query tool.** Cube is read for metric definitions only. Worth adding if metric drift between hand-written SQL and Cube's definitions becomes a real cost.
 - **Trace types outside Plotly's cartesian bundle** — sankey, funnel, waterfall, treemap, 3D. The agent would store one and the card would render empty; switching bundles costs 3 MB.
 - **A dashboard surface** beyond the Workspace file list and markdown reports in `/reports/`.
-- **Live LLM evals.** Golden questions ship as a documented manual script in the package README; `backend/CLAUDE.md` still bars the `eval` marker.
+- **Live LLM evals.** Golden questions ship as a documented manual script in the package README; `backend/AGENTS.md` still bars the `eval` marker.
 - **Moving shared plumbing to `agents/shared/`.** The analytics agent imports scope, storage, middleware and the shell backend from `career_agent/`; a move would touch ~15 test files for no behavioural gain.
 
 # How to verify end-to-end

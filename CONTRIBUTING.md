@@ -13,7 +13,7 @@ reviews.
 - 🐛 **Report a bug** — open an issue with the **Bug report** template.
 - 💡 **Propose a feature** — open an issue with the **Feature request** template, ideally before
   writing code, so we can align on scope.
-- 📝 **Improve docs** — README, `CLAUDE.md` files, and design docs in `docs/prd/` all welcome fixes.
+- 📝 **Improve docs** — README, `AGENTS.md` files, and design docs in `docs/prd/` all welcome fixes.
 - 🔧 **Send a pull request** — see the workflow below.
 
 New here? Issues labelled [`good first issue`](https://github.com/tam159/next-role/labels/good%20first%20issue)
@@ -52,8 +52,8 @@ rebuild when you change dependencies or `.env`; see the **Dev workflow** section
 
 Stack-specific tooling lives in the per-app guides — read these before diving in:
 
-- Backend (Python, `uv`, tests, ruff/ty): [`backend/CLAUDE.md`](backend/CLAUDE.md)
-- Frontend (Next.js, `pnpm`, eslint/prettier): [`frontend/CLAUDE.md`](frontend/CLAUDE.md)
+- Backend (Python, `uv`, tests, ruff/ty): [`backend/AGENTS.md`](backend/AGENTS.md)
+- Frontend (Next.js, `pnpm`, eslint/prettier): [`frontend/AGENTS.md`](frontend/AGENTS.md)
 
 ## Pull request workflow
 
@@ -109,7 +109,7 @@ integration tests, and LLM evals are deferred.
 
 ### Backend (pytest)
 
-Full details (layout, markers, async mode) are in [`backend/CLAUDE.md`](backend/CLAUDE.md#testing).
+Full details (layout, markers, async mode) are in [`backend/AGENTS.md`](backend/AGENTS.md#testing).
 The essentials:
 
 - Tests mirror the source tree: `app/<pkg>/<module>.py` → `tests/<pkg>/test_<module>.py`.
@@ -130,7 +130,7 @@ uv run pytest -m integration               # integration tests (needs the local 
 ### Frontend (Vitest)
 
 Full details (environments, mocking conventions) are in
-[`frontend/CLAUDE.md`](frontend/CLAUDE.md#testing). The essentials:
+[`frontend/AGENTS.md`](frontend/AGENTS.md#testing). The essentials:
 
 - Tests are **colocated**: `src/**/<module>.test.ts(x)` sits next to the file it covers.
 - The file extension picks the environment: `.test.ts` runs in node (pure modules, API route

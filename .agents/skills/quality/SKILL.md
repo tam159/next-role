@@ -5,7 +5,7 @@ description: Run the repo's quality gate — pre-commit on the files you changed
 
 # Quality
 
-Run validation the way `CLAUDE.md` defines it for this repo. Two modes — pick by scope, not habit.
+Run validation the way `AGENTS.md` defines it for this repo. Two modes — pick by scope, not habit.
 
 ## Changed-file check (default after edits)
 

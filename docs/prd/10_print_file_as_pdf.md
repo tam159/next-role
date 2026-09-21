@@ -25,7 +25,7 @@ The button is shown for **markdown, text/code, and DOCX**. It's hidden for alrea
 
 Why this shape rather than a PDF library or printing the dialog directly:
 
-- **No PDF dependency.** Adding `jspdf`/`@react-pdf` etc. would require a container restart per `frontend/CLAUDE.md` and pull a heavyweight dep for what `window.print()` already does. Hash through the OS's "Save as PDF" instead.
+- **No PDF dependency.** Adding `jspdf`/`@react-pdf` etc. would require a container restart per `frontend/AGENTS.md` and pull a heavyweight dep for what `window.print()` already does. Hash through the OS's "Save as PDF" instead.
 - **Iframe, not new tab.** A new tab loses focus from the workspace; the user said so explicitly during review. A 0×0 hidden iframe keeps the user in place — the browser's print dialog overlays the current tab. Same-origin iframes share `sessionStorage` with the parent, so passing the rendered content needs no API call.
 - **Dedicated print route.** Radix `Dialog` lives in a portal inside a `max-h-[80vh]` ScrollArea — printing the dialog itself would clip content. The `/print/file` route reuses `MarkdownContent` and `SyntaxHighlighter` so we don't duplicate rendering; it applies its own print CSS in isolation.
 

@@ -15,7 +15,7 @@ The backend has had pytest and a required `backend-tests` check since early on; 
 
 # What the user sees
 
-Developer-facing only. `pnpm test` / `test:watch` / `test:coverage` in `frontend/`; test files colocated next to their source (`foo.test.ts(x)`); a `frontend-tests` check on every PR that **skip-passes on backend-only and docs-only changes**. The PR template's test checklist now names both stacks, and testing docs live in `frontend/CLAUDE.md#testing` (conventions), `CONTRIBUTING.md#testing` (workflow), and `frontend/README.md`. Deliberately absent: tests do **not** run in pre-commit (matches the backend convention — tests are CI's job, hooks stay fast) and there is no coverage threshold gate.
+Developer-facing only. `pnpm test` / `test:watch` / `test:coverage` in `frontend/`; test files colocated next to their source (`foo.test.ts(x)`); a `frontend-tests` check on every PR that **skip-passes on backend-only and docs-only changes**. The PR template's test checklist now names both stacks, and testing docs live in `frontend/AGENTS.md#testing` (conventions), `CONTRIBUTING.md#testing` (workflow), and `frontend/README.md`. Deliberately absent: tests do **not** run in pre-commit (matches the backend convention — tests are CI's job, hooks stay fast) and there is no coverage threshold gate.
 
 # How — the key architectural choices
 

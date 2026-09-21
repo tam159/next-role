@@ -433,7 +433,7 @@ restored by the worker, so storage scoping (§8) holds on `api-worker` pods exac
   by-design — S608 SQL built from trusted internal templates (the data plane owns its
   schema), S104 servers binding 0.0.0.0 inside containers, S311 `random` for retry jitter,
   S110/S112 best-effort cleanup paths. Nothing user-input-reachable.
-- **Tests:** the server packages carry no mirrored unit tests (see `backend/CLAUDE.md`) —
+- **Tests:** the server packages carry no mirrored unit tests (see `backend/AGENTS.md`) —
   importing server modules requires env scaffolding (`REDIS_URI` at import), and the
   correctness bar is the e2e contract: `backend/tests/server/test_smoke.py`
   (integration-marked) plus the frontend round-trip.

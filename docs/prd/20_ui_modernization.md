@@ -47,7 +47,7 @@ Deliberate negative space: the **assistant pill is a read-only "team" roster, no
 | Workspace cards (chip/progress/file color/sources) | `frontend/src/app/components/workspace/*`, `TasksFilesSidebar.tsx` (`FileCard`) |
 | Clickable file paths | `frontend/src/providers/FilePreviewProvider.tsx`, `frontend/src/app/utils/filePaths.ts`, `MarkdownContent.tsx` |
 | Hide dev indicator | `frontend/next.config.ts` (`devIndicators: false`) |
-| Design-system spec + pointer | `frontend/DESIGN.md`, `frontend/CLAUDE.md` |
+| Design-system spec + pointer | `frontend/DESIGN.md`, `frontend/AGENTS.md` |
 
 # Decisions worth remembering
 
@@ -58,7 +58,7 @@ Deliberate negative space: the **assistant pill is a read-only "team" roster, no
 - **Clickable file paths are validated against the real file set.** A remark plugin (`remarkFilePaths`) wraps path-like text, but `MarkdownContent` only renders a link when `FilePreviewProvider.resolveFile` matches an existing file — so a hallucinated/misspelled path (`/procesed/x.md`) stays plain text. Two non-obvious fixes: react-markdown's default `urlTransform` sanitized our `nextrole-file:` sentinel scheme to an empty href (pass a custom `urlTransform`), and opening the Radix preview modal synchronously from the triggering click self-dismissed it (defer with `setTimeout(0)`).
 - **Files are colored by folder category, not file type (user reverted a type-based cut).** Keeps the [PRD 09](09_file_category_colors.md) grouping (`getFileCategory` → `iconVar`) so a folder's artifacts share a hue; the new format badge (PDF/JSON/YAML/MD) carries the type. The palette migrated with the theme; `tailored_resume` now follows the accent.
 - **Composer attach is gated, not deleted.** `COMPOSER_ATTACH_ENABLED = false` hides the paperclip while keeping the upload code wired (flip to re-show); the redundant capability lives in Workspace → Files. The Next.js "N" indicator is hidden via `devIndicators: false` (errors still report) rather than an env toggle, because the frontend container only receives the explicit `NEXT_PUBLIC_*` vars.
-- **`DESIGN.md` lives in `frontend/`, referenced (not `@import`-ed) from `frontend/CLAUDE.md`.** Co-located with the code it documents (matching the per-app CLAUDE.md convention); a pointer instead of a CLAUDE.md `@import` keeps the ~600-line spec out of every session's context until design work actually needs it.
+- **`DESIGN.md` lives in `frontend/`, referenced (not `@import`-ed) from `frontend/AGENTS.md`.** Co-located with the code it documents (matching the per-app AGENTS.md convention); a pointer instead of a AGENTS.md `@import` keeps the ~600-line spec out of every session's context until design work actually needs it.
 
 # Deferred (intentional non-goals for v1)
 
