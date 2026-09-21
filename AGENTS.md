@@ -2,6 +2,8 @@
 
 This file provides guidance to AI coding agents (Claude Code, Codex, Cursor, …) when working with code in this repository. Claude Code reads it natively from v2.1.277; Codex and Cursor read `AGENTS.md` by default.
 
+Caveat: Claude Code's `AGENTS.md` support is a feature-gated built-in plugin, and the gate is never reached on third-party providers (Bedrock, Vertex, Foundry) — those sessions silently load no `AGENTS.md` at all. Check with `claude plugin list`; if `agents-md` is absent, install it from [`anthropics/claude-code/mods/agents-md`](https://github.com/anthropics/claude-code/tree/main/mods/agents-md) and set `CLAUDE_CODE_ENABLE_FUNCTION_HOOKS=1`.
+
 Don't add a `CLAUDE.md` or `CLAUDE.local.md` anywhere at or above the repo root — either one makes Claude Code read that file *instead of* every `AGENTS.md` here, silently dropping this guidance. Personal, uncommitted preferences belong in `~/.claude/CLAUDE.md`, which loads alongside `AGENTS.md` rather than suppressing it.
 
 NextRole is a GenAI career assistant. See `README.md` for product overview.
