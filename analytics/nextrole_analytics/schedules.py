@@ -1,7 +1,7 @@
 """The one job + schedule that materializes the whole asset graph.
 
 Hourly keeps dashboards ≤1h stale — which is also the resolution of the
-message first-seen event-time ledger (see analytics/CLAUDE.md). The schedule
+message first-seen event-time ledger (see analytics/AGENTS.md). The schedule
 defaults to RUNNING so a fresh ``docker compose up`` needs no UI toggling.
 """
 

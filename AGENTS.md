@@ -1,21 +1,23 @@
-## CLAUDE.md
+## AGENTS.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+This file provides guidance to AI coding agents (Claude Code, Codex, Cursor, …) when working with code in this repository. Claude Code reads it natively from v2.1.277; Codex and Cursor read `AGENTS.md` by default.
+
+Don't add a `CLAUDE.md` or `CLAUDE.local.md` anywhere at or above the repo root — either one makes Claude Code read that file *instead of* every `AGENTS.md` here, silently dropping this guidance. Personal, uncommitted preferences belong in `~/.claude/CLAUDE.md`, which loads alongside `AGENTS.md` rather than suppressing it.
 
 NextRole is a GenAI career assistant. See `README.md` for product overview.
 
 ## Layout
 
-Monorepo with three top-level apps. Each has its own `CLAUDE.md` with stack-specific guidance:
+Monorepo with three top-level apps. Each has its own `AGENTS.md` with stack-specific guidance:
 
-- `backend/` — Python 3.13, `uv`, FastAPI-style agents (LangChain / LangGraph / DeepAgents). See `@backend/CLAUDE.md`.
-- `frontend/` — Next.js 16, React 19, TypeScript, Tailwind, `pnpm`. See `@frontend/CLAUDE.md`.
-- `analytics/` — Python 3.13, `uv`; dlt + dbt + Dagster pipelines into ClickHouse, Cube models, Superset bootstrap. See `@analytics/CLAUDE.md`.
+- `backend/` — Python 3.13, `uv`, FastAPI-style agents (LangChain / LangGraph / DeepAgents). See `@backend/AGENTS.md`.
+- `frontend/` — Next.js 16, React 19, TypeScript, Tailwind, `pnpm`. See `@frontend/AGENTS.md`.
+- `analytics/` — Python 3.13, `uv`; dlt + dbt + Dagster pipelines into ClickHouse, Cube models, Superset bootstrap. See `@analytics/AGENTS.md`.
 - `docker-compose.yml` runs the full local stack.
 
 ## `.ua/` — generated codebase graph (never read)
 
-`.ua/` holds a generated [Understand-Anything](https://github.com/Egonex-AI/Understand-Anything) knowledge graph that humans browse in a dashboard (README → "Explore the codebase graph"). Never read, grep, glob, or index anything under `.ua/` — it is megabytes of generated JSON that wastes context and goes stale. Answer from the real source code and the checked-in `*.md` docs instead. Claude Code additionally hard-blocks it via the `Read(/.ua/**)` deny rule in `.claude/settings.json`, and Cursor via `.cursorignore`; for tools with no enforced ignore mechanism (e.g. Codex, which loads this file through `project_doc_fallback_filenames`), this instruction is the only guard.
+`.ua/` holds a generated [Understand-Anything](https://github.com/Egonex-AI/Understand-Anything) knowledge graph that humans browse in a dashboard (README → "Explore the codebase graph"). Never read, grep, glob, or index anything under `.ua/` — it is megabytes of generated JSON that wastes context and goes stale. Answer from the real source code and the checked-in `*.md` docs instead. Claude Code additionally hard-blocks it via the `Read(/.ua/**)` deny rule in `.claude/settings.json`, and Cursor via `.cursorignore`; for tools with no enforced ignore mechanism (e.g. Codex, which reads this file as its project doc), this instruction is the only guard.
 
 ## `docs/prd/` — feature PRDs (OKF knowledge bundle)
 
@@ -27,7 +29,7 @@ Per-feature design docs are an [OKF](https://github.com/GoogleCloudPlatform/know
 
 ## `.claude/skills/` and `.agents/skills/` — mirrored agent skills
 
-Every skill under `.claude/skills/<name>/` (Claude Code) has a byte-identical Codex mirror under `.agents/skills/<name>/`. Edit one copy, then `cp` it over the other; keep the wording agent-neutral (no "Claude"/"Codex" in the body) and reference the `CLAUDE.md` files, which Codex also loads via `project_doc_fallback_filenames`. The `.agents` side may carry Codex-only extras (`agents/openai.yaml`, the `current-docs` skill) that are not mirrored back. The `skill-mirror-sync` pre-commit hook (`scripts/check-skill-mirrors.sh`, also run by the hygiene CI job) fails on any drift and prints the fix.
+Every skill under `.claude/skills/<name>/` (Claude Code) has a byte-identical Codex mirror under `.agents/skills/<name>/`. Edit one copy, then `cp` it over the other; keep the wording agent-neutral (no "Claude"/"Codex" in the body) and reference the `AGENTS.md` files, which every agent loads natively. The `.agents` side may carry Codex-only extras (`agents/openai.yaml`, the `current-docs` skill) that are not mirrored back. The `skill-mirror-sync` pre-commit hook (`scripts/check-skill-mirrors.sh`, also run by the hygiene CI job) fails on any drift and prints the fix.
 
 ## Local development
 

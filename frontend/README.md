@@ -92,10 +92,10 @@ runs in jsdom (hooks, providers, components). The suite is a required CI check (
 and never touches the network. Backend validation for `/files/*` is covered in
 [`backend/tests/test_files_api.py`](../backend/tests/test_files_api.py).
 
-Conventions, mocking rules, and gotchas live in [`CLAUDE.md`](CLAUDE.md#testing); the contributor workflow is in the root [`CONTRIBUTING.md`](../CONTRIBUTING.md#testing).
+Conventions, mocking rules, and gotchas live in [`AGENTS.md`](AGENTS.md#testing); the contributor workflow is in the root [`CONTRIBUTING.md`](../CONTRIBUTING.md#testing).
 
 ## Related docs
 
-- [`CLAUDE.md`](CLAUDE.md) — stack conventions: tooling, style, testing, and the `@langchain/react` ↔ `@langchain/langgraph-sdk` lockstep upgrade rule.
+- [`AGENTS.md`](AGENTS.md) — stack conventions: tooling, style, testing, and the `@langchain/react` ↔ `@langchain/langgraph-sdk` lockstep upgrade rule.
 - [`DESIGN.md`](DESIGN.md) — the design system: tokens, typography, spacing, and per-component specs.
 - [Root README](../README.md) — product overview, architecture, and quick start.

@@ -1,4 +1,4 @@
-# analytics/CLAUDE.md
+# analytics/AGENTS.md
 
 Python 3.13 analytics app executing `docs/ideas/analytics-platform-plan.html` Phase 0: dlt
 extraction → ClickHouse warehouse → dbt models → Cube semantic layer → Superset dashboards,

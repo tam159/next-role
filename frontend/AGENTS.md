@@ -1,4 +1,4 @@
-# frontend/CLAUDE.md
+# frontend/AGENTS.md
 
 Next.js 16 (App Router, Turbopack) + React 19 + TypeScript + Tailwind. Talks to the backend agents via `@langchain/react` (the `useStream` v2 runtime + scoped selector hooks) with `@langchain/langgraph-sdk` for the raw `Client` (threads/store APIs) and shared types.
 

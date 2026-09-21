@@ -1,4 +1,4 @@
-# backend/CLAUDE.md
+# backend/AGENTS.md
 
 Python 3.13 backend. Built on LangChain / LangGraph / DeepAgents for the career-agent workflow.
 
@@ -56,7 +56,7 @@ Everything under `server/` (`api`, `runtime`, `runtime_postgres`, `grpc_common`,
   - Run at least the matching test file to confirm green before reporting work as done. Run the full default suite for cross-cutting changes.
 - **Integration tests** (tagged `@pytest.mark.integration`):
   - Use for code whose behavior depends on the live DB/Redis/HTTP — pgvector queries, real transactions, multi-statement flows. Mocking these would lie.
-  - Connect to the local stack via `POSTGRES_URI` / `REDIS_URI` from `.env`. Stack-up handling is in the root [Local development](../CLAUDE.md#local-development) section.
+  - Connect to the local stack via `POSTGRES_URI` / `REDIS_URI` from `.env`. Stack-up handling is in the root [Local development](../AGENTS.md#local-development) section.
   - Tests must clean up after themselves (use a transaction that rolls back, or delete inserted rows in a fixture teardown). Don't pollute the dev DB.
   - Skipped from the default run by `addopts = "... -m 'not integration and not eval'"` in `pyproject.toml`. Run them manually with `-m integration` when relevant; CI will run them later.
 - **Async**: `asyncio_mode = "auto"` is set in `pyproject.toml`, so write `async def test_...` directly — no `@pytest.mark.asyncio` decorator needed.

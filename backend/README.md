@@ -40,7 +40,7 @@ backend/
 
 Everything under `server/` runs under deliberately relaxed lint/type gates; `agents/` and
 `tests/` keep the repo's full strict bar. House rules for touching server code are in
-[`CLAUDE.md`](CLAUDE.md).
+[`AGENTS.md`](AGENTS.md).
 
 ## Running
 
@@ -57,7 +57,7 @@ docker compose up -d          # app, data, object-storage, and analytics service
 
 ## Development
 
-Tooling is `uv`-only (see [`CLAUDE.md`](CLAUDE.md) for the full conventions):
+Tooling is `uv`-only (see [`AGENTS.md`](AGENTS.md) for the full conventions):
 
 ```bash
 uv sync                      # install deps (from backend/)

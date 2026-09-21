@@ -278,7 +278,7 @@ services:
   # ============================ Analytics stack ============================
   # ClickHouse + Dagster + Cube + Superset (docs/ideas/analytics-platform-plan.html
   # Phase 0). Strictly additive: nothing below gates the app services above.
-  # Pipeline/model code lives in analytics/ (see analytics/CLAUDE.md).
+  # Pipeline/model code lives in analytics/ (see analytics/AGENTS.md).
 
   # Columnar warehouse for product analytics: dlt lands bronze (raw_app___*/
   # raw_auth___* tables), dbt builds nextrole_staging/nextrole_marts. Single

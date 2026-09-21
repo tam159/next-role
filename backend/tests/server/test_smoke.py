@@ -1,6 +1,6 @@
 """End-to-end smoke tests for the agent server.
 
-The server packages carry no mirrored unit tests (see backend/CLAUDE.md,
+The server packages carry no mirrored unit tests (see backend/AGENTS.md,
 "Server packages") — these integration checks against the running local
 stack are the regression net for the server and future dependency bumps.
 

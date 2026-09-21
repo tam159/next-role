@@ -4,7 +4,7 @@ Import-time requirements (mirrors the backend's config-import gotcha):
 ``ANALYTICS_SOURCE_PG_URI`` must be set (the dlt sources are built here) and the
 dbt manifest must exist at ``DBT_MANIFEST_PATH`` — both are guaranteed by the
 compose services' environment/command; for host-side ``dagster dev`` see
-analytics/CLAUDE.md.
+analytics/AGENTS.md.
 """
 
 from __future__ import annotations

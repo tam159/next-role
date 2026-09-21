@@ -9,7 +9,7 @@ Upgrade the frontend's pnpm dependencies in revertable waves, preserving exact-p
 
 - **Exact pins stay exact.** `react`, `react-dom`, and `@langchain/langgraph-sdk` have no `^` in `package.json`. Upgrade them with `pnpm --dir frontend add -E pkg@x.y.z`; everything else gets a new `^` floor (`pnpm --dir frontend add pkg@^x.y.z`).
 - **A held-back line needs a `~` range.** `^x.y.z` admits every later minor, and pnpm resolves the highest match — `pnpm add better-auth@^1.6.30` installed 1.7.2, the version being held back. When a package must stay on its current minor (schema migration, peer gate), pin `~x.y.z`, say so under "Held back", and restore `^` in the PR that lifts the hold. Always read the `+ pkg x.y.z` line pnpm prints after `add` — it is the installed version, not the range you typed.
-- **One resolved version per dep.** The lockfile must not carry two copies of anything that crosses a package boundary (the `@langchain/langgraph-sdk` single-copy invariant in `frontend/CLAUDE.md` is the critical one; `scripts/check-langchain-sdk-sync.mjs` guards it).
+- **One resolved version per dep.** The lockfile must not carry two copies of anything that crosses a package boundary (the `@langchain/langgraph-sdk` single-copy invariant in `frontend/AGENTS.md` is the critical one; `scripts/check-langchain-sdk-sync.mjs` guards it).
 - **One commit per wave** (majors: one per package) so any regression reverts surgically.
 - **Lockfile changes need `docker compose restart frontend`; source edits hot-reload.** Never restart for source-only changes; never skip the restart after `pnpm add/remove`.
 - **`@types/node` tracks the Docker runtime**, not npm `latest`. Read the major from `frontend/Dockerfile`'s `FROM node:XX-alpine` and stay on `@types/node@^XX`. Document it under "Held back".
@@ -81,7 +81,7 @@ Gate G + restart + a quick browser smoke (page loads, open an existing thread). 
 
 ### 4. Wave: @langchain/react + langgraph-sdk lockstep
 
-Follow the protocol in `frontend/CLAUDE.md` exactly: bump `@langchain/react` first, read its pinned SDK version (`pnpm view "@langchain/react@<ver>" dependencies`), then `pnpm --dir frontend add -E @langchain/langgraph-sdk@<that-version>`, then:
+Follow the protocol in `frontend/AGENTS.md` exactly: bump `@langchain/react` first, read its pinned SDK version (`pnpm view "@langchain/react@<ver>" dependencies`), then `pnpm --dir frontend add -E @langchain/langgraph-sdk@<that-version>`, then:
 
 ```bash
 pnpm --dir frontend run check:sdk-sync   # must print "single copy"
@@ -130,7 +130,7 @@ Push  using `gh` or `git push` (already uses the right SSH identity), open the P
 - **Upgraded:** direct deps with old → new (the wave commits are the ledger).
 - **Removed:** with the verification evidence (zero imports / config-only / dead config).
 - **Held back:** package, available version, and the concrete blocker (peer range, runtime match, failed gate + revert).
-- Surprises that cost time — they're the seed of the next CLAUDE.md/skill update.
+- Surprises that cost time — they're the seed of the next AGENTS.md/skill update.
 
 ## Gotchas
 

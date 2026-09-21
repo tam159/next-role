@@ -84,7 +84,7 @@ fine.
   (1.9.20, plus `@langchain/core` `^1.1.48` per peers). Installing `@langchain/react` alone left
   two SDK copies in node_modules; a `Client` constructed from one copy crossing into the other's
   `StreamController` breaks instance identity. Keep them locked together on every future bump
-  (noted in `frontend/CLAUDE.md`).
+  (noted in `frontend/AGENTS.md`).
 - **Hold `threadId` back until the assistant resolves.** Found in browser testing: on reload the
   controller hydrated the URL's thread with `assistantId: ""` (assistant still fetching) and threw
   `ThreadStream requires an assistantId option` — the legacy hook tolerated the empty string. Fix
