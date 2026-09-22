@@ -8,7 +8,7 @@ timestamp: '2026-07-18T12:50:07+07:00'
 
 # What this folder is
 
-One PRD per shipped feature — the *why*, the user-visible surface, the key architectural choices, and the decisions the code can't explain. The folder is a knowledge bundle in the [Open Knowledge Format (OKF)](https://github.com/GoogleCloudPlatform/knowledge-catalog/tree/main/okf): every document carries YAML frontmatter (`type`, `title`, `description`, `tags`, `timestamp`, plus `status`/`scope`/`version`), and the relative links between documents form a graph of how features extend and supersede each other.
+One PRD per shipped feature — the *why*, the user-visible surface, the key architectural choices, and the decisions the code can't explain. The folder is a knowledge bundle in the [Open Knowledge Format (OKF)](https://github.com/GoogleCloudPlatform/open-knowledge-format): every document carries YAML frontmatter (`type`, `title`, `description`, `tags`, `timestamp`, plus `status`/`scope`/`version`), and the relative links between documents form a graph of how features extend and supersede each other.
 
 Two audiences, two entry points:
 
@@ -23,11 +23,11 @@ Open `docs/prd/viz.html` in a browser — it's committed, self-contained, and ne
 
 ```bash
 # From the repo root — needs only uv (installs the OKF tooling on first run):
-uvx --from "git+https://github.com/GoogleCloudPlatform/knowledge-catalog.git#subdirectory=okf" \
+uvx --from "git+https://github.com/GoogleCloudPlatform/open-knowledge-format.git" \
   reference-agent visualize --bundle docs/prd --name "NextRole PRDs"
 ```
 
-stderr reports `Wrote N concept(s), M edge(s), … → docs/prd/viz.html` — N should equal the PRD count plus one (this guide). If you have a local clone of the [knowledge-catalog repo](https://github.com/GoogleCloudPlatform/knowledge-catalog), `uvx --from /path/to/knowledge-catalog/okf reference-agent visualize …` works offline.
+stderr reports `Wrote N concept(s), M edge(s), … → docs/prd/viz.html` — N should equal the PRD count plus one (this guide). If you have a local clone of the [open-knowledge-format repo](https://github.com/GoogleCloudPlatform/open-knowledge-format), `uvx --from /path/to/open-knowledge-format reference-agent visualize …` works offline once the required dependencies are cached.
 
 ![NextRole PRD knowledge graph — feature PRDs and their extends/supersedes lineage in the OKF viewer](../images/next-role-prd-graph.png)
 
@@ -53,7 +53,7 @@ stderr reports `Wrote N concept(s), M edge(s), … → docs/prd/viz.html` — N 
 2. Add the PRD's line to `index.md` (title-alphabetical within the `# PRD` section, description copied from frontmatter). To rebuild the index from scratch instead:
 
    ```bash
-   uvx --from "git+https://github.com/GoogleCloudPlatform/knowledge-catalog.git#subdirectory=okf" \
+   uvx --from "git+https://github.com/GoogleCloudPlatform/open-knowledge-format.git" \
      python -c "from pathlib import Path; from reference_agent.bundle.index import regenerate_indexes; regenerate_indexes(Path('docs/prd'))"
    ```
 

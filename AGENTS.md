@@ -19,7 +19,7 @@ Monorepo with three top-level apps. Each has its own `AGENTS.md` with stack-spec
 
 ## `docs/prd/` — feature PRDs (OKF knowledge bundle)
 
-Per-feature design docs are an [OKF](https://github.com/GoogleCloudPlatform/knowledge-catalog/tree/main/okf) bundle: markdown + YAML frontmatter (`type`, `title`, `description`, `tags`, `status`, …). Read them with progressive disclosure to save tokens:
+Per-feature design docs are an [OKF](https://github.com/GoogleCloudPlatform/open-knowledge-format) bundle: markdown + YAML frontmatter (`type`, `title`, `description`, `tags`, `status`, …). Read them with progressive disclosure to save tokens:
 
 1. Start at `docs/prd/index.md` — one line per PRD (title + description). Don't bulk-read the folder.
 2. Open only the PRDs relevant to your task; follow their relative `Extends:`/`Supersedes:` links for lineage.
