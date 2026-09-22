@@ -376,7 +376,7 @@ The graph is **for humans**: AI coding assistants are configured to ignore `.ua/
 
 </details>
 
-The same treatment exists for the product's *design history*: every feature ships with a PRD in [`docs/prd/`](docs/prd/) — an [OKF](https://github.com/GoogleCloudPlatform/knowledge-catalog/tree/main/okf) knowledge bundle whose committed interactive graph (`docs/prd/viz.html`) maps how features extend and supersede each other. The codebase graph maps the *code*; the PRD graph maps the *decisions*. See [`docs/prd/README.md`](docs/prd/README.md) to browse or regenerate it.
+The same treatment exists for the product's *design history*: every feature ships with a PRD in [`docs/prd/`](docs/prd/) — an [OKF](https://github.com/GoogleCloudPlatform/open-knowledge-format) knowledge bundle whose committed interactive graph (`docs/prd/viz.html`) maps how features extend and supersede each other. The codebase graph maps the *code*; the PRD graph maps the *decisions*. See [`docs/prd/README.md`](docs/prd/README.md) to browse or regenerate it.
 
 ## Contributing
 
