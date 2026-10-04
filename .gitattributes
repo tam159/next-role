@@ -1,1 +1,13 @@
 backend/server/grpc_common/proto/** linguist-generated=true
+
+# Imported agent tooling is not application source, including its mirrored copy.
+.claude/skills/archify/** linguist-vendored=true
+.claude/skills/archify-review/** linguist-vendored=true
+.claude/skills/drawio-skill/** linguist-vendored=true
+.agents/skills/archify/** linguist-vendored=true
+.agents/skills/archify-review/** linguist-vendored=true
+.agents/skills/drawio-skill/** linguist-vendored=true
+
+# Diagram sources, viewers, and validation artifacts are project documentation.
+.archify/** linguist-documentation=true
+docs/diagrams/** linguist-documentation=true
