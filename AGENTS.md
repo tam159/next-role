@@ -27,7 +27,7 @@ Per-feature design docs are an [OKF](https://github.com/GoogleCloudPlatform/open
 
 ## `.claude/skills/` and `.agents/skills/` — mirrored agent skills
 
-Every skill under `.claude/skills/<name>/` (Claude Code) has a byte-identical Codex mirror under `.agents/skills/<name>/`. Edit one copy, then `cp` it over the other; keep the wording agent-neutral (no "Claude"/"Codex" in the body) and reference the `AGENTS.md` files, which every agent loads natively. The `.agents` side may carry Codex-only extras (`agents/openai.yaml`, the `current-docs` skill) that are not mirrored back. The `skill-mirror-sync` pre-commit hook (`scripts/check-skill-mirrors.sh`, also run by the hygiene CI job) fails on any drift and prints the fix.
+Every skill under `.claude/skills/<name>/` (Claude Code) has a byte-identical Codex mirror under `.agents/skills/<name>/`. Treat `.claude/skills` as canonical: edit it, then run `scripts/check-skill-mirrors.sh --sync` to update `.agents/skills`; keep the wording agent-neutral (no "Claude"/"Codex" in the body) and reference the `AGENTS.md` files, which every agent loads natively. The `.agents` side may carry Codex-only extras (`agents/openai.yaml`, the `current-docs` skill) that are not mirrored back. The `skill-mirror-sync` pre-commit hook (`scripts/check-skill-mirrors.sh`, also run by the hygiene CI job) fails on any drift and prints the fix.
 
 ## Library docs — use Context7
 
