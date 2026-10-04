@@ -19,6 +19,12 @@
       "skillPath": ".agents/skills/archify-review/SKILL.md",
       "computedHash": "ea17fd7a735f2e787defcc35d67f97908ddb7c5817220d6163a32998b4573f8f"
     },
+    "drawio-skill": {
+      "source": "Agents365-ai/drawio-skill",
+      "sourceType": "github",
+      "skillPath": "skills/drawio-skill/SKILL.md",
+      "computedHash": "1ec9d43f48f9bea066ace6cfbfdd62ac7be133f24d0129205d7e144eef3476d6"
+    },
     "frontend-design": {
       "source": "anthropics/skills",
       "sourceType": "github",

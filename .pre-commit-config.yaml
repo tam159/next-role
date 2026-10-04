@@ -6,10 +6,12 @@ repos:
     hooks:
       # .ua/ is a generated knowledge graph — keep it byte-identical to what
       # the generator wrote (gitleaks & large-file checks still cover it).
+      # Preserve imported diagram skills and .archify artifacts byte-for-byte;
+      # their fixtures and validation receipts depend on the original content.
       - id: trailing-whitespace
-        exclude: '\.(svg|csv)$|^\.ua/'
+        exclude: '\.(svg|csv)$|^\.ua/|^\.archify/|^\.agents/skills/(archify|archify-review|drawio-skill)/'
       - id: end-of-file-fixer
-        exclude: '\.(svg|csv)$|^\.ua/'
+        exclude: '\.(svg|csv)$|^\.ua/|^\.archify/|^\.agents/skills/(archify|archify-review|drawio-skill)/'
       - id: check-yaml
       - id: check-added-large-files
         args: ["--maxkb=2500"]
@@ -30,11 +32,12 @@ repos:
         name: Backend Ruff Lint
         args: [--fix, --exit-non-zero-on-fix]
         types_or: [ python, pyi, jupyter, pyproject ]
-        exclude: ^backend/server/grpc_common/proto/
+        # Imported third-party scripts retain their upstream coding conventions.
+        exclude: ^backend/server/grpc_common/proto/|^\.agents/skills/drawio-skill/
       - id: ruff-format
         name: Backend Ruff Format
         types_or: [ python, pyi, jupyter, pyproject ]
-        exclude: ^backend/server/grpc_common/proto/
+        exclude: ^backend/server/grpc_common/proto/|^\.agents/skills/drawio-skill/
 
   - repo: local
     hooks:
