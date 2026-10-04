@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "9d45fb30-0359-4d70-a2fd-b94b8a5dcda4",
+  "status": "current",
+  "command": "deliver",
+  "type": "workflow",
+  "input": "/Users/may/tech/next-role/.archify/workflow-analytics-agent-20261003-112801/candidate.json",
+  "output": "/Users/may/tech/next-role/.archify/workflow-analytics-agent-20261003-112801/analytics-agent.html",
+  "specification": {
+    "sha256": "8d843c0ffba011074aadecc45ef6bd68e430402d05427d15ed7ed40921f3adbf",
+    "bytes": 10191
+  },
+  "artifact": {
+    "sha256": "9c3b0bc7826968bce57b5e4783b5c443be94c590e2b90088dbafe88af488713e",
+    "bytes": 768156
+  }
+}

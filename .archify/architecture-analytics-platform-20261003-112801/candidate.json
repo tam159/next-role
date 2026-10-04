@@ -1,0 +1,471 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "NextRole Analytics Platform",
+    "output": ".archify/architecture-analytics-platform-20261003-112801/analytics-platform.html",
+    "quality_profile": "showcase",
+    "repository": {
+      "url": "git@github.com:tam159/next-role.git",
+      "revision": "30cc0bcf692a57905b737d7b313ff23fb177053d",
+      "link_mode": "local-only"
+    }
+  },
+  "components": [
+    {
+      "id": "postgres",
+      "type": "database",
+      "label": "Operational Postgres",
+      "sublabel": "Runtime + Better Auth",
+      "pos": [
+        40,
+        80
+      ],
+      "size": [
+        210,
+        76
+      ],
+      "sources": [
+        {
+          "path": "analytics/nextrole_analytics/dlt_sources/app_source.py",
+          "line": 84,
+          "end_line": 110
+        },
+        {
+          "path": "analytics/nextrole_analytics/dlt_sources/auth_source.py",
+          "line": 36,
+          "end_line": 48
+        }
+      ]
+    },
+    {
+      "id": "extract",
+      "type": "backend",
+      "label": "dlt extraction",
+      "sublabel": "Shape before warehouse load",
+      "pos": [
+        400,
+        80
+      ],
+      "size": [
+        210,
+        76
+      ],
+      "sources": [
+        {
+          "path": "analytics/nextrole_analytics/assets_dlt.py",
+          "line": 26,
+          "end_line": 65
+        },
+        {
+          "path": "analytics/nextrole_analytics/dlt_sources/transforms.py",
+          "line": 1,
+          "end_line": 8
+        },
+        {
+          "path": "analytics/nextrole_analytics/dlt_sources/app_source.py",
+          "line": 168,
+          "end_line": 174
+        }
+      ]
+    },
+    {
+      "id": "bronze",
+      "type": "database",
+      "label": "ClickHouse bronze",
+      "sublabel": "raw_app + raw_auth",
+      "pos": [
+        760,
+        80
+      ],
+      "size": [
+        210,
+        76
+      ],
+      "sources": [
+        {
+          "path": "analytics/nextrole_analytics/assets_dlt.py",
+          "line": 26,
+          "end_line": 41
+        }
+      ]
+    },
+    {
+      "id": "dagster",
+      "type": "backend",
+      "label": "Dagster",
+      "sublabel": "Hourly at minute 07",
+      "pos": [
+        400,
+        300
+      ],
+      "size": [
+        210,
+        76
+      ],
+      "sources": [
+        {
+          "path": "analytics/nextrole_analytics/schedules.py",
+          "line": 12,
+          "end_line": 18
+        },
+        {
+          "path": "analytics/nextrole_analytics/assets_dlt.py",
+          "line": 44,
+          "end_line": 65
+        },
+        {
+          "path": "analytics/nextrole_analytics/assets_dbt.py",
+          "line": 27,
+          "end_line": 30
+        }
+      ]
+    },
+    {
+      "id": "dbt",
+      "type": "backend",
+      "label": "dbt build",
+      "sublabel": "Seeds + models + tests",
+      "pos": [
+        760,
+        300
+      ],
+      "size": [
+        210,
+        76
+      ],
+      "sources": [
+        {
+          "path": "analytics/nextrole_analytics/assets_dbt.py",
+          "line": 27,
+          "end_line": 30
+        },
+        {
+          "path": "analytics/dbt/dbt_project.yml",
+          "line": 17,
+          "end_line": 39
+        }
+      ]
+    },
+    {
+      "id": "warehouse",
+      "type": "database",
+      "label": "Curated ClickHouse",
+      "sublabel": "Staging + marts + prices",
+      "pos": [
+        760,
+        520
+      ],
+      "size": [
+        210,
+        76
+      ],
+      "sources": [
+        {
+          "path": "analytics/dbt/dbt_project.yml",
+          "line": 17,
+          "end_line": 39
+        },
+        {
+          "path": "backend/agents/analytics_agent/ANALYTICS_AGENT.md",
+          "line": 19,
+          "end_line": 31
+        },
+        {
+          "path": "analytics/clickhouse/users.d/analytics-agent.xml",
+          "line": 13,
+          "end_line": 42
+        }
+      ]
+    },
+    {
+      "id": "superset",
+      "type": "frontend",
+      "label": "Superset dashboards",
+      "sublabel": "Seeded charts read marts",
+      "pos": [
+        1000,
+        520
+      ],
+      "size": [
+        190,
+        76
+      ],
+      "sources": [
+        {
+          "path": "docker-compose.yml",
+          "line": 599,
+          "end_line": 606
+        },
+        {
+          "path": "docs/prd/31_analytics_platform_phase0.md",
+          "line": 38,
+          "end_line": 42
+        }
+      ]
+    },
+    {
+      "id": "agent",
+      "type": "backend",
+      "label": "Analytics agent",
+      "sublabel": "Allowlisted when auth is on",
+      "pos": [
+        400,
+        520
+      ],
+      "size": [
+        210,
+        76
+      ],
+      "sources": [
+        {
+          "path": "backend/agents/analytics_agent/agents.py",
+          "line": 109,
+          "end_line": 134
+        },
+        {
+          "path": "backend/agents/analytics_agent/access.py",
+          "line": 39,
+          "end_line": 60
+        },
+        {
+          "path": "backend/agents/analytics_agent/warehouse.py",
+          "line": 275,
+          "end_line": 285
+        }
+      ]
+    },
+    {
+      "id": "chat",
+      "type": "frontend",
+      "label": "NextRole chat",
+      "sublabel": "Pick Analytics Agent",
+      "pos": [
+        40,
+        520
+      ],
+      "size": [
+        210,
+        76
+      ],
+      "sources": [
+        {
+          "path": "frontend/src/app/config/agents.ts",
+          "line": 21,
+          "end_line": 42
+        },
+        {
+          "path": "frontend/src/app/components/charts/ChartCard.tsx",
+          "line": 14,
+          "end_line": 32
+        }
+      ]
+    },
+    {
+      "id": "dictionary",
+      "type": "backend",
+      "label": "describe_data",
+      "sublabel": "Merged metadata; cached",
+      "pos": [
+        400,
+        760
+      ],
+      "size": [
+        210,
+        76
+      ],
+      "sources": [
+        {
+          "path": "backend/agents/analytics_agent/metadata.py",
+          "line": 298,
+          "end_line": 372
+        },
+        {
+          "path": "backend/agents/analytics_agent/tools.py",
+          "line": 62,
+          "end_line": 105
+        }
+      ]
+    },
+    {
+      "id": "cube",
+      "type": "backend",
+      "label": "Cube metric catalog",
+      "sublabel": "Formulas + synonyms + caveats",
+      "pos": [
+        760,
+        760
+      ],
+      "size": [
+        210,
+        76
+      ],
+      "sources": [
+        {
+          "path": "analytics/cube/model/cubes/runs.yml",
+          "line": 1,
+          "end_line": 33
+        },
+        {
+          "path": "backend/agents/analytics_agent/metadata.py",
+          "line": 155,
+          "end_line": 157
+        }
+      ]
+    },
+    {
+      "id": "docs",
+      "type": "backend",
+      "label": "dbt docs service",
+      "sublabel": "Manifest + catalog JSON",
+      "pos": [
+        40,
+        760
+      ],
+      "size": [
+        210,
+        76
+      ],
+      "sources": [
+        {
+          "path": "backend/agents/analytics_agent/metadata.py",
+          "line": 145,
+          "end_line": 152
+        },
+        {
+          "path": "docker-compose.yml",
+          "line": 477,
+          "end_line": 503
+        }
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "postgres-extract",
+      "from": "postgres",
+      "to": "extract",
+      "label": "Read-only extract",
+      "variant": "default"
+    },
+    {
+      "id": "extract-bronze",
+      "from": "extract",
+      "to": "bronze",
+      "label": "Shaped rows",
+      "variant": "default"
+    },
+    {
+      "id": "dagster-extract",
+      "from": "dagster",
+      "to": "extract",
+      "label": "Run dlt",
+      "variant": "dashed"
+    },
+    {
+      "id": "dagster-dbt",
+      "from": "dagster",
+      "to": "dbt",
+      "label": "Run build",
+      "variant": "dashed"
+    },
+    {
+      "id": "bronze-dbt",
+      "from": "bronze",
+      "to": "dbt",
+      "label": "Model inputs",
+      "variant": "default"
+    },
+    {
+      "id": "dbt-warehouse",
+      "from": "dbt",
+      "to": "warehouse",
+      "label": "Materialize",
+      "variant": "default"
+    },
+    {
+      "id": "superset-warehouse",
+      "from": "superset",
+      "to": "warehouse",
+      "label": "SQL",
+      "variant": "default"
+    },
+    {
+      "id": "chat-agent",
+      "from": "chat",
+      "to": "agent",
+      "label": "Question",
+      "variant": "emphasis"
+    },
+    {
+      "id": "agent-warehouse",
+      "from": "agent",
+      "to": "warehouse",
+      "label": "Restricted SQL",
+      "variant": "security"
+    },
+    {
+      "id": "agent-dictionary",
+      "from": "agent",
+      "to": "dictionary",
+      "label": "Discover",
+      "variant": "default"
+    },
+    {
+      "id": "docs-dictionary",
+      "from": "docs",
+      "to": "dictionary",
+      "label": "Table meaning",
+      "variant": "default"
+    },
+    {
+      "id": "cube-dictionary",
+      "from": "cube",
+      "to": "dictionary",
+      "label": "Metric meaning",
+      "variant": "default"
+    },
+    {
+      "id": "warehouse-dictionary",
+      "from": "warehouse",
+      "to": "dictionary",
+      "label": "Types + row counts",
+      "variant": "dashed"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "Read the two paths",
+      "items": [
+        "Top: Postgres \u2192 dlt \u2192 bronze \u2192 dbt \u2192 curated ClickHouse. Dagster owns orchestration.",
+        "Middle: select the analytics agent \u2192 discover semantics \u2192 query curated data \u2192 answer or chart. The companion workflow expands this path."
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "Privacy and warehouse access",
+      "items": [
+        "Extraction removes document/message bodies, run inputs, store values and checkpoint state before loading. Some identifiers and display names remain.",
+        "The analytics_agent database user has SELECT on staging and marts only: 30 seconds and 10,000 result rows, with server-enforced maxima."
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "Meaning and consumers",
+      "items": [
+        "dbt owns tables and column descriptions; Cube supplies metric definitions through /cubejs-api/v1/meta. The agent queries ClickHouse directly.",
+        "Cube also has a configured ClickHouse query backend and optional SQL Lab connection; neither is the seeded dashboard or agent SQL path."
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "Interpretation and scope",
+      "items": [
+        "The schedule is hourly, not real-time. Message first_seen_at records capture time; historical backfill shares the first capture window.",
+        "Cost is a list-price estimate; interrupted means approval pause. This is repository architecture, not a live health check.",
+        "Source snapshot: 30cc0bc. Existing local changes: skills-lock.json and untracked Archify/Archify Review skills; cited runtime files are committed."
+      ]
+    }
+  ]
+}

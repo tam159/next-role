@@ -1,0 +1,397 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "How the Analytics Agent Answers",
+    "output": ".archify/workflow-analytics-agent-20261003-112801/analytics-agent.html",
+    "quality_profile": "showcase",
+    "repository": {
+      "url": "git@github.com:tam159/next-role.git",
+      "revision": "30cc0bcf692a57905b737d7b313ff23fb177053d",
+      "link_mode": "local-only"
+    }
+  },
+  "lanes": [
+    {
+      "id": "analysis",
+      "label": "Question and reasoning"
+    },
+    {
+      "id": "policy",
+      "label": "Access refusal",
+      "variant": "exception"
+    },
+    {
+      "id": "publish",
+      "label": "Optional chart publication"
+    }
+  ],
+  "mainPath": [
+    "question",
+    "gate",
+    "discover",
+    "query",
+    "verify",
+    "answer"
+  ],
+  "nodes": [
+    {
+      "id": "question",
+      "lane": "analysis",
+      "col": 0,
+      "type": "frontend",
+      "label": "Ask a question",
+      "sublabel": "Analytics Agent selected",
+      "width": 138,
+      "height": 72,
+      "sources": [
+        {
+          "path": "frontend/src/app/config/agents.ts",
+          "line": 21,
+          "end_line": 42
+        }
+      ]
+    },
+    {
+      "id": "gate",
+      "lane": "analysis",
+      "col": 1,
+      "type": "security",
+      "label": "Check access",
+      "sublabel": "Before the model runs",
+      "width": 138,
+      "height": 72,
+      "sources": [
+        {
+          "path": "backend/agents/analytics_agent/middleware.py",
+          "line": 21,
+          "end_line": 48
+        },
+        {
+          "path": "backend/agents/analytics_agent/access.py",
+          "line": 39,
+          "end_line": 60
+        }
+      ]
+    },
+    {
+      "id": "discover",
+      "lane": "analysis",
+      "col": 2,
+      "type": "backend",
+      "label": "describe_data",
+      "sublabel": "Orient + inspect tables",
+      "width": 138,
+      "height": 72,
+      "sources": [
+        {
+          "path": "backend/agents/analytics_agent/tools.py",
+          "line": 62,
+          "end_line": 105
+        },
+        {
+          "path": "backend/agents/analytics_agent/metadata.py",
+          "line": 145,
+          "end_line": 180
+        },
+        {
+          "path": "backend/agents/analytics_agent/metadata.py",
+          "line": 298,
+          "end_line": 345
+        }
+      ]
+    },
+    {
+      "id": "query",
+      "lane": "analysis",
+      "col": 3,
+      "type": "backend",
+      "label": "run_sql",
+      "sublabel": "Count \u2192 sample \u2192 aggregate",
+      "width": 138,
+      "height": 72,
+      "sources": [
+        {
+          "path": "backend/agents/analytics_agent/tools.py",
+          "line": 119,
+          "end_line": 166
+        },
+        {
+          "path": "backend/agents/analytics_agent/warehouse.py",
+          "line": 301,
+          "end_line": 341
+        },
+        {
+          "path": "analytics/clickhouse/users.d/analytics-agent.xml",
+          "line": 13,
+          "end_line": 42
+        }
+      ]
+    },
+    {
+      "id": "verify",
+      "lane": "analysis",
+      "col": 4,
+      "type": "backend",
+      "label": "Verify the answer",
+      "sublabel": "Check grain + time window",
+      "width": 138,
+      "height": 72,
+      "sources": [
+        {
+          "path": "backend/agents/analytics_agent/skills/analytics-agent/warehouse-analysis/SKILL.md",
+          "line": 8,
+          "end_line": 25
+        }
+      ]
+    },
+    {
+      "id": "answer",
+      "lane": "analysis",
+      "col": 5,
+      "type": "frontend",
+      "label": "Answer + chart",
+      "sublabel": "Number, window, caveat",
+      "width": 138,
+      "height": 72,
+      "sources": [
+        {
+          "path": "backend/agents/analytics_agent/skills/analytics-agent/warehouse-analysis/SKILL.md",
+          "line": 85,
+          "end_line": 92
+        },
+        {
+          "path": "frontend/src/app/components/charts/ChartCard.tsx",
+          "line": 14,
+          "end_line": 32
+        },
+        {
+          "path": "frontend/src/app/lib/charts.ts",
+          "line": 96,
+          "end_line": 107
+        }
+      ]
+    },
+    {
+      "id": "refusal",
+      "lane": "policy",
+      "col": 1,
+      "type": "security",
+      "label": "Refuse and stop",
+      "sublabel": "No model or warehouse call",
+      "width": 138,
+      "height": 72,
+      "sources": [
+        {
+          "path": "backend/agents/analytics_agent/middleware.py",
+          "line": 42,
+          "end_line": 48
+        }
+      ]
+    },
+    {
+      "id": "python",
+      "lane": "publish",
+      "col": 3,
+      "type": "backend",
+      "label": "Python fallback",
+      "sublabel": "Approve if policy requires",
+      "width": 138,
+      "height": 72,
+      "sources": [
+        {
+          "path": "backend/agents/analytics_agent/tools.py",
+          "line": 151,
+          "end_line": 166
+        },
+        {
+          "path": "backend/agents/analytics_agent/agents.py",
+          "line": 130,
+          "end_line": 134
+        },
+        {
+          "path": "backend/agents/analytics_agent/skills/analytics-agent/charts/SKILL.md",
+          "line": 82,
+          "end_line": 100
+        }
+      ]
+    },
+    {
+      "id": "chart",
+      "lane": "publish",
+      "col": 4,
+      "type": "backend",
+      "label": "create_chart",
+      "sublabel": "Run SQL or load figure",
+      "width": 138,
+      "height": 72,
+      "sources": [
+        {
+          "path": "backend/agents/analytics_agent/tools.py",
+          "line": 195,
+          "end_line": 260
+        },
+        {
+          "path": "backend/agents/analytics_agent/tools.py",
+          "line": 362,
+          "end_line": 388
+        }
+      ]
+    },
+    {
+      "id": "artifact",
+      "lane": "publish",
+      "col": 5,
+      "type": "database",
+      "label": "Stored chart",
+      "sublabel": "Per-user object storage",
+      "width": 138,
+      "height": 72,
+      "sources": [
+        {
+          "path": "backend/agents/analytics_agent/agents.py",
+          "line": 55,
+          "end_line": 63
+        },
+        {
+          "path": "backend/agents/analytics_agent/tools.py",
+          "line": 373,
+          "end_line": 388
+        }
+      ]
+    }
+  ],
+  "edges": [
+    {
+      "id": "question-gate",
+      "from": "question",
+      "to": "gate",
+      "label": "Submit",
+      "variant": "default"
+    },
+    {
+      "id": "gate-discover",
+      "from": "gate",
+      "to": "discover",
+      "label": "Allowed",
+      "variant": "security"
+    },
+    {
+      "id": "gate-refusal",
+      "from": "gate",
+      "to": "refusal",
+      "label": "Denied",
+      "variant": "security"
+    },
+    {
+      "id": "discover-query",
+      "from": "discover",
+      "to": "query",
+      "label": "Write SQL",
+      "variant": "default"
+    },
+    {
+      "id": "query-verify",
+      "from": "query",
+      "to": "verify",
+      "label": "Rows",
+      "variant": "default"
+    },
+    {
+      "id": "verify-answer",
+      "from": "verify",
+      "to": "answer",
+      "label": "Text answer",
+      "variant": "emphasis"
+    },
+    {
+      "id": "query-discover",
+      "from": "query",
+      "to": "discover",
+      "label": "Error: inspect",
+      "variant": "dashed",
+      "role": "error",
+      "route": "up-channel",
+      "fromSide": "top",
+      "toSide": "top"
+    },
+    {
+      "id": "verify-query",
+      "from": "verify",
+      "to": "query",
+      "label": "Recheck",
+      "variant": "dashed",
+      "role": "return"
+    },
+    {
+      "id": "verify-chart",
+      "from": "verify",
+      "to": "chart",
+      "label": "Chart needed",
+      "variant": "default"
+    },
+    {
+      "id": "verify-python",
+      "from": "verify",
+      "to": "python",
+      "label": "Custom figure",
+      "variant": "dashed"
+    },
+    {
+      "id": "python-chart",
+      "from": "python",
+      "to": "chart",
+      "label": "Figure JSON",
+      "variant": "default"
+    },
+    {
+      "id": "chart-artifact",
+      "from": "chart",
+      "to": "artifact",
+      "label": "Write envelope",
+      "variant": "default"
+    },
+    {
+      "id": "artifact-answer",
+      "from": "artifact",
+      "to": "answer",
+      "label": "Fetch via files API",
+      "variant": "default"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "An iterative agent, not a fixed pipeline",
+      "items": [
+        "The LLM chooses tools using always-loaded warehouse rules and warehouse-analysis / charts skills. Discover, query, inspect and verify can repeat.",
+        "describe_data merges dbt manifest/catalog, Cube metadata and access-filtered ClickHouse system tables. Missing sources yield explicit notices; the cache can be refreshed."
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "Two separate access controls",
+      "items": [
+        "With authentication enabled, only configured user IDs/emails pass the allowlist. Single-user mode is allowed. Queries cover all users; no per-user row scoping.",
+        "run_sql checks one read statement and adds a display limit where needed. ClickHouse grants and constrained limits enforce access; errors return hints to the model."
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "Chart execution and persistence",
+      "items": [
+        "Normal create_chart(sql=...) runs the SQL again, validates rows/mapping, builds an envelope and writes /charts/<thread>/<slug>.plotly.json. Failures return errors for revision.",
+        "A custom figure uses run_sql(save_as=...), thread scratch and execute under the shared approval policy. When enabled, non-allowlisted commands pause; only approved execution proceeds.",
+        "The frontend reads the stored envelope through /files/read. Tool results in message history restore the card on reopening; Plotly renders charts, native components render tables/KPIs."
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "Example: failed runs by day",
+      "items": [
+        "Inspect fct_run \u2192 count/sample the date window \u2192 aggregate error/timeout by day \u2192 verify totals \u2192 create a bar chart \u2192 explain the comparison.",
+        "Treat interrupted as an approval pause. If no chart is useful, return the verified number with its window and caveat."
+      ]
+    }
+  ]
+}
