@@ -1,0 +1,318 @@
+{
+  "schema": "drawio-skill/diagram-ir/v1",
+  "metadata": {
+    "title": "02 Agent analysis",
+    "scope": "Current repository implementation; not a live deployment audit",
+    "verified_on": "2026-10-04"
+  },
+  "nodes": [
+    {
+      "id": "question",
+      "label": "<b>1 \u00b7 Ask a question</b><br><br><font style=\"font-size:15px\">Select Analytics Agent<br>Usage, reliability, cost\u2026</font>",
+      "kind": "external",
+      "properties": {
+        "scope": "implemented",
+        "source_path": "frontend/src/app/components/TopBar.tsx"
+      },
+      "provenance": {
+        "path": "frontend/src/app/components/TopBar.tsx"
+      },
+      "x": 60,
+      "y": 200,
+      "width": 240,
+      "height": 130,
+      "style": "rounded=1;arcSize=8;whiteSpace=wrap;html=1;fillColor=#F0ECE5;strokeColor=#9A9387;fontColor=#253A36;fontFamily=Helvetica;fontSize=19;spacing=14;strokeWidth=1.5;"
+    },
+    {
+      "id": "gate",
+      "label": "<b>2 \u00b7 Access gate</b><br><br><font style=\"font-size:15px\">Single-user: allowed<br>Multi-user: ID/email allowlist</font>",
+      "kind": "security",
+      "properties": {
+        "scope": "implemented",
+        "source_path": "backend/agents/analytics_agent/access.py"
+      },
+      "provenance": {
+        "path": "backend/agents/analytics_agent/access.py"
+      },
+      "x": 430,
+      "y": 200,
+      "width": 240,
+      "height": 130,
+      "style": "rounded=1;arcSize=8;whiteSpace=wrap;html=1;fillColor=#EEE5D7;strokeColor=#A17D4F;fontColor=#253A36;fontFamily=Helvetica;fontSize=19;spacing=14;strokeWidth=1.5;"
+    },
+    {
+      "id": "llm",
+      "label": "<b>3 \u00b7 Interpret</b><br><br><font style=\"font-size:15px\">Model + warehouse memory<br>Load analysis skills</font>",
+      "kind": "service",
+      "properties": {
+        "scope": "implemented",
+        "source_path": "backend/agents/analytics_agent/agents.py"
+      },
+      "provenance": {
+        "path": "backend/agents/analytics_agent/agents.py"
+      },
+      "x": 800,
+      "y": 200,
+      "width": 240,
+      "height": 130,
+      "style": "rounded=1;arcSize=8;whiteSpace=wrap;html=1;fillColor=#E9EFEC;strokeColor=#688B7B;fontColor=#253A36;fontFamily=Helvetica;fontSize=19;spacing=14;strokeWidth=1.5;"
+    },
+    {
+      "id": "describe",
+      "label": "<b>4 \u00b7 describe_data</b><br><br><font style=\"font-size:15px\">Orient, then inspect a table<br>Read grain + caveats</font>",
+      "kind": "service",
+      "properties": {
+        "scope": "implemented",
+        "source_path": "backend/agents/analytics_agent/tools.py"
+      },
+      "provenance": {
+        "path": "backend/agents/analytics_agent/tools.py"
+      },
+      "x": 1170,
+      "y": 200,
+      "width": 240,
+      "height": 130,
+      "style": "rounded=1;arcSize=8;whiteSpace=wrap;html=1;fillColor=#E9EFEC;strokeColor=#688B7B;fontColor=#253A36;fontFamily=Helvetica;fontSize=19;spacing=14;strokeWidth=1.5;"
+    },
+    {
+      "id": "metadata",
+      "label": "<b>Merged dictionary</b><br><br><font style=\"font-size:15px\">dbt manifest + catalog<br>Cube /meta + ClickHouse facts</font>",
+      "kind": "service",
+      "properties": {
+        "scope": "implemented",
+        "source_path": "backend/agents/analytics_agent/metadata.py"
+      },
+      "provenance": {
+        "path": "backend/agents/analytics_agent/metadata.py"
+      },
+      "x": 1540,
+      "y": 200,
+      "width": 240,
+      "height": 130,
+      "style": "rounded=1;arcSize=8;whiteSpace=wrap;html=1;fillColor=#E9EFEC;strokeColor=#688B7B;fontColor=#253A36;fontFamily=Helvetica;fontSize=19;spacing=14;strokeWidth=1.5;"
+    },
+    {
+      "id": "deny",
+      "label": "<b>Stop before model</b><br><br><font style=\"font-size:15px\">Empty multi-user allowlist<br>denies everyone</font>",
+      "kind": "error",
+      "properties": {
+        "scope": "implemented",
+        "source_path": "backend/agents/analytics_agent/middleware.py"
+      },
+      "provenance": {
+        "path": "backend/agents/analytics_agent/middleware.py"
+      },
+      "x": 430,
+      "y": 500,
+      "width": 240,
+      "height": 130,
+      "style": "rounded=1;arcSize=8;whiteSpace=wrap;html=1;fillColor=#F7E4DF;strokeColor=#AD6E5F;fontColor=#253A36;fontFamily=Helvetica;fontSize=19;spacing=14;strokeWidth=1.5;"
+    },
+    {
+      "id": "sql",
+      "label": "<b>5 \u00b7 run_sql</b><br><br><font style=\"font-size:15px\">Count \u2192 sample \u2192 aggregate<br>Explicit date window</font>",
+      "kind": "service",
+      "properties": {
+        "scope": "implemented",
+        "source_path": "backend/agents/analytics_agent/skills/analytics-agent/warehouse-analysis/SKILL.md"
+      },
+      "provenance": {
+        "path": "backend/agents/analytics_agent/skills/analytics-agent/warehouse-analysis/SKILL.md"
+      },
+      "x": 1170,
+      "y": 500,
+      "width": 240,
+      "height": 130,
+      "style": "rounded=1;arcSize=8;whiteSpace=wrap;html=1;fillColor=#E9EFEC;strokeColor=#688B7B;fontColor=#253A36;fontFamily=Helvetica;fontSize=19;spacing=14;strokeWidth=1.5;"
+    },
+    {
+      "id": "warehouse",
+      "label": "<b>ClickHouse</b><br><font style=\"font-size:15px\">SELECT: marts + staging<br>30s / 10,000-row server caps</font>",
+      "kind": "database",
+      "properties": {
+        "scope": "implemented",
+        "source_path": "analytics/clickhouse/users.d/analytics-agent.xml"
+      },
+      "provenance": {
+        "path": "analytics/clickhouse/users.d/analytics-agent.xml"
+      },
+      "x": 1540,
+      "y": 500,
+      "width": 240,
+      "height": 130,
+      "style": "shape=cylinder3;size=12;boundedLbl=1;spacingTop=20;whiteSpace=wrap;html=1;fillColor=#DCEBE3;strokeColor=#46735E;fontColor=#253A36;fontFamily=Helvetica;fontSize=19;spacing=14;strokeWidth=1.5;"
+    },
+    {
+      "id": "verify",
+      "label": "<b>6 \u00b7 Verify</b><br><br><font style=\"font-size:15px\">Check totals, grain, window<br>Coverage, truncation, freshness</font>",
+      "kind": "service",
+      "properties": {
+        "scope": "implemented",
+        "source_path": "backend/agents/analytics_agent/skills/analytics-agent/warehouse-analysis/SKILL.md"
+      },
+      "provenance": {
+        "path": "backend/agents/analytics_agent/skills/analytics-agent/warehouse-analysis/SKILL.md"
+      },
+      "x": 1170,
+      "y": 800,
+      "width": 240,
+      "height": 130,
+      "style": "rounded=1;arcSize=8;whiteSpace=wrap;html=1;fillColor=#E9EFEC;strokeColor=#688B7B;fontColor=#253A36;fontFamily=Helvetica;fontSize=19;spacing=14;strokeWidth=1.5;"
+    },
+    {
+      "id": "answer",
+      "label": "<b>7 \u00b7 Explain</b><br><br><font style=\"font-size:15px\">State window + caveats<br>Interpret checked results</font>",
+      "kind": "service",
+      "properties": {
+        "scope": "implemented",
+        "source_path": "backend/agents/analytics_agent/ANALYTICS_AGENT.md"
+      },
+      "provenance": {
+        "path": "backend/agents/analytics_agent/ANALYTICS_AGENT.md"
+      },
+      "x": 800,
+      "y": 800,
+      "width": 240,
+      "height": 130,
+      "style": "rounded=1;arcSize=8;whiteSpace=wrap;html=1;fillColor=#E9EFEC;strokeColor=#688B7B;fontColor=#253A36;fontFamily=Helvetica;fontSize=19;spacing=14;strokeWidth=1.5;"
+    },
+    {
+      "id": "visual",
+      "label": "<b>8 \u00b7 Visualize if useful</b><br><br><font style=\"font-size:15px\">create_chart<br>See tab 03 for both paths</font>",
+      "kind": "service",
+      "properties": {
+        "scope": "implemented",
+        "source_path": "backend/agents/analytics_agent/tools.py"
+      },
+      "provenance": {
+        "path": "backend/agents/analytics_agent/tools.py"
+      },
+      "x": 430,
+      "y": 800,
+      "width": 240,
+      "height": 130,
+      "style": "rounded=1;arcSize=8;whiteSpace=wrap;html=1;fillColor=#E9EFEC;strokeColor=#688B7B;fontColor=#253A36;fontFamily=Helvetica;fontSize=19;spacing=14;strokeWidth=1.5;"
+    }
+  ],
+  "edges": [
+    {
+      "id": "question-gate-0",
+      "source": "question",
+      "target": "gate",
+      "label": "question",
+      "kind": "flow",
+      "properties": {},
+      "points": null,
+      "style": "edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endSize=8;strokeWidth=1.5;strokeColor=#688078;fontColor=#253A36;fontFamily=Helvetica;fontSize=14;labelBackgroundColor=#FAF8F3;exitX=1;exitY=0.5;entryX=0;entryY=0.5;"
+    },
+    {
+      "id": "gate-llm-1",
+      "source": "gate",
+      "target": "llm",
+      "label": "allowed",
+      "kind": "flow",
+      "properties": {},
+      "points": null,
+      "style": "edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endSize=8;strokeWidth=1.5;strokeColor=#688078;fontColor=#253A36;fontFamily=Helvetica;fontSize=14;labelBackgroundColor=#FAF8F3;exitX=1;exitY=0.5;entryX=0;entryY=0.5;"
+    },
+    {
+      "id": "llm-describe-2",
+      "source": "llm",
+      "target": "describe",
+      "label": "discover",
+      "kind": "flow",
+      "properties": {},
+      "points": null,
+      "style": "edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endSize=8;strokeWidth=1.5;strokeColor=#688078;fontColor=#253A36;fontFamily=Helvetica;fontSize=14;labelBackgroundColor=#FAF8F3;exitX=1;exitY=0.5;entryX=0;entryY=0.5;"
+    },
+    {
+      "id": "metadata-describe-3",
+      "source": "metadata",
+      "target": "describe",
+      "label": "metadata",
+      "kind": "metadata",
+      "properties": {},
+      "points": null,
+      "style": "edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endSize=8;strokeWidth=1.5;strokeColor=#688078;fontColor=#253A36;fontFamily=Helvetica;fontSize=14;labelBackgroundColor=#FAF8F3;exitX=0;exitY=0.5;entryX=1;entryY=0.5;dashed=1;"
+    },
+    {
+      "id": "gate-deny-4",
+      "source": "gate",
+      "target": "deny",
+      "label": "denied",
+      "kind": "flow",
+      "properties": {},
+      "points": null,
+      "style": "edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endSize=8;strokeWidth=1.5;strokeColor=#688078;fontColor=#253A36;fontFamily=Helvetica;fontSize=14;labelBackgroundColor=#FAF8F3;exitX=0.5;exitY=1;entryX=0.5;entryY=0;"
+    },
+    {
+      "id": "describe-sql-5",
+      "source": "describe",
+      "target": "sql",
+      "label": "write SQL",
+      "kind": "flow",
+      "properties": {},
+      "points": null,
+      "style": "edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endSize=8;strokeWidth=1.5;strokeColor=#688078;fontColor=#253A36;fontFamily=Helvetica;fontSize=14;labelBackgroundColor=#FAF8F3;exitX=0.5;exitY=1;entryX=0.5;entryY=0;"
+    },
+    {
+      "id": "sql-warehouse-6",
+      "source": "sql",
+      "target": "warehouse",
+      "label": "query / rows",
+      "kind": "flow",
+      "properties": {},
+      "points": null,
+      "style": "edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endSize=8;strokeWidth=1.5;strokeColor=#688078;fontColor=#253A36;fontFamily=Helvetica;fontSize=14;labelBackgroundColor=#FAF8F3;exitX=1;exitY=0.5;entryX=0;entryY=0.5;startArrow=block;"
+    },
+    {
+      "id": "sql-verify-7",
+      "source": "sql",
+      "target": "verify",
+      "label": "inspect result",
+      "kind": "flow",
+      "properties": {},
+      "points": null,
+      "style": "edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endSize=8;strokeWidth=1.5;strokeColor=#688078;fontColor=#253A36;fontFamily=Helvetica;fontSize=14;labelBackgroundColor=#FAF8F3;exitX=0.5;exitY=1;entryX=0.5;entryY=0;"
+    },
+    {
+      "id": "verify-sql-8",
+      "source": "verify",
+      "target": "sql",
+      "label": "refine / retry",
+      "kind": "flow",
+      "properties": {},
+      "points": [
+        [
+          1090,
+          839
+        ],
+        [
+          1090,
+          591
+        ]
+      ],
+      "style": "edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endSize=8;strokeWidth=1.5;strokeColor=#688078;fontColor=#253A36;fontFamily=Helvetica;fontSize=14;labelBackgroundColor=#FAF8F3;exitX=0;exitY=0.3;entryX=0;entryY=0.7;"
+    },
+    {
+      "id": "verify-answer-9",
+      "source": "verify",
+      "target": "answer",
+      "label": "checked",
+      "kind": "flow",
+      "properties": {},
+      "points": null,
+      "style": "edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endSize=8;strokeWidth=1.5;strokeColor=#688078;fontColor=#253A36;fontFamily=Helvetica;fontSize=14;labelBackgroundColor=#FAF8F3;exitX=0;exitY=0.7;entryX=1;entryY=0.7;"
+    },
+    {
+      "id": "answer-visual-10",
+      "source": "answer",
+      "target": "visual",
+      "label": "optional",
+      "kind": "flow",
+      "properties": {},
+      "points": null,
+      "style": "edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endSize=8;strokeWidth=1.5;strokeColor=#688078;fontColor=#253A36;fontFamily=Helvetica;fontSize=14;labelBackgroundColor=#FAF8F3;exitX=0;exitY=0.5;entryX=1;entryY=0.5;"
+    }
+  ]
+}

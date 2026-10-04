@@ -1,0 +1,184 @@
+{
+  "schema": "drawio-skill/diagram-ir/v1",
+  "metadata": {
+    "title": "Proposed GCP deployment",
+    "status": "proposal; not deployed",
+    "verified_on": "2026-10-04"
+  },
+  "nodes": [
+    {
+      "id": "cloud-sql",
+      "label": "<b>Cloud SQL for PostgreSQL</b><br><br><font style=\"font-size:16px\">Operational source data<br>LangGraph + Better Auth</font>",
+      "kind": "service",
+      "properties": {
+        "status": "proposed",
+        "hosting": "cloud-sql"
+      },
+      "provenance": {
+        "path": "https://docs.cloud.google.com/sql/docs/postgres/introduction"
+      },
+      "x": 60,
+      "y": 340,
+      "width": 350,
+      "height": 150,
+      "style": "html=1;whiteSpace=wrap;fontFamily=Helvetica;fontColor=#253A36;rounded=1;arcSize=8;fillColor=#E9EFEC;strokeColor=#688B7B;strokeWidth=1.5;fontSize=18;spacing=18;spacingLeft=74;align=left;"
+    },
+    {
+      "id": "pipeline",
+      "label": "<b>Dagster + dlt + dbt</b><br><br><font style=\"font-size:16px\">Hourly extraction and dbt build<br>dbt docs: table dictionary</font>",
+      "kind": "service",
+      "properties": {
+        "status": "proposed",
+        "hosting": "gke"
+      },
+      "provenance": {
+        "path": "analytics/nextrole_analytics/schedules.py"
+      },
+      "x": 40,
+      "y": 140,
+      "width": 400,
+      "height": 150,
+      "style": "html=1;whiteSpace=wrap;fontFamily=Helvetica;fontColor=#253A36;rounded=1;arcSize=8;fillColor=#E9EFEC;strokeColor=#688B7B;strokeWidth=1.5;fontSize=18;spacing=18;spacingLeft=74;align=left;"
+    },
+    {
+      "id": "clickhouse-gcp",
+      "label": "<b>ClickHouse on GKE</b><br><br><font style=\"font-size:16px\">Bronze \u2192 staging \u2192 marts<br>Stateful workload + persistent disk</font>",
+      "kind": "service",
+      "properties": {
+        "status": "proposed",
+        "hosting": "clickhouse"
+      },
+      "provenance": {
+        "path": "analytics/dbt/models/"
+      },
+      "x": 600,
+      "y": 140,
+      "width": 400,
+      "height": 150,
+      "style": "html=1;whiteSpace=wrap;fontFamily=Helvetica;fontColor=#253A36;rounded=1;arcSize=8;fillColor=#E9EFEC;strokeColor=#688B7B;strokeWidth=1.5;fontSize=18;spacing=18;spacingLeft=74;align=left;"
+    },
+    {
+      "id": "analytics-gcp",
+      "label": "<b>Analytics agent + files API</b><br><br><font style=\"font-size:16px\">Allowlist + direct read-only SQL<br>Same analysis and chart tools</font>",
+      "kind": "service",
+      "properties": {
+        "status": "proposed",
+        "hosting": "gke"
+      },
+      "provenance": {
+        "path": "backend/agents/analytics_agent/agents.py"
+      },
+      "x": 40,
+      "y": 480,
+      "width": 400,
+      "height": 150,
+      "style": "html=1;whiteSpace=wrap;fontFamily=Helvetica;fontColor=#253A36;rounded=1;arcSize=8;fillColor=#E9EFEC;strokeColor=#688B7B;strokeWidth=1.5;fontSize=18;spacing=18;spacingLeft=74;align=left;"
+    },
+    {
+      "id": "bi-gcp",
+      "label": "<b>Cube + Superset</b><br><br><font style=\"font-size:16px\">Metric dictionary + dashboards<br>Existing container applications</font>",
+      "kind": "service",
+      "properties": {
+        "status": "proposed",
+        "hosting": "gke"
+      },
+      "provenance": {
+        "path": "analytics/README.md"
+      },
+      "x": 600,
+      "y": 480,
+      "width": 400,
+      "height": 150,
+      "style": "html=1;whiteSpace=wrap;fontFamily=Helvetica;fontColor=#253A36;rounded=1;arcSize=8;fillColor=#E9EFEC;strokeColor=#688B7B;strokeWidth=1.5;fontSize=18;spacing=18;spacingLeft=74;align=left;"
+    },
+    {
+      "id": "gcs",
+      "label": "<b>Cloud Storage</b><br><br><font style=\"font-size:16px\">Chart/report artifacts<br>User-scoped object keys</font>",
+      "kind": "service",
+      "properties": {
+        "status": "proposed",
+        "hosting": "cloud-storage"
+      },
+      "provenance": {
+        "path": "https://docs.cloud.google.com/storage/docs/interoperability"
+      },
+      "x": 60,
+      "y": 680,
+      "width": 350,
+      "height": 150,
+      "style": "html=1;whiteSpace=wrap;fontFamily=Helvetica;fontColor=#253A36;rounded=1;arcSize=8;fillColor=#E9EFEC;strokeColor=#688B7B;strokeWidth=1.5;fontSize=18;spacing=18;spacingLeft=74;align=left;"
+    }
+  ],
+  "edges": [
+    {
+      "id": "cloud-sql-pipeline",
+      "source": "cloud-sql",
+      "target": "pipeline",
+      "label": "extract",
+      "kind": "flow",
+      "properties": {
+        "status": "proposed"
+      }
+    },
+    {
+      "id": "pipeline-clickhouse-gcp",
+      "source": "pipeline",
+      "target": "clickhouse-gcp",
+      "label": "load + transform",
+      "kind": "flow",
+      "properties": {
+        "status": "proposed"
+      }
+    },
+    {
+      "id": "clickhouse-gcp-bi-gcp",
+      "source": "clickhouse-gcp",
+      "target": "bi-gcp",
+      "label": "marts",
+      "kind": "flow",
+      "properties": {
+        "status": "proposed"
+      }
+    },
+    {
+      "id": "clickhouse-gcp-analytics-gcp",
+      "source": "clickhouse-gcp",
+      "target": "analytics-gcp",
+      "label": "read-only results",
+      "kind": "flow",
+      "properties": {
+        "status": "proposed"
+      }
+    },
+    {
+      "id": "pipeline-analytics-gcp",
+      "source": "pipeline",
+      "target": "analytics-gcp",
+      "label": "dbt metadata",
+      "kind": "metadata",
+      "properties": {
+        "status": "proposed"
+      }
+    },
+    {
+      "id": "bi-gcp-analytics-gcp",
+      "source": "bi-gcp",
+      "target": "analytics-gcp",
+      "label": "Cube metadata",
+      "kind": "metadata",
+      "properties": {
+        "status": "proposed"
+      }
+    },
+    {
+      "id": "analytics-gcp-gcs",
+      "source": "analytics-gcp",
+      "target": "gcs",
+      "label": "save / load charts",
+      "kind": "flow",
+      "properties": {
+        "status": "proposed"
+      }
+    }
+  ]
+}

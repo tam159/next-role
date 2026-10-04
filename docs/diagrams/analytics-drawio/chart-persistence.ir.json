@@ -1,0 +1,323 @@
+{
+  "schema": "drawio-skill/diagram-ir/v1",
+  "metadata": {
+    "title": "03 Charts and persistence",
+    "scope": "Current repository implementation; not a live deployment audit",
+    "verified_on": "2026-10-04"
+  },
+  "nodes": [
+    {
+      "id": "analysis",
+      "label": "<b>Verified analysis</b><br><br><font style=\"font-size:15px\">Choose the right visual<br>Use checked SQL + grain</font>",
+      "kind": "service",
+      "properties": {
+        "scope": "implemented",
+        "source_path": "backend/agents/analytics_agent/skills/analytics-agent/charts/SKILL.md"
+      },
+      "provenance": {
+        "path": "backend/agents/analytics_agent/skills/analytics-agent/charts/SKILL.md"
+      },
+      "x": 60,
+      "y": 240,
+      "width": 240,
+      "height": 130,
+      "style": "rounded=1;arcSize=8;whiteSpace=wrap;html=1;fillColor=#E9EFEC;strokeColor=#688B7B;fontColor=#253A36;fontFamily=Helvetica;fontSize=19;spacing=14;strokeWidth=1.5;"
+    },
+    {
+      "id": "standard",
+      "label": "<b>Standard chart</b><br><br><font style=\"font-size:15px\">SQL + kind + column mapping<br>Bar, line, scatter, table, KPI\u2026</font>",
+      "kind": "service",
+      "properties": {
+        "scope": "implemented",
+        "source_path": "backend/agents/analytics_agent/tools.py"
+      },
+      "provenance": {
+        "path": "backend/agents/analytics_agent/tools.py"
+      },
+      "x": 430,
+      "y": 240,
+      "width": 240,
+      "height": 130,
+      "style": "rounded=1;arcSize=8;whiteSpace=wrap;html=1;fillColor=#E9EFEC;strokeColor=#688B7B;fontColor=#253A36;fontFamily=Helvetica;fontSize=19;spacing=14;strokeWidth=1.5;"
+    },
+    {
+      "id": "create",
+      "label": "<b>create_chart</b><br><br><font style=\"font-size:15px\">Run SQL OR load figure JSON<br>Validate + build envelope</font>",
+      "kind": "service",
+      "properties": {
+        "scope": "implemented",
+        "source_path": "backend/agents/analytics_agent/tools.py"
+      },
+      "provenance": {
+        "path": "backend/agents/analytics_agent/tools.py"
+      },
+      "x": 1170,
+      "y": 240,
+      "width": 240,
+      "height": 130,
+      "style": "rounded=1;arcSize=8;whiteSpace=wrap;html=1;fillColor=#E9EFEC;strokeColor=#688B7B;fontColor=#253A36;fontFamily=Helvetica;fontSize=19;spacing=14;strokeWidth=1.5;"
+    },
+    {
+      "id": "store",
+      "label": "<b>Object storage</b><br><font style=\"font-size:15px\">/charts/&lt;thread&gt;/<br>&lt;slug&gt;.plotly.json</font>",
+      "kind": "database",
+      "properties": {
+        "scope": "implemented",
+        "source_path": "backend/agents/analytics_agent/agents.py"
+      },
+      "provenance": {
+        "path": "backend/agents/analytics_agent/agents.py"
+      },
+      "x": 1540,
+      "y": 240,
+      "width": 240,
+      "height": 130,
+      "style": "shape=cylinder3;size=12;boundedLbl=1;spacingTop=20;whiteSpace=wrap;html=1;fillColor=#DCEBE3;strokeColor=#46735E;fontColor=#253A36;fontFamily=Helvetica;fontSize=19;spacing=14;strokeWidth=1.5;"
+    },
+    {
+      "id": "csv",
+      "label": "<b>Custom chart \u00b7 export</b><br><br><font style=\"font-size:15px\">run_sql(save_as=...)<br>CSV in thread scratch</font>",
+      "kind": "service",
+      "properties": {
+        "scope": "implemented",
+        "source_path": "backend/agents/analytics_agent/tools.py"
+      },
+      "provenance": {
+        "path": "backend/agents/analytics_agent/tools.py"
+      },
+      "x": 60,
+      "y": 570,
+      "width": 240,
+      "height": 130,
+      "style": "rounded=1;arcSize=8;whiteSpace=wrap;html=1;fillColor=#E9EFEC;strokeColor=#688B7B;fontColor=#253A36;fontFamily=Helvetica;fontSize=19;spacing=14;strokeWidth=1.5;"
+    },
+    {
+      "id": "approval",
+      "label": "<b>execute approval</b><br><br><font style=\"font-size:15px\">Shared command policy<br>Approve / edit / reject when required</font>",
+      "kind": "security",
+      "properties": {
+        "scope": "implemented",
+        "source_path": "backend/agents/analytics_agent/agents.py"
+      },
+      "provenance": {
+        "path": "backend/agents/analytics_agent/agents.py"
+      },
+      "x": 430,
+      "y": 570,
+      "width": 240,
+      "height": 130,
+      "style": "rounded=1;arcSize=8;whiteSpace=wrap;html=1;fillColor=#EEE5D7;strokeColor=#A17D4F;fontColor=#253A36;fontFamily=Helvetica;fontSize=19;spacing=14;strokeWidth=1.5;"
+    },
+    {
+      "id": "python",
+      "label": "<b>Python figure</b><br><br><font style=\"font-size:15px\">Read scratch CSV<br>Write Plotly figure JSON</font>",
+      "kind": "service",
+      "properties": {
+        "scope": "implemented",
+        "source_path": "backend/agents/analytics_agent/skills/analytics-agent/charts/SKILL.md"
+      },
+      "provenance": {
+        "path": "backend/agents/analytics_agent/skills/analytics-agent/charts/SKILL.md"
+      },
+      "x": 800,
+      "y": 570,
+      "width": 240,
+      "height": 130,
+      "style": "rounded=1;arcSize=8;whiteSpace=wrap;html=1;fillColor=#E9EFEC;strokeColor=#688B7B;fontColor=#253A36;fontFamily=Helvetica;fontSize=19;spacing=14;strokeWidth=1.5;"
+    },
+    {
+      "id": "result",
+      "label": "<b>Tool result + history</b><br><br><font style=\"font-size:15px\">path, title, kind, row count<br>Persisted with the conversation</font>",
+      "kind": "service",
+      "properties": {
+        "scope": "implemented",
+        "source_path": "backend/agents/analytics_agent/tools.py"
+      },
+      "provenance": {
+        "path": "backend/agents/analytics_agent/tools.py"
+      },
+      "x": 1540,
+      "y": 570,
+      "width": 240,
+      "height": 130,
+      "style": "rounded=1;arcSize=8;whiteSpace=wrap;html=1;fillColor=#E9EFEC;strokeColor=#688B7B;fontColor=#253A36;fontFamily=Helvetica;fontSize=19;spacing=14;strokeWidth=1.5;"
+    },
+    {
+      "id": "fetch",
+      "label": "<b>Frontend chart loader</b><br><br><font style=\"font-size:15px\">Parse tool result<br>Fetch saved envelope via files API</font>",
+      "kind": "service",
+      "properties": {
+        "scope": "implemented",
+        "source_path": "frontend/src/app/lib/charts.ts"
+      },
+      "provenance": {
+        "path": "frontend/src/app/lib/charts.ts"
+      },
+      "x": 1170,
+      "y": 890,
+      "width": 240,
+      "height": 130,
+      "style": "rounded=1;arcSize=8;whiteSpace=wrap;html=1;fillColor=#E9EFEC;strokeColor=#688B7B;fontColor=#253A36;fontFamily=Helvetica;fontSize=19;spacing=14;strokeWidth=1.5;"
+    },
+    {
+      "id": "render",
+      "label": "<b>Interactive chart</b><br><br><font style=\"font-size:15px\">Plotly figure / native table / KPI<br>Reloads when thread reopens</font>",
+      "kind": "service",
+      "properties": {
+        "scope": "implemented",
+        "source_path": "frontend/src/app/components/charts/InlineChart.tsx"
+      },
+      "provenance": {
+        "path": "frontend/src/app/components/charts/InlineChart.tsx"
+      },
+      "x": 1540,
+      "y": 890,
+      "width": 240,
+      "height": 130,
+      "style": "rounded=1;arcSize=8;whiteSpace=wrap;html=1;fillColor=#E9EFEC;strokeColor=#688B7B;fontColor=#253A36;fontFamily=Helvetica;fontSize=19;spacing=14;strokeWidth=1.5;"
+    }
+  ],
+  "edges": [
+    {
+      "id": "analysis-standard-0",
+      "source": "analysis",
+      "target": "standard",
+      "label": "standard",
+      "kind": "flow",
+      "properties": {},
+      "points": null,
+      "style": "edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endSize=8;strokeWidth=1.5;strokeColor=#688078;fontColor=#253A36;fontFamily=Helvetica;fontSize=14;labelBackgroundColor=#FAF8F3;exitX=1;exitY=0.5;entryX=0;entryY=0.5;"
+    },
+    {
+      "id": "standard-create-1",
+      "source": "standard",
+      "target": "create",
+      "label": "sql + mapping",
+      "kind": "flow",
+      "properties": {},
+      "points": null,
+      "style": "edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endSize=8;strokeWidth=1.5;strokeColor=#688078;fontColor=#253A36;fontFamily=Helvetica;fontSize=14;labelBackgroundColor=#FAF8F3;exitX=1;exitY=0.5;entryX=0;entryY=0.5;"
+    },
+    {
+      "id": "create-store-2",
+      "source": "create",
+      "target": "store",
+      "label": "save envelope",
+      "kind": "flow",
+      "properties": {},
+      "points": null,
+      "style": "edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endSize=8;strokeWidth=1.5;strokeColor=#688078;fontColor=#253A36;fontFamily=Helvetica;fontSize=14;labelBackgroundColor=#FAF8F3;exitX=1;exitY=0.5;entryX=0;entryY=0.5;"
+    },
+    {
+      "id": "analysis-csv-3",
+      "source": "analysis",
+      "target": "csv",
+      "label": "custom",
+      "kind": "flow",
+      "properties": {},
+      "points": null,
+      "style": "edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endSize=8;strokeWidth=1.5;strokeColor=#688078;fontColor=#253A36;fontFamily=Helvetica;fontSize=14;labelBackgroundColor=#FAF8F3;exitX=0.5;exitY=1;entryX=0.5;entryY=0;"
+    },
+    {
+      "id": "csv-approval-4",
+      "source": "csv",
+      "target": "approval",
+      "label": "shell command",
+      "kind": "flow",
+      "properties": {},
+      "points": null,
+      "style": "edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endSize=8;strokeWidth=1.5;strokeColor=#688078;fontColor=#253A36;fontFamily=Helvetica;fontSize=14;labelBackgroundColor=#FAF8F3;exitX=1;exitY=0.5;entryX=0;entryY=0.5;"
+    },
+    {
+      "id": "approval-python-5",
+      "source": "approval",
+      "target": "python",
+      "label": "permitted",
+      "kind": "flow",
+      "properties": {},
+      "points": null,
+      "style": "edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endSize=8;strokeWidth=1.5;strokeColor=#688078;fontColor=#253A36;fontFamily=Helvetica;fontSize=14;labelBackgroundColor=#FAF8F3;exitX=1;exitY=0.5;entryX=0;entryY=0.5;"
+    },
+    {
+      "id": "python-create-6",
+      "source": "python",
+      "target": "create",
+      "label": "figure_path",
+      "kind": "flow",
+      "properties": {},
+      "points": [
+        [
+          1290,
+          635
+        ]
+      ],
+      "style": "edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endSize=8;strokeWidth=1.5;strokeColor=#688078;fontColor=#253A36;fontFamily=Helvetica;fontSize=14;labelBackgroundColor=#FAF8F3;exitX=1;exitY=0.5;entryX=0.5;entryY=1;"
+    },
+    {
+      "id": "store-result-7",
+      "source": "store",
+      "target": "result",
+      "label": "return path",
+      "kind": "flow",
+      "properties": {},
+      "points": null,
+      "style": "edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endSize=8;strokeWidth=1.5;strokeColor=#688078;fontColor=#253A36;fontFamily=Helvetica;fontSize=14;labelBackgroundColor=#FAF8F3;exitX=0.5;exitY=1;entryX=0.5;entryY=0;"
+    },
+    {
+      "id": "result-fetch-8",
+      "source": "result",
+      "target": "fetch",
+      "label": "history payload",
+      "kind": "flow",
+      "properties": {},
+      "points": [
+        [
+          1450,
+          635
+        ],
+        [
+          1450,
+          780
+        ],
+        [
+          1230,
+          780
+        ]
+      ],
+      "style": "edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endSize=8;strokeWidth=1.5;strokeColor=#688078;fontColor=#253A36;fontFamily=Helvetica;fontSize=14;labelBackgroundColor=#FAF8F3;exitX=0;exitY=0.5;entryX=0.25;entryY=0;"
+    },
+    {
+      "id": "fetch-render-9",
+      "source": "fetch",
+      "target": "render",
+      "label": "envelope",
+      "kind": "flow",
+      "properties": {},
+      "points": null,
+      "style": "edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endSize=8;strokeWidth=1.5;strokeColor=#688078;fontColor=#253A36;fontFamily=Helvetica;fontSize=14;labelBackgroundColor=#FAF8F3;exitX=1;exitY=0.5;entryX=0;entryY=0.5;"
+    },
+    {
+      "id": "store-fetch-10",
+      "source": "store",
+      "target": "fetch",
+      "label": "saved chart file",
+      "kind": "flow",
+      "properties": {},
+      "points": [
+        [
+          1900,
+          305
+        ],
+        [
+          1900,
+          820
+        ],
+        [
+          1350,
+          820
+        ]
+      ],
+      "style": "edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endSize=8;strokeWidth=1.5;strokeColor=#688078;fontColor=#253A36;fontFamily=Helvetica;fontSize=14;labelBackgroundColor=#FAF8F3;exitX=1;exitY=0.5;entryX=0.75;entryY=0;"
+    }
+  ]
+}

@@ -1,0 +1,366 @@
+{
+  "schema": "drawio-skill/diagram-ir/v1",
+  "metadata": {
+    "title": "01 Platform",
+    "scope": "Current repository implementation; not a live deployment audit",
+    "verified_on": "2026-10-04"
+  },
+  "nodes": [
+    {
+      "id": "postgres",
+      "label": "<b>Postgres</b><br><font style=\"font-size:15px\">LangGraph runtime<br>Better Auth</font>",
+      "kind": "database",
+      "properties": {
+        "scope": "implemented",
+        "source_path": "docker-compose.yml"
+      },
+      "provenance": {
+        "path": "docker-compose.yml"
+      },
+      "x": 60,
+      "y": 330,
+      "width": 240,
+      "height": 130,
+      "style": "shape=cylinder3;size=12;boundedLbl=1;spacingTop=20;whiteSpace=wrap;html=1;fillColor=#DCEBE3;strokeColor=#46735E;fontColor=#253A36;fontFamily=Helvetica;fontSize=19;spacing=14;strokeWidth=1.5;"
+    },
+    {
+      "id": "dlt",
+      "label": "<b>dlt extraction</b><br><br><font style=\"font-size:15px\">Structure + metrics only<br>Incremental loads</font>",
+      "kind": "service",
+      "properties": {
+        "scope": "implemented",
+        "source_path": "analytics/nextrole_analytics/dlt_sources/transforms.py"
+      },
+      "provenance": {
+        "path": "analytics/nextrole_analytics/dlt_sources/transforms.py"
+      },
+      "x": 430,
+      "y": 330,
+      "width": 240,
+      "height": 130,
+      "style": "rounded=1;arcSize=8;whiteSpace=wrap;html=1;fillColor=#E9EFEC;strokeColor=#688B7B;fontColor=#253A36;fontFamily=Helvetica;fontSize=19;spacing=14;strokeWidth=1.5;"
+    },
+    {
+      "id": "bronze",
+      "label": "<b>ClickHouse \u00b7 bronze</b><br><font style=\"font-size:15px\">nextrole<br>raw_app___* / raw_auth___*</font>",
+      "kind": "database",
+      "properties": {
+        "scope": "implemented",
+        "source_path": "analytics/dbt/models/sources.yml"
+      },
+      "provenance": {
+        "path": "analytics/dbt/models/sources.yml"
+      },
+      "x": 800,
+      "y": 330,
+      "width": 240,
+      "height": 130,
+      "style": "shape=cylinder3;size=12;boundedLbl=1;spacingTop=20;whiteSpace=wrap;html=1;fillColor=#DCEBE3;strokeColor=#46735E;fontColor=#253A36;fontFamily=Helvetica;fontSize=19;spacing=14;strokeWidth=1.5;"
+    },
+    {
+      "id": "staging",
+      "label": "<b>ClickHouse \u00b7 staging</b><br><font style=\"font-size:15px\">dbt typed / deduplicated data<br>nextrole_staging</font>",
+      "kind": "database",
+      "properties": {
+        "scope": "implemented",
+        "source_path": "analytics/dbt/models/staging"
+      },
+      "provenance": {
+        "path": "analytics/dbt/models/staging"
+      },
+      "x": 1170,
+      "y": 330,
+      "width": 240,
+      "height": 130,
+      "style": "shape=cylinder3;size=12;boundedLbl=1;spacingTop=20;whiteSpace=wrap;html=1;fillColor=#DCEBE3;strokeColor=#46735E;fontColor=#253A36;fontFamily=Helvetica;fontSize=19;spacing=14;strokeWidth=1.5;"
+    },
+    {
+      "id": "marts",
+      "label": "<b>ClickHouse \u00b7 marts</b><br><font style=\"font-size:15px\">dbt star schema<br>nextrole_marts</font>",
+      "kind": "database",
+      "properties": {
+        "scope": "implemented",
+        "source_path": "analytics/dbt/models/marts"
+      },
+      "provenance": {
+        "path": "analytics/dbt/models/marts"
+      },
+      "x": 1540,
+      "y": 330,
+      "width": 240,
+      "height": 130,
+      "style": "shape=cylinder3;size=12;boundedLbl=1;spacingTop=20;whiteSpace=wrap;html=1;fillColor=#DCEBE3;strokeColor=#46735E;fontColor=#253A36;fontFamily=Helvetica;fontSize=19;spacing=14;strokeWidth=1.5;"
+    },
+    {
+      "id": "dagster",
+      "label": "<b>Dagster \u00b7 analytics_all</b><br><br><font style=\"font-size:15px\">Hourly at minute 07 \u00b7 dlt \u2192 dbt build \u00b7 model tests exposed as asset checks</font>",
+      "kind": "service",
+      "properties": {
+        "scope": "implemented",
+        "source_path": "analytics/nextrole_analytics/schedules.py"
+      },
+      "provenance": {
+        "path": "analytics/nextrole_analytics/schedules.py"
+      },
+      "x": 430,
+      "y": 120,
+      "width": 980,
+      "height": 100,
+      "style": "rounded=1;arcSize=8;whiteSpace=wrap;html=1;fillColor=#E9EFEC;strokeColor=#688B7B;fontColor=#253A36;fontFamily=Helvetica;fontSize=19;spacing=14;strokeWidth=1.5;"
+    },
+    {
+      "id": "docs",
+      "label": "<b>dbt docs</b><br><br><font style=\"font-size:15px\">manifest.json + catalog.json<br>Grain, types, field caveats</font>",
+      "kind": "service",
+      "properties": {
+        "scope": "implemented",
+        "source_path": "analytics/README.md"
+      },
+      "provenance": {
+        "path": "analytics/README.md"
+      },
+      "x": 800,
+      "y": 650,
+      "width": 240,
+      "height": 130,
+      "style": "rounded=1;arcSize=8;whiteSpace=wrap;html=1;fillColor=#E9EFEC;strokeColor=#688B7B;fontColor=#253A36;fontFamily=Helvetica;fontSize=19;spacing=14;strokeWidth=1.5;"
+    },
+    {
+      "id": "cube",
+      "label": "<b>Cube</b><br><br><font style=\"font-size:15px\">Metric dictionary + SQL API<br>Measures, units, joins, caveats</font>",
+      "kind": "service",
+      "properties": {
+        "scope": "implemented",
+        "source_path": "analytics/cube/model"
+      },
+      "provenance": {
+        "path": "analytics/cube/model"
+      },
+      "x": 1170,
+      "y": 650,
+      "width": 240,
+      "height": 130,
+      "style": "rounded=1;arcSize=8;whiteSpace=wrap;html=1;fillColor=#E9EFEC;strokeColor=#688B7B;fontColor=#253A36;fontFamily=Helvetica;fontSize=19;spacing=14;strokeWidth=1.5;"
+    },
+    {
+      "id": "superset",
+      "label": "<b>Superset</b><br><br><font style=\"font-size:15px\">NextRole Overview<br>Dashboards over marts</font>",
+      "kind": "service",
+      "properties": {
+        "scope": "implemented",
+        "source_path": "analytics/superset/assets/dashboard_export"
+      },
+      "provenance": {
+        "path": "analytics/superset/assets/dashboard_export"
+      },
+      "x": 1540,
+      "y": 650,
+      "width": 240,
+      "height": 130,
+      "style": "rounded=1;arcSize=8;whiteSpace=wrap;html=1;fillColor=#E9EFEC;strokeColor=#688B7B;fontColor=#253A36;fontFamily=Helvetica;fontSize=19;spacing=14;strokeWidth=1.5;"
+    },
+    {
+      "id": "agent",
+      "label": "<b>Analytics agent</b><br><br><font style=\"font-size:15px\">Allowlisted operator analysis<br>Direct read-only warehouse SQL</font>",
+      "kind": "service",
+      "properties": {
+        "scope": "implemented",
+        "source_path": "backend/agents/analytics_agent/agents.py"
+      },
+      "provenance": {
+        "path": "backend/agents/analytics_agent/agents.py"
+      },
+      "x": 1170,
+      "y": 950,
+      "width": 240,
+      "height": 130,
+      "style": "rounded=1;arcSize=8;whiteSpace=wrap;html=1;fillColor=#E9EFEC;strokeColor=#688B7B;fontColor=#253A36;fontFamily=Helvetica;fontSize=19;spacing=14;strokeWidth=1.5;"
+    }
+  ],
+  "edges": [
+    {
+      "id": "postgres-dlt-0",
+      "source": "postgres",
+      "target": "dlt",
+      "label": "extract",
+      "kind": "flow",
+      "properties": {},
+      "points": null,
+      "style": "edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endSize=8;strokeWidth=1.5;strokeColor=#688078;fontColor=#253A36;fontFamily=Helvetica;fontSize=14;labelBackgroundColor=#FAF8F3;exitX=1;exitY=0.5;entryX=0;entryY=0.5;"
+    },
+    {
+      "id": "dlt-bronze-1",
+      "source": "dlt",
+      "target": "bronze",
+      "label": "load",
+      "kind": "flow",
+      "properties": {},
+      "points": null,
+      "style": "edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endSize=8;strokeWidth=1.5;strokeColor=#688078;fontColor=#253A36;fontFamily=Helvetica;fontSize=14;labelBackgroundColor=#FAF8F3;exitX=1;exitY=0.5;entryX=0;entryY=0.5;"
+    },
+    {
+      "id": "bronze-staging-2",
+      "source": "bronze",
+      "target": "staging",
+      "label": "dbt",
+      "kind": "flow",
+      "properties": {},
+      "points": null,
+      "style": "edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endSize=8;strokeWidth=1.5;strokeColor=#688078;fontColor=#253A36;fontFamily=Helvetica;fontSize=14;labelBackgroundColor=#FAF8F3;exitX=1;exitY=0.5;entryX=0;entryY=0.5;"
+    },
+    {
+      "id": "staging-marts-3",
+      "source": "staging",
+      "target": "marts",
+      "label": "dbt",
+      "kind": "flow",
+      "properties": {},
+      "points": null,
+      "style": "edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endSize=8;strokeWidth=1.5;strokeColor=#688078;fontColor=#253A36;fontFamily=Helvetica;fontSize=14;labelBackgroundColor=#FAF8F3;exitX=1;exitY=0.5;entryX=0;entryY=0.5;"
+    },
+    {
+      "id": "dagster-dlt-4",
+      "source": "dagster",
+      "target": "dlt",
+      "label": "schedule",
+      "kind": "metadata",
+      "properties": {},
+      "points": [
+        [
+          548,
+          270
+        ],
+        [
+          550,
+          270
+        ]
+      ],
+      "style": "edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endSize=8;strokeWidth=1.5;strokeColor=#688078;fontColor=#253A36;fontFamily=Helvetica;fontSize=14;labelBackgroundColor=#FAF8F3;exitX=0.12;exitY=1;entryX=0.5;entryY=0;dashed=1;"
+    },
+    {
+      "id": "dagster-staging-5",
+      "source": "dagster",
+      "target": "staging",
+      "label": "dbt build",
+      "kind": "metadata",
+      "properties": {},
+      "points": [
+        [
+          1292,
+          270
+        ],
+        [
+          1290,
+          270
+        ]
+      ],
+      "style": "edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endSize=8;strokeWidth=1.5;strokeColor=#688078;fontColor=#253A36;fontFamily=Helvetica;fontSize=14;labelBackgroundColor=#FAF8F3;exitX=0.88;exitY=1;entryX=0.5;entryY=0;dashed=1;"
+    },
+    {
+      "id": "staging-docs-6",
+      "source": "staging",
+      "target": "docs",
+      "label": "dbt artifacts",
+      "kind": "metadata",
+      "properties": {},
+      "points": [
+        [
+          1100,
+          428
+        ],
+        [
+          1100,
+          570
+        ],
+        [
+          920,
+          570
+        ]
+      ],
+      "style": "edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endSize=8;strokeWidth=1.5;strokeColor=#688078;fontColor=#253A36;fontFamily=Helvetica;fontSize=14;labelBackgroundColor=#FAF8F3;exitX=0;exitY=0.75;entryX=0.5;entryY=0;dashed=1;"
+    },
+    {
+      "id": "marts-cube-7",
+      "source": "marts",
+      "target": "cube",
+      "label": "marts",
+      "kind": "flow",
+      "properties": {},
+      "points": [
+        [
+          1600,
+          550
+        ],
+        [
+          1290,
+          550
+        ]
+      ],
+      "style": "edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endSize=8;strokeWidth=1.5;strokeColor=#688078;fontColor=#253A36;fontFamily=Helvetica;fontSize=14;labelBackgroundColor=#FAF8F3;exitX=0.25;exitY=1;entryX=0.5;entryY=0;"
+    },
+    {
+      "id": "marts-superset-8",
+      "source": "marts",
+      "target": "superset",
+      "label": "marts",
+      "kind": "flow",
+      "properties": {},
+      "points": null,
+      "style": "edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endSize=8;strokeWidth=1.5;strokeColor=#688078;fontColor=#253A36;fontFamily=Helvetica;fontSize=14;labelBackgroundColor=#FAF8F3;exitX=0.75;exitY=1;entryX=0.75;entryY=0;"
+    },
+    {
+      "id": "cube-superset-9",
+      "source": "cube",
+      "target": "superset",
+      "label": "SQL Lab",
+      "kind": "flow",
+      "properties": {},
+      "points": null,
+      "style": "edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endSize=8;strokeWidth=1.5;strokeColor=#688078;fontColor=#253A36;fontFamily=Helvetica;fontSize=14;labelBackgroundColor=#FAF8F3;exitX=1;exitY=0.5;entryX=0;entryY=0.5;"
+    },
+    {
+      "id": "cube-agent-10",
+      "source": "cube",
+      "target": "agent",
+      "label": "metric metadata",
+      "kind": "metadata",
+      "properties": {},
+      "points": null,
+      "style": "edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endSize=8;strokeWidth=1.5;strokeColor=#688078;fontColor=#253A36;fontFamily=Helvetica;fontSize=14;labelBackgroundColor=#FAF8F3;exitX=0.5;exitY=1;entryX=0.5;entryY=0;dashed=1;"
+    },
+    {
+      "id": "docs-agent-11",
+      "source": "docs",
+      "target": "agent",
+      "label": "column semantics",
+      "kind": "metadata",
+      "properties": {},
+      "points": [
+        [
+          920,
+          1015
+        ]
+      ],
+      "style": "edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endSize=8;strokeWidth=1.5;strokeColor=#688078;fontColor=#253A36;fontFamily=Helvetica;fontSize=14;labelBackgroundColor=#FAF8F3;exitX=0.5;exitY=1;entryX=0;entryY=0.5;dashed=1;"
+    },
+    {
+      "id": "marts-agent-12",
+      "source": "marts",
+      "target": "agent",
+      "label": "marts + staging SQL",
+      "kind": "flow",
+      "properties": {},
+      "points": [
+        [
+          1900,
+          395
+        ],
+        [
+          1900,
+          1015
+        ]
+      ],
+      "style": "edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;endArrow=block;endSize=8;strokeWidth=1.5;strokeColor=#688078;fontColor=#253A36;fontFamily=Helvetica;fontSize=14;labelBackgroundColor=#FAF8F3;exitX=1;exitY=0.5;entryX=1;entryY=0.5;"
+    }
+  ]
+}
