@@ -31,9 +31,7 @@
 
 <br/>
 
-<img alt="NextRole product overview — CV and job description become company research, a tailored resume, interview prep, and a battlecard; chat edits and analytics share a persistent workspace" src="docs/images/next-role-overview.png" width="100%">
-
-<sub>Product overview illustration · refreshed October 2026</sub>
+<img alt="NextRole start page — chat-driven prep on the left, a live artifact workspace on the right" src="docs/images/next-role-hero-image.png" width="100%">
 
 </div>
 
