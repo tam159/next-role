@@ -337,6 +337,34 @@ Set `LANGCHAIN_API_KEY` and `LANGCHAIN_TRACING_V2=true` in `.env`, and every run
 
 </details>
 
+<details>
+<summary><b>Analytics platform</b> — from operational data to dashboards</summary>
+
+<br/>
+
+Dagster orchestrates an hourly ELT pipeline: **dlt** extracts operational PostgreSQL data into **ClickHouse bronze**, then **dbt** builds staging views and gold marts. **Superset** dashboards and **Cube** metrics read the marts; the analytics agent queries marts and staging directly with read-only SQL. Cube supplies metric definitions to the agent, while dbt docs supplies column meanings and lineage.
+
+![Analytics platform illustration — Dagster orchestrates PostgreSQL extraction through dlt and dbt transformations in ClickHouse; curated data supports Superset, Cube, and the analytics agent](docs/images/next-role-analytics-platform.png)
+
+The pipeline extracts **structure and metrics, not chat, CV, or JD bodies**. Some identifying metadata remains, so this is not an anonymous dataset. Token and cost figures depend on recorded usage coverage and should be treated as a lower bound. See the [analytics platform guide](analytics/README.md) for setup, dashboards, and data caveats.
+
+</details>
+
+<details>
+<summary><b>Analytics agent</b> — questions, read-only SQL, and persistent charts</summary>
+
+<br/>
+
+Select **Analytics Agent** in the app to ask about activity, reliability, tool usage, or estimated LLM cost. It uses `describe_data` to read dbt descriptions, Cube metric definitions, and the ClickHouse schema before building queries.
+
+![Analytics agent workflow illustration — discover metadata, choose built-in chart generation or a CSV and Python fallback, then store the chart and display it in the conversation](docs/images/next-role-analytics-agent.png)
+
+Built-in charts use `create_chart` to query and render directly. Custom charts use `run_sql(save_as=…)` to export CSV, `execute` for Python/Plotly work (approval-gated by default), then `create_chart(figure_path=…)` to publish the result. Chart artifacts persist in object storage and reappear when the thread is reopened.
+
+With authentication enabled, access requires `ANALYTICS_AGENT_ALLOWED_USERS`; an empty allowlist denies everyone. The agent reads activity **across users**, while ClickHouse grants restrict it to SELECT on marts and staging with enforced query limits. See the [analytics agent guide](backend/agents/analytics_agent/README.md) for tools, access settings, and supported chart types.
+
+</details>
+
 ## Roadmap
 
 - 💤 **"Auto-dream" consolidation** — sleep-time compaction that prunes stale notes and merges insights into durable memory.

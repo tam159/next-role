@@ -1,0 +1,24 @@
+# Analytics README illustration briefs
+
+Created October 2026 using the image-generation tool. Follow [the visual style guide](../visual-style-guide.md).
+
+## Evidence
+
+- `analytics/README.md`: ELT layers, Cube/Superset consumers, privacy and usage-coverage caveats.
+- `analytics/nextrole_analytics/schedules.py`: hourly `analytics_all` schedule.
+- `analytics/clickhouse/users.d/analytics-agent.xml`: SELECT grants on marts/staging and query limits.
+- `backend/agents/analytics_agent/{access.py,tools.py,README.md}`: allowlist, discovery, built-in charts and Python fallback.
+
+## Reference and limits
+
+Both images use `next-role-architecture.png` as the visual reference. These are generated raster illustrations, not screenshots or editable diagrams. The logo is a matched generated rendition, not a pixel-identical embedding of the canonical asset. Use canonical-logo composition for a future exact-brand rebuild. README prose covers details omitted from the platform overview, including Cube metadata supplied to the agent. The agent graphic describes chart-producing questions, not every possible agent response.
+
+## Platform prompt
+
+Create one NextRole analytics platform infographic 1536x1024 landscape matching the attached architecture image's EXACT visual family and same top-left N-and-rocket logo rendition. Warm ivory, navy headings, blue and teal rounded lightly tinted cards, flat outline icons, restrained clean readable large type. Title 'Analytics platform'; subtitle 'Operational data into metrics, dashboards and answers'. Top a wide orchestration strip 'Dagster · hourly ELT + data checks' with dashed connectors labeled 'orchestrates' to extraction and transformation. Main middle row left-to-right: 'PostgreSQL' / 'Operational app + auth data' -> arrow labeled 'dlt · extract + load' -> large 'ClickHouse warehouse' container containing three sequential cards 'Bronze' / 'Extracted structure + metrics' -> 'Staging' / 'Clean views' -> 'Gold marts' / 'Facts + dimensions'. Both internal warehouse arrows labeled 'dbt'. Below warehouse three parallel consumer cards with separate arrows FROM Gold marts: 'Superset' / 'NextRole Overview dashboard'; 'Cube' / 'Metric definitions + SQL API'; 'Analytics agent' / 'Direct read-only SQL' / 'Marts + staging'. Arrow to agent labeled 'SELECT'; do NOT route agent SQL through Cube. Dashed arrow FROM Cube TO agent labeled 'metric definitions'. Small separate 'dbt docs' / 'Column meanings + lineage' card below warehouse with dashed arrow TO agent labeled 'metadata'. Bottom full-width note 'Structure and metrics only — chat, CV and JD bodies stay out of the warehouse'. Second line 'Agent access is operator-facing: allowlisted with auth enabled, across users'. No claims of anonymous data, row-level isolation or zero PII. Keep sparse, all labels legible, connectors clear, no crossing through text, no invented metrics, no cloud icons, no date caption.
+
+Refinement: route the consumer distribution from gold marts, label Superset/Cube branches `marts`, and point the extraction orchestration arrow to dlt rather than PostgreSQL.
+
+## Agent prompt
+
+Create ONE NextRole technical infographic 1536x1024 landscape. Match attached image exact visual style and same top-left N-and-rocket logo rendition. Ivory, navy, blue and teal, flat simple icons, rounded lightly tinted cards, readable text. Title 'Analytics agent'; subtitle 'From product questions to persistent charts'. Top wide card 'Ask in NextRole' / 'Activity · reliability · estimated LLM cost'. Arrow to wide card 'describe_data' / 'Read dbt column meanings + Cube metric definitions + ClickHouse schema'. Then arrow to small central label 'Choose a chart path' and visible split into TWO equal-width side-by-side panels. Left panel title 'Built-in charts'; body three short lines 'create_chart(sql, mapping)' / 'Queries ClickHouse directly' / 'Common charts · tables · KPIs'. Right panel title 'Custom chart fallback'; body explicit vertical sequence 'run_sql(save_as=...) → CSV' then down arrow then 'execute → Python / Plotly' / 'Shell approval required by default' then down arrow then 'create_chart(figure_path=...)'. Below both panels, connectors MERGE into wide card 'Object storage' / 'Chart artifact + query metadata'. Then down arrow into wide card 'Chart in the conversation' / 'Reopens with the thread · theme applied in the UI'. Along bottom two concise note lines 'Read-only ClickHouse access: marts + staging, with enforced query limits.' and 'With auth enabled: allowlisted operators; activity spans all users.' Keep excellent readability at 800px displayed width. Do NOT imply built-in charts require run_sql first. Do NOT imply SQL goes through Cube. No fake chart data, no screenshots, no date caption, no extra technical paths. Explicit actual tool names precisely. All main text at least 24px equivalent.
