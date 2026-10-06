@@ -31,7 +31,9 @@
 
 <br/>
 
-<img alt="NextRole start page — chat-driven prep on the left, a live artifact workspace on the right" src="docs/images/next-role-hero-image.png" width="100%">
+<img alt="NextRole product overview — CV and job description become company research, a tailored resume, interview prep, and a battlecard; chat edits and analytics share a persistent workspace" src="docs/images/next-role-overview.png" width="100%">
+
+<sub>Product overview illustration · refreshed October 2026</sub>
 
 </div>
 
@@ -152,15 +154,19 @@ Output quality tracks the model you pick — smaller local models trade some qua
 
 ## Architecture
 
-NextRole is a **supervisor agent orchestrating three specialist subagents** on LangGraph + DeepAgents. The main agent handles intake, document processing, and the final battlecard; it delegates research, resume tailoring, and interview coaching to declarative subagents (defined in `subagents.yaml`, each with its own model, tools, and skills).
+NextRole runs **two agents in its own self-hosted agent server** on LangGraph + DeepAgents. The **career agent** handles intake, document processing, and the final battlecard; it delegates research, resume tailoring, and interview coaching to three declarative specialist subagents (defined in `subagents.yaml`, each with its own model, tools, and skills). The **analytics agent** answers product questions with read-only warehouse queries and persistent charts.
 
-![NextRole architecture](docs/images/next-role-architecture.png)
+![NextRole architecture — career and analytics agents, self-hosted server, gRPC core-server, PostgreSQL, Redis, object storage, and ClickHouse](docs/images/next-role-architecture.png)
+
+The backend executes the agents; `core-server` owns metadata and the durable run queue in PostgreSQL. Checkpoints and memory use direct PostgreSQL access, while Redis carries queue signals and live events. Uploads, PDFs, and charts persist in S3-compatible object storage. See the [backend architecture](backend/ARCHITECTURE.md) and [analytics guide](analytics/README.md) for the detailed flows.
 
 ## How It Works
 
-A five-stage generation pipeline. Stage 4 runs the resume tailor and interview coach **in parallel**; after generation, Stage 6 routes follow-up edits to whichever agent owns the target file.
+A five-stage career preparation pipeline followed by ongoing edits. Stage 4 runs the resume tailor and interview coach **in parallel**; after generation, Stage 6 routes follow-up edits to whichever agent owns the target file.
 
-![How NextRole works](docs/images/next-role-how-it-works.png)
+![Career workflow — intake, document processing, research, parallel resume tailoring and interview coaching, battlecard generation, then targeted chat updates](docs/images/next-role-how-it-works.png)
+
+The return arrow illustrates a targeted tailoring or coaching update. Other edits go to the agent that owns the affected file; they do not automatically rerun the full pipeline.
 
 <details>
 <summary><b>Stage-by-stage detail</b></summary>
@@ -320,7 +326,7 @@ Because NextRole ships its own **agent server** implementing the LangGraph Serve
 
 > In multi-user mode these endpoints are authentication-gated but not yet per-user authorized — disable them (`disable_mcp` / `disable_a2a`) in a shared deployment until that lands. See [`backend/ARCHITECTURE.md` §8](backend/ARCHITECTURE.md#8-authentication--multi-user).
 
-![NextRole Agent Expose](docs/images/next-role-agent-expose.png)
+![Connect to NextRole — browser streaming, MCP at /mcp, and A2A at /a2a/{assistant_id}, with the shared-deployment authorization boundary](docs/images/next-role-agent-expose.png)
 
 </details>
 
@@ -373,6 +379,8 @@ Open the printed `🔑 Dashboard URL` (include the `?token=…` — the plain UR
 The graph is **for humans**: AI coding assistants are configured to ignore `.ua/` (Claude Code deny rules, `.cursorignore`, a `AGENTS.md` instruction) so they keep reading the real source instead of a large generated snapshot.
 
 ![NextRole codebase knowledge graph — architectural layers, dependencies, and project stats in the Understand-Anything dashboard](docs/images/next-role-understand-anything.png)
+
+*Illustrative dashboard screenshot from July 2026; use the local viewer for the checked-in graph.*
 
 </details>
 
