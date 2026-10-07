@@ -152,15 +152,19 @@ Output quality tracks the model you pick — smaller local models trade some qua
 
 ## Architecture
 
-NextRole is a **supervisor agent orchestrating three specialist subagents** on LangGraph + DeepAgents. The main agent handles intake, document processing, and the final battlecard; it delegates research, resume tailoring, and interview coaching to declarative subagents (defined in `subagents.yaml`, each with its own model, tools, and skills).
+NextRole runs **two agents in its own self-hosted agent server** on LangGraph + DeepAgents. The **career agent** handles intake, document processing, and the final battlecard; it delegates research, resume tailoring, and interview coaching to three declarative specialist subagents (defined in `subagents.yaml`, each with its own model, tools, and skills). The **analytics agent** answers product questions with read-only warehouse queries and persistent charts.
 
-![NextRole architecture](docs/images/next-role-architecture.png)
+![NextRole architecture — career and analytics agents, self-hosted server, gRPC core-server, PostgreSQL, Redis, object storage, and ClickHouse](docs/images/next-role-architecture.png)
+
+The backend executes the agents; `core-server` owns metadata and the durable run queue in PostgreSQL. Checkpoints and memory use direct PostgreSQL access, while Redis carries queue signals and live events. Uploads, PDFs, and charts persist in S3-compatible object storage. See the [backend architecture](backend/ARCHITECTURE.md) and [analytics guide](analytics/README.md) for the detailed flows.
 
 ## How It Works
 
-A five-stage generation pipeline. Stage 4 runs the resume tailor and interview coach **in parallel**; after generation, Stage 6 routes follow-up edits to whichever agent owns the target file.
+A five-stage career preparation pipeline followed by ongoing edits. Stage 4 runs the resume tailor and interview coach **in parallel**; after generation, Stage 6 routes follow-up edits to whichever agent owns the target file.
 
-![How NextRole works](docs/images/next-role-how-it-works.png)
+![Career workflow — intake, document processing, research, parallel resume tailoring and interview coaching, battlecard generation, then targeted chat updates](docs/images/next-role-how-it-works.png)
+
+The return arrow illustrates a targeted tailoring or coaching update. Other edits go to the agent that owns the affected file; they do not automatically rerun the full pipeline.
 
 <details>
 <summary><b>Stage-by-stage detail</b></summary>
@@ -320,7 +324,7 @@ Because NextRole ships its own **agent server** implementing the LangGraph Serve
 
 > In multi-user mode these endpoints are authentication-gated but not yet per-user authorized — disable them (`disable_mcp` / `disable_a2a`) in a shared deployment until that lands. See [`backend/ARCHITECTURE.md` §8](backend/ARCHITECTURE.md#8-authentication--multi-user).
 
-![NextRole Agent Expose](docs/images/next-role-agent-expose.png)
+![Connect to NextRole — browser streaming, MCP at /mcp, and A2A at /a2a/{assistant_id}, with the shared-deployment authorization boundary](docs/images/next-role-agent-expose.png)
 
 </details>
 
@@ -330,6 +334,34 @@ Because NextRole ships its own **agent server** implementing the LangGraph Serve
 <br/>
 
 Set `LANGCHAIN_API_KEY` and `LANGCHAIN_TRACING_V2=true` in `.env`, and every run — each LLM call, tool call, and nested subagent — is traced at [smith.langchain.com](https://smith.langchain.com/) under the `LANGCHAIN_PROJECT` you configure. Optional, but invaluable for debugging the multi-agent flow.
+
+</details>
+
+<details>
+<summary><b>Analytics platform</b> — from operational data to dashboards</summary>
+
+<br/>
+
+Dagster orchestrates an hourly ELT pipeline: **dlt** extracts operational PostgreSQL data into **ClickHouse bronze**, then **dbt** builds staging views and gold marts. **Superset** dashboards and **Cube** metrics read the marts; the analytics agent queries marts and staging directly with read-only SQL. Cube supplies metric definitions to the agent, while dbt docs supplies column meanings and lineage.
+
+![Analytics platform illustration — Dagster orchestrates PostgreSQL extraction through dlt and dbt transformations in ClickHouse; curated data supports Superset, Cube, and the analytics agent](docs/images/next-role-analytics-platform.png)
+
+The pipeline extracts **structure and metrics, not chat, CV, or JD bodies**. Some identifying metadata remains, so this is not an anonymous dataset. Token and cost figures depend on recorded usage coverage and should be treated as a lower bound. See the [analytics platform guide](analytics/README.md) for setup, dashboards, and data caveats.
+
+</details>
+
+<details>
+<summary><b>Analytics agent</b> — questions, read-only SQL, and persistent charts</summary>
+
+<br/>
+
+Select **Analytics Agent** in the app to ask about activity, reliability, tool usage, or estimated LLM cost. It uses `describe_data` to read dbt descriptions, Cube metric definitions, and the ClickHouse schema before building queries.
+
+![Analytics agent workflow illustration — discover metadata, choose built-in chart generation or a CSV and Python fallback, then store the chart and display it in the conversation](docs/images/next-role-analytics-agent.png)
+
+Built-in charts use `create_chart` to query and render directly. Custom charts use `run_sql(save_as=…)` to export CSV, `execute` for Python/Plotly work (approval-gated by default), then `create_chart(figure_path=…)` to publish the result. Chart artifacts persist in object storage and reappear when the thread is reopened.
+
+With authentication enabled, access requires `ANALYTICS_AGENT_ALLOWED_USERS`; an empty allowlist denies everyone. The agent reads activity **across users**, while ClickHouse grants restrict it to SELECT on marts and staging with enforced query limits. See the [analytics agent guide](backend/agents/analytics_agent/README.md) for tools, access settings, and supported chart types.
 
 </details>
 
@@ -373,6 +405,8 @@ Open the printed `🔑 Dashboard URL` (include the `?token=…` — the plain UR
 The graph is **for humans**: AI coding assistants are configured to ignore `.ua/` (Claude Code deny rules, `.cursorignore`, a `AGENTS.md` instruction) so they keep reading the real source instead of a large generated snapshot.
 
 ![NextRole codebase knowledge graph — architectural layers, dependencies, and project stats in the Understand-Anything dashboard](docs/images/next-role-understand-anything.png)
+
+*Illustrative dashboard screenshot from July 2026; use the local viewer for the checked-in graph.*
 
 </details>
 

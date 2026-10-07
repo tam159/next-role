@@ -106,6 +106,13 @@ For a full repo sweep, use the `/quality` skill (runs `pre-commit run --all-file
 
 Conventional Commits: `feat:`, `fix:`, `chore:`, `docs:`, `refactor:`, `test:`. Lowercase subject, no trailing period. Match the style in `git log`.
 
+## Documentation diagrams and images
+
+Before creating or refreshing documentation diagrams or README illustrations, read
+[`docs/visual-style-guide.md`](docs/visual-style-guide.md). It defines the visual style, canonical logo,
+connector semantics, and export review requirements. Verify technical content against current
+source code; existing images are visual references, not architecture evidence.
+
 ## Shared conventions
 
 - **100-char line length** in both backend (`ruff`) and frontend (`prettier`). Don't change one without the other.
