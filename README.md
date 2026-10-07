@@ -1,10 +1,5 @@
 <div align="center">
 
-<a href="https://github.com/tam159/next-role" target="_blank">
-  <picture>
-    <img alt="NextRole" src="docs/images/next-role-logo-transparent.png" width="180" height="180">
-  </picture>
-</a>
 
 # NextRole 🚀
 
