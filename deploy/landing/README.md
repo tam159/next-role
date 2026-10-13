@@ -9,8 +9,7 @@ The pre-launch marketing page for [next-role.dev](https://next-role.dev). Plain 
 | `index.html` | The landing page. Fonts from Google Fonts; everything else is inline. |
 | `assets/` | Logo, app screenshot (demo data only), Open Graph image, favicons. Copies of `docs/images/*` and `frontend/src/app/favicon.ico`. |
 | `_headers` | Cloudflare Pages security headers + long cache for `assets/`. |
-| `robots.txt` | Allows crawling; hides `coming-soon.html`. |
-| `coming-soon.html` | The original minimal placeholder, kept as a fallback. Not linked from anywhere. |
+| `robots.txt` | Allows crawling. |
 
 ## Deploy (Cloudflare Pages, drag and drop)
 
