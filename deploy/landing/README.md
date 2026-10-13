@@ -23,7 +23,7 @@ The same folder also deploys from the CLI if you prefer: `npx wrangler pages dep
 ## Post-deploy checklist
 
 - **Email.** The page's contact CTA is `hello@next-role.dev`. Set up **Email Routing** for the zone (Email → Email Routing → create the address and forward it to your inbox) or that mailto bounces.
-- **Analytics.** Analytics & Logs → **Web Analytics** → add the site, copy the token into the commented-out beacon tag at the bottom of `index.html`, and uncomment it. The `_headers` CSP already allows the beacon.
+- **Analytics.** Nothing to add. Cloudflare Web Analytics is injected automatically at the edge because the domain is proxied through Cloudflare; the dashboard (Analytics & Logs → Web Analytics → next-role.dev) already shows visits and Core Web Vitals. Do not paste a manual beacon tag into `index.html`, it would double-count. The `_headers` CSP already allows the injected beacon.
 - **Social preview.** Paste `https://next-role.dev` into a card validator (LinkedIn Post Inspector, X card validator, or the Facebook sharing debugger) to confirm `assets/og-image.png` is picked up.
 - **Star count.** The GitHub button fetches `api.github.com` from the browser. The unauthenticated limit is per visitor IP, so it only disappears for people who hammer the API; the button still works without it.
 

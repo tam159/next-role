@@ -2395,9 +2395,10 @@
     </script>
 
     <!--
-      Cloudflare Web Analytics (free, cookieless). In the dashboard: Analytics & Logs →
-      Web Analytics → add next-role.dev → copy the token into data-cf-beacon and uncomment.
-      <script defer src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{"token": "REPLACE_ME"}'></script>
+      Cloudflare Web Analytics is injected automatically at the edge because next-role.dev is
+      proxied through Cloudflare (dashboard: Analytics & Logs -> Web Analytics). Do not add a
+      manual beacon tag here: it would count every visit twice. The CSP in _headers allows
+      static.cloudflareinsights.com and cloudflareinsights.com so the injected beacon can run.
     -->
   </body>
 </html>
