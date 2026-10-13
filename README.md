@@ -12,11 +12,14 @@
 
 **Upload your CV + a job description. Get a tailored resume PDF, a researched interview-prep doc, and a day-of battlecard cheat sheet — built by a multi-agent system with long-term memory.**
 
+🌐 **[next-role.dev](https://next-role.dev)** — the hosted version is coming soon. Until then, self-host it in minutes with the [Quick Start](#quick-start) below.
+
 <!-- Row 1 · project -->
 
 ![Python](https://img.shields.io/badge/Python-3.13-3776AB?logo=python&logoColor=white)
 ![Next.js](https://img.shields.io/badge/Next.js-16-000000?logo=nextdotjs&logoColor=white)
 ![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)
+[![Website](https://img.shields.io/badge/website-next--role.dev-0e9f6e)](https://next-role.dev)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 ![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)
 [![GitHub stars](https://img.shields.io/github/stars/tam159/next-role?style=social)](https://github.com/tam159/next-role/stargazers)
