@@ -65,7 +65,7 @@ Preparing for an interview takes hours of tedious resume tailoring and company r
 
 ### Analytics agent — ask the product questions, get charts
 
-<video src="https://github.com/user-attachments/assets/b8c567b8-4b28-4515-9ec3-0190f220edc5" width="100%" controls>
+<video src="https://github.com/user-attachments/assets/988146dc-8c07-46c2-b9d0-4aea98b1be83" width="100%" controls>
   Your browser does not support the video tag.
 </video>
 
