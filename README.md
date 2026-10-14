@@ -36,6 +36,8 @@
 
 <img alt="NextRole start page — chat-driven prep on the left, a live artifact workspace on the right" src="docs/images/next-role-hero-image.png" width="100%">
 
+▶️ **[Meet the agents — NextRole in 72 seconds](#meet-the-agents--nextrole-in-72-seconds)**
+
 </div>
 
 ---
@@ -54,6 +56,14 @@ Preparing for an interview takes hours of tedious resume tailoring and company r
 - 🗂️ **Built-in workspace** — upload, preview (PDF / MD / YAML / JSON / code), print-to-PDF, and swap the LLM at runtime.
 
 ## Demo
+
+### Meet the agents — NextRole in 72 seconds
+
+<video src="VIDEO_URL_PLACEHOLDER" width="100%" controls>
+  Your browser does not support the video tag.
+</video>
+
+▶️ **[Watch it on YouTube »](YOUTUBE_URL_PLACEHOLDER)**
 
 ### Career agent — from CV and JD to interview-ready
 
