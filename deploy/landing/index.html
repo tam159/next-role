@@ -1380,6 +1380,151 @@
         color: var(--ink-2);
       }
 
+      /* ---------- Analytics agent ---------- */
+      .analytics {
+        border-top: 1px solid var(--border);
+      }
+      .analytics .grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        gap: 40px;
+        align-items: start;
+      }
+      @media (min-width: 980px) {
+        .analytics .grid {
+          grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+          gap: 56px;
+        }
+      }
+      .an-steps {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+      .an-step {
+        display: grid;
+        grid-template-columns: 34px 1fr;
+        gap: 14px;
+        padding: 16px 18px;
+        border-radius: 16px;
+        border: 1px solid var(--border);
+        background: var(--surface);
+      }
+      .an-step .n {
+        font-family: var(--font-mono);
+        font-size: 0.75rem;
+        color: var(--accent-text);
+        padding-top: 3px;
+      }
+      .an-step b {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: baseline;
+        gap: 4px 10px;
+        font-weight: 600;
+      }
+      .an-step b code {
+        font-family: var(--font-mono);
+        font-size: 0.75rem;
+        font-weight: 400;
+        color: var(--ink-3);
+      }
+      .an-step span {
+        display: block;
+        color: var(--ink-2);
+        font-size: 0.9375rem;
+        margin-top: 3px;
+      }
+      .an-flow {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 24px;
+        padding: 22px;
+        box-shadow: var(--shadow-sm);
+        font-size: 0.875rem;
+      }
+      .an-flow .cap {
+        font-family: var(--font-mono);
+        font-size: 0.6875rem;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--ink-3);
+        margin-bottom: 14px;
+      }
+      .an-orch {
+        position: relative;
+        border: 1px dashed var(--border-2);
+        border-radius: 16px;
+        padding: 22px 14px 14px;
+      }
+      .an-orch .tag {
+        position: absolute;
+        top: -10px;
+        left: 14px;
+        padding: 0 8px;
+        background: var(--surface);
+        font-family: var(--font-mono);
+        font-size: 0.6875rem;
+        color: var(--accent-text);
+      }
+      .an-layer {
+        padding: 10px 14px;
+        border-radius: 12px;
+        border: 1px solid var(--border-2);
+        background: var(--surface-2);
+      }
+      .an-layer b {
+        font-weight: 600;
+      }
+      .an-layer small {
+        display: block;
+        color: var(--ink-3);
+        font-family: var(--font-mono);
+        font-size: 0.6875rem;
+        margin-top: 2px;
+      }
+      .an-via {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        min-height: 30px;
+        padding-left: 22px;
+        color: var(--ink-3);
+        font-family: var(--font-mono);
+        font-size: 0.6875rem;
+      }
+      .an-via::before {
+        content: "";
+        align-self: stretch;
+        width: 1.5px;
+        background: var(--accent);
+        opacity: 0.6;
+      }
+      .an-out {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 8px;
+      }
+      .an-out .an-layer {
+        padding: 10px;
+        text-align: center;
+      }
+      .an-out .an-layer.main {
+        border-color: var(--accent);
+        background: var(--accent-soft);
+      }
+      .an-note {
+        margin-top: 28px;
+        font-size: 0.875rem;
+        color: var(--ink-3);
+        max-width: 72ch;
+      }
+      .an-note a {
+        color: var(--accent-text);
+        font-weight: 600;
+        border-bottom: 1px solid currentColor;
+      }
+
       /* ---------- Demo ---------- */
       .demo {
         background: var(--surface);
@@ -2222,9 +2367,72 @@
             <p class="aside reveal">
               A second <code>analytics agent</code> in the agent switcher answers questions about
               the product itself with read-only SQL and charts.
-              <a href="#demo" data-demo="rBDNyOQKMRU">Watch it work</a>.
+              <a href="#analytics">See how it works</a>.
             </p>
           </div>
+        </div>
+      </section>
+
+      <!-- ================= Analytics agent ================= -->
+      <section class="analytics" id="analytics">
+        <div class="wrap">
+          <div class="head reveal">
+            <div class="eyebrow">Analytics agent</div>
+            <h2 class="h2 serif">Ask NextRole about <em>itself</em>.</h2>
+            <p class="sub">
+              A second agent in the agent switcher answers questions about activity, reliability,
+              tool usage, and LLM cost. It queries a warehouse rebuilt every hour from the app's own
+              data, and answers with a chart.
+            </p>
+          </div>
+          <div class="grid">
+            <div class="an-steps">
+              <div class="an-step reveal">
+                <span class="n">01</span>
+                <div>
+                  <b>Reads the docs first <code>describe_data</code></b>
+                  <span>Merges dbt column descriptions, Cube metric definitions, and the ClickHouse schema before writing any SQL.</span>
+                </div>
+              </div>
+              <div class="an-step reveal" data-d="1">
+                <span class="n">02</span>
+                <div>
+                  <b>Queries read-only <code>run_sql</code></b>
+                  <span>A dedicated warehouse login with SELECT on the marts and staging layers only, under query limits it cannot raise.</span>
+                </div>
+              </div>
+              <div class="an-step reveal" data-d="2">
+                <span class="n">03</span>
+                <div>
+                  <b>Draws the answer <code>create_chart</code></b>
+                  <span>Line, bar, heatmap, table, KPI, and more, stored with the conversation so they redraw when you reopen the thread. Custom Plotly charts go through an approval-gated Python step.</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="an-flow reveal" data-d="1" role="img" aria-label="Analytics platform: Dagster runs dlt every hour to copy structure and metrics from PostgreSQL into ClickHouse, then dbt builds staging views and gold marts. Superset dashboards, Cube metrics, and the analytics agent all read the marts.">
+              <div class="cap" aria-hidden="true">The analytics platform</div>
+              <div class="an-orch" aria-hidden="true">
+                <span class="tag">Dagster · every hour</span>
+                <div class="an-layer"><b>PostgreSQL</b><small>app + auth data</small></div>
+                <div class="an-via">dlt · structure and metrics only</div>
+                <div class="an-layer"><b>ClickHouse bronze</b><small>raw tables, as-is</small></div>
+                <div class="an-via">dbt</div>
+                <div class="an-layer"><b>Staging → gold marts</b><small>star schema · tests · lineage</small></div>
+              </div>
+              <div class="an-via" aria-hidden="true">read by</div>
+              <div class="an-out" aria-hidden="true">
+                <div class="an-layer"><b>Superset</b><small>dashboards</small></div>
+                <div class="an-layer"><b>Cube</b><small>metrics</small></div>
+                <div class="an-layer main"><b>Agent</b><small>SQL + charts</small></div>
+              </div>
+            </div>
+          </div>
+          <p class="an-note reveal">
+            It reads activity across users, so access is an explicit allowlist. The pipeline copies
+            structure and metrics, never chat, CV, or JD bodies.
+            <a href="#demo" data-demo="rBDNyOQKMRU">Watch the analytics demo</a>.
+          </p>
         </div>
       </section>
 
