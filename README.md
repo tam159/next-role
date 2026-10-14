@@ -59,11 +59,11 @@ Preparing for an interview takes hours of tedious resume tailoring and company r
 
 ### Meet the agents — NextRole in 72 seconds
 
-<video src="VIDEO_URL_PLACEHOLDER" width="100%" controls>
+<video src="https://github.com/user-attachments/assets/849052dd-430d-4af6-af21-f79309113599" width="100%" controls>
   Your browser does not support the video tag.
 </video>
 
-▶️ **[Watch it on YouTube »](YOUTUBE_URL_PLACEHOLDER)**
+▶️ **[Watch it on YouTube »](https://youtu.be/EC4Q8WSXVII)**
 
 ### Career agent — from CV and JD to interview-ready
 
