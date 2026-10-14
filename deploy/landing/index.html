@@ -1519,7 +1519,8 @@
         color: var(--ink-3);
         max-width: 72ch;
       }
-      .an-note a {
+      .an-note a,
+      .agents .sub a {
         color: var(--accent-text);
         font-weight: 600;
         border-bottom: 1px solid currentColor;
@@ -2332,6 +2333,7 @@
               <p class="sub">
                 Each specialist is declared in a YAML file with its own model, tools, and skills,
                 and only receives the tools it opts into.
+                <a href="#demo" data-demo="EC4Q8WSXVII">Watch them work in 72 seconds</a>.
               </p>
             </div>
             <div class="roster">
@@ -2443,8 +2445,8 @@
             <div class="eyebrow">Demo</div>
             <h2 class="h2 serif">Watch both agents <em>run</em>.</h2>
             <p class="sub" id="demo-sub">
-              From an uploaded CV and a pasted job link to a tailored resume, interview prep, and a
-              battlecard, with follow-up edits in chat.
+              The career agent and its three specialists, from CV and job link to three documents,
+              plus the analytics agent, in 72 seconds.
             </p>
           </div>
           <div class="tabs reveal" role="tablist" aria-label="Demo videos">
@@ -2453,6 +2455,19 @@
               type="button"
               role="tab"
               aria-selected="true"
+              aria-controls="facade"
+              data-video="EC4Q8WSXVII"
+              data-title="NextRole: meet the agents"
+              data-cap="NextRole: AI Agents"
+              data-sub="The career agent and its three specialists, from CV and job link to three documents, plus the analytics agent, in 72 seconds."
+            >
+              Meet the agents
+            </button>
+            <button
+              class="tab"
+              type="button"
+              role="tab"
+              aria-selected="false"
               aria-controls="facade"
               data-video="EItEczXPu0Y"
               data-title="NextRole demo walkthrough"
@@ -2478,7 +2493,7 @@
           <div class="facade reveal" id="facade" role="tabpanel"></div>
           <p class="yt">
             Prefer YouTube?
-            <a href="https://youtu.be/EItEczXPu0Y" rel="noopener" id="demo-yt">Watch it in HD there</a>.
+            <a href="https://youtu.be/EC4Q8WSXVII" rel="noopener" id="demo-yt">Watch it in HD there</a>.
           </p>
         </div>
       </section>
