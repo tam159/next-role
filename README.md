@@ -55,11 +55,21 @@ Preparing for an interview takes hours of tedious resume tailoring and company r
 
 ## Demo
 
+### Career agent — from CV and JD to interview-ready
+
 <video src="https://github.com/user-attachments/assets/103b13fb-931f-4258-a131-4f6329b14f8d" width="100%" controls>
   Your browser does not support the video tag.
 </video>
 
 ▶️ **[Watch the full walkthrough in HD on YouTube »](https://youtu.be/EItEczXPu0Y)**
+
+### Analytics agent — ask the product questions, get charts
+
+<video src="https://github.com/user-attachments/assets/b8c567b8-4b28-4515-9ec3-0190f220edc5" width="100%" controls>
+  Your browser does not support the video tag.
+</video>
+
+▶️ **[Watch the analytics agent demo in HD on YouTube »](https://youtu.be/rBDNyOQKMRU)**
 
 ## Quick Start
 
@@ -358,7 +368,7 @@ The pipeline extracts **structure and metrics, not chat, CV, or JD bodies**. Som
 
 <br/>
 
-Select **Analytics Agent** in the app to ask about activity, reliability, tool usage, or estimated LLM cost. It uses `describe_data` to read dbt descriptions, Cube metric definitions, and the ClickHouse schema before building queries.
+Select **Analytics Agent** in the app to ask about activity, reliability, tool usage, or estimated LLM cost. It uses `describe_data` to read dbt descriptions, Cube metric definitions, and the ClickHouse schema before building queries. ▶️ [See it in action in the demo](#analytics-agent--ask-the-product-questions-get-charts).
 
 ![Analytics agent workflow illustration — discover metadata, choose built-in chart generation or a CSV and Python fallback, then store the chart and display it in the conversation](docs/images/next-role-analytics-agent.png)
 

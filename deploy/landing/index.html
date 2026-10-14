@@ -1369,6 +1369,11 @@
         font-size: 0.875rem;
         color: var(--ink-3);
       }
+      .agents .aside a {
+        color: var(--accent-text);
+        font-weight: 600;
+        border-bottom: 1px solid currentColor;
+      }
       .agents .aside code {
         font-family: var(--font-mono);
         font-size: 0.8125rem;
@@ -1391,6 +1396,36 @@
       }
       .demo .sub {
         text-align: center;
+      }
+      .demo .tabs {
+        display: inline-flex;
+        gap: 4px;
+        padding: 4px;
+        margin-bottom: 24px;
+        border: 1px solid var(--border-2);
+        border-radius: 999px;
+        background: var(--canvas);
+      }
+      .demo .tab {
+        padding: 8px 18px;
+        border: 0;
+        border-radius: 999px;
+        background: transparent;
+        color: var(--ink-2);
+        font: inherit;
+        font-size: 0.875rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition:
+          background 0.2s ease,
+          color 0.2s ease;
+      }
+      .demo .tab:hover {
+        color: var(--ink);
+      }
+      .demo .tab[aria-selected="true"] {
+        background: var(--accent);
+        color: var(--on-accent);
       }
       .facade {
         position: relative;
@@ -2187,6 +2222,7 @@
             <p class="aside reveal">
               A second <code>analytics agent</code> in the agent switcher answers questions about
               the product itself with read-only SQL and charts.
+              <a href="#demo" data-demo="rBDNyOQKMRU">Watch it work</a>.
             </p>
           </div>
         </div>
@@ -2197,29 +2233,44 @@
         <div class="wrap">
           <div class="head reveal">
             <div class="eyebrow">Demo</div>
-            <h2 class="h2 serif">Watch a full prep <em>run</em>.</h2>
-            <p class="sub">
+            <h2 class="h2 serif">Watch both agents <em>run</em>.</h2>
+            <p class="sub" id="demo-sub">
               From an uploaded CV and a pasted job link to a tailored resume, interview prep, and a
               battlecard, with follow-up edits in chat.
             </p>
           </div>
-          <div class="facade reveal" id="facade">
-            <img
-              src="https://i.ytimg.com/vi/EItEczXPu0Y/maxresdefault.jpg"
-              width="1280"
-              height="720"
-              loading="lazy"
-              alt="Video thumbnail for the NextRole demo walkthrough"
-            />
-            <button class="play" type="button" id="play" aria-label="Play the NextRole demo video">
-              <span class="btn-play" aria-hidden="true">
-                <svg viewBox="0 0 24 24"><path d="M7 4.5v15l13-7.5-13-7.5Z" /></svg>
-              </span>
-              <span class="cap" aria-hidden="true">NextRole: AI agents that tailor your resume and prep you for interviews</span>
+          <div class="tabs reveal" role="tablist" aria-label="Demo videos">
+            <button
+              class="tab"
+              type="button"
+              role="tab"
+              aria-selected="true"
+              aria-controls="facade"
+              data-video="EItEczXPu0Y"
+              data-title="NextRole demo walkthrough"
+              data-cap="NextRole: AI agents that tailor your resume and prep you for interviews"
+              data-sub="From an uploaded CV and a pasted job link to a tailored resume, interview prep, and a battlecard, with follow-up edits in chat."
+            >
+              Career agent
+            </button>
+            <button
+              class="tab"
+              type="button"
+              role="tab"
+              aria-selected="false"
+              aria-controls="facade"
+              data-video="rBDNyOQKMRU"
+              data-title="NextRole analytics agent demo"
+              data-cap="NextRole: Analytics AI Agents"
+              data-sub="Plain-English questions about activity, reliability, and LLM cost, answered with read-only SQL and charts that stay with the conversation."
+            >
+              Analytics agent
             </button>
           </div>
+          <div class="facade reveal" id="facade" role="tabpanel"></div>
           <p class="yt">
-            Prefer YouTube? <a href="https://youtu.be/EItEczXPu0Y" rel="noopener">Watch it in HD there</a>.
+            Prefer YouTube?
+            <a href="https://youtu.be/EItEczXPu0Y" rel="noopener" id="demo-yt">Watch it in HD there</a>.
           </p>
         </div>
       </section>
@@ -2376,21 +2427,50 @@
           })
           .catch(function () {});
 
-        // YouTube facade: load the player only on click.
-        var play = document.getElementById("play");
-        if (play) {
+        // YouTube facade: one player, a tab per video; load the iframe only on click.
+        var box = document.getElementById("facade");
+        var tabs = document.querySelectorAll(".demo .tab");
+        function showDemo(tab) {
+          var id = tab.dataset.video;
+          tabs.forEach(function (t) {
+            t.setAttribute("aria-selected", String(t === tab));
+          });
+          document.getElementById("demo-sub").textContent = tab.dataset.sub;
+          document.getElementById("demo-yt").href = "https://youtu.be/" + id;
+          box.innerHTML =
+            '<img src="https://i.ytimg.com/vi/' + id + '/maxresdefault.jpg" width="1280" ' +
+            'height="720" loading="lazy" alt="" />' +
+            '<button class="play" type="button"><span class="btn-play" aria-hidden="true">' +
+            '<svg viewBox="0 0 24 24"><path d="M7 4.5v15l13-7.5-13-7.5Z" /></svg></span>' +
+            '<span class="cap" aria-hidden="true"></span></button>';
+          box.querySelector("img").alt = "Video thumbnail for the " + tab.dataset.title;
+          box.querySelector(".cap").textContent = tab.dataset.cap;
+          var play = box.querySelector(".play");
+          play.setAttribute("aria-label", "Play the " + tab.dataset.title + " video");
           play.addEventListener("click", function () {
-            var box = document.getElementById("facade");
             var f = document.createElement("iframe");
             f.src =
-              "https://www.youtube-nocookie.com/embed/EItEczXPu0Y?autoplay=1&rel=0&modestbranding=1";
-            f.title = "NextRole demo video";
+              "https://www.youtube-nocookie.com/embed/" + id + "?autoplay=1&rel=0&modestbranding=1";
+            f.title = tab.dataset.title;
             f.allow = "accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture; web-share";
             f.setAttribute("allowfullscreen", "");
             box.innerHTML = "";
             box.appendChild(f);
           });
         }
+        tabs.forEach(function (t) {
+          t.addEventListener("click", function () {
+            showDemo(t);
+          });
+        });
+        if (tabs.length) showDemo(tabs[0]);
+        document.querySelectorAll("a[data-demo]").forEach(function (a) {
+          a.addEventListener("click", function () {
+            tabs.forEach(function (t) {
+              if (t.dataset.video === a.dataset.demo) showDemo(t);
+            });
+          });
+        });
       })();
     </script>
 
