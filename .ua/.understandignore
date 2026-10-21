@@ -18,6 +18,16 @@ frontend/.next/
 # Generated PRD knowledge graph (human-facing; regenerate per docs/prd/README.md)
 docs/prd/viz.html
 
+# --- Vendored third-party agent skills (installed via skills-lock.json) ---
+.claude/skills/archify/
+.claude/skills/archify-review/
+.claude/skills/drawio-skill/
+.agents/skills/archify/
+.agents/skills/archify-review/
+.agents/skills/drawio-skill/
+# Archify diagram run output (generated)
+.archify/
+
 # --- Tool caches ---
 .ruff_cache/
 .pytest_cache/
