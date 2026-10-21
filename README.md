@@ -409,7 +409,7 @@ With authentication enabled, access requires `ANALYTICS_AGENT_ALLOWED_USERS`; an
 
 ## 🗺️ Explore the codebase graph
 
-This repo ships a pre-built architecture knowledge graph in [`.ua/`](.ua) — the whole codebase mapped by [Understand-Anything](https://github.com/Egonex-AI/Understand-Anything) into 1,100+ nodes across 10 architectural layers, with a guided tour. Browse it as an interactive dashboard:
+This repo ships a pre-built architecture knowledge graph in [`.ua/`](.ua) — the whole codebase mapped by [Understand-Anything](https://github.com/Egonex-AI/Understand-Anything) into files, functions, and their relationships, grouped into architectural layers, with a guided tour. Browse it as an interactive dashboard:
 
 <details>
 <summary><b>Open the dashboard</b> — one command, nothing to install</summary>
