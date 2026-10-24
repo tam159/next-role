@@ -1,7 +1,7 @@
 """Unit tests for career-agent custom tools.
 
-External services (LlamaParse, Tavily) are mocked — tests never hit the network
-or burn LlamaCloud / Tavily credits.
+External services (LlamaParse, Tavily, TinyFish) are mocked — tests never hit the
+network or burn LlamaCloud / Tavily / TinyFish credits.
 """
 
 import time
@@ -354,6 +354,12 @@ def test_parse_document_handles_empty_markdown(tmp_path, monkeypatch, backend):
 # ---------------------------------------------------------------------------
 
 
+@pytest.fixture(autouse=True)
+def _tavily_provider(monkeypatch):
+    """Pin the web provider so a local `.env` can't reroute the Tavily mocks."""
+    monkeypatch.setenv("WEB_SEARCH_PROVIDER", "tavily")
+
+
 def _fake_tavily_returning(*, title: str = "", raw_content: str = "", url: str = "https://e.com/j"):
     """Build a fake TavilyClient whose `extract` returns a single-result payload."""
 
@@ -509,6 +515,27 @@ def test_extract_jd_overwrites_existing_processed_file(tmp_path, backend):
     written = (tmp_path / "processed" / "ex.md").read_text()
     assert "second" in written
     assert "first" not in written
+
+
+def test_extract_jd_uses_tinyfish_when_selected(tmp_path, backend, monkeypatch):
+    from backend.agents.career_agent import tools
+
+    monkeypatch.setenv("WEB_SEARCH_PROVIDER", "tinyfish")
+    fetched = SimpleNamespace(url="https://example.com/jd", title="Staff MLE", text="Body.")
+    client = SimpleNamespace(
+        fetch=SimpleNamespace(
+            get_contents=lambda **_kwargs: SimpleNamespace(results=[fetched], errors=[]),
+        ),
+    )
+    with patch("tinyfish.TinyFish", return_value=client):
+        result = tools.make_extract_jd(backend).invoke(
+            {"url": "https://example.com/jd", "save_as": "ex-jd"},
+        )
+
+    assert "Saved /processed/ex-jd.md" in result
+    written = (tmp_path / "processed" / "ex-jd.md").read_text()
+    assert written.startswith("# Staff MLE\n\n_Source: https://example.com/jd_")
+    assert "Body." in written
 
 
 # The old `overwrite_file` tool (and its `_upsert` fallback) are gone:
