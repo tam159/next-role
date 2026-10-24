@@ -112,7 +112,8 @@ docker ps                     # read the 0.0.0.0:<host>->... mappings
 | Variable | Required | Purpose |
 | --- | :---: | --- |
 | `OPENAI_API_KEY` | ✅ | Default main + subagent models |
-| `TAVILY_API_KEY` | ✅ | Web research (`hiring-recon`) |
+| `TAVILY_API_KEY` or `TINYFISH_API_KEY` | ✅ | Web research (`hiring-recon`, JD-from-URL) — whichever provider `WEB_SEARCH_PROVIDER` selects |
+| `WEB_SEARCH_PROVIDER` | preset | Web research provider: `tavily` (default) or `tinyfish` — see below |
 | `LLAMA_CLOUD_API_KEY` | ✅ | Document parsing (LlamaParse) |
 | `POSTGRES_PASSWORD` | ✅ | Local Postgres password |
 | `ANTHROPIC_API_KEY` / `GOOGLE_API_KEY` | ⬜ | Alternative providers (swap at runtime) |
@@ -128,6 +129,8 @@ docker ps                     # read the 0.0.0.0:<host>->... mappings
 | `CLICKHOUSE_AGENT_PASSWORD` / `ANALYTICS_AGENT_ALLOWED_USERS` | generate / empty | The analytics agent's read-only warehouse login, and who may run it — see below |
 
 **Shell-command approval.** Risky `execute` (bash) commands pause in the UI for approve / edit / reject; a conservative read-only allowlist auto-approves trivial pokes. The gate applies in **both** sandbox modes below — isolation contains blast radius, not exfiltration or API misuse. On by default — set `CAREER_AGENT_EXECUTE_APPROVAL=false` only for offline evals or emergency rollback (env changes need `docker compose up -d backend` to recreate, not `restart`). Full policy in [`backend/agents/career_agent/README.md`](backend/agents/career_agent/README.md#human-in-the-loop-execute-approval).
+
+**Web research.** `WEB_SEARCH_PROVIDER` picks the backend behind `web_search` / `web_extract` (used by `hiring-recon`) and `extract_jd`. `tavily` (default) returns longer per-result content; `tinyfish` ([TinyFish](https://docs.tinyfish.ai/) Search + Fetch) returns short snippets, has no `finance` topic, and fetches at most 10 URLs per call. Results are normalized to one shape, so tools, skills and the Sources panel behave the same either way.
 
 **Sandbox.** `SANDBOX_PROVIDER` picks where `execute` commands (and `rendercv` renders) run. `local` (default) executes on the backend host — right for local dev and a trusted team, zero extra moving parts. `e2b` runs every command in an isolated remote **microVM** over the E2B API: point `SANDBOX_E2B_API_URL` at a self-hosted [CubeSandbox](https://github.com/TencentCloud/CubeSandbox) (open source, Apache-2.0 — your data never leaves your infra; provisioning + template guide in [`deploy/cubesandbox/`](deploy/cubesandbox/README.md)), or leave it empty to use [E2B Cloud](https://e2b.dev) with the same code path. CubeSandbox requires its own Linux host (custom PVM kernel or native KVM), so it is reached over HTTP rather than run inside docker compose.
 
@@ -152,7 +155,7 @@ Models are swappable **at runtime** — no rebuild. Open the in-app **Configurat
 
 **Run it for free or fully local:**
 
-- **Tavily** and **LlamaCloud** both include a generous monthly free tier — plenty for local use.
+- **Tavily** and **LlamaCloud** both include a generous monthly free tier, and **TinyFish** Search / Fetch are free within a daily allowance — plenty for local use.
 - **Google AI Studio** offers a free tier for Gemini `flash` / `lite` models.
 - **Fully local** — point `OPENAI_API_BASE` at [LM Studio](https://lmstudio.ai/) or [Ollama](https://ollama.com/) (both expose an OpenAI-compatible API) and fill your local model in the UI.
 
@@ -195,7 +198,7 @@ The return arrow illustrates a targeted tailoring or coaching update. Other edit
 <br/>
 
 1. **Intake** — the agent asks for your CV, the JD (file, URL, or pasted text), your prep timeline, and any extra context.
-2. **Process documents** — uploads are parsed to markdown via LlamaParse (`parse_document`); JD URLs are pulled via Tavily (`extract_jd`). Results land in `/processed/`, alongside a persisted intake note.
+2. **Process documents** — uploads are parsed to markdown via LlamaParse (`parse_document`); JD URLs are pulled via Tavily or TinyFish (`extract_jd`). Results land in `/processed/`, alongside a persisted intake note.
 3. **Research** — the `hiring-recon` subagent gathers company + role intel and a match analysis → `/research/<resume>/<jd>.md`.
 4. **Tailor & coach (parallel)** — `resume-tailor` rewrites the CV as a `rendercv` YAML and renders a PDF; `interview-coach` writes a structured prep doc (self-intro + per-round STAR stories).
 5. **Battlecard** — the main agent assembles a one-page-per-round JSON and renders it to a day-of PDF via WeasyPrint.
@@ -326,7 +329,7 @@ NextRole runs **zero-login single-user by default** — `docker compose up` and 
 | Layer | Stack |
 | --- | --- |
 | **Backend** | Python 3.13 · LangChain v1 · LangGraph 1.x · DeepAgents · `uv` · served by NextRole's own self-hosted agent server ([`backend/ARCHITECTURE.md`](backend/ARCHITECTURE.md)) |
-| **Agent I/O** | Tavily (web search) · LlamaParse / LlamaCloud (document parsing) · `rendercv` (resume → PDF) · WeasyPrint (battlecard → PDF) |
+| **Agent I/O** | Tavily / TinyFish (web search) · LlamaParse / LlamaCloud (document parsing) · `rendercv` (resume → PDF) · WeasyPrint (battlecard → PDF) |
 | **Frontend** | Next.js 16 · React 19 · TypeScript · Tailwind · `pnpm` · `@langchain/react` (v2 `useStream`) |
 | **Data** | PostgreSQL 18 + pgvector · Redis 8 · S3-compatible object storage (SeaweedFS locally; S3 / GCS / Azure in the cloud) |
 | **Infra** | Docker Compose (app services · PostgreSQL · Redis · object storage · ClickHouse · Dagster · dbt docs · Cube · Superset) |

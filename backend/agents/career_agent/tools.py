@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Any, Literal
 from urllib.parse import urlparse
 
+from backend.agents.career_agent import web_providers
 from backend.agents.career_agent.render_scratch import (
     HostRenderScratch,
     RenderScratch,
@@ -56,15 +57,12 @@ def web_search(
         max_results: Number of results to return
 
     Returns:
-        Search results with url, title, content and score
+        Search results with url, title and content
 
     """
     try:
-        from tavily import TavilyClient
-
-        client = TavilyClient()
-        return client.search(
-            query=query,
+        return web_providers.search(
+            query,
             search_depth=search_depth,
             topic=topic,
             max_results=max_results,
@@ -79,27 +77,24 @@ def web_extract(
     extract_depth: Literal["basic", "advanced"] = "basic",
     content_format: Literal["markdown", "text"] = "markdown",
 ) -> dict:
-    """Search the web for current information.
+    """Extract the full content of one or more web pages.
 
     Args:
-    urls: The URLs to extract content from
+    urls: The URLs to extract content from (at most 10 per call)
     extract_depth: The depth of the extraction process. advanced extraction
         retrieves more data, including tables and embedded content, with higher
         success but may increase latency.
     content_format: The format of the extracted content
 
     Returns:
-        Search results with url, title, raw_content and images
+        Extracted pages with url, title and raw_content, plus failed_results
 
     """
     try:
-        from tavily import TavilyClient
-
-        client = TavilyClient()
-        return client.extract(
-            urls=urls,
+        return web_providers.extract(
+            urls,
             extract_depth=extract_depth,
-            format=content_format,
+            content_format=content_format,
         )
     except Exception as e:
         return {"error": f"Extract failed: {e}"}
@@ -246,24 +241,6 @@ def make_parse_document(backend: CompositeBackend) -> BaseTool:
         return f"Saved {output_path} ({len(markdown)} chars)"
 
     return parse_document
-
-
-def _tavily_extract_one(url: str) -> tuple[str, str]:
-    """Extract a single URL via Tavily and return `(title, raw_markdown)`.
-
-    Raises on transport errors or empty results so callers can surface a
-    consistent `Error: ...` message.
-    """
-    from tavily import TavilyClient
-
-    client = TavilyClient()
-    response = client.extract(urls=url, extract_depth="basic", format="markdown")
-    results = response.get("results") or []
-    if not results:
-        msg = f"Tavily returned no results for {url}"
-        raise ValueError(msg)
-    first = results[0]
-    return first.get("title") or "", first.get("raw_content") or ""
 
 
 class _RenderStageError(Exception):
@@ -634,7 +611,7 @@ def make_extract_jd(backend: CompositeBackend) -> BaseTool:
 
     @tool
     def extract_jd(url: str, save_as: str) -> str:
-        """Extract a JD from a URL via Tavily and persist as markdown.
+        """Extract a JD from a URL and persist as markdown.
 
         The extracted markdown is written directly to `/processed/<save_as>.md`
         — you do NOT need to call `write_file` afterwards. Use this when the
@@ -667,7 +644,7 @@ def make_extract_jd(backend: CompositeBackend) -> BaseTool:
 
         dest = f"/processed/{save_as}.md"
         try:
-            title, raw_markdown = _tavily_extract_one(url)
+            title, raw_markdown = web_providers.extract_one(url)
             body = _strip_image_filenames(raw_markdown)
             header = f"# {title}\n\n" if title else ""
             content = f"{header}_Source: {url}_\n\n{body}"

@@ -100,5 +100,5 @@ For tasks involving the **LangChain ecosystem** (LangChain, LangGraph, LangSmith
 
 ## Gotchas
 
-- LLM provider keys (OpenAI / Anthropic / Google / AWS / Tavily) come from `.env` via `pydantic-settings` and `python-dotenv`. Don't hardcode.
+- LLM provider keys (OpenAI / Anthropic / Google / AWS / Tavily / TinyFish) come from `.env` via `pydantic-settings` and `python-dotenv`. Don't hardcode.
 - `langchain` is on the v1 line (`>=1.2`); APIs differ from older v0.x snippets you may see online.

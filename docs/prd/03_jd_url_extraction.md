@@ -36,12 +36,13 @@ The processed file shows up in Workspace > Files alongside parsed uploads. Re-pa
 
 | Concern | Path |
 |---|---|
-| `extract_jd` factory + `_tavily_extract_one` helper | `backend/agents/career_agent/tools.py` |
+| `extract_jd` factory | `backend/agents/career_agent/tools.py` |
+| `extract_one` helper (Tavily / TinyFish per `WEB_SEARCH_PROVIDER`) | `backend/agents/career_agent/web_providers.py` |
 | Tool registration on the main agent | `backend/agents/career_agent/agents.py` |
 | URL-handling block (parallel to upload block) | `backend/agents/career_agent/prompts.py` (`SYSTEM_PROMPT`) |
-| Unit tests (Tavily mocked) | `backend/tests/career_agent/test_tools.py` |
+| Unit tests (Tavily / TinyFish mocked) | `backend/tests/career_agent/test_tools.py`, `test_web_providers.py` |
 | Tavily SDK | `tavily-python` (already in `backend/pyproject.toml`) |
-| API key | `TAVILY_API_KEY` in `.env` |
+| API key | `TAVILY_API_KEY` (or `TINYFISH_API_KEY` with `WEB_SEARCH_PROVIDER=tinyfish`) in `.env` |
 
 # Decisions worth remembering
 
