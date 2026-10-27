@@ -1,0 +1,35 @@
+name: RunLedger
+
+# Replay the career-agent tool cassette. No model calls and no API keys:
+# tool results come from evals/runledger/cassettes/. The workflow always
+# triggers so a required check is reported; a paths filter that skips the
+# workflow would leave that check stuck in "Expected" (same reason as ci.yml).
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+# Cancel superseded runs on the same ref (e.g. new push to a PR branch).
+concurrency:
+  group: ci-runledger-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  runledger:
+    name: runledger
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v8.1.0 # no moving v8 major tag is published; pin the exact release
+        with:
+          enable-cache: true
+
+      - name: Replay RunLedger suite
+        run: uvx runledger==0.2.3 run ./evals/runledger --mode replay

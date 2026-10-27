@@ -1,0 +1,7 @@
+id: tailored-resume
+description: Search the role, then write a rendercv tailored-resume YAML.
+input:
+  company: Example Robotics
+  role: Senior AI Engineer
+  yaml_path: /tailored_resume/ada-lovelace/example-robotics.yaml
+cassette: cassettes/tailored-resume.jsonl

@@ -406,7 +406,7 @@ With authentication enabled, access requires `ANALYTICS_AGENT_ALLOWED_USERS`; an
 > Multi-user mode isolates data; before opening signups to untrusted users, also move shell execution off the default local mode (`SANDBOX_PROVIDER=e2b`).
 
 - 🔒 **Local shell execution is the default** — with `SANDBOX_PROVIDER=local`, `execute` and render commands run via `subprocess` on the host (HiL-gated). Safe locally and for a trusted team; for untrusted multi-tenant use switch to `e2b` so every command runs in an isolated microVM ([`deploy/cubesandbox/`](deploy/cubesandbox/README.md)).
-- 🧪 **LLM evals deferred** — current tests are unit + local-DB integration; automated quality evals aren't wired up yet.
+- 🧪 **LLM quality evals deferred** — current tests are unit + local-DB integration. [`evals/runledger/`](evals/runledger/README.md) replays one recorded tool trace (no model call, no API key) and fails if `web_search` does not run before `write_file`, if the tailored-resume document does not match rendercv's schema, or if the run exceeds `max_tool_calls`. It does not score answer quality.
 - 🧠 **Personalization is preferences-only** — the agent persists and auto-applies the preferences you *state* across sessions, but doesn't yet infer your style/history on its own or consolidate memory over time (see [roadmap](#roadmap)).
 - ⏱️ **Latency** — a full run makes several LLM and tool calls across multiple agents; expect minutes, not seconds.
 

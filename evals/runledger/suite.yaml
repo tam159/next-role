@@ -1,0 +1,19 @@
+suite_name: career-resume
+agent_command:
+  - python3
+  - agent.py
+mode: replay
+cases_path: cases
+tool_registry:
+  - web_search
+  - write_file
+tool_module: evals.runledger.tools
+assertions:
+  - type: call_order
+    order:
+      - web_search
+      - write_file
+  - type: json_schema
+    schema_path: schema.json
+budgets:
+  max_tool_calls: 4

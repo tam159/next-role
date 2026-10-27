@@ -3,6 +3,9 @@
 CLAUDE.local.md
 .claude/settings.local.json
 
+# RunLedger replay artifacts (the cassette under evals/runledger is committed)
+runledger_out/
+
 # dbt build artifacts (analytics/)
 analytics/dbt/target/
 analytics/dbt/logs/
