@@ -56,7 +56,7 @@ def _execute_call(command: str, call_id: str) -> dict:
 
 def _build_agent(monkeypatch, script: list):
     """Build the real graph with a scripted model and test-local persistence."""
-    monkeypatch.setenv("OPENAI_API_KEY", "test-key")
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "test-key")
 
     from backend.agents.career_agent.agents import build_career_agent
     from langgraph.checkpoint.memory import InMemorySaver

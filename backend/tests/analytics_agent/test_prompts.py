@@ -59,7 +59,7 @@ def _tool_description(tools, name: str) -> str:
 
 def _build(monkeypatch):
     """Build the real graph offline with a recording model."""
-    monkeypatch.setenv("OPENAI_API_KEY", "test-key")
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "test-key")
     from backend.agents.analytics_agent.agents import build_analytics_agent
     from langgraph.store.memory import InMemoryStore
 
@@ -114,7 +114,7 @@ def test_execute_guardrail_points_at_the_no_approval_path() -> None:
 
 def test_todos_channel_registered(monkeypatch) -> None:
     """TodoListMiddleware is opt-in since 0.7; the frontend Plan panel needs `todos`."""
-    monkeypatch.setenv("OPENAI_API_KEY", "test-key")
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "test-key")
 
     from backend.agents.analytics_agent.agents import analytics_agent
 
@@ -266,7 +266,7 @@ def test_the_shell_opt_in_restores_the_whole_fallback(monkeypatch, with_shell) -
 
 def test_the_model_default_matches_the_career_agent(monkeypatch) -> None:
     """Both agents bake in the same model, so the UI's picker behaves the same."""
-    monkeypatch.setenv("OPENAI_API_KEY", "test-key")
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "test-key")
     from backend.agents.analytics_agent import agents as analytics
     from backend.agents.career_agent import agents as career
 
