@@ -55,7 +55,7 @@ def test_memory_sources_and_prompt_wired_via_constructor(monkeypatch) -> None:
     whose only remaining job is making create_deep_agent construct the default
     middleware (at the cache-friendly tail) for ours to replace by name.
     """
-    monkeypatch.setenv("OPENAI_API_KEY", "test-key")  # model-client construction needs a key string
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "test-key")  # model client needs a key string
 
     from backend.agents.career_agent import agents, prompts
     from backend.agents.career_agent.middleware import PREFERENCES_PATH
@@ -74,7 +74,7 @@ def test_no_prompt_monkey_patching_remains(monkeypatch) -> None:
     non-None again, someone reintroduced a patch — the snapshot test below
     asserts the section stays out of the assembled prompt too.
     """
-    monkeypatch.setenv("OPENAI_API_KEY", "test-key")
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "test-key")
 
     import backend.agents.career_agent.agents  # noqa: F401  # import must not patch anything
     import deepagents.middleware.subagents as sub
@@ -85,7 +85,7 @@ def test_no_prompt_monkey_patching_remains(monkeypatch) -> None:
 
 def test_todos_channel_registered(monkeypatch) -> None:
     """TodoListMiddleware is opt-in since 0.7; the frontend Plan panel needs `todos`."""
-    monkeypatch.setenv("OPENAI_API_KEY", "test-key")
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "test-key")
 
     from backend.agents.career_agent.agents import career_agent
 
@@ -142,7 +142,7 @@ def test_assembled_prompt_and_tools_snapshot(monkeypatch) -> None:
     custom slot (or drops a section), the assertions here fail before any
     LangSmith trace has to reveal it.
     """
-    monkeypatch.setenv("OPENAI_API_KEY", "test-key")
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "test-key")
 
     from backend.agents.career_agent.agents import build_career_agent
     from langgraph.store.memory import InMemoryStore

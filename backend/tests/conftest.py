@@ -20,7 +20,7 @@ def with_shell(monkeypatch) -> Iterator[Callable[[str], ModuleType]]:
 
     def load(module_name: str) -> ModuleType:
         monkeypatch.setenv("SANDBOX_PROVIDER", "local")
-        monkeypatch.setenv("OPENAI_API_KEY", "test-key")
+        monkeypatch.setenv("ANTHROPIC_API_KEY", "test-key")
         module = importlib.reload(importlib.import_module(module_name))
         reloaded.append(module)
         return module
@@ -30,6 +30,6 @@ def with_shell(monkeypatch) -> Iterator[Callable[[str], ModuleType]]:
     monkeypatch.undo()
     with pytest.MonkeyPatch.context() as restore:
         # Graph construction resolves the default model, which wants a key.
-        restore.setenv("OPENAI_API_KEY", os.environ.get("OPENAI_API_KEY", "test-key"))
+        restore.setenv("ANTHROPIC_API_KEY", os.environ.get("ANTHROPIC_API_KEY", "test-key"))
         for module in reloaded:
             importlib.reload(module)

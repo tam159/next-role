@@ -111,12 +111,12 @@ docker ps                     # read the 0.0.0.0:<host>->... mappings
 
 | Variable | Required | Purpose |
 | --- | :---: | --- |
-| `OPENAI_API_KEY` | ✅ | Default main + subagent models |
+| `ANTHROPIC_API_KEY` | ✅ | Default main + subagent models |
 | `TAVILY_API_KEY` or `TINYFISH_API_KEY` | ✅ | Web research (`hiring-recon`, JD-from-URL) — whichever provider `WEB_SEARCH_PROVIDER` selects |
 | `WEB_SEARCH_PROVIDER` | preset | Web research provider: `tavily` (default) or `tinyfish` — see below |
 | `LLAMA_CLOUD_API_KEY` | ✅ | Document parsing (LlamaParse) |
 | `POSTGRES_PASSWORD` | ✅ | Local Postgres password |
-| `ANTHROPIC_API_KEY` / `GOOGLE_API_KEY` | ⬜ | Alternative providers (swap at runtime) |
+| `OPENAI_API_KEY` / `GOOGLE_API_KEY` | ⬜ | Alternative providers (swap at runtime) |
 | `OPENAI_API_BASE` | ⬜ | Self-hosted / Azure / LM Studio endpoint |
 | `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` / `AWS_DEFAULT_REGION` | ⬜ | AWS Bedrock models |
 | `LANGCHAIN_API_KEY` + `LANGCHAIN_TRACING_V2=true` | ⬜ | LangSmith tracing (recommended) |
@@ -149,9 +149,9 @@ Secrets live only in `.env` (gitignored); `gitleaks` runs on every commit.
 
 <br/>
 
-Models are swappable **at runtime** — no rebuild. Open the in-app **Configuration** dialog and set **Main agent** / **Subagents** to a `<provider>:<model>` string (e.g. `anthropic:claude-sonnet-5`); leave blank to use the defaults. Settings persist in your browser's local storage.
+Models are swappable **at runtime** — no rebuild. Open the in-app **Configuration** dialog and set **Main agent** / **Subagents** to a `<provider>:<model>` string (e.g. `openai:gpt-6.1-terra`); leave blank to use the defaults. Settings persist in your browser's local storage.
 
-**Recommended:** Claude Sonnet 5, GPT-5.x, or Gemini 3.x — e.g. `anthropic:claude-sonnet-5`, `openai:gpt-5.6-terra`, `google_genai:gemini-3.5-flash`.
+**Recommended:** Claude Sonnet 5.x, GPT-6.x, or Gemini 3.x — e.g. `anthropic:claude-sonnet-5-5`, `openai:gpt-6.1-terra`, `google_genai:gemini-3.8-flash`.
 
 **Run it for free or fully local:**
 
