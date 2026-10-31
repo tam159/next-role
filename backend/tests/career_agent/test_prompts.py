@@ -162,7 +162,6 @@ def test_assembled_prompt_and_tools_snapshot(monkeypatch) -> None:
         "## `write_todos`",
         "## Skills System",
         "## File tools",
-        "## Shell paths vs. virtual paths",
         "<memory_guidelines>",
         "Current UTC date:",
     )
@@ -176,6 +175,8 @@ def test_assembled_prompt_and_tools_snapshot(monkeypatch) -> None:
         "## Following Conventions",
         "## Large Tool Results",
         "## Execute Tool",
+        # Shell-only: deepagents adds it only when the default backend executes.
+        "## Shell paths vs. virtual paths",
         "## `task`",
         "Available subagent types:",
     )
@@ -186,7 +187,6 @@ def test_assembled_prompt_and_tools_snapshot(monkeypatch) -> None:
     expected_tools = {
         "write_todos",
         "task",
-        "execute",
         "delete",
         "ls",
         "read_file",
@@ -202,12 +202,29 @@ def test_assembled_prompt_and_tools_snapshot(monkeypatch) -> None:
     assert expected_tools <= names, f"missing tools: {expected_tools - names}"
     # Retired: 0.7's write_file already has write-or-replace semantics.
     assert "overwrite_file" not in names
-
-    execute_description = _tool_description(fake.captured_tools[0], "execute")
-    assert "Do NOT use `execute` to create or edit files" in execute_description
+    # No shell by default (SANDBOX_PROVIDER=none): every stage runs on its own tools.
+    assert "execute" not in names
 
     # With no `## task` prompt section, the subagent roster must reach the
     # model through the task tool description ({available_agents}).
     task_description = _tool_description(fake.captured_tools[0], "task")
     for subagent in ("general-purpose", "hiring-recon", "resume-tailor", "interview-coach"):
         assert subagent in task_description, f"subagent missing from task description: {subagent}"
+
+
+def test_the_shell_opt_in_restores_execute_and_its_guardrail(monkeypatch, with_shell) -> None:
+    """SANDBOX_PROVIDER=local brings back the shell tool, its guardrail and path map."""
+    with_shell("backend.agents.career_agent.agents")
+    from backend.agents.career_agent.agents import build_career_agent
+    from langgraph.store.memory import InMemoryStore
+
+    fake = _RecordingFakeModel()
+    build_career_agent(model=fake, store=InMemoryStore()).invoke(
+        {"messages": [HumanMessage(content="hi")]},
+    )
+    tools = fake.captured_tools[0]
+
+    assert "execute" in _tool_names(tools)
+    execute_description = _tool_description(tools, "execute")
+    assert "Do NOT use `execute` to create or edit files" in execute_description
+    assert "## Shell paths vs. virtual paths" in fake.captured_messages[0][0].text

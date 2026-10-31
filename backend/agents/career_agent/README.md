@@ -34,7 +34,7 @@ career_agent/
 ├── object_backend.py            # ObjectStoreBackend for binary artifact routes
 ├── object_storage.py            # Virtual-path ↔ object-key mapping and area registry
 ├── scope.py                     # Per-user KV namespaces and object scopes
-├── sandbox_backend.py           # Local/E2B backend selection
+├── sandbox_backend.py           # None/local/E2B default-backend selection
 ├── shell_backend.py             # Host subprocess backend
 ├── execute_approval.py          # Human-in-the-loop policy for shell commands
 ├── render_scratch.py            # Throwaway host or sandbox render directories
@@ -89,9 +89,11 @@ Once the five stages have run, users iterate ("add a round", "drop this link", "
 
 ## Human-in-the-loop: `execute` approval
 
-The `execute` tool runs LLM-authored bash — on the host with `SANDBOX_PROVIDER=local`
-(default), inside a remote E2B microVM with `e2b` (see `sandbox_backend.py` and
-`deploy/cubesandbox/`) — so risky commands pause the run for human review in **both** modes:
+There is no `execute` tool by default: `SANDBOX_PROVIDER=none` makes the composite default a
+plain `FilesystemBackend`, so deepagents never binds it, no workflow stage needs it, and
+`execute_interrupt_on()` returns None. Opting in gives the agent LLM-authored bash — on the host
+with `SANDBOX_PROVIDER=local`, inside a remote E2B microVM with `e2b` (see `sandbox_backend.py`
+and `deploy/cubesandbox/`) — so risky commands pause the run for human review in **both** modes:
 isolation contains blast radius, not exfiltration or API misuse. `build_career_agent` passes
 `interrupt_on={"execute": ...}` (built by
 `execute_approval.py`) to `create_deep_agent`, which installs langchain's
@@ -105,9 +107,9 @@ checkpointer makes this durable — never pass `checkpointer=` to `create_deep_a
   read-only binary (`ls`, `cat`, `grep`, ...) with no shell control/substitution
   characters, no absolute paths, and no `..` traversal. Everything else interrupts —
   the classifier fails closed.
-- **Intentional bypass:** `render_resume_pdf` calls `backend.execute()` directly with a
-  developer-authored `rendercv render` command; it never passes the tool layer, so it is
-  not gated.
+- **Intentional bypass:** `render_resume_pdf` runs a developer-authored `rendercv render`
+  command itself — through `backend.execute()` when a shell is on, as a PATH-only host
+  subprocess under `none`. It never passes the tool layer, so it is not gated.
 - **Kill switch:** `CAREER_AGENT_EXECUTE_APPROVAL=false` (see `.env.example`) disables
   the gate for offline evals or rollback. Default on.
 
@@ -169,4 +171,4 @@ per-thread.
 /large_tool_results/                                          # StoreBackend — deepagents result offload
 ```
 
-Note: both the tailored resume and the interview battlecard follow the same source-then-render pattern. Tailored resumes use `rendercv` (YAML → `.typ` intermediate → `.pdf`, via the one-shot `render_resume_pdf` tool, which hydrates a scratch copy, renders, and publishes — the throwaway scratch dir lives on the host in `local` sandbox mode and inside the sandbox in `e2b` mode; see `render_scratch.py`). Battlecards use `weasyprint` (JSON → `.pdf`, via `render_battlecard_pdf`). The JSON / YAML side is the user-editable source of truth; the PDF is regenerated on demand. `/upload/`, `/tailored_resume/`, and `/interview_battlecard/` live in S3-compatible object storage (SeaweedFS locally; S3/GCS/Azure in the cloud) under deterministic keys — `users/<scope>/career_agent/<area>/<relpath>` — so binary PDFs live neither on shared disk nor in Postgres.
+Note: both the tailored resume and the interview battlecard follow the same source-then-render pattern. Tailored resumes use `rendercv` (YAML → `.typ` intermediate → `.pdf`, via the one-shot `render_resume_pdf` tool, which hydrates a scratch copy, renders, and publishes — the throwaway scratch dir lives on the host under `none` and `local`, and inside the sandbox in `e2b` mode; see `render_scratch.py`). Battlecards use `weasyprint` (JSON → `.pdf`, via `render_battlecard_pdf`). The JSON / YAML side is the user-editable source of truth; the PDF is regenerated on demand. `/upload/`, `/tailored_resume/`, and `/interview_battlecard/` live in S3-compatible object storage (SeaweedFS locally; S3/GCS/Azure in the cloud) under deterministic keys — `users/<scope>/career_agent/<area>/<relpath>` — so binary PDFs live neither on shared disk nor in Postgres.

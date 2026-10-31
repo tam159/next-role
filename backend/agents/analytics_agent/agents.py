@@ -5,7 +5,7 @@ selected from the UI's agent picker. Single-purpose: it reads the ClickHouse
 warehouse and shows the answer.
 
 It reuses the career agent's plumbing rather than copying it — the model
-override middleware, the UTC date stamp, the shell backend factory, the
+override middleware, the UTC date stamp, the default-backend factory, the
 execute-approval policy, and the object-storage key builders all live in
 `career_agent/` as shared modules. Only `career_agent/agents.py` builds a graph
 at import time, and nothing here imports it.
@@ -25,7 +25,7 @@ from backend.agents.analytics_agent.tools import (
 from backend.agents.career_agent.execute_approval import execute_interrupt_on
 from backend.agents.career_agent.middleware import ModelOverrideMiddleware, UtcDatetimeMiddleware
 from backend.agents.career_agent.object_backend import ObjectStoreBackend
-from backend.agents.career_agent.sandbox_backend import make_default_shell_backend
+from backend.agents.career_agent.sandbox_backend import execute_enabled, make_default_backend
 from backend.agents.career_agent.scope import kv_namespace
 from deepagents import create_deep_agent
 from deepagents.backends import CompositeBackend, StoreBackend
@@ -49,9 +49,9 @@ _AGENT_ROOT = "analytics_agent"
 ANALYTICS_AGENT_DIR = Path(__file__).parent
 
 #: The Python fallback (`execute` + `run_sql(save_as=)` + `create_chart(
-#: figure_path=)` + its skill) is a separable surface, on while the agent has a
-#: shell. `create_chart` draws every supported kind itself.
-_PYTHON_FALLBACK = True
+#: figure_path=)` + its skill) exists only when SANDBOX_PROVIDER gives the agent
+#: a shell. Off by default: `create_chart` draws every supported kind itself.
+_PYTHON_FALLBACK = execute_enabled()
 
 _SKILLS = ["skills/analytics-agent/"]
 if _PYTHON_FALLBACK:
@@ -59,8 +59,9 @@ if _PYTHON_FALLBACK:
 
 _backend = CompositeBackend(
     # Skills and the memory file are read through this default backend, so it
-    # is rooted at this package rather than the career agent's.
-    default=make_default_shell_backend(root_dir=ANALYTICS_AGENT_DIR),
+    # is rooted at this package rather than the career agent's. With
+    # SANDBOX_PROVIDER=none it is a plain filesystem, so there is no `execute`.
+    default=make_default_backend(root_dir=ANALYTICS_AGENT_DIR),
     routes={
         # Durable, per-user, and surfaced in the UI's Files panel.
         "/charts/": ObjectStoreBackend("charts"),
@@ -136,10 +137,11 @@ def build_analytics_agent(
         tools=[_describe_data, _run_sql, _create_chart],
         backend=_backend,
         middleware=middleware,
-        # Shared policy with the career agent (CAREER_AGENT_EXECUTE_APPROVAL):
-        # every shell command the model writes pauses for approval unless it is
-        # on the read-only allowlist. `create_chart` is the path that needs no
-        # approval, which is why the Python fallback is a fallback.
+        # Shared policy with the career agent (CAREER_AGENT_EXECUTE_APPROVAL),
+        # None when there is no shell: every shell command the model writes
+        # pauses for approval unless it is on the read-only allowlist.
+        # `create_chart` is the path that needs no approval, which is why the
+        # Python fallback is a fallback.
         interrupt_on=execute_interrupt_on(),
         # No `checkpointer=`: the server injects one per run and rejects
         # graph-owned savers.

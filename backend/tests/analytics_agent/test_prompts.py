@@ -205,9 +205,22 @@ def test_tool_surface_snapshot(monkeypatch) -> None:
 
     assert {"describe_data", "run_sql", "create_chart"} <= names
     assert {"ls", "read_file", "write_file", "edit_file", "glob", "grep"} <= names
-    assert {"execute", "write_todos"} <= names
+    assert "write_todos" in names
+    # No shell by default (SANDBOX_PROVIDER=none): create_chart covers every kind.
+    assert "execute" not in names
     # The career agent's document tools must not leak into this agent.
     assert not names & {"parse_document", "extract_jd", "render_battlecard_pdf", "web_search"}
+
+
+def test_the_python_fallback_is_absent_by_default(monkeypatch) -> None:
+    """Without a shell, nothing in the prompt may point at scripts or scratch."""
+    fake = _build(monkeypatch)
+    tools = fake.captured_tools[0]
+    system_text = fake.captured_messages[0][0].text
+
+    assert "save_as" not in system_text
+    assert "python-fallback" not in system_text
+    assert "figure_path" not in _tool_description(tools, "create_chart")
 
 
 def test_no_declarative_subagents_are_registered(monkeypatch) -> None:
@@ -226,8 +239,9 @@ def test_no_declarative_subagents_are_registered(monkeypatch) -> None:
         assert career_subagent not in task_description
 
 
-def test_execute_carries_the_analytics_guardrail(monkeypatch) -> None:
-    """The stock execute description is extended, not replaced."""
+def test_execute_carries_the_analytics_guardrail(monkeypatch, with_shell) -> None:
+    """With the shell opted in, the stock execute description is extended, not replaced."""
+    with_shell("backend.agents.analytics_agent.agents")
     fake = _build(monkeypatch)
 
     description = _tool_description(fake.captured_tools[0], "execute")
@@ -235,6 +249,19 @@ def test_execute_carries_the_analytics_guardrail(monkeypatch) -> None:
     assert "Prefer `create_chart`" in description
     # The stock deepagents description is still there, ahead of the guardrail.
     assert description.startswith("Executes a shell command")
+
+
+def test_the_shell_opt_in_restores_the_whole_fallback(monkeypatch, with_shell) -> None:
+    """SANDBOX_PROVIDER=local brings back execute, the scratch hand-off and its skill."""
+    with_shell("backend.agents.analytics_agent.agents")
+    fake = _build(monkeypatch)
+    tools = fake.captured_tools[0]
+    system_text = fake.captured_messages[0][0].text
+
+    assert "execute" in _tool_names(tools)
+    assert "python-fallback" in system_text
+    assert "save_as" in system_text
+    assert "figure_path" in _tool_description(tools, "create_chart")
 
 
 def test_the_model_default_matches_the_career_agent(monkeypatch) -> None:

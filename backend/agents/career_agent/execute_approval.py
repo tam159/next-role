@@ -2,8 +2,10 @@
 
 The `execute` tool runs LLM-authored bash — unsandboxed on the host under
 `SANDBOX_PROVIDER=local`, inside a remote microVM under `e2b` (see
-`sandbox_backend.py`). The gate applies identically in both modes (a sandbox
-contains blast radius, not exfiltration or API misuse), so every call that is
+`sandbox_backend.py`). Under the default `none` there is no `execute` tool, so
+there is nothing to gate and `execute_interrupt_on()` returns None. The gate
+applies identically in both shell modes (a sandbox contains blast radius, not
+exfiltration or API misuse), so every call that is
 not provably harmless pauses the run for human review (approve / edit /
 reject) via langchain's `HumanInTheLoopMiddleware`.
 `create_deep_agent(interrupt_on=...)` installs the middleware on the main
@@ -34,6 +36,7 @@ import tempfile
 from pathlib import Path, PurePosixPath
 from typing import TYPE_CHECKING
 
+from backend.agents.career_agent.sandbox_backend import execute_enabled
 from langchain.agents.middleware import InterruptOnConfig
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -160,10 +163,11 @@ def should_interrupt_execute(request: ToolCallRequest) -> bool:
 def execute_interrupt_on() -> dict[str, bool | InterruptOnConfig] | None:
     """Build the `interrupt_on` config for `create_deep_agent`, or None if off.
 
-    Evaluated at agent build time so tests (and container restarts) pick up
-    the current `CAREER_AGENT_EXECUTE_APPROVAL` value.
+    Off when the provider gives agents no shell (`SANDBOX_PROVIDER=none`) or
+    the kill switch is set. Evaluated at agent build time so tests (and
+    container restarts) pick up the current values.
     """
-    if not HitlSettings().execute_approval:
+    if not execute_enabled() or not HitlSettings().execute_approval:
         return None
     return {
         "execute": InterruptOnConfig(
