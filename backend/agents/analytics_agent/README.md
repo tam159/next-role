@@ -17,7 +17,7 @@ flowchart LR
   G --> DD["describe_data"]
   G --> RS["run_sql"]
   G --> CC["create_chart"]
-  G --> EX["execute<br/>approval-gated"]
+  G -. "opt-in: SANDBOX_PROVIDER=local or e2b" .-> EX["execute<br/>approval-gated"]
 
   DD --> DOCS[("dbt docs<br/>manifest · catalog<br/>column meanings")]
   DD --> CUBE[("Cube /v1/meta<br/>metric definitions<br/>formulas · caveats")]
@@ -42,10 +42,10 @@ the tool-side statement check is only there to turn obvious mistakes into readab
 flowchart TB
   Q(["Question needing a visual"]) --> D{"Can create_chart draw this kind?"}
 
-  D -- "line · bar · area · scatter<br/>pie · histogram · heatmap<br/>table · kpi" --> A["create_chart(sql, mapping)<br/>no approval"]
+  D -- "line · bar · area · scatter · pie<br/>histogram · heatmap · box · violin<br/>contour · histogram2d · table · kpi" --> A["create_chart(sql, mapping)<br/>no approval"]
   A --> ENV
 
-  D -- "box · violin · contour<br/>histogram2d" --> F1["run_sql(save_as=…)<br/>full result → CSV"]
+  D -- "dual axes · annotations · subplots<br/>(only with a shell opted in)" --> F1["run_sql(save_as=…)<br/>full result → CSV"]
   F1 --> F2["execute: pandas + plotly<br/>⏸ pauses for human approval"]
   F2 --> F3["fig.write_json(scratch)"]
   F3 --> F4["create_chart(figure_path=…)"]
@@ -55,7 +55,10 @@ flowchart TB
   ENV --> R["ChartCard in the conversation<br/>theme applied at render<br/>re-renders when the thread reopens"]
 ```
 
-Both paths end in the same stored artifact, which is why a chart survives the run that made it.
+Both paths end in the same stored artifact, which is why a chart survives the run that made it. The
+fallback path exists only when `SANDBOX_PROVIDER` gives the agent a shell (`local` or `e2b`); under
+the default `none` the agent has no `execute`, and `run_sql` / `create_chart` do not even offer
+`save_as` / `figure_path`.
 Figures carry no colours: the viewer's theme is applied at render time, so one chart reads correctly
 in light and dark. `table` and `kpi` skip Plotly entirely and are drawn with the app's own
 components. Scripts get no database credentials — data reaches them only through `save_as`.
@@ -80,11 +83,14 @@ agents/analytics_agent/
     │   ├── SKILL.md          discovery loop and query safety
     │   └── references/       ClickHouse dialect and question recipes
     └── charts/
-        └── SKILL.md          chart selection, dashboards, the Python fallback
+        └── SKILL.md          chart selection, dashboards
+└── skills/analytics-python-fallback/
+    └── python-fallback/
+        └── SKILL.md          the Python fallback (loaded only with a shell)
 ```
 
 Shared plumbing is imported from `career_agent/` rather than duplicated: the model override and
-UTC-date middleware, shell backend factory, execute-approval policy, object backend, scoping, and
+UTC-date middleware, default-backend factory, execute-approval policy, object backend, scoping, and
 object-key mapping. Only `career_agent/agents.py` builds a graph at import, and nothing here
 imports it.
 
@@ -95,13 +101,14 @@ sources because no one of them is complete: dbt carries the prose written for th
 carries the metric definitions and their caveats, and ClickHouse carries types, row counts and sort
 keys. Cached ~10 minutes. A source being down degrades to a notice, not a failure.
 
-**`run_sql(sql, save_as=None)`** — one read-only statement. A display limit is added when the query
-has none, and the result says so only when the limit was actually reached. `save_as` exports the
-full result to the thread's scratch directory for a Python script.
+**`run_sql(sql)`** — one read-only statement. A display limit is added when the query has none, and
+the result says so only when the limit was actually reached. With a shell opted in, `save_as`
+exports the full result to the thread's scratch directory for a Python script.
 
 **`create_chart(kind, title, ...)`** — runs the SQL, builds the chart, and stores it as an envelope
-artifact so it renders in the conversation and survives a reload. `figure_path` publishes a figure a
-fallback script wrote instead. `table` and `kpi` skip Plotly and store native payloads the frontend
+artifact so it renders in the conversation and survives a reload. Box, violin and histogram2d plot
+raw observations; contour pivots like heatmap. With a shell opted in, `figure_path` publishes a
+figure a fallback script wrote instead. `table` and `kpi` skip Plotly and store native payloads the frontend
 draws with its own design tokens.
 
 ## Storage
@@ -111,7 +118,7 @@ draws with its own design tokens.
 | `/charts/<thread id>/<slug>.plotly.json` | `users/<scope>/analytics_agent/charts/…` (object store) |
 | `/reports/<thread id>/<slug>.md` | `users/<scope>/analytics_agent/reports/…` (object store) |
 | `/large_tool_results/` | KV store, namespace `(<identity>, analytics_agent, …)` |
-| `run_sql(save_as=…)` exports | the shell's own scratch dir, never the agent filesystem |
+| `run_sql(save_as=…)` exports (shell opt-in only) | the shell's own scratch dir, never the agent filesystem |
 
 Areas are registered in `career_agent/object_storage.py::AREA_ROOTS`, which maps each to the agent
 that owns it. That mapping is also the files-API allowlist, so the frontend can list and read
@@ -154,20 +161,22 @@ just this user.
 | `CUBE_API_URL` | `http://cube:4000` | Metric definitions via `/cubejs-api/v1/meta` |
 | `DBT_DOCS_URL` | `http://dbt-docs:8080` | `manifest.json` + `catalog.json` |
 | `ANALYTICS_AGENT_ALLOWED_USERS` | — | Allowlist (ids or emails); empty denies under auth |
-| `CAREER_AGENT_EXECUTE_APPROVAL` | `true` | Shared with the career agent: gates every shell command |
+| `SANDBOX_PROVIDER` | `none` | Shared with the career agent: `local` / `e2b` opt into `execute` and the Python fallback |
+| `CAREER_AGENT_EXECUTE_APPROVAL` | `true` | Shared with the career agent: gates every shell command when a shell is on |
 
 ## The Python fallback
 
-`create_chart` covers the common kinds without an approval prompt. For anything else, the agent
-exports rows with `run_sql(save_as=…)`, writes a figure with a script through `execute` (which
+Off by default (`SANDBOX_PROVIDER=none`). `create_chart` draws every supported kind without an
+approval prompt. With `SANDBOX_PROVIDER=local` or `e2b`, the agent also gets `execute` and the
+`python-fallback` skill for visuals outside those kinds: it exports rows with `run_sql(save_as=…)`, writes a figure with a script through `execute` (which
 pauses for approval, as it does for the career agent), and publishes it with
 `create_chart(figure_path=…)`. Scripts get no database credentials by design — the shell
 environment carries `PATH` and nothing else — so data reaches them only through that export.
 
 ## Sample questions
 
-A manual test script. Every prompt below has been run against this agent; the first group needs no
-approval, the second exercises the Python fallback and will pause for one.
+A manual test script. The first group runs under the default `none`; the second exercises the
+Python fallback, needs a shell opted in, and will pause for approval.
 
 **Default path** — `create_chart` draws these directly.
 
@@ -179,22 +188,21 @@ approval, the second exercises the Python fallback and will pause for one.
 | Which tools does the agent call most, and which of them fail? Chart it. | `fct_message` tool columns, error rates |
 | Show me failed runs by day of week for this week versus last week, with the day names. | `dateName`, and the join traps a day-of-week scaffold invites |
 | What is the p50 and p95 run duration per week? | quantile syntax, duration being end-to-end |
+| Show the distribution of run duration by status as a box plot, so I can see spread and outliers rather than just the median. | box from raw rows |
+| Compare token-per-message distributions across models as a violin plot. | violin |
+| Show a 2D density of run duration against step count. | histogram2d |
 
-**Fallback path** — no supported kind fits, so the agent writes a script and you approve it.
+**Fallback path** (shell opted in) — no supported kind fits, so the agent writes a script and you approve it.
 
 | Ask | Produces |
 | --- | --- |
-| Show the distribution of run duration by status as a box plot, so I can see spread and outliers rather than just the median. | box (the most reliable trigger) |
-| Compare token-per-message distributions across models as a violin plot. | violin |
 | Plot daily run count and daily estimated cost on one chart with two y-axes, since they're on completely different scales. | dual axes |
 | Scatter run duration against step count with a fitted trend line. | trend overlay |
 | Plot mean run duration per day with error bars showing the p25 to p75 range. | error bars |
 | Give me small multiples: one mini line chart of daily runs per user, one panel each. | subplots |
 | Chart runs per day for the last 30 days and annotate the day token coverage collapsed. | annotations |
-| Show a 2D density of run duration against step count. | histogram2d |
 
-Box and violin are the most reliable triggers, because nothing in the supported list approximates
-them. Dual axes and annotations are sometimes satisfied with a plain line chart instead.
+Dual axes and annotations are sometimes satisfied with a plain line chart instead.
 
 **Do not ask for** a sankey, funnel, waterfall, treemap, sunburst, 3D or map chart. The agent will
 write and store one, but the frontend loads Plotly's cartesian bundle, so the card renders empty.

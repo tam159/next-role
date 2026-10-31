@@ -4,6 +4,8 @@ import datetime
 import json
 import re
 import shlex
+import subprocess
+import sys
 import tempfile
 import textwrap
 from pathlib import Path
@@ -16,7 +18,9 @@ from backend.agents.career_agent.render_scratch import (
     RenderScratch,
     RenderScratchError,
 )
+from backend.agents.career_agent.shell_backend import default_shell_env
 from deepagents.backends import CompositeBackend
+from deepagents.backends.protocol import SandboxBackendProtocol
 from langchain_core.tools import BaseTool, tool
 
 CAREER_AGENT_DIR: Path = Path(__file__).parent
@@ -393,19 +397,27 @@ def _hydrate_render_copy(body: str, render_dir: str, stem: str) -> tuple[str, in
     return body + settings_block, fixes
 
 
+#: Wall-clock cap for one host rendercv run (parity with the shell backend's).
+_RENDER_TIMEOUT_S = 60
+
+
 def _run_rendercv(backend: CompositeBackend, yaml_file: str) -> str:
-    """Run `rendercv render` on the scratch render copy via the composite default.
+    """Run `rendercv render` on the scratch render copy; return its output.
 
-    The path is a real absolute path outside the shell backend's root, so the
+    With a shell default (`SANDBOX_PROVIDER=local|e2b`) the command goes
+    through the composite default, so it runs where the scratch dir lives. The
+    path is a real absolute path outside the shell backend's root, so the
     local backend's virtual-path rewriter passes it through untouched (and in
-    sandbox mode it is already a sandbox-native path). Returns the process
-    output (kept for the verify-stage message).
+    sandbox mode it is already a sandbox-native path). Without one (`none`,
+    the default) rendercv runs as a host subprocess here instead.
 
-    Calling `backend.execute()` directly bypasses the `execute` TOOL and with
-    it the human-in-the-loop gate (see execute_approval.py) — intentionally:
-    this command is developer-authored from fixed args, not model-authored
-    bash, and the render already runs in a throwaway scratch dir.
+    Either way this bypasses the `execute` TOOL and with it the
+    human-in-the-loop gate (see execute_approval.py) — intentionally: this
+    command is developer-authored from fixed args, not model-authored bash,
+    and the render already runs in a throwaway scratch dir.
     """
+    if not isinstance(backend.default, SandboxBackendProtocol):
+        return _run_rendercv_on_host(yaml_file)
     try:
         exec_res = backend.execute(f"rendercv render {shlex.quote(yaml_file)}")
     except NotImplementedError:
@@ -415,6 +427,35 @@ def _run_rendercv(backend: CompositeBackend, yaml_file: str) -> str:
         msg = f"Error (render): rendercv exited {exec_res.exit_code}:\n{exec_res.output[-6000:]}"
         raise _RenderStageError(msg)
     return exec_res.output
+
+
+def _run_rendercv_on_host(yaml_file: str) -> str:
+    """Run rendercv in this interpreter's environment, without any secrets.
+
+    `python -m rendercv` resolves to the exact install this process uses, and
+    `default_shell_env()` passes PATH only — the same stance the shell backend
+    takes for agent commands.
+    """
+    try:
+        proc = subprocess.run(  # noqa: S603 — fixed argv, no shell
+            [sys.executable, "-m", "rendercv", "render", yaml_file],
+            capture_output=True,
+            text=True,
+            timeout=_RENDER_TIMEOUT_S,
+            env=default_shell_env(),
+            check=False,
+        )
+    except subprocess.TimeoutExpired:
+        msg = f"Error (render): rendercv timed out after {_RENDER_TIMEOUT_S}s"
+        raise _RenderStageError(msg) from None
+    except OSError as exc:
+        msg = f"Error (render): rendercv could not be started: {exc}"
+        raise _RenderStageError(msg) from None
+    output = proc.stdout + proc.stderr
+    if proc.returncode != 0:
+        msg = f"Error (render): rendercv exited {proc.returncode}:\n{output[-6000:]}"
+        raise _RenderStageError(msg)
+    return output
 
 
 def _collect_render_outputs(

@@ -1,6 +1,8 @@
 # CubeSandbox — self-hosted sandbox for the agent's `execute` tool
 
-With `SANDBOX_PROVIDER=e2b`, every shell command the career agent runs (and the
+Optional: the default `SANDBOX_PROVIDER=none` gives the agents no shell at all,
+so nothing here is needed to run or deploy NextRole. Opt in with
+`SANDBOX_PROVIDER=e2b`, and every shell command the agents run (and the
 `rendercv render` step) executes inside a hardware-isolated microVM instead of
 the backend host. NextRole speaks the standard **E2B API** for this, so the
 endpoint can be a self-hosted [CubeSandbox](https://github.com/TencentCloud/CubeSandbox)
@@ -11,8 +13,8 @@ CubeSandbox and builds the NextRole sandbox template.
 > **Why this isn't a docker-compose service:** CubeSandbox owns a machine. It
 > needs a custom PVM host kernel (x86_64) or native KVM (bare metal, incl.
 > ARM64), an XFS filesystem at `/data/cubelet`, and runs its components as host
-> processes. Nothing here runs on macOS — local dev stays on
-> `SANDBOX_PROVIDER=local`, protected by the HiL approval gate.
+> processes. Nothing here runs on macOS — local dev stays on `none`, or on
+> `SANDBOX_PROVIDER=local` (protected by the HiL approval gate) to try the shell.
 
 ## 1. Provision a host
 

@@ -226,7 +226,7 @@ All read in `server/api/config/__init__.py` unless noted. The compose file sets 
 | `LANGSERVE_GRAPHS` ★ | — | JSON `{graph_id: "path.py:variable"}`; any source containing `/` is loaded as a file path (`server/api/graph.py`) |
 | `LANGGRAPH_HTTP` ★ | — | JSON `{"app": "path.py:app"}` — mounts a user Starlette/FastAPI app into the server (`load_custom_app`). Used for the artifact **files API** (`backend/agents/files_api.py`); add `"enable_custom_route_auth": true` (compose does) to put its routes behind the server's auth middleware in multi-user mode |
 | `OBJECT_STORE_*` ★ | — | S3-compatible artifact storage: endpoint/bucket/region/creds/path-style. Local = SeaweedFS; cloud = S3 / GCS / Azure. Deliberately separate from `AWS_*` (Bedrock creds) |
-| `SANDBOX_PROVIDER` (+ `SANDBOX_E2B_API_URL` / `SANDBOX_E2B_API_KEY` / `SANDBOX_TEMPLATE` / `SANDBOX_TTL_SECONDS` / `SANDBOX_EXECUTE_TIMEOUT` / `SANDBOX_CWD` / `SANDBOX_MAX_OUTPUT_BYTES`) | `local` | Where the agent's `execute` runs: `local` = host subprocess, `e2b` = remote microVM over the E2B API (self-hosted CubeSandbox / E2B Cloud — §10). Read by the *agent* package at graph build (`agents/career_agent/sandbox_backend.py`), not server config |
+| `SANDBOX_PROVIDER` (+ `SANDBOX_E2B_API_URL` / `SANDBOX_E2B_API_KEY` / `SANDBOX_TEMPLATE` / `SANDBOX_TTL_SECONDS` / `SANDBOX_EXECUTE_TIMEOUT` / `SANDBOX_CWD` / `SANDBOX_MAX_OUTPUT_BYTES`) | `none` | Whether the agents get an `execute` shell tool and where it runs: `none` = no shell (filesystem-only default backend; rendercv runs as a fixed host subprocess inside `render_resume_pdf`), `local` = host subprocess, `e2b` = remote microVM over the E2B API (self-hosted CubeSandbox / E2B Cloud — §10). Read by the *agent* package at graph build (`agents/career_agent/sandbox_backend.py`), not server config |
 | `CLICKHOUSE_HOST` / `CLICKHOUSE_PORT` | `clickhouse` / `8123` | Warehouse the **analytics agent** reads. Compose overrides these for the backend service — `.env` carries only host-published ports, which don't resolve in-network |
 | `CLICKHOUSE_AGENT_USER` / `CLICKHOUSE_AGENT_PASSWORD` | `analytics_agent` / — | The agent's dedicated read-only warehouse identity (SELECT on marts + staging, `readonly=2`, capped by settings constraints). Provisioned in `analytics/clickhouse/users.d/analytics-agent.xml`; compose must always pass the password to the `clickhouse` service, since an undefined `from_env` fails its whole config load |
 | `CUBE_API_URL` / `DBT_DOCS_URL` | `http://cube:4000` / `http://dbt-docs:8080` | Metric definitions and the dbt manifest/catalog the analytics agent merges into its data dictionary. Read-only HTTP, unauthenticated in dev |
@@ -355,11 +355,12 @@ Real properties of this codebase, listed so nobody is surprised later:
    orphan rows silently.
 5. **The backend is not Postgres-free** — checkpoints/store/state bypass gRPC, so backend
    replicas also consume DB connections (matters only when scaling out, §10).
-6. **Shell execution is host-local by default.** Multi-user mode (§8) isolates *data*, but with
-   `SANDBOX_PROVIDER=local` (the default) `VirtualPathShellBackend` runs `execute`/render
-   commands via `subprocess` on the host — fine for a single user or a trusted team. Before
-   opening public signup, set `SANDBOX_PROVIDER=e2b` so every command runs in an isolated remote
-   microVM (§10, `deploy/cubesandbox/`); the HiL approval gate applies in both modes.
+6. **The opt-in shell is host-local in `local` mode.** The default `SANDBOX_PROVIDER=none` gives
+   the agents no `execute` tool at all. Multi-user mode (§8) isolates *data*, but with
+   `SANDBOX_PROVIDER=local` `VirtualPathShellBackend` runs `execute` commands via `subprocess`
+   on the host — fine for a single user or a trusted team. To offer a shell with public signup
+   open, use `SANDBOX_PROVIDER=e2b` so every command runs in an isolated remote microVM (§10,
+   `deploy/cubesandbox/`); the HiL approval gate applies in both shell modes.
 7. **MCP / A2A carry no per-resource authorization** (§8) — only authentication. Disable them in
    a shared deployment until per-user scoping is wired into those handlers.
 
@@ -382,11 +383,12 @@ Serverless containers (Cloud Run / Fargate / Container Apps) fit this workload w
 changes; FaaS does not (long runs, persistent gRPC, SSE). Binary artifacts already live behind
 an S3-compatible client (`OBJECT_STORE_*`), so in the cloud the SeaweedFS service is replaced
 by a managed bucket (S3 / GCS / Azure) — provision versioning/SSE/IAM there; no app changes.
-In local sandbox mode renders use a throwaway `TemporaryDirectory` (worker pods need only
-ordinary ephemeral `/tmp`); in `e2b` mode the render scratch lives inside the sandbox.
+In the default `none` and in `local` mode renders use a throwaway `TemporaryDirectory` (worker
+pods need only ordinary ephemeral `/tmp`); in `e2b` mode the render scratch lives inside the
+sandbox.
 
-**Sandboxed shell execution.** For any deployment serving untrusted users, run the agent's
-shell off-host: `SANDBOX_PROVIDER=e2b` swaps the composite default for an E2B-protocol backend
+**Sandboxed shell execution (opt-in).** The default `none` needs nothing here. If a deployment
+serving untrusted users opts into the agents' shell, run it off-host: `SANDBOX_PROVIDER=e2b` swaps the composite default for an E2B-protocol backend
 (`agents/career_agent/sandbox_backend.py`) that gives each conversation a **thread-scoped
 microVM** — rediscovered by sandbox metadata across worker restarts, idle-reaped after
 `SANDBOX_TTL_SECONDS`, and created with an empty environment so no provider secrets ever enter

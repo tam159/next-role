@@ -6,8 +6,12 @@ lifecycle end to end: gated `execute` calls pause with the
 HumanInTheLoopMiddleware payload the frontend renders, and
 `Command(resume={"decisions": [...]})` approve/edit/reject paths behave as
 the UI contract expects. Subagent propagation rides the same mechanism.
+
+The `execute` tool only exists when SANDBOX_PROVIDER gives the agent a shell
+(off by default), so every test here builds under the `local` opt-in.
 """
 
+import pytest
 from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import AIMessage, HumanMessage, ToolMessage
 from langchain_core.outputs import ChatGeneration, ChatResult
@@ -33,6 +37,12 @@ class _ScriptedToolCallModel(BaseChatModel):
         self.captured.append(list(messages))
         message = self.script.pop(0) if self.script else AIMessage(content="script exhausted")
         return ChatResult(generations=[ChatGeneration(message=message)])
+
+
+@pytest.fixture(autouse=True)
+def _shell(with_shell) -> None:
+    """Build the career agent with the host shell, so `execute` is bound."""
+    with_shell("backend.agents.career_agent.agents")
 
 
 def _execute_call(command: str, call_id: str) -> dict:

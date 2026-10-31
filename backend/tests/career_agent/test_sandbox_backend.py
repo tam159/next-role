@@ -14,9 +14,11 @@ from backend.agents.career_agent.render_scratch import RENDER_DIR_PREFIX, Sandbo
 from backend.agents.career_agent.sandbox_backend import (
     E2BSandboxBackend,
     SandboxSettings,
-    make_default_shell_backend,
+    execute_enabled,
+    make_default_backend,
 )
 from backend.agents.career_agent.shell_backend import VirtualPathShellBackend
+from deepagents.backends import FilesystemBackend
 from deepagents.backends.protocol import FILE_NOT_FOUND, SandboxBackendProtocol
 
 # --- fake e2b SDK -------------------------------------------------------------
@@ -408,17 +410,41 @@ def test_files_report_unavailable_endpoint_per_entry(cluster, monkeypatch):
 # --- provider factory & invariants -----------------------------------------------
 
 
-def test_factory_defaults_to_local_shell_backend():
-    backend = make_default_shell_backend()
+def test_factory_defaults_to_a_backend_without_a_shell():
+    """`none` (the default) must fail deepagents' execute gate, hiding the tool."""
+    backend = make_default_backend()
+
+    assert type(backend) is FilesystemBackend
+    assert not isinstance(backend, SandboxBackendProtocol)
+    assert Path(backend.cwd) == sandbox_backend._CAREER_AGENT_DIR.resolve()  # noqa: SLF001
+    assert not execute_enabled()
+
+
+def test_factory_selects_the_local_shell_from_env(monkeypatch):
+    monkeypatch.setenv("SANDBOX_PROVIDER", "local")
+
+    backend = make_default_backend()
 
     assert isinstance(backend, VirtualPathShellBackend)
     assert Path(backend.cwd) == sandbox_backend._CAREER_AGENT_DIR.resolve()  # noqa: SLF001
 
 
+def test_the_no_shell_backend_honours_its_root(tmp_path):
+    backend = make_default_backend(SandboxSettings(provider="none"), root_dir=tmp_path)
+
+    assert isinstance(backend, FilesystemBackend)
+    assert Path(backend.cwd) == tmp_path.resolve()
+
+
+@pytest.mark.parametrize(("provider", "enabled"), [("none", False), ("local", True), ("e2b", True)])
+def test_execute_enabled_follows_the_provider(provider, enabled):
+    assert execute_enabled(SandboxSettings(provider=provider)) is enabled
+
+
 def test_factory_selects_e2b_from_env(monkeypatch):
     monkeypatch.setenv("SANDBOX_PROVIDER", "e2b")
 
-    backend = make_default_shell_backend()
+    backend = make_default_backend()
 
     assert isinstance(backend, E2BSandboxBackend)
     assert isinstance(backend, SandboxBackendProtocol)  # the middleware's isinstance gate

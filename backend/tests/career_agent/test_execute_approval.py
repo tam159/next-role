@@ -109,8 +109,16 @@ def test_should_interrupt_fails_closed_on_bad_request() -> None:
     assert should_interrupt_execute(_request())
 
 
-def test_execute_interrupt_on_default_enabled(monkeypatch) -> None:
-    """Default config gates `execute` with approve/edit/reject."""
+def test_execute_interrupt_on_is_off_without_a_shell(monkeypatch) -> None:
+    """SANDBOX_PROVIDER=none (the default) leaves no `execute` tool to gate."""
+    monkeypatch.delenv("SANDBOX_PROVIDER", raising=False)
+    monkeypatch.delenv("CAREER_AGENT_EXECUTE_APPROVAL", raising=False)
+    assert execute_interrupt_on() is None
+
+
+def test_execute_interrupt_on_enabled_with_a_shell(monkeypatch) -> None:
+    """With a shell opted in, `execute` is gated with approve/edit/reject."""
+    monkeypatch.setenv("SANDBOX_PROVIDER", "local")
     monkeypatch.delenv("CAREER_AGENT_EXECUTE_APPROVAL", raising=False)
     config = execute_interrupt_on()
     assert config is not None
@@ -122,6 +130,7 @@ def test_execute_interrupt_on_default_enabled(monkeypatch) -> None:
 
 def test_execute_interrupt_on_kill_switch(monkeypatch) -> None:
     """CAREER_AGENT_EXECUTE_APPROVAL=false disables the gate entirely."""
+    monkeypatch.setenv("SANDBOX_PROVIDER", "local")
     monkeypatch.setenv("CAREER_AGENT_EXECUTE_APPROVAL", "false")
     assert execute_interrupt_on() is None
 

@@ -11,7 +11,7 @@ from backend.agents.career_agent.middleware import (
     UtcDatetimeMiddleware,
 )
 from backend.agents.career_agent.object_backend import ObjectStoreBackend
-from backend.agents.career_agent.sandbox_backend import make_default_shell_backend
+from backend.agents.career_agent.sandbox_backend import make_default_backend
 from backend.agents.career_agent.scope import kv_namespace
 from backend.agents.career_agent.tools import (
     CAREER_AGENT_DIR,
@@ -42,12 +42,13 @@ from langgraph.store.base import BaseStore
 _MODEL = "openai:gpt-5.6-terra"
 
 _backend = CompositeBackend(
-    # Shell/default route, picked by SANDBOX_PROVIDER at graph build time:
-    # `local` = host-subprocess VirtualPathShellBackend (historical behavior,
-    # the rollback lever), `e2b` = remote microVM sandbox over the E2B API
+    # Default route, picked by SANDBOX_PROVIDER at graph build time: `none`
+    # (default) = plain FilesystemBackend, so no `execute` tool exists and the
+    # agent works through its own tools only; `local` = host-subprocess
+    # VirtualPathShellBackend; `e2b` = remote microVM sandbox over the E2B API
     # (self-hosted CubeSandbox / E2B Cloud — see sandbox_backend.py). The HiL
-    # approval gate (interrupt_on below) applies identically in both modes.
-    default=make_default_shell_backend(),
+    # approval gate (interrupt_on below) applies identically to both shells.
+    default=make_default_backend(),
     routes={
         # Namespaces are scoped to the authenticated caller at call time
         # (kv_namespace reads the run's identity via get_config); single-user
@@ -206,9 +207,10 @@ def build_career_agent(
         ),
         backend=_backend,
         middleware=middleware,
-        # Human-in-the-loop for the shell tool: inherited by every declarative
-        # subagent (and general-purpose), so main agent and subagents pause
-        # alike. No `checkpointer=` here — the server injects one per run and
+        # Human-in-the-loop for the shell tool (None when SANDBOX_PROVIDER=none
+        # leaves no shell to gate): inherited by every declarative subagent
+        # (and general-purpose), so main agent and subagents pause alike.
+        # No `checkpointer=` here — the server injects one per run and
         # rejects graph-owned savers. See execute_approval.py for the policy.
         interrupt_on=execute_interrupt_on(),
         store=store,

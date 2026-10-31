@@ -13,7 +13,6 @@ from backend.agents.analytics_agent.charts import (
     ALL_KINDS,
     COLORWAY,
     FIGURE_KINDS,
-    PUBLISH_ONLY_KINDS,
     SCHEMA,
     ChartData,
     ChartSpec,
@@ -148,9 +147,10 @@ def test_every_figure_kind_builds_json_serialisable_output(kind):
     spec = {
         "histogram": _spec(kind="histogram", x="runs", y=None),
         "heatmap": _spec(kind="heatmap", x="day", series="model", y="tokens"),
+        "contour": _spec(kind="contour", x="day", series="model", y="tokens"),
         "pie": _spec(kind="pie", x="day", y="runs"),
     }.get(kind, _spec(kind=kind))
-    data = BY_MODEL if kind == "heatmap" else DAILY
+    data = BY_MODEL if kind in {"heatmap", "contour"} else DAILY
 
     figure = build_figure(spec, data)
 
@@ -293,26 +293,90 @@ def test_every_envelope_is_json_serialisable():
         spec = {
             "histogram": _spec(kind="histogram", x="runs", y=None),
             "heatmap": _spec(kind="heatmap", x="day", series="model", y="tokens"),
+            "contour": _spec(kind="contour", x="day", series="model", y="tokens"),
             "pie": _spec(kind="pie", x="day", y="runs"),
         }.get(kind, _spec(kind=kind))
-        data = BY_MODEL if kind == "heatmap" else DAILY
+        data = BY_MODEL if kind in {"heatmap", "contour"} else DAILY
         json.dumps(build_envelope(spec, data, sql="", thread_id="t"))
 
 
 # ---------------------------------------------------------------------------
-# publish-only kinds
+# distribution and grid kinds
 # ---------------------------------------------------------------------------
 
+DURATIONS = ChartData(
+    columns=["model", "duration_s", "status"],
+    rows=[
+        ("gpt-5.6-terra", 12.0, "ok"),
+        ("gpt-5.6-terra", 30.5, "failed"),
+        ("gpt-5.4", 8.25, "ok"),
+        ("gpt-5.4", 9.0, "ok"),
+    ],
+)
 
-def test_publish_only_kinds_are_in_the_schema():
-    """A box plot is exactly what the Python fallback exists to publish.
 
-    Constraining `kind` to what this module can draw made `create_chart` reject
-    the very figures the fallback produces.
-    """
-    assert PUBLISH_ONLY_KINDS <= ALL_KINDS
-    assert "box" in ALL_KINDS
-    assert not PUBLISH_ONLY_KINDS & FIGURE_KINDS
+def test_every_schema_kind_is_drawn_without_a_script():
+    """No kind may depend on the Python fallback, which is off by default."""
+    assert {"box", "violin", "contour", "histogram2d"} <= FIGURE_KINDS
+    assert FIGURE_KINDS | {"table", "kpi"} == ALL_KINDS
+
+
+@pytest.mark.parametrize("kind", ["box", "violin"])
+def test_a_distribution_needs_only_its_observations(kind):
+    assert validate_mapping(_spec(kind=kind, x=None, y="duration_s"), DURATIONS) is None
+    error = validate_mapping(_spec(kind=kind, x="model", y=None), DURATIONS)
+    assert error is not None
+    assert "`y`" in error
+
+
+def test_a_box_plot_groups_raw_values_by_category():
+    figure = build_figure(_spec(kind="box", x="model", y="duration_s"), DURATIONS)
+    (trace,) = figure["data"]
+    assert trace["type"] == "box"
+    assert list(trace["x"]) == ["gpt-5.6-terra", "gpt-5.6-terra", "gpt-5.4", "gpt-5.4"]
+    assert list(trace["y"]) == [12.0, 30.5, 8.25, 9.0]
+
+
+def test_a_violin_splits_series_into_grouped_traces():
+    figure = build_figure(
+        _spec(kind="violin", x="model", y="duration_s", series="status"),
+        DURATIONS,
+    )
+    assert [t["name"] for t in figure["data"]] == ["ok", "failed"]
+    assert all(t["type"] == "violin" for t in figure["data"])
+    assert figure["layout"]["violinmode"] == "group"
+
+
+def test_a_box_without_a_category_is_one_box_per_y_column():
+    figure = build_figure(_spec(kind="box", x=None, y="duration_s"), DURATIONS)
+    (trace,) = figure["data"]
+    assert "x" not in trace
+    assert trace["name"] == "duration_s"
+
+
+def test_a_histogram2d_bins_two_columns():
+    figure = build_figure(_spec(kind="histogram2d", x="runs", y="cost"), DAILY)
+    (trace,) = figure["data"]
+    assert trace["type"] == "histogram2d"
+    assert list(trace["x"]) == [10, 14, 7]
+    assert list(trace["y"]) == [1.5, 2.25, 0.75]
+
+
+def test_a_contour_pivots_like_a_heatmap_but_keeps_raw_axes():
+    figure = build_figure(_spec(kind="contour", x="day", series="model", y="tokens"), BY_MODEL)
+    (trace,) = figure["data"]
+    assert trace["type"] == "contour"
+    assert trace["y"] == ["gpt-5.6-terra", "gpt-5.4"]
+    assert trace["z"][1][1] is None
+
+
+@pytest.mark.parametrize("kind", ["contour", "histogram2d"])
+def test_a_two_axis_kind_takes_exactly_one_value_column(kind):
+    error = validate_mapping(
+        _spec(kind=kind, x="day", series="model", y=["tokens", "tokens"]),
+        BY_MODEL,
+    )
+    assert error == f"Error: a {kind} takes exactly one `y` column."
 
 
 def test_a_published_figure_reports_no_row_count():

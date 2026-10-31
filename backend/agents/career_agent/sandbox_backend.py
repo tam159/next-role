@@ -1,9 +1,13 @@
 """E2B-protocol sandbox backend: isolated shell execution for the career agent.
 
-`make_default_shell_backend()` picks the composite-default shell backend from
+`make_default_backend()` picks the composite-default backend from
 `SANDBOX_PROVIDER` (read once at graph build):
 
-* ``local`` (default) — today's `VirtualPathShellBackend`: subprocesses on the
+* ``none`` (default) — a plain `FilesystemBackend`: no shell at all, so
+  deepagents never exposes the `execute` tool and every agent works through
+  its purpose-built tools only. `render_resume_pdf` runs rendercv on the host
+  itself (see `tools._run_rendercv`).
+* ``local`` — `VirtualPathShellBackend`: `execute` runs subprocesses on the
   backend host, zero external moving parts; the HiL approval gate
   (execute_approval.py) is the safety layer.
 * ``e2b`` — `E2BSandboxBackend`: every `execute` (and the derived file tools on
@@ -34,6 +38,7 @@ from typing import Any, Literal
 from backend.agents.career_agent.render_scratch import SandboxRenderScratch
 from backend.agents.career_agent.scope import current_identity
 from backend.agents.career_agent.shell_backend import VirtualPathShellBackend, default_shell_env
+from deepagents.backends import FilesystemBackend
 from deepagents.backends.protocol import (
     FILE_NOT_FOUND,
     ExecuteResponse,
@@ -64,8 +69,10 @@ def _e2b() -> Any:  # noqa: ANN401 - module object; typed as Any for the lazy-im
 class SandboxSettings(BaseSettings):
     """`SANDBOX_*` env config for the execute tool's shell backend.
 
-    Every field is defaulted so importing `agents.py` (which core-server does
-    just to enumerate graphs) never requires env; `e2b` connection values are
+    `provider="none"` (the default) turns the shell — and with it the `execute`
+    tool — off for every agent; `local` / `e2b` opt back in. Every field is
+    defaulted so importing `agents.py` (which core-server does just to
+    enumerate graphs) never requires env; `e2b` connection values are
     validated lazily at first sandbox use. `SANDBOX_E2B_API_URL` targets a
     self-hosted CubeSandbox (`http://<host>:3000`); leave it empty to use the
     E2B Cloud default domain. Docs: README "Environment variables".
@@ -73,7 +80,7 @@ class SandboxSettings(BaseSettings):
 
     model_config = SettingsConfigDict(env_prefix="SANDBOX_", extra="ignore")
 
-    provider: Literal["local", "e2b"] = "local"
+    provider: Literal["none", "local", "e2b"] = "none"
     e2b_api_url: str = ""
     e2b_api_key: str = ""
     template: str = ""
@@ -334,26 +341,38 @@ class E2BSandboxBackend(BaseSandbox):
         return f"{type(exc).__name__}: {exc}"
 
 
-def make_default_shell_backend(
+def execute_enabled(settings: SandboxSettings | None = None) -> bool:
+    """Whether the configured provider gives agents a shell (`execute`) at all.
+
+    The single predicate every execute-only surface keys on: the approval
+    gate, the analytics Python fallback, and the prompts that describe it.
+    """
+    return (settings or SandboxSettings()).provider != "none"
+
+
+def make_default_backend(
     settings: SandboxSettings | None = None,
     *,
     root_dir: Path = _CAREER_AGENT_DIR,
-) -> VirtualPathShellBackend | E2BSandboxBackend:
-    """Composite-default shell backend for the configured `SANDBOX_PROVIDER`.
+) -> FilesystemBackend | VirtualPathShellBackend | E2BSandboxBackend:
+    """Composite-default backend for the configured `SANDBOX_PROVIDER`.
 
-    ``local`` returns the host-subprocess backend with its historical
-    construction (byte-for-byte pre-sandbox behavior — the rollback lever);
+    ``none`` returns a plain `FilesystemBackend` — not a sandbox backend, so
+    deepagents hides `execute`; ``local`` returns the host-subprocess backend
+    with its historical construction (byte-for-byte pre-sandbox behavior);
     ``e2b`` returns the remote sandbox backend. Read at graph build time, so
     changing `.env` needs a `docker compose up -d backend` recreate.
 
-    ``root_dir`` is the virtual root the local backend jails paths under, and
-    the directory relative skill/memory sources resolve against. It defaults to
-    the career agent's package so that agent's construction is unchanged; a
-    second agent passes its own package directory.
+    ``root_dir`` is the virtual root paths are jailed under, and the directory
+    relative skill/memory sources resolve against. It defaults to the career
+    agent's package so that agent's construction is unchanged; a second agent
+    passes its own package directory.
     """
     settings = settings or SandboxSettings()
     if settings.provider == "e2b":
         return E2BSandboxBackend(settings)
+    if settings.provider == "none":
+        return FilesystemBackend(root_dir=root_dir, virtual_mode=True)
     return VirtualPathShellBackend(
         root_dir=root_dir,
         virtual_mode=True,

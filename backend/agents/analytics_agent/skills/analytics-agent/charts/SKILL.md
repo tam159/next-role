@@ -1,6 +1,6 @@
 ---
 name: charts
-description: Draw and save charts, dashboards, and written reports from warehouse queries. Use whenever an answer involves a trend, a comparison, a distribution, or a headline number worth showing, when the user asks to chart, plot, graph, visualise, or build a dashboard, and when a visual needs custom Python because create_chart cannot express it.
+description: Draw and save charts, dashboards, and written reports from warehouse queries. Use whenever an answer involves a trend, a comparison, a distribution, or a headline number worth showing, when the user asks to chart, plot, graph, visualise, or build a dashboard.
 ---
 
 # Charts
@@ -28,7 +28,10 @@ noise.
 | Composition within each category | `bar` with `stacked=True` | plus `series` |
 | Share of a whole, few slices | `pie` | `x` = labels, `y` = values |
 | How is a value distributed? | `histogram` | `x` = the column to bin |
+| How does a value spread per category? | `box` (or `violin` for the shape) | `y` = raw values, `x` = optional category, `series` = optional split |
+| Where do two values cluster together? | `histogram2d` | `x`, `y` = the two columns to bin |
 | Two dimensions against one value | `heatmap` | `x` = columns, `series` = rows, `y` = value |
+| Same, as a continuous surface | `contour` | as `heatmap`, over numeric axes |
 | Exact figures matter | `table` | no mapping |
 | One headline number | `kpi` | `y` = value, `x` = optional label |
 
@@ -37,7 +40,9 @@ Use `pie` only up to about six slices; beyond that a bar chart reads better.
 ## Getting it right
 
 - Aggregate in SQL. The tool refuses more than a few thousand rows, and a chart
-  of raw rows is unreadable anyway.
+  of raw rows is unreadable anyway. The exceptions are `box`, `violin` and
+  `histogram2d`, which plot the observations themselves: select the raw values,
+  filtered or sampled to stay under the cap.
 - Order the query the way the chart should read: by date for a trend, by value
   descending for a ranked bar chart.
 - Give every chart a title that states the finding, not the mechanism: "LLM cost
@@ -78,36 +83,3 @@ Failures held at 3% of runs this week, all on Tuesday's deploy.
 
 Lead each section with what the chart shows. A dashboard of unexplained charts
 is a worse answer than three sentences.
-
-## When create_chart cannot draw it
-
-For a visual outside the supported kinds — a box plot, a funnel, dual axes,
-annotations — build the figure yourself and publish it:
-
-```
-run_sql("SELECT ...", save_as="rows.csv")     -> returns an absolute path
-```
-
-Then write a script and run it with `execute` (this pauses for approval):
-
-```python
-import pandas as pd, plotly.express as px
-
-df = pd.read_csv("/tmp/nextrole-analytics/<thread id>/rows.csv")
-fig = px.box(df, x="model", y="duration_s")
-fig.write_json("/tmp/nextrole-analytics/<thread id>/duration-by-model.plotly.json")
-```
-
-Then publish it, and it renders like any other chart:
-
-```
-create_chart(kind="scatter", title="Run duration by model",
-             figure_path="/tmp/nextrole-analytics/<thread id>/duration-by-model.plotly.json")
-```
-
-Scripts have no database credentials by design — data reaches them only through
-`save_as`. pandas and plotly are installed; do not install anything.
-
-Do not set colors or a template in a custom figure. The interface themes every
-chart for light and dark at render time, and hard-coded colors survive into the
-wrong theme.
