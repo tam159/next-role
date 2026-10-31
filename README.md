@@ -121,18 +121,18 @@ docker ps                     # read the 0.0.0.0:<host>->... mappings
 | `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` / `AWS_DEFAULT_REGION` | ⬜ | AWS Bedrock models |
 | `LANGCHAIN_API_KEY` + `LANGCHAIN_TRACING_V2=true` | ⬜ | LangSmith tracing (recommended) |
 | `AUTH_ENABLED` / `BETTER_AUTH_SECRET` / `LANGGRAPH_AUTH` | ⬜ | Multi-user auth (opt-in) — steps in [Authentication & multi-user](#authentication--multi-user) |
-| `CAREER_AGENT_EXECUTE_APPROVAL` | preset | Human approval for the agent's shell tool — see below |
-| `SANDBOX_PROVIDER` (+ `SANDBOX_E2B_*`, `SANDBOX_TEMPLATE`) | preset | Where the shell tool executes: host or isolated sandbox — see below |
+| `CAREER_AGENT_EXECUTE_APPROVAL` | preset | Human approval for the agents' shell tool, when one is enabled — see below |
+| `SANDBOX_PROVIDER` (+ `SANDBOX_E2B_*`, `SANDBOX_TEMPLATE`) | preset | Whether agents get a shell tool at all (`none`, default), and where it executes: host or isolated sandbox — see below |
 | `FRONTEND_LOCAL_PORT` / `LANGGRAPH_LOCAL_PORT` / `POSTGRES_LOCAL_PORT` / `REDIS_LOCAL_PORT` / `OBJECT_STORE_LOCAL_PORT` | preset | Host port mappings |
 | `OBJECT_STORE_*` | preset | Artifact object storage — see below |
 | `CLICKHOUSE_*` / `DAGSTER_*` / `DBT_DOCS_LOCAL_PORT` / `CUBE_*` / `SUPERSET_*` / `ANALYTICS_RO_PASSWORD` | preset | Analytics stack (warehouse, orchestration, semantic layer, BI) — see below |
 | `CLICKHOUSE_AGENT_PASSWORD` / `ANALYTICS_AGENT_ALLOWED_USERS` | generate / empty | The analytics agent's read-only warehouse login, and who may run it — see below |
 
-**Shell-command approval.** Risky `execute` (bash) commands pause in the UI for approve / edit / reject; a conservative read-only allowlist auto-approves trivial pokes. The gate applies in **both** sandbox modes below — isolation contains blast radius, not exfiltration or API misuse. On by default — set `CAREER_AGENT_EXECUTE_APPROVAL=false` only for offline evals or emergency rollback (env changes need `docker compose up -d backend` to recreate, not `restart`). Full policy in [`backend/agents/career_agent/README.md`](backend/agents/career_agent/README.md#human-in-the-loop-execute-approval).
+**Shell-command approval.** Only applies when `SANDBOX_PROVIDER` enables the shell (see **Sandbox** below). Risky `execute` (bash) commands pause in the UI for approve / edit / reject; a conservative read-only allowlist auto-approves trivial pokes. The gate applies in **both** sandbox modes below — isolation contains blast radius, not exfiltration or API misuse. On by default — set `CAREER_AGENT_EXECUTE_APPROVAL=false` only for offline evals or emergency rollback (env changes need `docker compose up -d backend` to recreate, not `restart`). Full policy in [`backend/agents/career_agent/README.md`](backend/agents/career_agent/README.md#human-in-the-loop-execute-approval).
 
 **Web research.** `WEB_SEARCH_PROVIDER` picks the backend behind `web_search` / `web_extract` (used by `hiring-recon`) and `extract_jd`. `tavily` (default) returns longer per-result content; `tinyfish` ([TinyFish](https://docs.tinyfish.ai/) Search + Fetch) returns short snippets, has no `finance` topic, and fetches at most 10 URLs per call. Results are normalized to one shape, so tools, skills and the Sources panel behave the same either way.
 
-**Sandbox.** `SANDBOX_PROVIDER` picks where `execute` commands (and `rendercv` renders) run. `local` (default) executes on the backend host — right for local dev and a trusted team, zero extra moving parts. `e2b` runs every command in an isolated remote **microVM** over the E2B API: point `SANDBOX_E2B_API_URL` at a self-hosted [CubeSandbox](https://github.com/TencentCloud/CubeSandbox) (open source, Apache-2.0 — your data never leaves your infra; provisioning + template guide in [`deploy/cubesandbox/`](deploy/cubesandbox/README.md)), or leave it empty to use [E2B Cloud](https://e2b.dev) with the same code path. CubeSandbox requires its own Linux host (custom PVM kernel or native KVM), so it is reached over HTTP rather than run inside docker compose.
+**Sandbox.** `SANDBOX_PROVIDER` decides whether the agents get the `execute` shell tool, and where it runs. `none` (default) gives them no shell at all: every workflow runs on the purpose-built tools, `rendercv` renders run as a fixed host subprocess inside `render_resume_pdf`, and the analytics agent draws every chart kind (box, violin, contour and 2D histograms included) through `create_chart` — nothing to approve, nothing to provision. Opt in when you want the analytics agent's Python fallback (dual axes, annotations, subplots): `local` executes on the backend host — right for local dev and a trusted team, zero extra moving parts. `e2b` runs every command in an isolated remote **microVM** over the E2B API: point `SANDBOX_E2B_API_URL` at a self-hosted [CubeSandbox](https://github.com/TencentCloud/CubeSandbox) (open source, Apache-2.0 — your data never leaves your infra; provisioning + template guide in [`deploy/cubesandbox/`](deploy/cubesandbox/README.md)), or leave it empty to use [E2B Cloud](https://e2b.dev) with the same code path. CubeSandbox requires its own Linux host (custom PVM kernel or native KVM), so it is reached over HTTP rather than run inside docker compose.
 
 **Object storage.** Binary artifacts (uploads + rendered PDFs) live in S3-compatible object storage. Locally that's the compose `object-store` service (SeaweedFS) and the presets work as-is: S3 API on `OBJECT_STORE_LOCAL_PORT`, a browsable bucket UI on `OBJECT_STORE_UI_LOCAL_PORT`, and placeholder credentials that the local emulator accepts but doesn't enforce. For the cloud, point `OBJECT_STORE_ENDPOINT` / `OBJECT_STORE_BUCKET` / credentials at a managed bucket — AWS S3, GCS, Azure, or any S3-compatible store — with no code changes. Note: the `AWS_*` variables are reserved for Bedrock models; the object store reads only `OBJECT_STORE_*`.
 
@@ -220,7 +220,7 @@ The agent's behavior is configured by files, not hardcoded — making it easy to
 | **Memory** | `CAREER_AGENT.md` | Per-stage procedure manual (semantic memory) | Always (system prompt) |
 | **Skills** | `skills/<consumer>/<name>/SKILL.md` | Task workflows (procedural memory) | On demand, per consumer |
 | **Subagents** | `subagents.yaml` | Specialist delegates → the `task` tool | Always |
-| **Tools** | `tools.py` + DeepAgents built-ins | `parse_document`, `extract_jd`, `render_resume_pdf`, `render_battlecard_pdf`, `list_files`, plus `read/write/edit_file`, `ls/glob/grep`, `delete`, `execute` | — |
+| **Tools** | `tools.py` + DeepAgents built-ins | `parse_document`, `extract_jd`, `render_resume_pdf`, `render_battlecard_pdf`, `list_files`, plus `read/write/edit_file`, `ls/glob/grep`, `delete`, plus `execute` when `SANDBOX_PROVIDER` enables a shell | — |
 | **Filesystem** | `CompositeBackend` | Routes virtual paths to the right store (see below) | — |
 | **Middleware** | `middleware.py` | `ModelOverrideMiddleware` (runtime LLM swap; opts Claude tool calls — direct API and Bedrock — into fine-grained arg streaming) + `UtcDatetimeMiddleware` | — |
 
@@ -233,15 +233,15 @@ Subagents only receive the tools they opt into in YAML — tool whitelisting kee
 
 <br/>
 
-A single `CompositeBackend` gives the agent one virtual filesystem while routing each path prefix to the right physical store — Postgres for text artifacts, S3-compatible object storage for uploads and rendered PDFs (SeaweedFS locally; S3 / GCS / Azure in the cloud), and a shell route for `execute` whose scratch space holds only render working files: a host shell backend by default, or an isolated remote sandbox (CubeSandbox / E2B) with `SANDBOX_PROVIDER=e2b`.
+A single `CompositeBackend` gives the agent one virtual filesystem while routing each path prefix to the right physical store — Postgres for text artifacts, S3-compatible object storage for uploads and rendered PDFs (SeaweedFS locally; S3 / GCS / Azure in the cloud), and a default route for everything else: a plain filesystem by default (`SANDBOX_PROVIDER=none`, no shell), a host shell backend with `local`, or an isolated remote sandbox (CubeSandbox / E2B) with `e2b`.
 
 ```mermaid
 flowchart LR
-    Agent["Agent filesystem tools<br/>read_file · write_file · edit_file<br/>ls · glob · grep · execute"]
+    Agent["Agent filesystem tools<br/>read_file · write_file · edit_file<br/>ls · glob · grep · execute (opt-in)"]
     CB{{"CompositeBackend<br/>routes virtual paths"}}
     Agent --> CB
-    subgraph Shell["Shell default route · SANDBOX_PROVIDER"]
-        SH["execute — local: host subprocess,<br/>/virtual/path → on-disk path ·<br/>e2b: remote E2B microVM<br/>(CubeSandbox self-hosted / E2B Cloud)<br/>renders run in a throwaway scratch dir"]
+    subgraph Shell["Default route · SANDBOX_PROVIDER"]
+        SH["none (default): filesystem only, no execute ·<br/>local: host subprocess,<br/>/virtual/path → on-disk path ·<br/>e2b: remote E2B microVM<br/>(CubeSandbox self-hosted / E2B Cloud)<br/>renders run in a throwaway scratch dir"]
     end
     subgraph Store["StoreBackend · Postgres + pgvector"]
         ST["/memory/ · /processed/ · /research/<br/>/interview_coach/<br/>/large_tool_results/ · /workspace/"]
@@ -385,7 +385,7 @@ Select **Analytics Agent** in the app to ask about activity, reliability, tool u
 
 ![Analytics agent workflow illustration — discover metadata, choose built-in chart generation or a CSV and Python fallback, then store the chart and display it in the conversation](docs/images/next-role-analytics-agent.png)
 
-Built-in charts use `create_chart` to query and render directly. Custom charts use `run_sql(save_as=…)` to export CSV, `execute` for Python/Plotly work (approval-gated by default), then `create_chart(figure_path=…)` to publish the result. Chart artifacts persist in object storage and reappear when the thread is reopened.
+Charts use `create_chart` to query and render directly — line, bar, area, scatter, pie, histogram, heatmap, box, violin, contour, 2D histogram, table and KPI. With a shell opted in (`SANDBOX_PROVIDER=local|e2b`), custom figures beyond those kinds use `run_sql(save_as=…)` to export CSV, `execute` for Python/Plotly work (approval-gated by default), then `create_chart(figure_path=…)` to publish the result. Chart artifacts persist in object storage and reappear when the thread is reopened.
 
 With authentication enabled, access requires `ANALYTICS_AGENT_ALLOWED_USERS`; an empty allowlist denies everyone. The agent reads activity **across users**, while ClickHouse grants restrict it to SELECT on marts and staging with enforced query limits. See the [analytics agent guide](backend/agents/analytics_agent/README.md) for tools, access settings, and supported chart types.
 
@@ -403,9 +403,9 @@ With authentication enabled, access requires `ANALYTICS_AGENT_ALLOWED_USERS`; an
 
 ## Limitations
 
-> Multi-user mode isolates data; before opening signups to untrusted users, also move shell execution off the default local mode (`SANDBOX_PROVIDER=e2b`).
+> Multi-user mode isolates data. The default `SANDBOX_PROVIDER=none` gives agents no shell; if you opt into one before opening signups to untrusted users, use `e2b`, not `local`.
 
-- 🔒 **Local shell execution is the default** — with `SANDBOX_PROVIDER=local`, `execute` and render commands run via `subprocess` on the host (HiL-gated). Safe locally and for a trusted team; for untrusted multi-tenant use switch to `e2b` so every command runs in an isolated microVM ([`deploy/cubesandbox/`](deploy/cubesandbox/README.md)).
+- 🔒 **The opt-in local shell runs on the host** — with `SANDBOX_PROVIDER=local`, `execute` commands run via `subprocess` on the backend host (HiL-gated). Safe locally and for a trusted team; for untrusted multi-tenant use pick `e2b` so every command runs in an isolated microVM ([`deploy/cubesandbox/`](deploy/cubesandbox/README.md)), or keep the default `none`.
 - 🧪 **LLM evals deferred** — current tests are unit + local-DB integration; automated quality evals aren't wired up yet.
 - 🧠 **Personalization is preferences-only** — the agent persists and auto-applies the preferences you *state* across sessions, but doesn't yet infer your style/history on its own or consolidate memory over time (see [roadmap](#roadmap)).
 - ⏱️ **Latency** — a full run makes several LLM and tool calls across multiple agents; expect minutes, not seconds.
