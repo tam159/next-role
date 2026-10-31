@@ -19,8 +19,8 @@ from typing import TYPE_CHECKING, Any, Literal, Protocol
 from backend.agents.analytics_agent.charts import (
     ALL_KINDS,
     FIGURE_KINDS,
-    PUBLISH_ONLY_KINDS,
     ChartData,
+    ChartKind,
     ChartSpec,
     build_envelope,
     chart_path,
@@ -116,12 +116,68 @@ def _to_csv(outcome: QueryOutcome) -> str:
     return buffer.getvalue()
 
 
-def make_run_sql(backend: CompositeBackend, settings: WarehouseSettings | None = None) -> BaseTool:
-    """Build the `run_sql` tool over the warehouse and the thread's scratch dir."""
+def make_run_sql(
+    backend: CompositeBackend,
+    settings: WarehouseSettings | None = None,
+    *,
+    python_fallback: bool = False,
+) -> BaseTool:
+    """Build the `run_sql` tool over the warehouse and the thread's scratch dir.
+
+    `python_fallback` (on only when the agent has a shell — see
+    `sandbox_backend.execute_enabled`) adds the `save_as` export a Python
+    script run through `execute` reads. Without a shell there is nothing to
+    read the file, so the parameter is not offered at all.
+    """
     config = settings or WarehouseSettings()
 
-    @tool
-    def run_sql(sql: str, save_as: str | None = None) -> str:
+    def query(sql: str, save_as: str | None) -> str:
+        display_limit = None if save_as else config.display_rows
+        outcome = run_readonly(sql, display_limit=display_limit, settings=config)
+        if isinstance(outcome, str):
+            return outcome
+
+        rendered = render_rows(outcome, max_rows=config.display_rows)
+        if not save_as:
+            return rendered
+
+        name = safe_segment(save_as, fallback="result.csv")
+        try:
+            scratch = open_scratch(backend.default, _thread_id())
+            path = scratch.write_text(name, _to_csv(outcome))
+        except (ScratchError, OSError) as exc:
+            return f"{rendered}\n\nError: the result could not be saved: {exc}"
+        return f"{rendered}\n\nFull result ({outcome.row_count} rows) saved to `{path}`."
+
+    if not python_fallback:
+
+        @tool
+        def run_sql(sql: str) -> str:
+            """Run one read-only SQL query against the ClickHouse warehouse.
+
+            ClickHouse dialect. Only the marts and staging databases are readable,
+            and only for reading — the connection has no write privileges at all.
+            Always qualify table names (`nextrole_marts.fct_run`) and filter on the
+            table's sort key, which `describe_data` reports.
+
+            Results are capped for display. When a query has no LIMIT, one is added
+            and the result says so, so a partial answer is never mistaken for a
+            complete one.
+
+            Args:
+                sql: One SELECT (or WITH / DESCRIBE / SHOW / EXPLAIN) statement.
+
+            Returns:
+                A summary line, then a markdown table. On failure, an
+                `Error: ...` line with the reason and how to recover.
+
+            """
+            return query(sql, None)
+
+        return run_sql
+
+    @tool("run_sql")
+    def run_sql_with_export(sql: str, save_as: str | None = None) -> str:
         """Run one read-only SQL query against the ClickHouse warehouse.
 
         ClickHouse dialect. Only the marts and staging databases are readable,
@@ -148,24 +204,9 @@ def make_run_sql(backend: CompositeBackend, settings: WarehouseSettings | None =
             `Error: ...` line with the reason and how to recover.
 
         """
-        display_limit = None if save_as else config.display_rows
-        outcome = run_readonly(sql, display_limit=display_limit, settings=config)
-        if isinstance(outcome, str):
-            return outcome
+        return query(sql, save_as)
 
-        rendered = render_rows(outcome, max_rows=config.display_rows)
-        if not save_as:
-            return rendered
-
-        name = safe_segment(save_as, fallback="result.csv")
-        try:
-            scratch = open_scratch(backend.default, _thread_id())
-            path = scratch.write_text(name, _to_csv(outcome))
-        except (ScratchError, OSError) as exc:
-            return f"{rendered}\n\nError: the result could not be saved: {exc}"
-        return f"{rendered}\n\nFull result ({outcome.row_count} rows) saved to `{path}`."
-
-    return run_sql
+    return run_sql_with_export
 
 
 def _load_figure(backend: CompositeBackend, figure_path: str) -> dict[str, Any] | str:
@@ -227,16 +268,9 @@ def _prepare_chart(
     A pre-built figure skips mapping validation: the script that produced it
     already decided the shape, and its rows may not be in the query result.
     """
-    if spec.kind in PUBLISH_ONLY_KINDS and not figure_path:
-        return (
-            f"Error: a {spec.kind} chart cannot be built from SQL here. Write the "
-            f"figure with a script and publish it with `figure_path` — see the "
-            f"`charts` skill."
-        )
-
     prebuilt: dict[str, Any] | None = None
     if figure_path:
-        if spec.kind not in FIGURE_KINDS | PUBLISH_ONLY_KINDS:
+        if spec.kind not in FIGURE_KINDS:
             return (
                 f"Error: `figure_path` publishes a Plotly figure, so `kind` "
                 f"cannot be '{spec.kind}'."
@@ -260,105 +294,90 @@ def _prepare_chart(
     return data, prebuilt
 
 
+_CREATE_CHART_DOC = """Draw a chart from a query and save it to the conversation.
+
+This is the normal way to visualise an answer: pass the SQL and say which
+columns are which. The chart is built here and stored, so it renders in the
+conversation and is still there when the thread is reopened later. Prefer it
+over writing plotting code.
+
+Choosing a kind: `line` or `area` for a trend over time, `bar` to compare
+categories, `pie` for shares of a whole (at most about six slices),
+`histogram` for a distribution, `box` or `violin` for how a value spreads
+within each category, `histogram2d` for where two values cluster together,
+`heatmap` (or `contour` for a continuous surface) for two dimensions against
+one value, `table` when the exact figures matter more than the shape, and
+`kpi` for a single headline number.
+{fallback_usage}
+Args:
+    kind: Which chart to draw.
+    title: Short title shown above the chart.
+    sql: Query producing the rows.{sql_note}
+    x: Column for the x axis; the labels for a pie; the column axis of a
+        heatmap or contour; the label for a kpi; the optional grouping
+        category of a box or violin.
+    y: Column(s) holding the values. A list draws one series each. For a box
+        or violin, the raw observations — do not aggregate them; for a
+        histogram2d, the second column to bin.
+    series: Column whose distinct values split `y` into one series each; the
+        row axis of a heatmap or contour.
+    z: Reserved for future kinds; unused today.
+    description: One line of context shown under the title, e.g. the caveat
+        that applies to the number.
+    slug: File name stem. Defaults to a slug of the title; pass the same slug
+        again to replace an existing chart.
+    stacked: Stack bars or areas instead of grouping them.
+    y_format: How to format values: plain numbers, a percentage, US dollars,
+        or seconds.{figure_path_arg}
+
+Returns:
+    A JSON object with the saved `path`, `title`, `kind`, `row_count` and
+    `columns`. On failure, an `Error: ...` line naming the problem and the
+    available columns.
+"""
+
+_FALLBACK_USAGE = """
+For a visual this tool cannot express, write a Plotly figure to the thread's
+scratch directory with a Python script and pass `figure_path` instead of
+`sql` — the figure is wrapped and stored the same way.
+"""
+
+
+def _create_chart_doc(*, python_fallback: bool) -> str:
+    """Return the `create_chart` description, with or without the figure hand-off."""
+    if not python_fallback:
+        return _CREATE_CHART_DOC.format(fallback_usage="", sql_note="", figure_path_arg="")
+    return _CREATE_CHART_DOC.format(
+        fallback_usage=_FALLBACK_USAGE,
+        sql_note=" Omit only with `figure_path`.",
+        figure_path_arg=(
+            "\n    figure_path: Path to a Plotly figure JSON written by a script,"
+            "\n        instead of `sql`."
+        ),
+    )
+
+
 def make_create_chart(
     backend: CompositeBackend,
     settings: WarehouseSettings | None = None,
+    *,
+    python_fallback: bool = False,
 ) -> BaseTool:
-    """Build the `create_chart` tool over the warehouse and artifact storage."""
+    """Build the `create_chart` tool over the warehouse and artifact storage.
+
+    `python_fallback` adds `figure_path`, which publishes a figure a script
+    wrote through `execute`; without a shell the parameter is not offered and
+    `sql` is required.
+    """
     config = settings or WarehouseSettings()
 
-    @tool
-    def create_chart(  # noqa: PLR0913 — the chart's column mapping is the API
-        kind: Literal[
-            "line",
-            "bar",
-            "area",
-            "scatter",
-            "pie",
-            "histogram",
-            "heatmap",
-            "table",
-            "kpi",
-            "box",
-            "violin",
-            "contour",
-            "histogram2d",
-        ],
-        title: str,
-        *,
-        sql: str | None = None,
-        x: str | None = None,
-        y: str | list[str] | None = None,
-        series: str | None = None,
-        z: str | None = None,
-        description: str | None = None,
-        slug: str | None = None,
-        stacked: bool = False,
-        y_format: Literal["number", "percent", "currency", "duration_s"] = "number",
-        figure_path: str | None = None,
-    ) -> str:
-        """Draw a chart from a query and save it to the conversation.
-
-        This is the normal way to visualise an answer: pass the SQL and say
-        which columns are which. The chart is built here and stored, so it
-        renders in the conversation and is still there when the thread is
-        reopened later. Prefer it over writing plotting code.
-
-        Choosing a kind: `line` or `area` for a trend over time, `bar` to
-        compare categories, `pie` for shares of a whole (at most about six
-        slices), `histogram` for a distribution, `heatmap` for two dimensions
-        against one value, `table` when the exact figures matter more than the
-        shape, and `kpi` for a single headline number.
-
-        For a visual this tool cannot express, write a Plotly figure to the
-        thread's scratch directory with a Python script and pass `figure_path`
-        instead of `sql` — the figure is wrapped and stored the same way.
-
-        Args:
-            kind: Which chart to draw. `box`, `violin`, `contour` and
-                `histogram2d` cannot be built from SQL here — write those with a
-                script and pass `figure_path`.
-            title: Short title shown above the chart.
-            sql: Query producing the rows. Omit only with `figure_path`.
-            x: Column for the x axis; the labels for a pie; the column axis of
-                a heatmap; the label for a kpi.
-            y: Column(s) holding the values. A list draws one series each.
-            series: Column whose distinct values split `y` into one series each.
-            z: Reserved for future kinds; unused today.
-            description: One line of context shown under the title, e.g. the
-                caveat that applies to the number.
-            slug: File name stem. Defaults to a slug of the title; pass the same
-                slug again to replace an existing chart.
-            stacked: Stack bars or areas instead of grouping them.
-            y_format: How to format values: plain numbers, a percentage, US
-                dollars, or seconds.
-            figure_path: Path to a Plotly figure JSON written by a script,
-                instead of `sql`.
-
-        Returns:
-            A JSON object with the saved `path`, `title`, `kind`, `row_count`
-            and `columns`. On failure, an `Error: ...` line naming the problem
-            and the available columns.
-
-        """
-        if kind not in ALL_KINDS:
+    def draw(spec: ChartSpec, sql: str | None, figure_path: str | None) -> str:
+        if spec.kind not in ALL_KINDS:
             kinds = ", ".join(sorted(ALL_KINDS))
-            return f"Error: unknown chart kind '{kind}'. Use one of: {kinds}."
+            return f"Error: unknown chart kind '{spec.kind}'. Use one of: {kinds}."
         if not sql and not figure_path:
             return "Error: pass `sql` to draw a chart, or `figure_path` to publish one."
 
-        spec = ChartSpec(
-            kind=kind,
-            title=title,
-            x=x,
-            y=y,
-            series=series,
-            z=z,
-            description=description or "",
-            stacked=stacked,
-            y_format=y_format,
-            slug=slugify(slug) if slug else "",
-        )
         prepared = _prepare_chart(
             spec,
             sql=sql,
@@ -387,4 +406,93 @@ def make_create_chart(
             },
         )
 
-    return create_chart
+    def spec_of(  # noqa: PLR0913 — mirrors the tool's column mapping
+        kind: ChartKind,
+        title: str,
+        *,
+        x: str | None,
+        y: str | list[str] | None,
+        series: str | None,
+        z: str | None,
+        description: str | None,
+        slug: str | None,
+        stacked: bool,
+        y_format: str,
+    ) -> ChartSpec:
+        return ChartSpec(
+            kind=kind,
+            title=title,
+            x=x,
+            y=y,
+            series=series,
+            z=z,
+            description=description or "",
+            stacked=stacked,
+            y_format=y_format,
+            slug=slugify(slug) if slug else "",
+        )
+
+    if not python_fallback:
+
+        @tool("create_chart", description=_create_chart_doc(python_fallback=False))
+        def create_chart(  # noqa: PLR0913 — the chart's column mapping is the API
+            kind: ChartKind,
+            title: str,
+            *,
+            sql: str,
+            x: str | None = None,
+            y: str | list[str] | None = None,
+            series: str | None = None,
+            z: str | None = None,
+            description: str | None = None,
+            slug: str | None = None,
+            stacked: bool = False,
+            y_format: Literal["number", "percent", "currency", "duration_s"] = "number",
+        ) -> str:
+            spec = spec_of(
+                kind,
+                title,
+                x=x,
+                y=y,
+                series=series,
+                z=z,
+                description=description,
+                slug=slug,
+                stacked=stacked,
+                y_format=y_format,
+            )
+            return draw(spec, sql, None)
+
+        return create_chart
+
+    @tool("create_chart", description=_create_chart_doc(python_fallback=True))
+    def create_chart_with_figure(  # noqa: PLR0913 — the chart's column mapping is the API
+        kind: ChartKind,
+        title: str,
+        *,
+        sql: str | None = None,
+        x: str | None = None,
+        y: str | list[str] | None = None,
+        series: str | None = None,
+        z: str | None = None,
+        description: str | None = None,
+        slug: str | None = None,
+        stacked: bool = False,
+        y_format: Literal["number", "percent", "currency", "duration_s"] = "number",
+        figure_path: str | None = None,
+    ) -> str:
+        spec = spec_of(
+            kind,
+            title,
+            x=x,
+            y=y,
+            series=series,
+            z=z,
+            description=description,
+            slug=slug,
+            stacked=stacked,
+            y_format=y_format,
+        )
+        return draw(spec, sql, figure_path)
+
+    return create_chart_with_figure

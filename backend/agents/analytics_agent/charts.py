@@ -40,16 +40,33 @@ ChartKind = Literal[
     "histogram2d",
 ]
 
-#: Kinds this module draws from query rows.
-FIGURE_KINDS = frozenset({"line", "bar", "area", "scatter", "pie", "histogram", "heatmap"})
+#: Kinds this module draws from query rows — every trace in the frontend's
+#: cartesian Plotly bundle, so no chart kind depends on a Python script.
+FIGURE_KINDS = frozenset(
+    {
+        "line",
+        "bar",
+        "area",
+        "scatter",
+        "pie",
+        "histogram",
+        "heatmap",
+        "box",
+        "violin",
+        "contour",
+        "histogram2d",
+    },
+)
 
-#: Kinds the frontend's Plotly bundle renders but this module does not build:
-#: they come from a script through `figure_path`. Keeping them in the schema is
-#: the point of the fallback — a box plot is exactly what it exists to publish.
-PUBLISH_ONLY_KINDS = frozenset({"box", "violin", "contour", "histogram2d"})
+#: Kinds plotted from raw rows rather than an aggregate, so their `y` is a
+#: column of observations.
+DISTRIBUTION_KINDS = frozenset({"box", "violin"})
+
+#: Kinds that pivot `x` by `series` into a matrix of one `y` value.
+GRID_KINDS = frozenset({"heatmap", "contour"})
 
 #: `table` and `kpi` are native frontend components, not Plotly traces.
-ALL_KINDS = FIGURE_KINDS | PUBLISH_ONLY_KINDS | {"table", "kpi"}
+ALL_KINDS = FIGURE_KINDS | {"table", "kpi"}
 
 #: Envelope version. Bump when the shape changes in a way the frontend must
 #: branch on; the frontend refuses anything it does not recognise.
@@ -150,6 +167,22 @@ _REQUIREMENTS: dict[str, tuple[tuple[str, ...], str]] = {
         ("x", "series", "y"),
         "a heatmap needs `x` (columns), `series` (rows) and `y` (the value)",
     ),
+    "contour": (
+        ("x", "series", "y"),
+        "a contour needs `x` (columns), `series` (rows) and `y` (the value)",
+    ),
+    "histogram2d": (
+        ("x", "y"),
+        "a 2D histogram needs `x` and `y` (the two columns to bin together)",
+    ),
+    "box": (
+        ("y",),
+        "a box plot needs `y` (the column of observations); `x` optionally groups them",
+    ),
+    "violin": (
+        ("y",),
+        "a violin plot needs `y` (the column of observations); `x` optionally groups them",
+    ),
     "pie": (("x", "y"), "a pie needs `x` (the labels) and one `y` (the values)"),
     "line": (("x", "y"), "a line chart needs `x` and `y`"),
     "area": (("x", "y"), "an area chart needs `x` and `y`"),
@@ -194,8 +227,8 @@ def validate_mapping(spec: ChartSpec, data: ChartData) -> str | None:
 
 def _conflicting_mapping(spec: ChartSpec) -> str | None:
     """Return an explanation when the mapping is complete but self-contradictory."""
-    if spec.kind == "pie" and len(spec.y_columns) != 1:
-        return "Error: a pie takes exactly one `y` column."
+    if spec.kind in {"pie", "histogram2d"} | GRID_KINDS and len(spec.y_columns) != 1:
+        return f"Error: a {spec.kind} takes exactly one `y` column."
     if spec.series and len(spec.y_columns) > 1:
         return (
             "Error: use either `series` (one column split into traces) or several `y` "
@@ -234,10 +267,42 @@ def _grouped(data: ChartData, spec: ChartSpec) -> list[tuple[str, list[Any], lis
     return [(label, xs, ys) for label, (xs, ys) in groups.items()]
 
 
+def _distributions(spec: ChartSpec, data: ChartData) -> list[Any]:
+    """Build box or violin traces from raw observations.
+
+    One trace per `series` value (or per `y` column); `x`, when set, places a
+    box per category inside each trace, so `series` reads as grouped boxes.
+    """
+
+    def trace(name: str, xs: list[Any] | None, ys: list[Any]) -> go.Box | go.Violin:
+        if spec.kind == "violin":
+            return go.Violin(name=name, x=xs, y=ys, box_visible=True, meanline_visible=True)
+        return go.Box(name=name, x=xs, y=ys)
+
+    if not spec.series:
+        xs = data.values(spec.x) if spec.x else None
+        return [trace(y, xs, data.values(y)) for y in spec.y_columns]
+
+    x_index = data.index(spec.x) if spec.x else None
+    y_index, series_index = data.index(spec.y_columns[0]), data.index(spec.series)
+    groups: dict[str, tuple[list[Any], list[Any]]] = {}
+    for row in data.rows:
+        label = "∅" if row[series_index] is None else str(row[series_index])
+        xs_, ys_ = groups.setdefault(label, ([], []))
+        if x_index is not None:
+            xs_.append(row[x_index])
+        ys_.append(row[y_index])
+    return [trace(label, xs_ or None, ys_) for label, (xs_, ys_) in groups.items()]
+
+
 def _traces(spec: ChartSpec, data: ChartData) -> list[Any]:
     """Build the traces for a cartesian kind."""
     if spec.kind == "histogram":
         return [go.Histogram(x=data.values(spec.x or ""), name=spec.x or "")]
+    if spec.kind == "histogram2d":
+        return [go.Histogram2d(x=data.values(spec.x or ""), y=data.values(spec.y_columns[0]))]
+    if spec.kind in DISTRIBUTION_KINDS:
+        return _distributions(spec, data)
     if spec.kind == "pie":
         return [
             go.Pie(
@@ -269,11 +334,13 @@ def _traces(spec: ChartSpec, data: ChartData) -> list[Any]:
     return traces
 
 
-def _heatmap(spec: ChartSpec, data: ChartData) -> go.Heatmap:
-    """Pivot three columns into a dense matrix.
+def _grid(spec: ChartSpec, data: ChartData) -> go.Heatmap | go.Contour:
+    """Pivot three columns into a dense matrix for a heatmap or contour.
 
     Missing combinations stay `None` so the frontend renders a gap rather than
-    a zero, which would read as a real measurement.
+    a zero, which would read as a real measurement. Heatmap labels are strings
+    (categorical cells); a contour keeps raw values so numeric axes stay
+    continuous.
     """
     x_values = list(dict.fromkeys(data.values(spec.x or "")))
     rows = list(dict.fromkeys(data.values(spec.series or "")))
@@ -284,6 +351,8 @@ def _heatmap(spec: ChartSpec, data: ChartData) -> go.Heatmap:
         for row in data.rows
     }
     z = [[lookup.get((x, row)) for x in x_values] for row in rows]
+    if spec.kind == "contour":
+        return go.Contour(x=x_values, y=rows, z=z)
     return go.Heatmap(x=[str(x) for x in x_values], y=[str(r) for r in rows], z=z)
 
 
@@ -294,16 +363,19 @@ def build_figure(spec: ChartSpec, data: ChartData) -> dict[str, Any]:
     Colors beyond the categorical `colorway` are left to the frontend, which
     applies the viewer's theme at render time.
     """
-    traces = [_heatmap(spec, data)] if spec.kind == "heatmap" else _traces(spec, data)
+    traces = [_grid(spec, data)] if spec.kind in GRID_KINDS else _traces(spec, data)
     figure = go.Figure(data=traces)
     y_title = ", ".join(spec.y_columns) if spec.y_columns else ""
     figure.update_layout(
         colorway=list(COLORWAY),
         barmode="stack" if (spec.stacked and spec.kind == "bar") else "group",
+        # Several series of boxes/violins sit side by side within a category.
+        boxmode="group",
+        violinmode="group",
         showlegend=len(traces) > 1,
         legend={"orientation": "h", "y": -0.2},
         margin={"l": 56, "r": 16, "t": 8, "b": 40},
-        hovermode="closest" if spec.kind in {"scatter", "pie", "heatmap"} else "x unified",
+        hovermode="x unified" if spec.kind in {"line", "area", "bar", "histogram"} else "closest",
         xaxis={"title": {"text": spec.x or ""}},
         yaxis={
             "title": {"text": y_title},

@@ -4,8 +4,10 @@ Every string here rides a supported deepagents 0.7 parameter, the same way the
 career agent's prompts do:
 
 * ``SYSTEM_PROMPT`` -> ``create_deep_agent(system_prompt=)``
-* ``FILE_TOOLS``    -> ``FilesystemMiddleware(system_prompt=)``
+* ``file_tools()``  -> ``FilesystemMiddleware(system_prompt=)`` (``FILE_TOOLS``,
+  plus the scratch hand-off sentence when the Python fallback is on)
 * ``EXECUTE_GUARDRAIL`` -> appended to the stock ``execute`` tool description
+  (only seen when ``SANDBOX_PROVIDER`` gives the agent a shell)
 * ``MEMORY``        -> ``MemoryMiddleware(system_prompt=)`` (needs ``{agent_memory}``)
 
 The todo prompt is deliberately absent: this agent uses the stock
@@ -86,10 +88,18 @@ by hand.
 chart with `![Title](/charts/<thread id>/<slug>.plotly.json)` and it renders \
 inline.
 
-Anything else you write is scratch and does not persist. Files exported by \
-`run_sql(save_as=...)` live in the shell's own scratch directory, not here — \
-that tool returns their real path.
+Anything else you write is scratch and does not persist.
 """
+
+_FILE_TOOLS_FALLBACK = """Files exported by `run_sql(save_as=...)` live in the \
+shell's own scratch directory, not here — that tool returns their real path.
+"""
+
+
+def file_tools(*, python_fallback: bool) -> str:
+    """Return the file-tools section, naming the scratch hand-off only when it exists."""
+    return FILE_TOOLS + _FILE_TOOLS_FALLBACK if python_fallback else FILE_TOOLS
+
 
 EXECUTE_GUARDRAIL = """
 Prefer `create_chart` for anything it can draw; it needs no approval and its \

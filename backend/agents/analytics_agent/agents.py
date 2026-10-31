@@ -48,6 +48,15 @@ _AGENT_ROOT = "analytics_agent"
 
 ANALYTICS_AGENT_DIR = Path(__file__).parent
 
+#: The Python fallback (`execute` + `run_sql(save_as=)` + `create_chart(
+#: figure_path=)` + its skill) is a separable surface, on while the agent has a
+#: shell. `create_chart` draws every supported kind itself.
+_PYTHON_FALLBACK = True
+
+_SKILLS = ["skills/analytics-agent/"]
+if _PYTHON_FALLBACK:
+    _SKILLS.append("skills/analytics-python-fallback/")
+
 _backend = CompositeBackend(
     # Skills and the memory file are read through this default backend, so it
     # is rooted at this package rather than the career agent's.
@@ -68,7 +77,7 @@ _backend = CompositeBackend(
 # supported way to customize the built-in middlewares' prompts.
 _fs_middleware = FilesystemMiddleware(
     backend=_backend,
-    system_prompt=_prompts.FILE_TOOLS,
+    system_prompt=_prompts.file_tools(python_fallback=_PYTHON_FALLBACK),
     custom_tool_descriptions={
         "execute": EXECUTE_TOOL_DESCRIPTION + "\n\n" + _prompts.EXECUTE_GUARDRAIL,
     },
@@ -88,8 +97,8 @@ _memory_middleware = MemoryMiddleware(
 _catalog = SnapshotCache()
 
 _describe_data = make_describe_data(_catalog)
-_run_sql = make_run_sql(_backend)
-_create_chart = make_create_chart(_backend)
+_run_sql = make_run_sql(_backend, python_fallback=_PYTHON_FALLBACK)
+_create_chart = make_create_chart(_backend, python_fallback=_PYTHON_FALLBACK)
 
 
 def build_analytics_agent(
@@ -123,7 +132,7 @@ def build_analytics_agent(
         system_prompt=_prompts.SYSTEM_PROMPT,
         model=model,
         memory=_MEMORY_SOURCES,
-        skills=["skills/analytics-agent/"],
+        skills=_SKILLS,
         tools=[_describe_data, _run_sql, _create_chart],
         backend=_backend,
         middleware=middleware,

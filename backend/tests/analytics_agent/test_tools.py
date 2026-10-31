@@ -170,14 +170,18 @@ def test_run_sql_applies_the_display_limit_by_default(backend):
 
 def test_save_as_asks_for_the_whole_result(backend):
     with patch.object(tools_mod, "run_readonly", return_value=_outcome()) as query:
-        _call(make_run_sql(backend), sql="SELECT 1", save_as="rows.csv")
+        _call(make_run_sql(backend, python_fallback=True), sql="SELECT 1", save_as="rows.csv")
 
     assert query.call_args.kwargs["display_limit"] is None
 
 
 def test_save_as_writes_csv_and_reports_the_path(backend, tmp_path):
     with patch.object(tools_mod, "run_readonly", return_value=_outcome()):
-        text = _call(make_run_sql(backend), sql="SELECT 1", save_as="rows.csv")
+        text = _call(
+            make_run_sql(backend, python_fallback=True),
+            sql="SELECT 1",
+            save_as="rows.csv",
+        )
 
     path = text.rsplit("`", 2)[-2]
     assert THREAD in path
@@ -193,7 +197,11 @@ def test_save_as_never_writes_into_the_repository(backend, tmp_path):
     land in the bind-mounted source tree instead of the shell's own filesystem.
     """
     with patch.object(tools_mod, "run_readonly", return_value=_outcome()):
-        text = _call(make_run_sql(backend), sql="SELECT 1", save_as="rows.csv")
+        text = _call(
+            make_run_sql(backend, python_fallback=True),
+            sql="SELECT 1",
+            save_as="rows.csv",
+        )
 
     assert list((tmp_path / "nextrole-analytics").iterdir())
     assert "/charts/" not in text
@@ -201,7 +209,11 @@ def test_save_as_never_writes_into_the_repository(backend, tmp_path):
 
 def test_save_as_sanitises_a_traversing_file_name(backend, tmp_path):
     with patch.object(tools_mod, "run_readonly", return_value=_outcome()):
-        text = _call(make_run_sql(backend), sql="SELECT 1", save_as="../../escape.csv")
+        text = _call(
+            make_run_sql(backend, python_fallback=True),
+            sql="SELECT 1",
+            save_as="../../escape.csv",
+        )
 
     assert "escape.csv" not in text
     assert "result.csv" in text
@@ -287,9 +299,28 @@ def test_create_chart_refuses_an_empty_result(backend):
 
 
 def test_create_chart_needs_sql_or_a_figure(backend):
-    result = _call(make_create_chart(backend), kind="line", title="Empty")
+    result = _call(make_create_chart(backend, python_fallback=True), kind="line", title="Empty")
 
     assert "pass `sql`" in result
+
+
+def test_without_the_fallback_sql_is_required(backend):
+    with pytest.raises(ValidationError):
+        _call(make_create_chart(backend), kind="line", title="Empty")
+
+
+@pytest.mark.parametrize(
+    ("factory", "fallback_arg"),
+    [(make_run_sql, "save_as"), (make_create_chart, "figure_path")],
+)
+def test_the_fallback_hand_off_is_offered_only_with_a_shell(backend, factory, fallback_arg):
+    """Without `execute` nothing could read or write the scratch files."""
+    without = factory(backend)
+    assert fallback_arg not in without.args
+    assert "execute" not in without.description
+    assert "Python" not in without.description
+
+    assert fallback_arg in factory(backend, python_fallback=True).args
 
 
 def test_an_unknown_kind_is_rejected_by_the_tool_schema(backend):
@@ -357,7 +388,7 @@ def test_a_script_figure_is_published_verbatim(backend, store, tmp_path):
     path = _write_scratch(tmp_path, "box.plotly.json", json.dumps(figure))
 
     result = _call(
-        make_create_chart(backend),
+        make_create_chart(backend, python_fallback=True),
         kind="scatter",
         title="Duration by model",
         figure_path=path,
@@ -369,7 +400,7 @@ def test_a_script_figure_is_published_verbatim(backend, store, tmp_path):
 
 def test_a_missing_script_figure_explains_the_recipe(backend, tmp_path):
     result = _call(
-        make_create_chart(backend),
+        make_create_chart(backend, python_fallback=True),
         kind="scatter",
         title="X",
         figure_path=str(tmp_path / "nothing.json"),
@@ -382,7 +413,12 @@ def test_a_missing_script_figure_explains_the_recipe(backend, tmp_path):
 def test_invalid_json_from_a_script_is_reported(backend, tmp_path):
     path = _write_scratch(tmp_path, "broken.json", "{not json")
 
-    result = _call(make_create_chart(backend), kind="scatter", title="X", figure_path=path)
+    result = _call(
+        make_create_chart(backend, python_fallback=True),
+        kind="scatter",
+        title="X",
+        figure_path=path,
+    )
 
     assert "not valid JSON" in result
 
@@ -390,7 +426,12 @@ def test_invalid_json_from_a_script_is_reported(backend, tmp_path):
 def test_json_that_is_not_a_figure_is_reported(backend, tmp_path):
     path = _write_scratch(tmp_path, "rows.json", json.dumps({"rows": [1, 2]}))
 
-    result = _call(make_create_chart(backend), kind="scatter", title="X", figure_path=path)
+    result = _call(
+        make_create_chart(backend, python_fallback=True),
+        kind="scatter",
+        title="X",
+        figure_path=path,
+    )
 
     assert "not a Plotly figure" in result
 
@@ -401,7 +442,7 @@ def test_a_box_plot_can_be_published_from_a_script(backend, store, tmp_path):
     path = _write_scratch(tmp_path, "box.plotly.json", json.dumps(figure))
 
     result = _call(
-        make_create_chart(backend),
+        make_create_chart(backend, python_fallback=True),
         kind="box",
         title="Duration by status",
         figure_path=path,
@@ -411,24 +452,30 @@ def test_a_box_plot_can_be_published_from_a_script(backend, store, tmp_path):
     assert _saved(store)["figure"] == figure
 
 
-def test_a_publish_only_kind_without_a_figure_says_how_to_make_one(backend):
+def test_a_box_plot_is_drawn_from_sql_without_a_script(backend, store):
+    """The kinds that once needed the fallback are native now."""
     with patch.object(tools_mod, "run_readonly", return_value=_outcome()):
         result = _call(
             make_create_chart(backend),
             kind="box",
-            title="X",
+            title="Runs spread",
             sql="SELECT 1",
             y="runs",
         )
 
-    assert "cannot be built from SQL" in result
-    assert "figure_path" in result
+    assert json.loads(result)["kind"] == "box"
+    assert _saved(store)["figure"]["data"][0]["type"] == "box"
 
 
 def test_a_native_kind_cannot_be_published_from_a_figure(backend, tmp_path):
     path = _write_scratch(tmp_path, "f.json", json.dumps({"data": [], "layout": {}}))
 
-    result = _call(make_create_chart(backend), kind="table", title="X", figure_path=path)
+    result = _call(
+        make_create_chart(backend, python_fallback=True),
+        kind="table",
+        title="X",
+        figure_path=path,
+    )
 
     assert "cannot be 'table'" in result
 
