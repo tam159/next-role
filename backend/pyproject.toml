@@ -225,6 +225,7 @@ max-complexity = 10
   "FIX",
   "FURB",
   "G",
+  "ICN",
   "INP",
   "ISC004",
   "LOG004",
