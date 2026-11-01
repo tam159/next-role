@@ -24,6 +24,7 @@ from backend.agents.career_agent.tools import (
     web_search,
 )
 from backend.agents.career_agent.utils import load_subagents
+from backend.agents.usage import with_usage_metering
 from deepagents import create_deep_agent
 from deepagents.backends import CompositeBackend, StoreBackend
 from deepagents.middleware.filesystem import EXECUTE_TOOL_DESCRIPTION, FilesystemMiddleware
@@ -217,4 +218,5 @@ def build_career_agent(
     )
 
 
-career_agent = build_career_agent()
+# Metered only when QUOTA_* limits are set; otherwise the graph is unchanged.
+career_agent = with_usage_metering(build_career_agent())

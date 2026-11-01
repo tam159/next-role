@@ -27,6 +27,7 @@ from backend.agents.career_agent.middleware import ModelOverrideMiddleware, UtcD
 from backend.agents.career_agent.object_backend import ObjectStoreBackend
 from backend.agents.career_agent.sandbox_backend import execute_enabled, make_default_backend
 from backend.agents.career_agent.scope import kv_namespace
+from backend.agents.usage import with_usage_metering
 from deepagents import create_deep_agent
 from deepagents.backends import CompositeBackend, StoreBackend
 from deepagents.middleware.filesystem import EXECUTE_TOOL_DESCRIPTION, FilesystemMiddleware
@@ -153,4 +154,5 @@ def build_analytics_agent(
     )
 
 
-analytics_agent = build_analytics_agent()
+# Metered only when QUOTA_* limits are set; otherwise the graph is unchanged.
+analytics_agent = with_usage_metering(build_analytics_agent())

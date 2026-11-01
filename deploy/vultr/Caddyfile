@@ -1,0 +1,32 @@
+# Public entry for the NextRole core app. Cloudflare proxies both hostnames
+# (SSL mode "Full (strict)") and presents its own edge certificate; this origin
+# serves the Cloudflare Origin CA certificate from ./certs. Port 80 is closed.
+{
+	admin off
+	auto_https off
+}
+
+(origin_tls) {
+	tls /etc/caddy/certs/origin.pem /etc/caddy/certs/origin-key.pem
+}
+
+{$APP_DOMAIN}:443 {
+	import origin_tls
+	encode zstd gzip
+	reverse_proxy frontend:3000
+}
+
+{$API_DOMAIN}:443 {
+	import origin_tls
+
+	# Unauthenticated meta routes: API docs and schema, server info, and
+	# metrics (thread/run counts). /noauth is the server's in-process loopback
+	# prefix and must never be reachable from outside.
+	@blocked path /docs /docs/* /openapi.json /info /metrics /metrics/* /noauth /noauth/*
+	respond @blocked 404
+
+	reverse_proxy backend:8000 {
+		# Stream SSE run events as they are produced.
+		flush_interval -1
+	}
+}

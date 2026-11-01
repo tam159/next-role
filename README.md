@@ -121,12 +121,15 @@ docker ps                     # read the 0.0.0.0:<host>->... mappings
 | `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` / `AWS_DEFAULT_REGION` | ⬜ | AWS Bedrock models |
 | `LANGCHAIN_API_KEY` + `LANGCHAIN_TRACING_V2=true` | ⬜ | LangSmith tracing (recommended) |
 | `AUTH_ENABLED` / `BETTER_AUTH_SECRET` / `LANGGRAPH_AUTH` | ⬜ | Multi-user auth (opt-in) — steps in [Authentication & multi-user](#authentication--multi-user) |
+| `AUTH_EMAIL_PASSWORD_ENABLED` / `MODEL_OVERRIDE_ENABLED` / `QUOTA_*` | preset | Shared-deployment limits (Google-only login, model lock, usage quotas) — off by default, see below |
 | `CAREER_AGENT_EXECUTE_APPROVAL` | preset | Human approval for the agents' shell tool, when one is enabled — see below |
 | `SANDBOX_PROVIDER` (+ `SANDBOX_E2B_*`, `SANDBOX_TEMPLATE`) | preset | Whether agents get a shell tool at all (`none`, default), and where it executes: host or isolated sandbox — see below |
 | `FRONTEND_LOCAL_PORT` / `LANGGRAPH_LOCAL_PORT` / `POSTGRES_LOCAL_PORT` / `REDIS_LOCAL_PORT` / `OBJECT_STORE_LOCAL_PORT` | preset | Host port mappings |
 | `OBJECT_STORE_*` | preset | Artifact object storage — see below |
 | `CLICKHOUSE_*` / `DAGSTER_*` / `DBT_DOCS_LOCAL_PORT` / `CUBE_*` / `SUPERSET_*` / `ANALYTICS_RO_PASSWORD` | preset | Analytics stack (warehouse, orchestration, semantic layer, BI) — see below |
 | `CLICKHOUSE_AGENT_PASSWORD` / `ANALYTICS_AGENT_ALLOWED_USERS` | generate / empty | The analytics agent's read-only warehouse login, and who may run it — see below |
+
+**Shared deployment limits.** Off by default, so a local clone keeps every capability: any model, email + password and Google login, no usage caps. A public deployment turns them on through env vars alone. `AUTH_EMAIL_PASSWORD_ENABLED=false` makes login Google-only (the Better Auth endpoints are disabled, not just hidden). `MODEL_OVERRIDE_ENABLED=false` pins every run to the code defaults: the backend ignores per-run model choices and the Settings dialog hides the fields. `QUOTA_RUNS_PER_DAY` / `QUOTA_RUNS_PER_WEEK` cap runs per user, `QUOTA_USD_PER_DAY` / `QUOTA_USD_PER_WEEK` cap each user's estimated LLM spend (provider-reported tokens × list prices, subagents included), `QUOTA_GLOBAL_USD_PER_DAY` caps everyone together, and `QUOTA_MAX_CONCURRENT_RUNS` limits parallel runs. Windows are rolling (24 hours / 7 days), and `0` disables a limit. Quotas are enforced when a run is created, in multi-user mode only: an over-quota user gets a `429` with the time they can start again, and the composer shows the runs left and locks when a limit is hit. The ledger is the `usage_ledger` Postgres table, created on first use. The production setup that uses all three is [`deploy/vultr/`](deploy/vultr/README.md).
 
 **Shell-command approval.** Only applies when `SANDBOX_PROVIDER` enables the shell (see **Sandbox** below). Risky `execute` (bash) commands pause in the UI for approve / edit / reject; a conservative read-only allowlist auto-approves trivial pokes. The gate applies in **both** sandbox modes below — isolation contains blast radius, not exfiltration or API misuse. On by default — set `CAREER_AGENT_EXECUTE_APPROVAL=false` only for offline evals or emergency rollback (env changes need `docker compose up -d backend` to recreate, not `restart`). Full policy in [`backend/agents/career_agent/README.md`](backend/agents/career_agent/README.md#human-in-the-loop-execute-approval).
 
@@ -316,6 +319,7 @@ NextRole runs **zero-login single-user by default** — `docker compose up` and 
 - **Gate MCP / A2A** — authentication-only today (no per-resource authz), so disable via `LANGGRAPH_HTTP` `"disable_mcp": true` / `"disable_a2a": true` until audited.
 - **Close the Studio backdoors** — never set `LANGSMITH_LANGGRAPH_API_VARIANT=local_dev` in production; `disable_studio_auth: true` (above) closes the header-based one.
 - **Reverse proxy** must never forward a client-controlled root_path (the in-process `/noauth` loopback bypass stays internal-only).
+- **Cap the spend** — `MODEL_OVERRIDE_ENABLED=false` and `QUOTA_*` (see "Shared deployment limits" under Environment variables). [`deploy/vultr/`](deploy/vultr/README.md) applies every item on this list.
 
 </details>
 
@@ -398,7 +402,7 @@ With authentication enabled, access requires `ANALYTICS_AGENT_ALLOWED_USERS`; an
 - 📊 **Agent evaluation** — LangSmith evals over the workflow (the `@pytest.mark.eval` marker is already reserved).
 - 🎨 **Enhanced UI** — richer artifact editing, diff views, and inline regeneration.
 - 🔌 **MCP / A2A examples** — sample integrations driving `career_agent` from external agents and IDEs.
-- ☁️ **Cloud deployment** — binary artifacts already live in S3-compatible object storage (SeaweedFS locally; point `OBJECT_STORE_*` at S3 / GCS / Azure). Remaining: managed bucket provisioning (versioning, SSE, IAM) and presigned-URL delivery.
+- ☁️ **Cloud deployment** — a single-VPS production stack ships in [`deploy/vultr/`](deploy/vultr/README.md) (Caddy, Cloudflare R2, Google-only login, model lock, usage quotas). Remaining: managed Postgres, presigned-URL delivery, and a multi-node layout.
 - 🌐 **More sources & ATS-aware tailoring** — pluggable retrievers + keyword/ATS optimization passes.
 
 ## Limitations

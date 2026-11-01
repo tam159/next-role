@@ -679,3 +679,54 @@ def test_bedrock_subagent_no_stream_copy_keeps_both_tweaks(middleware, monkeypat
     assert flagged.disable_streaming is True
     assert flagged.additional_model_request_fields["anthropic_beta"] == [_BETA]
     assert model.disable_streaming is False
+
+
+@pytest.mark.parametrize("value", ["false", "False", "0", "off"])
+def test_model_lock_ignores_both_override_keys(middleware, monkeypatch, value):
+    """`MODEL_OVERRIDE_ENABLED=false`: the bake-time defaults win for main and subagents."""
+    monkeypatch.setenv("MODEL_OVERRIDE_ENABLED", value)
+    for metadata in ({}, {"lc_agent_name": "resume-tailor"}):
+        req_model = _FakeModel(name="default")
+        request, captured = _fake_request(model=req_model)
+        config = {
+            "configurable": {
+                "main_agent_model": "anthropic:claude-fable-5-1",
+                "subagent_model": "anthropic:claude-opus-5-5",
+            },
+            "metadata": metadata,
+        }
+        with (
+            patch("backend.agents.career_agent.middleware.get_config", return_value=config),
+            patch("backend.agents.career_agent.middleware.init_chat_model") as mocked_init,
+        ):
+            middleware.wrap_model_call(request, _fake_handler({}))
+
+        mocked_init.assert_not_called()
+        assert "model" not in captured
+
+
+def test_model_lock_keeps_the_subagent_streaming_rollback(middleware, monkeypatch):
+    """The lock only drops the override; the per-run streaming lever still applies."""
+    monkeypatch.setenv("MODEL_OVERRIDE_ENABLED", "false")
+    req_model = _FakeModel(name="default")
+    request, captured = _fake_request(model=req_model)
+    config = {
+        "configurable": {
+            "subagent_model": "openai:gpt-5.6-luna",
+            "disable_subagent_streaming": True,
+        },
+        "metadata": {"lc_agent_name": "hiring-recon"},
+    }
+    with patch("backend.agents.career_agent.middleware.get_config", return_value=config):
+        middleware.wrap_model_call(request, _fake_handler({}))
+
+    assert captured["model"].name == "default"
+    assert captured["model"].disable_streaming is True
+
+
+def test_overrides_stay_on_when_the_flag_is_unset(middleware, monkeypatch):
+    """Local development default: any model the user picks is honoured."""
+    monkeypatch.delenv("MODEL_OVERRIDE_ENABLED", raising=False)
+    from backend.agents.career_agent.middleware import model_override_enabled
+
+    assert model_override_enabled() is True

@@ -13,3 +13,6 @@ analytics/dbt/.user.yml
 .ua/intermediate/
 .ua/diff-overlay.json
 .ua/.trash-*/
+
+# Cloudflare Origin certificate + key for the production Caddy (deploy/vultr)
+deploy/vultr/certs/

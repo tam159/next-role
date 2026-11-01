@@ -2,6 +2,7 @@ import { betterAuth } from "better-auth";
 import { nextCookies } from "better-auth/next-js";
 import { jwt } from "better-auth/plugins";
 import { Pool } from "pg";
+import { isEmailPasswordAuthEnabled } from "./enabled";
 
 /**
  * Better Auth server instance — the identity provider for multi-user mode.
@@ -25,8 +26,9 @@ const googleClientSecret = process.env.GOOGLE_AUTH_CLIENT_SECRET;
 export const auth = betterAuth({
   baseURL: process.env.BETTER_AUTH_URL,
   database: new Pool({ connectionString: process.env.AUTH_DATABASE_URL }),
+  // Off for Google-only deployments (AUTH_EMAIL_PASSWORD_ENABLED=false).
   emailAndPassword: {
-    enabled: true,
+    enabled: isEmailPasswordAuthEnabled(),
   },
   ...(googleClientId && googleClientSecret
     ? {

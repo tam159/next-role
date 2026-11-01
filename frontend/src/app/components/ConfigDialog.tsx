@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { AppearanceSettings } from "@/app/components/AppearanceSettings";
-import { DEFAULT_CONFIG, StandaloneConfig } from "@/lib/config";
+import { DEFAULT_CONFIG, isModelOverrideEnabled, StandaloneConfig } from "@/lib/config";
 
 interface ConfigDialogProps {
   open: boolean;
@@ -71,44 +71,46 @@ export function ConfigDialog({ open, onOpenChange, onSave, initialConfig }: Conf
           {/* Appearance — theme + accent */}
           <AppearanceSettings />
 
-          {/* Model */}
-          <div className="grid gap-3">
-            <span className={EYEBROW}>Model</span>
-            <div className="grid gap-2">
-              <Label htmlFor="mainAgentModel" className="text-xs text-secondary">
-                Main agent — <code className="font-mono">provider:model</code>
-              </Label>
-              <Input
-                id="mainAgentModel"
-                placeholder="anthropic:claude-sonnet-5-5"
-                value={mainAgentModel}
-                onChange={(e) => setMainAgentModel(e.target.value)}
-              />
+          {/* Model — hidden where the deployment pins its models */}
+          {isModelOverrideEnabled() && (
+            <div className="grid gap-3">
+              <span className={EYEBROW}>Model</span>
+              <div className="grid gap-2">
+                <Label htmlFor="mainAgentModel" className="text-xs text-secondary">
+                  Main agent — <code className="font-mono">provider:model</code>
+                </Label>
+                <Input
+                  id="mainAgentModel"
+                  placeholder="anthropic:claude-sonnet-5-5"
+                  value={mainAgentModel}
+                  onChange={(e) => setMainAgentModel(e.target.value)}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="subagentModel" className="text-xs text-secondary">
+                  Subagents
+                </Label>
+                <Input
+                  id="subagentModel"
+                  placeholder="anthropic:claude-sonnet-5-5"
+                  value={subagentModel}
+                  onChange={(e) => setSubagentModel(e.target.value)}
+                />
+              </div>
+              <p className="text-xs text-tertiary">
+                Leave blank to use the assistant default.{" "}
+                <a
+                  href={INIT_CHAT_MODEL_DOCS_URL}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-brand-accent underline-offset-2 hover:underline"
+                >
+                  Supported providers
+                </a>
+                .
+              </p>
             </div>
-            <div className="grid gap-2">
-              <Label htmlFor="subagentModel" className="text-xs text-secondary">
-                Subagents
-              </Label>
-              <Input
-                id="subagentModel"
-                placeholder="anthropic:claude-sonnet-5-5"
-                value={subagentModel}
-                onChange={(e) => setSubagentModel(e.target.value)}
-              />
-            </div>
-            <p className="text-xs text-tertiary">
-              Leave blank to use the assistant default.{" "}
-              <a
-                href={INIT_CHAT_MODEL_DOCS_URL}
-                target="_blank"
-                rel="noreferrer"
-                className="text-brand-accent underline-offset-2 hover:underline"
-              >
-                Supported providers
-              </a>
-              .
-            </p>
-          </div>
+          )}
 
           {/* Connection */}
           <div className="grid gap-3">

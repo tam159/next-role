@@ -12,7 +12,8 @@ import {
   type AgentFile,
 } from "@/app/lib/agentFiles";
 import { deleteAgentFile } from "@/app/lib/uploadFiles";
-import { getConfig, type StandaloneConfig } from "@/lib/config";
+import { getConfig, isModelOverrideEnabled, type StandaloneConfig } from "@/lib/config";
+import { toast } from "sonner";
 import type { AgentFileSources } from "@/app/config/agentFiles";
 import { useChat } from "@/app/hooks/useChat";
 
@@ -29,7 +30,8 @@ vi.mock("@/app/lib/agentFiles", () => ({
   writeAgentFile: vi.fn(),
 }));
 vi.mock("@/app/lib/uploadFiles", () => ({ deleteAgentFile: vi.fn() }));
-vi.mock("@/lib/config", () => ({ getConfig: vi.fn() }));
+vi.mock("@/lib/config", () => ({ getConfig: vi.fn(), isModelOverrideEnabled: vi.fn(() => true) }));
+vi.mock("sonner", () => ({ toast: { error: vi.fn() } }));
 
 const useStreamMock = vi.mocked(useStream);
 const useQueryStateMock = vi.mocked(useQueryState);
@@ -184,6 +186,33 @@ describe("sendMessage", () => {
       },
     });
     expect(onHistoryRevalidate).toHaveBeenCalledTimes(1);
+  });
+
+  it("drops stored model overrides when the deployment pins its models", async () => {
+    vi.mocked(isModelOverrideEnabled).mockReturnValueOnce(false);
+    const { result, stream } = await setup({
+      config: { deploymentUrl: "http://x", assistantId: "a", mainAgentModel: "claude-big" },
+    });
+
+    act(() => {
+      result.current.sendMessage("hi");
+    });
+
+    const [, options] = stream.submit.mock.calls[0];
+    expect(options.config.configurable).toEqual({ base_key: "base" });
+  });
+
+  it("toasts the server's reason when a run is refused over quota", async () => {
+    const { result, stream } = await setup();
+    stream.submit.mockRejectedValueOnce(
+      new Error("429: You've used all 10 runs for the last 24 hours.")
+    );
+
+    await act(async () => {
+      result.current.sendMessage("hi");
+    });
+
+    expect(toast.error).toHaveBeenCalledWith("You've used all 10 runs for the last 24 hours.");
   });
 
   it("omits model overrides when no user config is stored", async () => {

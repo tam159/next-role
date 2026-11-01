@@ -1,0 +1,201 @@
+# NextRole core app — production stack for a single VPS (see README.md here).
+#
+# Run from the repo root; Compose reads deploy/vultr/.env automatically:
+#   docker compose -f deploy/vultr/docker-compose.yml up -d --build
+#   docker compose -f deploy/vultr/docker-compose.yml run --rm auth-migrate   # once, then after Better Auth upgrades
+#
+# Differences from the root (local development) docker-compose.yml:
+#   - production images: no source bind mounts, no hot reload, `next build`;
+#   - core services only: no SeaweedFS (Cloudflare R2 instead), no analytics
+#     stack, and only the career agent is registered;
+#   - Caddy is the single public entry (443, Cloudflare Origin certificate);
+#     nothing else publishes a host port;
+#   - multi-user auth is mandatory (REQUIRE_AUTH), and the shared-deployment
+#     limits (Google-only login, model lock, usage quotas) come from .env.
+
+name: next-role
+
+x-graphs: &graphs >-
+  {"career_agent": "/deps/next-role/backend/agents/career_agent/agents.py:career_agent"}
+
+volumes:
+  pg-data:
+  caddy-data:
+
+services:
+  caddy:
+    image: caddy:2.10-alpine
+    restart: unless-stopped
+    ports:
+      - "443:443"
+    environment:
+      APP_DOMAIN: ${APP_DOMAIN:?set APP_DOMAIN in deploy/vultr/.env}
+      API_DOMAIN: ${API_DOMAIN:?set API_DOMAIN in deploy/vultr/.env}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./certs:/etc/caddy/certs:ro
+      - caddy-data:/data
+    depends_on:
+      frontend:
+        condition: service_healthy
+      backend:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ../../frontend
+      dockerfile: Dockerfile
+      target: prod
+      args:
+        NEXT_PUBLIC_LANGGRAPH_DEPLOYMENT_URL: https://${API_DOMAIN}
+        NEXT_PUBLIC_LANGGRAPH_ASSISTANT_ID: career_agent
+        NEXT_PUBLIC_AUTH_ENABLED: "true"
+        NEXT_PUBLIC_AUTH_GOOGLE_ENABLED: ${AUTH_GOOGLE_ENABLED:-true}
+        NEXT_PUBLIC_AUTH_EMAIL_PASSWORD_ENABLED: ${AUTH_EMAIL_PASSWORD_ENABLED:-false}
+        NEXT_PUBLIC_MODEL_OVERRIDE_ENABLED: ${MODEL_OVERRIDE_ENABLED:-false}
+    image: next-role-frontend:prod
+    restart: unless-stopped
+    environment:
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:?set BETTER_AUTH_SECRET in deploy/vultr/.env}
+      BETTER_AUTH_URL: https://${APP_DOMAIN}
+      AUTH_DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      GOOGLE_AUTH_CLIENT_ID: ${GOOGLE_AUTH_CLIENT_ID:-}
+      GOOGLE_AUTH_CLIENT_SECRET: ${GOOGLE_AUTH_CLIENT_SECRET:-}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "node -e \"fetch('http://localhost:3000/login').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))\"",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  # One-shot: creates/updates the Better Auth tables (user, session, account,
+  # verification, jwks). Not started by `up` (profile); run it explicitly.
+  auth-migrate:
+    profiles: ["tools"]
+    build:
+      context: ../../frontend
+      dockerfile: Dockerfile
+      target: dev
+    image: next-role-frontend:tools
+    restart: "no"
+    environment:
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET}
+      BETTER_AUTH_URL: https://${APP_DOMAIN}
+      AUTH_DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      GOOGLE_AUTH_CLIENT_ID: ${GOOGLE_AUTH_CLIENT_ID:-}
+      GOOGLE_AUTH_CLIENT_SECRET: ${GOOGLE_AUTH_CLIENT_SECRET:-}
+    # Pin the CLI to the better-auth version in frontend/package.json.
+    command: ["pnpm", "dlx", "auth@1.7.2", "migrate", "--config", "src/lib/auth/server.ts", "--yes"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  redis:
+    image: redis:8
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 1s
+      retries: 5
+
+  postgres:
+    image: pgvector/pgvector:pg18
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in deploy/vultr/.env}
+    volumes:
+      - pg-data:/var/lib/postgresql/18/docker
+      - ../../backend/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+      start_interval: 1s
+
+  # gRPC data plane of the agent server (same image as the backend).
+  core-server:
+    build:
+      context: ../../backend
+      dockerfile: Dockerfile
+    image: next-role-backend:prod
+    restart: unless-stopped
+    command: ["python", "-m", "server.core_server"]
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    environment:
+      CORE_SERVER_BIND: 0.0.0.0:50052
+      CORE_SERVER_GO_FALLBACK: ""
+      CORE_SERVER_POSTGRES_URI: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?sslmode=disable
+      CORE_SERVER_REDIS_URI: redis://redis:6379
+      LANGSERVE_GRAPHS: *graphs
+    healthcheck:
+      test: ["CMD", "python", "-c", "import socket; socket.create_connection(('localhost', 50052), 2)"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+      start_interval: 1s
+
+  # Agent server (HTTP/SSE + graph workers); the image CMD has no --reload.
+  backend:
+    build:
+      context: ../../backend
+      dockerfile: Dockerfile
+    image: next-role-backend:prod
+    restart: unless-stopped
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+      core-server:
+        condition: service_healthy
+    # API keys, OBJECT_STORE_*, QUOTA_*, MODEL_OVERRIDE_ENABLED, SANDBOX_PROVIDER, …
+    env_file: .env
+    environment:
+      POSTGRES_URI: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      REDIS_URI: redis://redis:6379
+      LANGGRAPH_RUNTIME_EDITION: postgres
+      LSD_GRPC_SERVER_ADDRESS: core-server:50052
+      MIGRATIONS_PATH: /deps/next-role/backend/storage/migrations
+      LANGSERVE_GRAPHS: *graphs
+      # Files API + quota endpoint behind the auth middleware; MCP and A2A are
+      # authentication-only (no per-resource authz yet), so they stay off.
+      LANGGRAPH_HTTP: >-
+        {"app": "/deps/next-role/backend/agents/files_api.py:app",
+         "enable_custom_route_auth": true, "disable_mcp": true, "disable_a2a": true}
+      LANGGRAPH_AUTH: >-
+        {"path": "/deps/next-role/backend/agents/auth.py:auth", "disable_studio_auth": true}
+      REQUIRE_AUTH: "true"
+      AUTH_JWKS_URL: http://frontend:3000/api/auth/jwks
+      AUTH_JWT_ISSUER: https://${APP_DOMAIN}
+      AUTH_JWT_AUDIENCE: https://${APP_DOMAIN}
+      CORS_ALLOW_ORIGINS: https://${APP_DOMAIN}
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/ok', timeout=5).status==200 else 1)",
+        ]
+      interval: 60s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+      start_interval: 2s
