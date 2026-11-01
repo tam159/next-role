@@ -202,6 +202,19 @@ All services should report `healthy` within about two minutes of the build finis
 ## Part 4 — Operating it
 
 - **Deploy an update:** `cd /opt/next-role && git pull && docker compose -f deploy/vultr/docker-compose.yml up -d --build`. `.env` changes need `up -d <service>` (recreate), not `restart`; a flag the frontend bakes in at build time (`API_DOMAIN`, `AUTH_*_ENABLED`, `MODEL_OVERRIDE_ENABLED`) needs `up -d --build frontend`. After a Better Auth upgrade, bump the CLI version in the compose file and re-run `auth-migrate`.
+- **One-time: Better Auth 1.7.2 → 1.7.3+.** A stack first started on 1.7.2 has a `NOT NULL` `account.issuer` column that 1.7.3+ never writes, so every sign-up fails until it is relaxed. Run the cleanup before the rebuild. `git pull` alone doesn't touch the running containers, and the script is safe while 1.7.2 still serves:
+
+  ```bash
+  cd /opt/next-role && git pull
+  docker compose -f deploy/vultr/docker-compose.yml exec -T postgres pg_dump -U next-role \
+    -t '"user"' -t account -t session -t verification -t jwks > ~/auth-tables-$(date +%F).sql
+  docker compose -f deploy/vultr/docker-compose.yml exec -T postgres psql -U next-role -v ON_ERROR_STOP=1 -f - \
+    < frontend/scripts/better-auth-1.7.3-relax-account-issuer.sql
+  docker compose -f deploy/vultr/docker-compose.yml up -d --build
+  docker compose -f deploy/vultr/docker-compose.yml run --rm auth-migrate
+  ```
+
+  Then sign up a new test user and sign in with an existing one.
 - **Logs:** `docker compose -f deploy/vultr/docker-compose.yml logs -f backend` (or `frontend`, `core-server`).
 - **Spend:** check the Anthropic Console usage page daily for the first week and compare with the ledger (`select sum(cost_usd) from usage_ledger where created_at > now() - interval '1 day'`); adjust `QUOTA_*` from real numbers. Quota changes need only `up -d backend`.
 - **Backups:** Vultr Auto Backups cover the disk (Postgres included). Before risky upgrades take a manual snapshot (instance → **Snapshots → Take Snapshot**). R2 objects are not in the Vultr backup; they are durable on their own, but deletions are permanent.
