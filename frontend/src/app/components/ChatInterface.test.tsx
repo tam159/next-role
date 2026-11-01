@@ -64,6 +64,13 @@ vi.mock("@/providers/ChatProvider", () => ({
   useChatContext: () => useMockChatContext(),
 }));
 
+// Quota state is null (no limits) unless a test sets it.
+const usageState = vi.hoisted(() => ({ usage: null as Record<string, unknown> | null }));
+vi.mock("@/app/hooks/useUsage", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/app/hooks/useUsage")>();
+  return { ...actual, useUsage: () => ({ usage: usageState.usage, refresh: vi.fn() }) };
+});
+
 vi.mock("sonner", () => ({
   toast: { success: vi.fn(), error: vi.fn(), warning: vi.fn(), info: vi.fn() },
   Toaster: () => null,
@@ -120,6 +127,7 @@ const composer = () => screen.getByPlaceholderText(/Message NextRole/);
 beforeEach(() => {
   vi.clearAllMocks();
   localStorage.clear();
+  usageState.usage = null;
   ctx.messages = [];
   ctx.isLoading = false;
   ctx.isThreadLoading = false;
@@ -537,5 +545,39 @@ describe("per-agent empty state", () => {
 
     expect(screen.getByText(/Land your/)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Tailor my resume/ })).toBeInTheDocument();
+  });
+});
+
+describe("ChatInterface — usage quota", () => {
+  it("shows the runs left when the deployment sets run limits", () => {
+    usageState.usage = { enabled: true, blocked: false, runs_left_today: 7 };
+    renderChat();
+
+    expect(screen.getByText(/7 runs left today/)).toBeInTheDocument();
+  });
+
+  it("says nothing about quotas when the backend sets none", () => {
+    renderChat();
+
+    expect(screen.queryByText(/runs? left today/)).not.toBeInTheDocument();
+  });
+
+  it("locks the composer and explains why when over quota", async () => {
+    usageState.usage = {
+      enabled: true,
+      blocked: true,
+      reason: "runs_day",
+      resets_at: new Date(Date.now() + 3_600_000).toISOString(),
+      runs_left_today: 0,
+    };
+    const user = userEvent.setup();
+    renderChat();
+
+    expect(screen.getByRole("status")).toHaveTextContent(
+      /used all your runs for the last 24 hours/
+    );
+    await user.type(composer(), "one more{Enter}");
+    expect(sendMessage).not.toHaveBeenCalled();
+    expect(screen.getByRole("button", { name: "Send" })).toBeDisabled();
   });
 });

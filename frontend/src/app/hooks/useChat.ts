@@ -15,7 +15,10 @@ import {
   type AgentFile,
 } from "@/app/lib/agentFiles";
 import { deleteAgentFile } from "@/app/lib/uploadFiles";
-import { getConfig } from "@/lib/config";
+import { getConfig, isModelOverrideEnabled } from "@/lib/config";
+import { quotaRefusalMessage } from "@/app/hooks/useUsage";
+import { toast } from "sonner";
+import { mutate as mutateGlobal } from "swr";
 
 function stateFileSignature(value: unknown): string {
   if (typeof value === "string") return `s:${value.length}:${value.slice(0, 64)}`;
@@ -80,8 +83,10 @@ export function useChat({
       const assistantConfigurable = (assistantConfig.configurable ?? {}) as Record<string, unknown>;
       const userConfig = getConfig();
       const modelOverrides: Record<string, string> = {};
-      if (userConfig?.mainAgentModel) modelOverrides.main_agent_model = userConfig.mainAgentModel;
-      if (userConfig?.subagentModel) modelOverrides.subagent_model = userConfig.subagentModel;
+      if (isModelOverrideEnabled()) {
+        if (userConfig?.mainAgentModel) modelOverrides.main_agent_model = userConfig.mainAgentModel;
+        if (userConfig?.subagentModel) modelOverrides.subagent_model = userConfig.subagentModel;
+      }
 
       return {
         ...assistantConfig,
@@ -99,10 +104,19 @@ export function useChat({
     (content: string) => {
       // Optimistic echo is built in: the message renders immediately with a
       // client-minted id that the server echo reconciles against.
-      void stream.submit(
-        { messages: [new HumanMessage(content)] },
-        { config: buildSubmitConfig({ recursion_limit: 100 }) }
-      );
+      stream
+        .submit(
+          { messages: [new HumanMessage(content)] },
+          { config: buildSubmitConfig({ recursion_limit: 100 }) }
+        )
+        .catch((error: unknown) => {
+          // Usage quota refusal (shared deployments only): say why and when,
+          // and refresh the composer's quota state so it locks.
+          const quotaMessage = quotaRefusalMessage(error);
+          if (!quotaMessage) throw error;
+          toast.error(quotaMessage);
+          void mutateGlobal((key) => Array.isArray(key) && key[1] === "usage");
+        });
       // Update thread list immediately when sending a message
       onHistoryRevalidate?.();
     },

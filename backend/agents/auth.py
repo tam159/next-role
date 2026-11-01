@@ -26,9 +26,11 @@ from __future__ import annotations
 
 import asyncio
 import os
+from datetime import UTC, datetime
 from typing import Any, cast
 
 import jwt
+from backend.agents import usage
 from jwt import PyJWKClient
 from langgraph_sdk import Auth
 
@@ -118,6 +120,33 @@ async def authorize_threads(
 ) -> dict[str, Any]:
     """Threads (and runs — same resource) are private to their owner."""
     _stamp_owner(value, ctx.user.identity)
+    return {"owner": ctx.user.identity}
+
+
+@auth.on.threads.create_run
+async def authorize_create_run(
+    ctx: Auth.types.AuthContext,
+    value: Auth.types.RunsCreate,
+) -> dict[str, Any]:
+    """Run creation: same ownership as threads, plus the usage quota gate.
+
+    The most specific handler wins, so this one must also do what
+    ``authorize_threads`` does. With every ``QUOTA_*`` limit unset the quota
+    check returns immediately without touching the database.
+    """
+    _stamp_owner(cast("dict[str, Any]", value), ctx.user.identity)
+    run_id = value.get("run_id")
+    verdict = await usage.check_and_record_run(ctx.user.identity, str(run_id) if run_id else None)
+    if not verdict.allowed:
+        headers = {}
+        if verdict.resets_at is not None:
+            retry_after = (verdict.resets_at - datetime.now(UTC)).total_seconds()
+            headers["Retry-After"] = str(max(int(retry_after), 1))
+        raise Auth.exceptions.HTTPException(
+            status_code=429,
+            detail=verdict.message,
+            headers=headers or None,
+        )
     return {"owner": ctx.user.identity}
 
 

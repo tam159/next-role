@@ -35,6 +35,7 @@ import { extractStringFromMessageContent, parsePartialArgs } from "@/app/utils/u
 import { useChatContext } from "@/providers/ChatProvider";
 import { useFileUpload, useUploadDrop } from "@/app/hooks/useFileUpload";
 import { useUploadCue } from "@/app/hooks/useUploadCue";
+import { blockedMessage, useUsage } from "@/app/hooks/useUsage";
 import { UPLOAD_ACCEPT } from "@/app/lib/uploadFiles";
 import { useStickToBottom } from "use-stick-to-bottom";
 import { cn } from "@/lib/utils";
@@ -198,7 +199,11 @@ export const ChatInterface = React.memo<ChatInterfaceProps>(({ assistant }) => {
   // "never mind, do something else instead".
   const reviewPending = approvals.pendingApprovals.length > 0 || interrupts.length > 0;
 
-  const submitDisabled = isLoading || !assistant || reviewPending;
+  // Usage quota (shared deployments only; null when the backend sets none).
+  const { usage } = useUsage(isLoading);
+  const quotaBlocked = Boolean(usage?.blocked);
+
+  const submitDisabled = isLoading || !assistant || reviewPending || quotaBlocked;
 
   // Focus the textarea (with cursor at end) whenever a sibling surface — e.g.
   // Workspace > Files Upload — appended an "Uploaded: ..." note. Skip the
@@ -614,6 +619,12 @@ export const ChatInterface = React.memo<ChatInterfaceProps>(({ assistant }) => {
               NextRole is working…
             </div>
           )}
+          {!isLoading && !reviewPending && usage && quotaBlocked && (
+            <div role="status" className="mb-2 flex items-start gap-2 px-2 text-xs text-secondary">
+              <span className="mt-1 size-1.5 shrink-0 rounded-full bg-warning" />
+              {blockedMessage(usage)}
+            </div>
+          )}
           {!isLoading && reviewPending && (
             <div className="mb-2 flex items-center gap-2 px-2 text-xs text-secondary">
               <span className="size-1.5 rounded-full bg-warning" />
@@ -653,6 +664,14 @@ export const ChatInterface = React.memo<ChatInterfaceProps>(({ assistant }) => {
                   )}
                   <span className="truncate text-xs text-tertiary">
                     Enter to send · Shift+Enter for newline
+                    {usage?.runs_left_today != null && !quotaBlocked && (
+                      <>
+                        {" · "}
+                        {usage.runs_left_today === 1
+                          ? "1 run left today"
+                          : `${usage.runs_left_today} runs left today`}
+                      </>
+                    )}
                   </span>
                 </div>
                 <button

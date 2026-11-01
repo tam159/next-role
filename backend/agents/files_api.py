@@ -19,7 +19,10 @@ routes so the frontend components stay unchanged):
 Plus one endpoint that is not about files: `GET /agents/available` reports which
 registered graphs this caller may run, so the UI can disable an agent in its
 picker instead of letting someone start a run that will be refused. It lives
-here because this is the only custom app the server mounts.
+here because this is the only custom app the server mounts. Likewise
+`GET /usage` reports the caller's usage quota (runs left, or why and until when
+new runs are refused) so the composer can lock before a refusal; it returns
+`{enabled: false}` unless `QUOTA_*` limits are set in multi-user mode.
 
 Deliberately imports nothing from `server.*` (those modules require env at
 import time); the server wraps this app with its own CORS + logging middleware
@@ -37,6 +40,7 @@ import json
 import os
 from typing import TYPE_CHECKING, Any
 
+from backend.agents import usage
 from backend.agents.analytics_agent.access import is_allowed as analytics_is_allowed
 from backend.agents.career_agent.object_storage import (
     AREAS,
@@ -351,9 +355,21 @@ async def agents_available(request: Request) -> JSONResponse:
     )
 
 
+async def usage_status(request: Request) -> JSONResponse:
+    """Report the caller's usage quota.
+
+    Quotas are enforced by the run-creation auth handler, which only exists in
+    multi-user mode, so single-user deployments always report them disabled.
+    """
+    if not _AUTH_ENABLED:
+        return JSONResponse({"enabled": False})
+    return JSONResponse(await usage.usage_report(_scope(request) or usage.DEFAULT_OWNER))
+
+
 app = Starlette(
     routes=[
         Route("/agents/available", _authenticated(agents_available), methods=["GET"]),
+        Route("/usage", _authenticated(usage_status), methods=["GET"]),
         Route("/files/list", _authenticated(list_files), methods=["GET"]),
         Route("/files/read", _authenticated(read_file), methods=["GET"]),
         Route("/files/upload", _authenticated(upload_files), methods=["POST"]),
