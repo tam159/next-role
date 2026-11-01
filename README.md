@@ -290,14 +290,14 @@ NextRole runs **zero-login single-user by default** — `docker compose up` and 
    ```bash
    AUTH_DATABASE_URL="postgresql://<POSTGRES_USER>:<POSTGRES_PASSWORD>@localhost:<POSTGRES_LOCAL_PORT>/<POSTGRES_DB>" \
    BETTER_AUTH_SECRET=<same secret> \
-     pnpm --dir frontend dlx auth@1.7.2 migrate --config src/lib/auth/server.ts
+     pnpm --dir frontend dlx auth@1.7.14 migrate --config src/lib/auth/server.ts
    ```
-   **Upgrading a deployment that already has accounts from Better Auth ≤ 1.6:** 1.7 keys every account on `(issuer, accountId)` and the CLI cannot add that `NOT NULL` column to a populated table. Back up the auth tables (`pg_dump -t '"user"' -t account -t session -t verification -t jwks`), stop the frontend, run the backfill script, then the `migrate` command above (it adds the new `jwks` columns), then start the frontend on 1.7:
+   **Upgrading a deployment that already has accounts:** back up the auth tables first (`pg_dump -t '"user"' -t account -t session -t verification -t jwks`). From Better Auth 1.6 the account schema is unchanged; run the `migrate` command above before starting the frontend on the new version. If the deployment ever ran **1.7.0–1.7.2**, it carries a `NOT NULL` `account.issuer` column that 1.7.3+ no longer writes, so every sign-up and account link fails until that column is relaxed. Run the cleanup script first. It is safe while 1.7.2 is still serving, and a no-op where the column never existed:
    ```bash
    docker compose exec -T postgres psql -U <POSTGRES_USER> -d <POSTGRES_DB> -v ON_ERROR_STOP=1 -f - \
-     < frontend/scripts/better-auth-1.7-account-issuer-backfill.sql   # or: psql "$AUTH_DATABASE_URL" -f <script>
+     < frontend/scripts/better-auth-1.7.3-relax-account-issuer.sql   # or: psql "$AUTH_DATABASE_URL" -f <script>
    ```
-   The script maps `credential` → `local:credential` and `google` → `https://accounts.google.com`, and aborts (schema untouched) on any other provider or on an identity collision — see [Better Auth's 1.7 upgrade guide](https://better-auth.com/docs/guides/1-7-upgrade-guide).
+   The script drops the `(issuer, accountId)` unique index and the `NOT NULL` (the column stays, unused), and aborts (schema untouched) on duplicate `(providerId, accountId)` pairs. Confirm with `pnpm --dir frontend dlx auth@1.7.14 check schema --config src/lib/auth/server.ts` (same env as `migrate`). See [Better Auth's 1.7 upgrade guide](https://better-auth.com/docs/guides/1-7-upgrade-guide#account-identity-keeps-the-provider-key).
 3. `LANGGRAPH_AUTH` — turns on backend enforcement. (Login without this is fine for trying the UI, but provides no isolation.) One line:
 
    ```env

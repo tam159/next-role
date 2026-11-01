@@ -8,7 +8,7 @@ Upgrade the frontend's pnpm dependencies in revertable waves, preserving exact-p
 ## Ground rules
 
 - **Exact pins stay exact.** `react`, `react-dom`, and `@langchain/langgraph-sdk` have no `^` in `package.json`. Upgrade them with `pnpm --dir frontend add -E pkg@x.y.z`; everything else gets a new `^` floor (`pnpm --dir frontend add pkg@^x.y.z`).
-- **A held-back line needs a `~` range.** `^x.y.z` admits every later minor, and pnpm resolves the highest match — `pnpm add better-auth@^1.6.30` installed 1.7.2, the version being held back. When a package must stay on its current minor (schema migration, peer gate), pin `~x.y.z`, say so under "Held back", and restore `^` in the PR that lifts the hold. Always read the `+ pkg x.y.z` line pnpm prints after `add` — it is the installed version, not the range you typed.
+- **A held-back line needs a `~` range.** `^x.y.z` admits every later minor, and pnpm resolves the highest match — `pnpm add better-auth@^1.6.30` installed 1.7.2, the version being held back. When a package must stay on its current minor (schema migration, peer gate), pin `~x.y.z`; when even a later patch is the problem, pin it exactly (`-E`). Say so under "Held back", and restore `^` in the PR that lifts the hold (pnpm keeps an exact pin exact on the next `add`, so edit the range by hand and re-run `pnpm install`). Always read the `+ pkg x.y.z` line pnpm prints after `add` — it is the installed version, not the range you typed.
 - **One resolved version per dep.** The lockfile must not carry two copies of anything that crosses a package boundary (the `@langchain/langgraph-sdk` single-copy invariant in `frontend/AGENTS.md` is the critical one; `scripts/check-langchain-sdk-sync.mjs` guards it).
 - **One commit per wave** (majors: one per package) so any regression reverts surgically.
 - **Lockfile changes need `docker compose restart frontend`; source edits hot-reload.** Never restart for source-only changes; never skip the restart after `pnpm add/remove`.
@@ -31,7 +31,7 @@ pnpm view "pkg@<target>" peerDependencies   # quote the spec; zsh doesn't word-s
 
 Gate examples that have mattered: typescript-eslint's `typescript: <X` upper bound gates TS majors; eslint plugins' `eslint` peer range gates eslint majors. A major whose peers don't fit gets held back, not forced.
 
-Read release notes for the auth/database libraries even below a major: better-auth **1.7** (a minor) added a NOT NULL `account.issuer` column with a required backfill of existing rows — a one-way migration on every deployment (`@better-auth/cli migrate`, see README). A schema migration is not a wave; hold the package on its current minor (`~` range) and leave the bump to its own PR that also updates the README migration steps.
+Read release notes for the auth/database libraries even below a major, patches included: better-auth **1.7.0** (a minor) added a NOT NULL `account.issuer` column with a required backfill, and **1.7.3** (a patch) reverted it — databases that ran 1.7.0–1.7.2 must relax that column before 1.7.3+ can sign anyone up (README, `frontend/scripts/better-auth-1.7.3-relax-account-issuer.sql`). A schema migration is not a wave; hold the package (`~` range, or an exact pin when the problem is a patch) and leave the bump to its own PR that also updates the README migration steps. Verify such a bump with the pinned CLI's read-only `auth check schema`.
 
 ### 2. Branch + baseline
 
