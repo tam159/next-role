@@ -144,3 +144,17 @@ describe("getEffectiveAgentId", () => {
     ).toBe("0f1e2d3c-4b5a-6978-8899-aabbccddeeff");
   });
 });
+
+describe("isModelOverrideEnabled", () => {
+  it("is on by default so local users can pick any model", async () => {
+    vi.stubEnv("NEXT_PUBLIC_MODEL_OVERRIDE_ENABLED", undefined);
+    const { isModelOverrideEnabled } = await loadConfig();
+    expect(isModelOverrideEnabled()).toBe(true);
+  });
+
+  it("is off only when a deployment pins its models", async () => {
+    vi.stubEnv("NEXT_PUBLIC_MODEL_OVERRIDE_ENABLED", "false");
+    const { isModelOverrideEnabled } = await loadConfig();
+    expect(isModelOverrideEnabled()).toBe(false);
+  });
+});

@@ -1,6 +1,7 @@
 """Custom middleware for the career agent."""
 
 import logging
+import os
 from datetime import UTC, datetime
 from typing import Any
 
@@ -270,6 +271,22 @@ def _fine_grained_tool_streaming_overrides(
     return {}
 
 
+def model_override_enabled() -> bool:
+    """Whether runs may pick their own models (`MODEL_OVERRIDE_ENABLED`, default on).
+
+    Shared deployments set it to `false` to pin every call to the bake-time
+    defaults: the run request is client-controlled, so hiding the UI field is
+    not enough — anyone holding a session token can POST a run asking for a
+    pricier model. Read per call so an env change needs no code path reload.
+    """
+    return os.environ.get("MODEL_OVERRIDE_ENABLED", "true").strip().lower() not in {
+        "false",
+        "0",
+        "no",
+        "off",
+    }
+
+
 class ModelOverrideMiddleware(AgentMiddleware):
     """Shape the request model per main-agent-vs-subagent context.
 
@@ -281,7 +298,8 @@ class ModelOverrideMiddleware(AgentMiddleware):
          - `subagent_model`   — applies to every declarative subagent call.
        When the matching key is missing/empty or `init_chat_model` fails, the
        bake-time default (`_MODEL` in `agents.py`; `model:` in `subagents.yaml`)
-       still wins.
+       still wins. With `MODEL_OVERRIDE_ENABLED=false` both keys are ignored
+       (see `model_override_enabled`) — the shared-deployment model lock.
 
     2. **Disable streaming for subagents (rollback lever).** When
        `DISABLE_SUBAGENT_STREAMING` is on (module default `False` since the
@@ -325,9 +343,11 @@ class ModelOverrideMiddleware(AgentMiddleware):
         disable_streaming = configurable.get("disable_subagent_streaming")
         if disable_streaming is None:  # not set per run → fall back to the module default
             disable_streaming = DISABLE_SUBAGENT_STREAMING
-        if metadata.get("lc_agent_name"):
-            return True, configurable.get("subagent_model") or None, bool(disable_streaming)
-        return False, configurable.get("main_agent_model") or None, bool(disable_streaming)
+        is_subagent = bool(metadata.get("lc_agent_name"))
+        if not model_override_enabled():  # model lock: the defaults always win
+            return is_subagent, None, bool(disable_streaming)
+        key = "subagent_model" if is_subagent else "main_agent_model"
+        return is_subagent, configurable.get(key) or None, bool(disable_streaming)
 
     @classmethod
     def _maybe_override(cls, request: Any) -> Any:  # noqa: ANN401

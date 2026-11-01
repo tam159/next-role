@@ -20,6 +20,17 @@ export interface StandaloneConfig {
 
 const CONFIG_KEY = "deep-agent-config";
 
+/**
+ * Whether users may pick their own models (default on). Shared deployments
+ * set `NEXT_PUBLIC_MODEL_OVERRIDE_ENABLED=false` alongside the backend's
+ * `MODEL_OVERRIDE_ENABLED=false`, which is the real lock — this only hides the
+ * Settings fields and stops sending overrides. A function (not a const) so
+ * tests can `vi.stubEnv`; Next.js inlines the read at build time.
+ */
+export function isModelOverrideEnabled(): boolean {
+  return process.env.NEXT_PUBLIC_MODEL_OVERRIDE_ENABLED !== "false";
+}
+
 export const DEFAULT_CONFIG: StandaloneConfig | null =
   process.env.NEXT_PUBLIC_LANGGRAPH_DEPLOYMENT_URL && process.env.NEXT_PUBLIC_LANGGRAPH_ASSISTANT_ID
     ? {
