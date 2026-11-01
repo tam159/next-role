@@ -124,3 +124,40 @@ describe("LoginPage", () => {
     expect(screen.getByText("Continue with Google")).toBeInTheDocument();
   });
 });
+
+describe("LoginPage — Google-only deployments", () => {
+  beforeEach(() => {
+    vi.stubEnv("NEXT_PUBLIC_AUTH_ENABLED", "true");
+    vi.stubEnv("NEXT_PUBLIC_AUTH_GOOGLE_ENABLED", "true");
+    vi.stubEnv("NEXT_PUBLIC_AUTH_EMAIL_PASSWORD_ENABLED", "false");
+    noSession();
+  });
+
+  it("offers only the Google button", () => {
+    render(<LoginPage />);
+
+    expect(screen.getByRole("button", { name: /continue with google/i })).toBeInTheDocument();
+    expect(screen.queryByLabelText("Email")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Password")).not.toBeInTheDocument();
+    expect(screen.queryByText("or")).not.toBeInTheDocument();
+    expect(screen.queryByText(/create an account/i)).not.toBeInTheDocument();
+  });
+
+  it("starts the Google flow", async () => {
+    const socialMock = vi.mocked(authClient.signIn.social);
+    socialMock.mockResolvedValue({ data: {}, error: null } as never);
+    const user = userEvent.setup();
+    render(<LoginPage />);
+
+    await user.click(screen.getByRole("button", { name: /continue with google/i }));
+
+    expect(socialMock).toHaveBeenCalledWith({ provider: "google", callbackURL: "/" });
+  });
+
+  it("keeps email + password by default", () => {
+    vi.stubEnv("NEXT_PUBLIC_AUTH_EMAIL_PASSWORD_ENABLED", "");
+    render(<LoginPage />);
+
+    expect(screen.getByLabelText("Email")).toBeInTheDocument();
+  });
+});

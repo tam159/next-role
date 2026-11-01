@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { authClient } from "@/lib/auth/client";
-import { isAuthEnabled, isGoogleAuthEnabled } from "@/lib/auth/enabled";
+import { isAuthEnabled, isEmailPasswordAuthEnabled, isGoogleAuthEnabled } from "@/lib/auth/enabled";
 
 /**
  * Login / signup page for multi-user mode. In zero-login mode it just
@@ -65,8 +65,12 @@ function LoginForm() {
 
   const handleGoogle = async () => {
     setError(null);
-    await authClient.signIn.social({ provider: "google", callbackURL: "/" });
+    const res = await authClient.signIn.social({ provider: "google", callbackURL: "/" });
+    if (res?.error) setError(res.error.message ?? "Google sign-in failed");
   };
+
+  const googleEnabled = isGoogleAuthEnabled();
+  const emailEnabled = isEmailPasswordAuthEnabled();
 
   const toggleMode = () => {
     setMode((m) => (m === "signin" ? "signup" : "signin"));
@@ -87,88 +91,102 @@ function LoginForm() {
         </div>
 
         <div className="rounded-[14px] border border-primary bg-surface-raised p-5 shadow-[var(--shadow-lg)]">
-          {isGoogleAuthEnabled() && (
-            <>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={handleGoogle}
-                className="h-[38px] w-full gap-2.5 rounded-[10px]"
-              >
-                <GoogleIcon />
-                Continue with Google
-              </Button>
-              <div className="my-4 flex items-center gap-3">
-                <span className="h-px flex-1 bg-border2" />
-                <span className="text-xs text-tertiary">or</span>
-                <span className="h-px flex-1 bg-border2" />
-              </div>
-            </>
+          {googleEnabled && (
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleGoogle}
+              className="h-[38px] w-full gap-2.5 rounded-[10px]"
+            >
+              <GoogleIcon />
+              Continue with Google
+            </Button>
+          )}
+          {googleEnabled && emailEnabled && (
+            <div className="my-4 flex items-center gap-3">
+              <span className="h-px flex-1 bg-border2" />
+              <span className="text-xs text-tertiary">or</span>
+              <span className="h-px flex-1 bg-border2" />
+            </div>
+          )}
+          {googleEnabled && !emailEnabled && error && (
+            <p role="alert" className="mt-3 text-sm text-destructive">
+              {error}
+            </p>
+          )}
+          {!googleEnabled && !emailEnabled && (
+            <p role="alert" className="text-sm text-destructive">
+              No sign-in method is enabled for this deployment.
+            </p>
           )}
 
-          <form onSubmit={handleEmailSubmit} className="flex flex-col gap-3">
-            {mode === "signup" && (
+          {emailEnabled && (
+            <form onSubmit={handleEmailSubmit} className="flex flex-col gap-3">
+              {mode === "signup" && (
+                <div className="flex flex-col gap-1.5">
+                  <Label htmlFor="auth-name">Name</Label>
+                  <Input
+                    id="auth-name"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    autoComplete="name"
+                    required
+                  />
+                </div>
+              )}
               <div className="flex flex-col gap-1.5">
-                <Label htmlFor="auth-name">Name</Label>
+                <Label htmlFor="auth-email">Email</Label>
                 <Input
-                  id="auth-name"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  autoComplete="name"
+                  id="auth-email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  autoComplete="email"
                   required
                 />
               </div>
-            )}
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="auth-email">Email</Label>
-              <Input
-                id="auth-email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                autoComplete="email"
-                required
-              />
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <Label htmlFor="auth-password">Password</Label>
-              <Input
-                id="auth-password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                autoComplete={mode === "signin" ? "current-password" : "new-password"}
-                minLength={8}
-                required
-              />
-            </div>
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="auth-password">Password</Label>
+                <Input
+                  id="auth-password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  autoComplete={mode === "signin" ? "current-password" : "new-password"}
+                  minLength={8}
+                  required
+                />
+              </div>
 
-            {error && (
-              <p role="alert" className="text-sm text-destructive">
-                {error}
-              </p>
-            )}
+              {error && (
+                <p role="alert" className="text-sm text-destructive">
+                  {error}
+                </p>
+              )}
 
-            <Button
-              type="submit"
-              variant="primary"
-              disabled={busy}
-              className="mt-1 h-[38px] w-full rounded-[10px]"
-            >
-              {busy ? "Please wait..." : mode === "signin" ? "Sign in" : "Create account"}
-            </Button>
-          </form>
+              <Button
+                type="submit"
+                variant="primary"
+                disabled={busy}
+                className="mt-1 h-[38px] w-full rounded-[10px]"
+              >
+                {busy ? "Please wait..." : mode === "signin" ? "Sign in" : "Create account"}
+              </Button>
+            </form>
+          )}
 
-          <p className="mt-4 text-center text-sm text-secondary">
-            {mode === "signin" ? "New to NextRole?" : "Already have an account?"}{" "}
-            <button
-              type="button"
-              onClick={toggleMode}
-              className="font-medium text-brand-accent hover:underline"
-            >
-              {mode === "signin" ? "Create an account" : "Sign in"}
-            </button>
-          </p>
+          {emailEnabled && (
+            <p className="mt-4 text-center text-sm text-secondary">
+              {mode === "signin" ? "New to NextRole?" : "Already have an account?"}{" "}
+              <button
+                type="button"
+                onClick={toggleMode}
+                className="font-medium text-brand-accent hover:underline"
+              >
+                {mode === "signin" ? "Create an account" : "Sign in"}
+              </button>
+            </p>
+          )}
         </div>
       </div>
     </main>
