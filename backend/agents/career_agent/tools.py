@@ -1,6 +1,6 @@
 """Tools for the career agent."""
 
-import datetime
+import datetime as dt
 import json
 import re
 import shlex
@@ -276,7 +276,7 @@ def _coerce_string_entry(item: object) -> str | None:
     key, value = next(iter(item.items()))
     if not isinstance(key, str) or isinstance(value, bool):
         return None
-    if value is None or isinstance(value, (str, int, float, datetime.date)):
+    if value is None or isinstance(value, (str, int, float, dt.date)):
         return f"{key}:" if value is None else f"{key}: {value}"
     return None
 
