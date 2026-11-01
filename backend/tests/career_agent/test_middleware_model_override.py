@@ -730,3 +730,121 @@ def test_overrides_stay_on_when_the_flag_is_unset(middleware, monkeypatch):
     from backend.agents.career_agent.middleware import model_override_enabled
 
     assert model_override_enabled() is True
+
+
+# --- Preserved thinking: drop stale thinking blocks instead of a 400 ---------------------------
+
+_BINDING_BETA = "thinking-binding-controls-2026-08-01"
+_DROP_BLOCK = {"type": "adaptive", "block_binding": {"prefix_mismatch_behavior": "drop_block"}}
+
+
+def _run_main(middleware, model, tools=None, metadata=None):
+    request, captured = _fake_request(model=model, tools=tools or [])
+    config = {"configurable": {}, "metadata": metadata or {}}
+    with patch("backend.agents.career_agent.middleware.get_config", return_value=config):
+        middleware.wrap_model_call(request, _fake_handler({}))
+    return captured
+
+
+def test_prefix_bound_anthropic_model_opts_into_drop_block(middleware):
+    """Sonnet 5.5 binds thinking to the prefix: the copy sends drop_block + the beta."""
+    from langchain_anthropic import ChatAnthropic
+
+    model = ChatAnthropic(model="claude-sonnet-5-5", api_key="test-key")
+    write_file = _write_file_tool()
+    captured = _run_main(middleware, model, tools=[write_file])
+
+    bound = captured["model"]
+    assert bound is not model
+    assert bound.thinking == _DROP_BLOCK
+    assert bound.betas == [_BINDING_BETA]
+    assert model.thinking is None  # cached instance untouched
+    assert model.betas is None
+    assert captured["tools"][0].extras == {"eager_input_streaming": True}  # tweak (3) still on
+
+
+def test_drop_block_reaches_the_anthropic_request_payload(middleware):
+    """Contract tripwire: `langchain_anthropic` must send both fields as given."""
+    from langchain_anthropic import ChatAnthropic
+    from langchain_core.messages import HumanMessage
+
+    model = ChatAnthropic(model="claude-opus-5-5", api_key="test-key", betas=["other-beta"])
+    bound = _run_main(middleware, model)["model"]
+    payload = bound._get_request_payload([HumanMessage("hi")])  # noqa: SLF001
+
+    assert payload["thinking"] == _DROP_BLOCK
+    assert payload["betas"] == ["other-beta", _BINDING_BETA]
+
+
+def test_drop_block_keeps_the_effort_default_thinking_shape(middleware):
+    """With `reasoning_effort`, langchain defaults to adaptive+summarized; keep that shape."""
+    from langchain_anthropic import ChatAnthropic
+
+    model = ChatAnthropic(model="claude-sonnet-5-5", api_key="test-key", reasoning_effort="high")
+    bound = _run_main(middleware, model)["model"]
+
+    assert bound.thinking == {**_DROP_BLOCK, "display": "summarized"}
+
+
+@pytest.mark.parametrize(
+    ("thinking", "expected"),
+    [
+        ({"type": "adaptive", "display": "summarized"}, {**_DROP_BLOCK, "display": "summarized"}),
+        ({"type": "between_tools"}, None),  # the API rejects block_binding alongside it
+        ({"type": "adaptive", "block_binding": {"prefix_mismatch_behavior": "error"}}, None),
+    ],
+)
+def test_drop_block_respects_explicit_thinking_config(middleware, thinking, expected):
+    from langchain_anthropic import ChatAnthropic
+
+    model = ChatAnthropic(model="claude-sonnet-5-5", api_key="test-key", thinking=thinking)
+    captured = _run_main(middleware, model)
+
+    if expected is None:
+        assert "model" not in captured  # left exactly as configured
+    else:
+        assert captured["model"].thinking == expected
+        assert captured["model"].betas == [_BINDING_BETA]
+
+
+@pytest.mark.parametrize("name", ["claude-sonnet-5", "claude-opus-4-8", "claude-mythos-5-1"])
+def test_models_without_the_prefix_check_are_left_alone(middleware, name):
+    from langchain_anthropic import ChatAnthropic
+
+    captured = _run_main(middleware, ChatAnthropic(model=name, api_key="test-key"))
+
+    assert "model" not in captured
+
+
+def test_bedrock_converse_prefix_bound_claude_gets_drop_block(middleware):
+    """Bedrock: thinking + beta ride the Anthropic-native body next to the fine-grained flag."""
+    model = _converse_model("global.anthropic.claude-sonnet-5-5")
+    captured = _run_main(middleware, model, tools=[_write_file_tool()])
+
+    fields = captured["model"].additional_model_request_fields
+    assert fields["thinking"] == _DROP_BLOCK
+    assert fields["anthropic_beta"] == [_BINDING_BETA, _BETA]
+    assert not model.additional_model_request_fields
+
+
+def test_legacy_bedrock_prefix_bound_claude_gets_drop_block(middleware):
+    model = _legacy_bedrock_model("us.anthropic.claude-opus-5-5")
+    kwargs = _run_main(middleware, model, tools=[_write_file_tool()])["model"].model_kwargs
+
+    assert kwargs["thinking"] == _DROP_BLOCK
+    assert kwargs["anthropic_beta"] == [_BINDING_BETA, _BETA]
+
+
+def test_subagent_no_stream_copy_keeps_drop_block(middleware, monkeypatch):
+    """Rollback lever on + prefix-bound subagent: one copy carries both changes."""
+    from langchain_anthropic import ChatAnthropic
+
+    monkeypatch.setattr(
+        "backend.agents.career_agent.middleware.DISABLE_SUBAGENT_STREAMING",
+        True,
+    )
+    model = ChatAnthropic(model="claude-sonnet-5-5", api_key="test-key")
+    bound = _run_main(middleware, model, metadata={"lc_agent_name": "resume-tailor"})["model"]
+
+    assert bound.disable_streaming is True
+    assert bound.thinking == _DROP_BLOCK

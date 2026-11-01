@@ -216,15 +216,15 @@ def _serves_anthropic(model: ChatBedrockConverse | ChatBedrock) -> bool:
     return (model.provider or "") == "anthropic" or "anthropic" in ids
 
 
-def _with_fine_grained_beta(betas: object) -> list[str] | None:
-    """Append the fine-grained flag to a user-configured `anthropic_beta` list.
+def _with_beta(betas: object, flag: str) -> list[str] | None:
+    """Append `flag` to a user-configured beta list (`betas` / `anthropic_beta`).
 
     Returns `None` when the flag is already present so callers skip the copy.
     """
     existing = [betas] if isinstance(betas, str) else list(betas) if isinstance(betas, list) else []
-    if _FINE_GRAINED_TOOL_STREAMING_BETA in existing:
+    if flag in existing:
         return None
-    return [*existing, _FINE_GRAINED_TOOL_STREAMING_BETA]
+    return [*existing, flag]
 
 
 def _with_bedrock_fine_grained_streaming(
@@ -240,13 +240,13 @@ def _with_bedrock_fine_grained_streaming(
     """
     if isinstance(model, ChatBedrockConverse):
         fields = dict(model.additional_model_request_fields or {})
-        betas = _with_fine_grained_beta(fields.get("anthropic_beta"))
+        betas = _with_beta(fields.get("anthropic_beta"), _FINE_GRAINED_TOOL_STREAMING_BETA)
         if betas is None:
             return model
         fields["anthropic_beta"] = betas
         return model.model_copy(update={"additional_model_request_fields": fields})
     kwargs = dict(model.model_kwargs or {})
-    betas = _with_fine_grained_beta(kwargs.get("anthropic_beta"))
+    betas = _with_beta(kwargs.get("anthropic_beta"), _FINE_GRAINED_TOOL_STREAMING_BETA)
     if betas is None:
         return model
     kwargs["anthropic_beta"] = betas
@@ -271,6 +271,105 @@ def _fine_grained_tool_streaming_overrides(
     return {}
 
 
+# "Preserved thinking": on these Claude models a thinking block's signature is
+# bound to the prefix that produced it — the system prompt, the tool set and
+# every earlier message — and replaying it after any of those changed is a 400
+# ("The block is bound to a different conversation"). This harness rebuilds the
+# system prompt per call by design (memory contents, the UTC date, skills
+# metadata), and deepagents may truncate old `write_file` args, so a follow-up
+# turn on a long thread failed outright. `drop_block` makes the API drop the
+# stale thinking blocks (reported in `input_transformations`) instead of
+# failing; the model answers without that earlier reasoning. Models outside this
+# list don't run the check, and setting `thinking` there could change behavior
+# (omitting it means "no thinking" on Opus 4.8/4.7), so they are left alone.
+_PREFIX_BOUND_THINKING_MODELS = (
+    "claude-fable-5-1",
+    "claude-opus-5-5",
+    "claude-sonnet-5-5",
+    "claude-haiku-5-5",
+)
+_THINKING_BINDING_BETA = "thinking-binding-controls-2026-08-01"
+_DROP_BLOCK_BINDING = {"prefix_mismatch_behavior": "drop_block"}
+
+
+def _binds_thinking_to_prefix(model_ids: str) -> bool:
+    ids = model_ids.lower()
+    return any(name in ids for name in _PREFIX_BOUND_THINKING_MODELS)
+
+
+def _with_drop_block(thinking: object, *, summarized: bool = False) -> dict[str, Any] | None:
+    """Return a `thinking` config carrying `block_binding: drop_block`, or `None` to skip.
+
+    Unset → adaptive (what these models run when `thinking` is omitted; with
+    `summarized`, the adaptive+summarized shape `langchain_anthropic` defaults
+    to when `reasoning_effort` is set, which an explicit `thinking` suppresses).
+    `adaptive`/`enabled` keep their other fields. A user-set `block_binding` is
+    respected, and `between_tools`/`disabled` are skipped (the API rejects
+    `block_binding` alongside them).
+    """
+    if thinking is None:
+        base: dict[str, Any] = {"type": "adaptive"}
+        if summarized:
+            base["display"] = "summarized"
+        return {**base, "block_binding": _DROP_BLOCK_BINDING}
+    if (
+        isinstance(thinking, dict)
+        and thinking.get("type") in {"adaptive", "enabled"}
+        and "block_binding" not in thinking
+    ):
+        return {**thinking, "block_binding": _DROP_BLOCK_BINDING}
+    return None
+
+
+def _with_thinking_drop_block(model: BaseChatModel) -> BaseChatModel:
+    """Return a copy of a prefix-bound Claude model that opts into `drop_block`.
+
+    Direct API: `thinking` + `betas` on `ChatAnthropic` (a non-empty `betas`
+    routes the call through `client.beta.messages`). Bedrock: both ride the
+    Anthropic-native request body (`additional_model_request_fields` on
+    Converse, `model_kwargs` on legacy `ChatBedrock`), as the fine-grained beta
+    does. Returns `model` itself when nothing needs changing.
+    """
+    if isinstance(model, ChatAnthropic):
+        return _anthropic_with_drop_block(model)
+    if isinstance(model, ChatBedrockConverse | ChatBedrock) and _serves_anthropic(model):
+        return _bedrock_with_drop_block(model)
+    return model
+
+
+def _anthropic_with_drop_block(model: ChatAnthropic) -> ChatAnthropic:
+    if not _binds_thinking_to_prefix(model.model):
+        return model
+    thinking = _with_drop_block(model.thinking, summarized=bool(model.reasoning_effort))
+    if thinking is None:
+        return model
+    betas = _with_beta(model.betas, _THINKING_BINDING_BETA) or model.betas
+    return model.model_copy(update={"thinking": thinking, "betas": betas})
+
+
+def _bedrock_with_drop_block(
+    model: ChatBedrockConverse | ChatBedrock,
+) -> ChatBedrockConverse | ChatBedrock:
+    if not _binds_thinking_to_prefix(
+        f"{getattr(model, 'base_model_id', None) or ''} {model.model_id}",
+    ):
+        return model
+    attr = (
+        "additional_model_request_fields"
+        if isinstance(model, ChatBedrockConverse)
+        else "model_kwargs"
+    )
+    fields = dict(getattr(model, attr) or {})
+    thinking = _with_drop_block(fields.get("thinking"))
+    if thinking is None:
+        return model
+    fields["thinking"] = thinking
+    fields["anthropic_beta"] = (
+        _with_beta(fields.get("anthropic_beta"), _THINKING_BINDING_BETA) or fields["anthropic_beta"]
+    )
+    return model.model_copy(update={attr: fields})
+
+
 def model_override_enabled() -> bool:
     """Whether runs may pick their own models (`MODEL_OVERRIDE_ENABLED`, default on).
 
@@ -290,8 +389,8 @@ def model_override_enabled() -> bool:
 class ModelOverrideMiddleware(AgentMiddleware):
     """Shape the request model per main-agent-vs-subagent context.
 
-    Three responsibilities; the first two are keyed off whether the call
-    belongs to a subagent, the third off the model the call ends up using:
+    Four responsibilities; the first two are keyed off whether the call
+    belongs to a subagent, the last two off the model the call ends up using:
 
     1. **Model override.** Reads two `RunnableConfig.configurable` keys:
          - `main_agent_model` — applies to the top-level career_agent call.
@@ -322,6 +421,14 @@ class ModelOverrideMiddleware(AgentMiddleware):
        Lives here rather than in its own middleware because it must see the
        model *after* the override in (1) — the same ordering argument that put
        (2) here (PRD 16).
+
+    4. **Drop stale thinking blocks instead of failing.** On Claude models that
+       bind thinking signatures to the conversation prefix, the effective model
+       is swapped for a copy sending `thinking.block_binding.
+       prefix_mismatch_behavior: "drop_block"` under the
+       `thinking-binding-controls-2026-08-01` beta — see
+       `_with_thinking_drop_block`. Without it, a follow-up turn whose system
+       prompt or tools changed since an earlier turn is rejected with a 400.
 
     Subagent vs. main is differentiated by `metadata.lc_agent_name`, which
     deepagents stamps onto each subagent's runnable (see
@@ -360,8 +467,11 @@ class ModelOverrideMiddleware(AgentMiddleware):
             overrides["model"] = _without_streaming(base)
         elif model is not None:
             overrides["model"] = model
-        # Provider tweak keyed off the model the call will actually use.
+        # Provider tweaks keyed off the model the call will actually use.
         effective_model = overrides.get("model", request.model)
+        bound_model = _with_thinking_drop_block(effective_model)
+        if bound_model is not effective_model:
+            overrides["model"] = effective_model = bound_model
         overrides.update(_fine_grained_tool_streaming_overrides(effective_model, request.tools))
         return request.override(**overrides) if overrides else request
 
