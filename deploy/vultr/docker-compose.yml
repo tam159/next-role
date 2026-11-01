@@ -92,7 +92,7 @@ services:
       GOOGLE_AUTH_CLIENT_ID: ${GOOGLE_AUTH_CLIENT_ID:-}
       GOOGLE_AUTH_CLIENT_SECRET: ${GOOGLE_AUTH_CLIENT_SECRET:-}
     # Pin the CLI to the better-auth version in frontend/package.json.
-    command: ["pnpm", "dlx", "auth@1.7.2", "migrate", "--config", "src/lib/auth/server.ts", "--yes"]
+    command: ["pnpm", "dlx", "auth@1.7.14", "migrate", "--config", "src/lib/auth/server.ts", "--yes"]
     depends_on:
       postgres:
         condition: service_healthy
