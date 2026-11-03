@@ -2,7 +2,13 @@
 
 import React, { useState, useEffect, useCallback, Suspense } from "react";
 import { useQueryState } from "nuqs";
-import { getConfig, getEffectiveAgentId, saveConfig, StandaloneConfig } from "@/lib/config";
+import {
+  getConfig,
+  getEffectiveAgentId,
+  isConnectionSettingsEnabled,
+  saveConfig,
+  StandaloneConfig,
+} from "@/lib/config";
 import { useAgentAvailability } from "@/app/hooks/useAgentAvailability";
 import { ConfigDialog } from "@/app/components/ConfigDialog";
 import { Button } from "@/components/ui/button";
@@ -270,6 +276,20 @@ function HomePageContent() {
 
   const langsmithApiKey =
     config?.langsmithApiKey || process.env.NEXT_PUBLIC_LANGSMITH_API_KEY || "";
+
+  if (!config && !isConnectionSettingsEnabled()) {
+    // Nothing to configure here: the build should have set the backend.
+    return (
+      <div className="flex h-screen items-center justify-center px-4">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold">NextRole is unavailable</h1>
+          <p className="mt-2 text-muted-foreground">
+            This deployment is missing its backend configuration.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   if (!config) {
     return (

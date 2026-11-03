@@ -109,6 +109,30 @@ describe("getConfig", () => {
   });
 });
 
+describe("getConfig with connection settings off", () => {
+  it("pins url, assistant and LangSmith key to env even without auth", async () => {
+    vi.stubEnv("NEXT_PUBLIC_AUTH_ENABLED", "false");
+    vi.stubEnv("NEXT_PUBLIC_CONNECTION_SETTINGS_ENABLED", "false");
+    window.localStorage.setItem(
+      CONFIG_KEY,
+      JSON.stringify({
+        deploymentUrl: "http://elsewhere:8123",
+        assistantId: "other-assistant",
+        langsmithApiKey: "sk-saved-before-the-fields-were-hidden",
+        mainAgentModel: "model-big",
+      })
+    );
+    const mod = await loadConfigModule(ENV_DEFAULTS);
+    const config = mod.getConfig();
+    expect(config).toEqual({
+      deploymentUrl: "http://env-host:2024",
+      assistantId: "env-assistant",
+      mainAgentModel: "model-big", // non-connection prefs still honored
+    });
+    expect(config?.langsmithApiKey).toBeUndefined();
+  });
+});
+
 describe("saveConfig", () => {
   it("writes JSON under the storage key and round-trips through getConfig", async () => {
     const mod = await loadConfigModule();

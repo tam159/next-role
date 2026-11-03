@@ -158,3 +158,17 @@ describe("isModelOverrideEnabled", () => {
     expect(isModelOverrideEnabled()).toBe(false);
   });
 });
+
+describe("isConnectionSettingsEnabled", () => {
+  it("is on by default so local users can point at any backend", async () => {
+    vi.stubEnv("NEXT_PUBLIC_CONNECTION_SETTINGS_ENABLED", undefined);
+    const { isConnectionSettingsEnabled } = await loadConfig();
+    expect(isConnectionSettingsEnabled()).toBe(true);
+  });
+
+  it("is off only when a deployment pins its backend", async () => {
+    vi.stubEnv("NEXT_PUBLIC_CONNECTION_SETTINGS_ENABLED", "false");
+    const { isConnectionSettingsEnabled } = await loadConfig();
+    expect(isConnectionSettingsEnabled()).toBe(false);
+  });
+});

@@ -53,6 +53,8 @@ services:
         NEXT_PUBLIC_AUTH_GOOGLE_ENABLED: ${AUTH_GOOGLE_ENABLED:-true}
         NEXT_PUBLIC_AUTH_EMAIL_PASSWORD_ENABLED: ${AUTH_EMAIL_PASSWORD_ENABLED:-false}
         NEXT_PUBLIC_MODEL_OVERRIDE_ENABLED: ${MODEL_OVERRIDE_ENABLED:-false}
+        # Settings hides Connection; the build-time backend is the only one used.
+        NEXT_PUBLIC_CONNECTION_SETTINGS_ENABLED: "false"
     image: next-role-frontend:prod
     restart: unless-stopped
     environment:

@@ -12,7 +12,12 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { AppearanceSettings } from "@/app/components/AppearanceSettings";
-import { DEFAULT_CONFIG, isModelOverrideEnabled, StandaloneConfig } from "@/lib/config";
+import {
+  DEFAULT_CONFIG,
+  isConnectionSettingsEnabled,
+  isModelOverrideEnabled,
+  StandaloneConfig,
+} from "@/lib/config";
 
 interface ConfigDialogProps {
   open: boolean;
@@ -112,44 +117,46 @@ export function ConfigDialog({ open, onOpenChange, onSave, initialConfig }: Conf
             </div>
           )}
 
-          {/* Connection */}
-          <div className="grid gap-3">
-            <span className={EYEBROW}>Connection</span>
-            <div className="grid gap-2">
-              <Label htmlFor="deploymentUrl" className="text-xs text-secondary">
-                Deployment URL
-              </Label>
-              <Input
-                id="deploymentUrl"
-                placeholder="https://<deployment-url>"
-                value={deploymentUrl}
-                onChange={(e) => setDeploymentUrl(e.target.value)}
-              />
+          {/* Connection — hidden where the deployment pins its backend */}
+          {isConnectionSettingsEnabled() && (
+            <div className="grid gap-3">
+              <span className={EYEBROW}>Connection</span>
+              <div className="grid gap-2">
+                <Label htmlFor="deploymentUrl" className="text-xs text-secondary">
+                  Deployment URL
+                </Label>
+                <Input
+                  id="deploymentUrl"
+                  placeholder="https://<deployment-url>"
+                  value={deploymentUrl}
+                  onChange={(e) => setDeploymentUrl(e.target.value)}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="assistantId" className="text-xs text-secondary">
+                  Assistant ID
+                </Label>
+                <Input
+                  id="assistantId"
+                  placeholder="<assistant-id>"
+                  value={assistantId}
+                  onChange={(e) => setAssistantId(e.target.value)}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="langsmithApiKey" className="text-xs text-secondary">
+                  LangSmith API Key <span className="text-tertiary">(optional)</span>
+                </Label>
+                <Input
+                  id="langsmithApiKey"
+                  type="password"
+                  placeholder="lsv2_pt_..."
+                  value={langsmithApiKey}
+                  onChange={(e) => setLangsmithApiKey(e.target.value)}
+                />
+              </div>
             </div>
-            <div className="grid gap-2">
-              <Label htmlFor="assistantId" className="text-xs text-secondary">
-                Assistant ID
-              </Label>
-              <Input
-                id="assistantId"
-                placeholder="<assistant-id>"
-                value={assistantId}
-                onChange={(e) => setAssistantId(e.target.value)}
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="langsmithApiKey" className="text-xs text-secondary">
-                LangSmith API Key <span className="text-tertiary">(optional)</span>
-              </Label>
-              <Input
-                id="langsmithApiKey"
-                type="password"
-                placeholder="lsv2_pt_..."
-                value={langsmithApiKey}
-                onChange={(e) => setLangsmithApiKey(e.target.value)}
-              />
-            </div>
-          </div>
+          )}
         </div>
 
         <DialogFooter className="shrink-0 border-t border-primary px-6 py-4">
