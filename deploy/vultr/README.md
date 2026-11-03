@@ -96,10 +96,12 @@ Do these in order. Keep a scratch note of every value marked **save**; they go i
 
 ### 3. Cloudflare DNS + TLS
 
-1. Zone `next-role.dev` → **DNS → Records → Add record**, twice:
+1. Zone `next-role.dev` → **DNS → Records → Add record**, four times (IPv4 and IPv6 for each host):
    - `A` `app` → VPS IPv4, **Proxied** (orange cloud)
    - `A` `api` → VPS IPv4, **Proxied**
-   - Optional: matching `AAAA` records for the IPv6 address.
+   - `AAAA` `app` → VPS IPv6, **Proxied**
+   - `AAAA` `api` → VPS IPv6, **Proxied**
+   - Never `@`: the bare domain is the landing site on Cloudflare Pages. With AAAA records Cloudflare may reach the origin over IPv6, so the `next-role-web` IPv6 rules (step 2) must mirror IPv4, or some requests fail with 52x.
 2. **SSL/TLS → Overview**: encryption mode **Full (strict)**.
 3. **SSL/TLS → Origin Server → Create Certificate**: RSA (2048), hostnames `app.next-role.dev`, `api.next-role.dev`, validity 15 years → **Create**. **Save** the certificate and private key as `origin.pem` and `origin-key.pem` (the key is shown once).
 4. **SSL/TLS → Edge Certificates**: **Always Use HTTPS** on, **Minimum TLS Version** 1.2.
