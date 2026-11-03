@@ -21,6 +21,7 @@ Placeholders used below: `next-role.dev` (the zone already on Cloudflare), `app.
 | `docker-compose.yml` | Production stack: Caddy, frontend (`next build`, standalone), backend + core-server (no hot reload, no bind mounts), Postgres, Redis, and a one-shot `auth-migrate`. Core only: no SeaweedFS (R2 instead), no analytics stack, only `career_agent` registered. Only Caddy publishes a port. |
 | `Caddyfile` | TLS with the Cloudflare Origin certificate, `app.` → frontend, `api.` → backend with SSE flushing, and `404` for `/docs`, `/openapi.json`, `/info`, `/metrics`, `/noauth`. |
 | `.env.example` | Every production setting, with the recommended limits filled in. |
+| `google-oauth-logo.png` | 120×120 logo for the Google consent screen (Part 3, step 4), cut from `docs/images/next-role-logo-transparent.png`. |
 
 The shared-deployment limits are env flags in the app itself, **off by default**, so a local clone keeps every capability (README "Shared deployment limits"):
 
@@ -109,7 +110,7 @@ Streaming works through the Cloudflare proxy: the agent server sends an SSE hear
 ### 4. Google OAuth client
 
 1. [Google Cloud Console](https://console.cloud.google.com/) → project picker → **New project** `next-role` → **Create**, then select it.
-2. **Google Auth Platform → Branding** (first time: **Get started**): app name `NextRole`, support email, developer contact email. Optional: logo, home page `https://next-role.dev`.
+2. **Google Auth Platform → Branding** (first time: **Get started**): app name `NextRole`, support email, developer contact email. Optional: logo (`deploy/vultr/google-oauth-logo.png`; uploading it sends branding back for review, a few business days), home page `https://next-role.dev`.
 3. **Audience**: User type **External**, Publishing status **Testing** → **Test users → Add users**: the Google emails of your beta users (max 100). This list is your allowlist (Part 2).
 4. **Data Access**: scopes `openid`, `.../auth/userinfo.email`, `.../auth/userinfo.profile` only. They are non-sensitive, so no Google verification review is needed now or later.
 5. **Clients → Create client** → Application type **Web application**, name `next-role-prod`:
