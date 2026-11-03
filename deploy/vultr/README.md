@@ -105,7 +105,10 @@ Do these in order. Keep a scratch note of every value marked **save**; they go i
 2. **SSL/TLS → Overview**: encryption mode **Full (strict)**.
 3. **SSL/TLS → Origin Server → Create Certificate**: RSA (2048), hostnames `app.next-role.dev`, `api.next-role.dev`, validity 15 years → **Create**. **Save** the certificate and private key as `origin.pem` and `origin-key.pem` (the key is shown once).
 4. **SSL/TLS → Edge Certificates**: **Always Use HTTPS** on, **Minimum TLS Version** 1.2.
-5. Optional abuse guard: **Security → WAF → Rate limiting rules → Create rule** for `api.next-role.dev`, e.g. more than 100 requests per 10 s per IP → Block for 10 s. The in-app quota is the cost control; this only blunts floods.
+5. Abuse guard: **Security → Security rules → Create rule → Rate limiting rule**. The Free plan allows one rule, matching on path only (no hostname), so it covers the whole zone:
+   - Name `per-ip flood guard`; match **URI Path** wildcard `/*` (or starts with `/`). Optional: **And** URI Path does not start with `/_next/`, so cached JS/CSS chunks don't count.
+   - Characteristics **IP**; **100** requests per **10 s** → **Block** for **10 s**.
+   - A first app load is ~30–60 requests, and users behind one office or mobile IP share the counter. If **Security → Events** shows real users blocked, raise it to 200. The in-app quota is the cost control; this only blunts floods.
 
 Streaming works through the Cloudflare proxy: the agent server sends an SSE heartbeat every 5 s, well inside Cloudflare's 100 s idle timeout.
 
