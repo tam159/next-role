@@ -88,7 +88,7 @@ Do these in order. Keep a scratch note of every value marked **save**; they go i
 3. **Products → Deploy (+)**:
    - Type: **Cloud Compute – Shared CPU**, *Regular* or *High Performance*
    - Location: **Singapore**
-   - Image: **Ubuntu 24.04 LTS x64**
+   - Image: **Ubuntu 26.04 LTS x64** (standard support to 2031; Docker publishes packages for it). Not 26.10: an interim release with ~9 months of support. 24.04 LTS also works if you already have it.
    - Plan: **2 vCPU / 4 GB RAM** (≈ 80 GB SSD). The running stack needs ~1–1.5 GB; the headroom is for `next build` and WeasyPrint PDF renders. 2 GB is too tight to build the frontend.
    - Additional features: **Auto Backups** on (whole-disk daily snapshots, covers Postgres), **IPv6** on
    - SSH Keys: select yours. Firewall Group: `next-role-web`. Hostname: `next-role-prod`
