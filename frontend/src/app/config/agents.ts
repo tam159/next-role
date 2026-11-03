@@ -43,6 +43,26 @@ export const AGENT_IDS = [CAREER_AGENT_ID, ANALYTICS_AGENT_ID];
 
 export const DEFAULT_AGENT_ID = CAREER_AGENT_ID;
 
+/**
+ * Whether the caller may run an agent, from `GET /agents/available`.
+ *
+ * `admin_only`: the deployment runs it, but this user is not allowed.
+ * `not_deployed`: the deployment does not register the graph at all.
+ */
+export type AgentAccess = "allowed" | "admin_only" | "not_deployed";
+
+/**
+ * One agent's access; a missing entry means allowed, so a failed or absent
+ * availability check never locks the picker (the agent still refuses anyone
+ * it must).
+ */
+export function agentAccess(
+  availability: Record<string, AgentAccess>,
+  graphId: string
+): AgentAccess {
+  return availability[graphId] ?? "allowed";
+}
+
 export function isKnownAgentId(value: string | null | undefined): value is string {
   return typeof value === "string" && value in AGENTS;
 }

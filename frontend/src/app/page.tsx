@@ -2,7 +2,14 @@
 
 import React, { useState, useEffect, useCallback, Suspense } from "react";
 import { useQueryState } from "nuqs";
-import { getConfig, getEffectiveAgentId, saveConfig, StandaloneConfig } from "@/lib/config";
+import {
+  getConfig,
+  getEffectiveAgentId,
+  isConnectionSettingsEnabled,
+  saveConfig,
+  StandaloneConfig,
+} from "@/lib/config";
+import { agentAccess } from "@/app/config/agents";
 import { useAgentAvailability } from "@/app/hooks/useAgentAvailability";
 import { ConfigDialog } from "@/app/components/ConfigDialog";
 import { Button } from "@/components/ui/button";
@@ -39,10 +46,26 @@ function HomePageInner({
   const agentAvailability = useAgentAvailability();
 
   // The URL wins over the stored pick, so an agent link is shareable; both fall
-  // back to the deployment's configured assistant.
+  // back to the deployment's configured assistant, as does a pick this caller
+  // may not run.
   const activeAgentId = getEffectiveAgentId(
-    agentParam ? { ...config, selectedAgentId: agentParam } : config
+    agentParam ? { ...config, selectedAgentId: agentParam } : config,
+    agentAvailability
   );
+
+  // Drop a link or stored pick naming an agent the caller may not run, once the
+  // availability check says so: the thread in the URL belongs to that agent,
+  // and a stale stored pick would flash the wrong agent on every load.
+  useEffect(() => {
+    if (agentParam && agentAccess(agentAvailability, agentParam) !== "allowed") {
+      setAgentParam(null);
+      setThreadId(null);
+    }
+    const stored = config.selectedAgentId;
+    if (stored && agentAccess(agentAvailability, stored) !== "allowed") {
+      handleSaveConfig({ ...config, selectedAgentId: undefined });
+    }
+  }, [agentAvailability, agentParam, config, handleSaveConfig, setAgentParam, setThreadId]);
 
   const handleSelectAgent = useCallback(
     (graphId: string) => {
@@ -270,6 +293,20 @@ function HomePageContent() {
 
   const langsmithApiKey =
     config?.langsmithApiKey || process.env.NEXT_PUBLIC_LANGSMITH_API_KEY || "";
+
+  if (!config && !isConnectionSettingsEnabled()) {
+    // Nothing to configure here: the build should have set the backend.
+    return (
+      <div className="flex h-screen items-center justify-center px-4">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold">NextRole is unavailable</h1>
+          <p className="mt-2 text-muted-foreground">
+            This deployment is missing its backend configuration.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   if (!config) {
     return (

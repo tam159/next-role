@@ -31,7 +31,7 @@ The shared-deployment limits are env flags in the app itself, **off by default**
 | `MODEL_OVERRIDE_ENABLED` | `true` | `false` | The backend ignores per-run model choices, so a direct API call cannot pick a pricier model; Settings hides the fields |
 | `QUOTA_*` | `0` (off) | Part 2 | Per-user and global limits, `429` with the reset time, "N runs left today" in the composer |
 
-The production compose file also sets `REQUIRE_AUTH=true`, `LANGGRAPH_AUTH`, `disable_mcp` / `disable_a2a`, and `CORS_ALLOW_ORIGINS` itself, so they are not in `.env`. R2 needs no code: `OBJECT_STORE_*` takes its endpoint, region `auto` and path-style addressing as-is.
+The production compose file also sets `REQUIRE_AUTH=true`, `LANGGRAPH_AUTH`, `disable_mcp` / `disable_a2a`, `CORS_ALLOW_ORIGINS`, and the frontend build arg `NEXT_PUBLIC_CONNECTION_SETTINGS_ENABLED=false` (Settings hides the Deployment URL / Assistant ID / LangSmith key fields and the app ignores stored values) itself, so they are not in `.env`. R2 needs no code: `OBJECT_STORE_*` takes its endpoint, region `auto` and path-style addressing as-is.
 
 ## Part 2 — Sizing the quota for a $100 credit
 

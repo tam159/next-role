@@ -1,5 +1,10 @@
 import { isAuthEnabled } from "@/lib/auth/enabled";
-import { DEFAULT_AGENT_ID, isKnownAgentId } from "@/app/config/agents";
+import {
+  agentAccess,
+  DEFAULT_AGENT_ID,
+  isKnownAgentId,
+  type AgentAccess,
+} from "@/app/config/agents";
 
 export interface StandaloneConfig {
   deploymentUrl: string;
@@ -31,6 +36,16 @@ export function isModelOverrideEnabled(): boolean {
   return process.env.NEXT_PUBLIC_MODEL_OVERRIDE_ENABLED !== "false";
 }
 
+/**
+ * Whether users may edit the backend connection (default on). Production
+ * deployments set `NEXT_PUBLIC_CONNECTION_SETTINGS_ENABLED=false`: Settings
+ * hides the Connection fields and `getConfig()` ignores any stored URL,
+ * assistant or LangSmith key, so the build-time values are the only ones used.
+ */
+export function isConnectionSettingsEnabled(): boolean {
+  return process.env.NEXT_PUBLIC_CONNECTION_SETTINGS_ENABLED !== "false";
+}
+
 export const DEFAULT_CONFIG: StandaloneConfig | null =
   process.env.NEXT_PUBLIC_LANGGRAPH_DEPLOYMENT_URL && process.env.NEXT_PUBLIC_LANGGRAPH_ASSISTANT_ID
     ? {
@@ -51,6 +66,17 @@ export function getConfig(): StandaloneConfig | null {
     parsed = JSON.parse(stored);
   } catch {
     return DEFAULT_CONFIG;
+  }
+
+  // A deployment that hides the Connection settings owns all of them,
+  // including a LangSmith key saved before the fields were hidden.
+  if (!isConnectionSettingsEnabled() && DEFAULT_CONFIG) {
+    return {
+      ...parsed,
+      deploymentUrl: DEFAULT_CONFIG.deploymentUrl,
+      assistantId: DEFAULT_CONFIG.assistantId,
+      langsmithApiKey: DEFAULT_CONFIG.langsmithApiKey,
+    };
   }
 
   // In multi-user mode, pin the backend URL/assistant to the deployment env.
@@ -76,10 +102,20 @@ export function saveConfig(config: StandaloneConfig): void {
  *
  * Unknown ids fall back rather than throwing — a stored pick can outlive the
  * graph it named (a renamed or removed agent), and the deployment default is
- * always a safe landing place.
+ * always a safe landing place. So do picks the caller may not run, per
+ * `availability` (from `GET /agents/available`), which covers `?agent=` links
+ * to an agent this deployment does not serve.
  */
-export function getEffectiveAgentId(config: StandaloneConfig | null): string {
-  if (isKnownAgentId(config?.selectedAgentId)) return config.selectedAgentId;
+export function getEffectiveAgentId(
+  config: StandaloneConfig | null,
+  availability: Record<string, AgentAccess> = {}
+): string {
+  if (
+    isKnownAgentId(config?.selectedAgentId) &&
+    agentAccess(availability, config.selectedAgentId) === "allowed"
+  ) {
+    return config.selectedAgentId;
+  }
   if (isKnownAgentId(config?.assistantId)) return config.assistantId;
   return config?.assistantId || DEFAULT_AGENT_ID;
 }

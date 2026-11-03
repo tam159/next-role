@@ -51,13 +51,27 @@ describe("TopBar agent picker", () => {
   });
 
   it("disables an agent this user may not run, and says why", async () => {
-    const { onSelectAgent } = renderBar({ agentAvailability: { analytics_agent: false } });
+    const { onSelectAgent } = renderBar({ agentAvailability: { analytics_agent: "admin_only" } });
 
     await userEvent.click(screen.getByRole("button", { name: /Career Agent/ }));
     const row = screen.getByRole("menuitem", { name: /Analytics Agent/ });
 
     expect(row).toBeDisabled();
     expect(row).toHaveTextContent("Administrators only");
+    await userEvent.click(row);
+    expect(onSelectAgent).not.toHaveBeenCalled();
+  });
+
+  it("disables an agent this deployment does not run, and says why", async () => {
+    const { onSelectAgent } = renderBar({
+      agentAvailability: { career_agent: "allowed", analytics_agent: "not_deployed" },
+    });
+
+    await userEvent.click(screen.getByRole("button", { name: /Career Agent/ }));
+    const row = screen.getByRole("menuitem", { name: /Analytics Agent/ });
+
+    expect(row).toBeDisabled();
+    expect(row).toHaveTextContent("Not available on this deployment");
     await userEvent.click(row);
     expect(onSelectAgent).not.toHaveBeenCalled();
   });
