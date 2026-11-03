@@ -7,6 +7,8 @@ The pre-launch marketing page for [next-role.dev](https://next-role.dev). Plain 
 | Path | Purpose |
 | --- | --- |
 | `index.html` | The landing page. Fonts from Google Fonts; everything else is inline. |
+| `privacy.html`, `terms.html` | Privacy Policy and Terms of Service for the hosted app, served at `/privacy` and `/terms` (Cloudflare Pages drops `.html`). The Google OAuth consent screen links to both. Update them when the app gains a data processor or changes what it stores. |
+| `legal.css` | Shared styles for the two legal pages. Kept outside `assets/` so it isn't cached as immutable. |
 | `assets/` | Logo, app screenshot (demo data only), Open Graph image, favicons. Copies of `docs/images/*` and `frontend/src/app/favicon.ico`. |
 | `_headers` | Cloudflare Pages security headers + long cache for `assets/`. |
 | `robots.txt` | Allows crawling. |
