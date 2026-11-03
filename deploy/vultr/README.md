@@ -21,6 +21,7 @@ Placeholders used below: `next-role.dev` (the zone already on Cloudflare), `app.
 | `docker-compose.yml` | Production stack: Caddy, frontend (`next build`, standalone), backend + core-server (no hot reload, no bind mounts), Postgres, Redis, and a one-shot `auth-migrate`. Core only: no SeaweedFS (R2 instead), no analytics stack, only `career_agent` registered. Only Caddy publishes a port. |
 | `Caddyfile` | TLS with the Cloudflare Origin certificate, `app.` → frontend, `api.` → backend with SSE flushing, and `404` for `/docs`, `/openapi.json`, `/info`, `/metrics`, `/noauth`. |
 | `.env.example` | Every production setting, with the recommended limits filled in. |
+| `google-oauth-logo.png` | 120×120 logo for the Google consent screen (Part 3, step 4), cut from `docs/images/next-role-logo-transparent.png`. |
 
 The shared-deployment limits are env flags in the app itself, **off by default**, so a local clone keeps every capability (README "Shared deployment limits"):
 
@@ -60,7 +61,7 @@ Quotas are checked when a run starts, so an in-flight run always finishes; the w
 Two more limits outside the app:
 
 - **Anthropic Console spend limit** on a dedicated workspace (Part 3, step 5). The hard backstop if the app's meter is ever wrong.
-- **Who can sign up.** With open Google sign-in, anyone with a Google account (or ten of them) shares your $3/day. Start as a closed beta: keep the Google OAuth app in **Testing** status, where only the test users you list (up to 100) can sign in. This needs no code. Publish the app to production later, once you want open sign-up.
+- **Who can sign up.** With open Google sign-in, anyone with a Google account (or ten of them) shares your $3/day. Start as a closed beta: keep the Google OAuth app in **Testing** status, where only the test users you list (up to 100) can sign in. This needs no code. Publish the app to production later, once you want open sign-up (Part 3, step 4, "Open sign-up").
 
 ## Part 3 — Console setup, step by step
 
@@ -79,7 +80,7 @@ Do these in order. Keep a scratch note of every value marked **save**; they go i
 
 ### 2. Vultr VPS (Singapore)
 
-1. **Account → SSH Keys → Add SSH Key**: paste your public key (`cat ~/.ssh/id_ed25519.pub`).
+1. **SSH key**: **Account → SSH Keys** (under **OTHER**) **→ Add SSH Key**, or the add button in the deploy form's **SSH Keys** section. Paste a personal **public** key: the one-line `.pub` file, for example `pbcopy < ~/.ssh/id_ed25519.pub`; none yet → `ssh-keygen -t ed25519`. Never paste the private key (no `.pub`), and keep work keys off this box. Vultr installs account keys only at deploy time, and adding one to a running instance from the console reinstalls it, so add the key before **Deploy Now** (afterwards, use `ssh-copy-id`).
 2. **Network → Firewall → Add Firewall Group** `next-role-web` with inbound IPv4 rules (and the same for IPv6):
    - SSH, TCP 22, source **My IP**
    - HTTPS, TCP 443, source **Cloudflare** (Vultr's built-in Cloudflare source list, so only Cloudflare can reach the origin)
@@ -87,7 +88,7 @@ Do these in order. Keep a scratch note of every value marked **save**; they go i
 3. **Products → Deploy (+)**:
    - Type: **Cloud Compute – Shared CPU**, *Regular* or *High Performance*
    - Location: **Singapore**
-   - Image: **Ubuntu 24.04 LTS x64**
+   - Image: **Ubuntu 26.04 LTS x64** (standard support to 2031; Docker publishes packages for it). Not 26.10: an interim release with ~9 months of support. 24.04 LTS also works if you already have it.
    - Plan: **2 vCPU / 4 GB RAM** (≈ 80 GB SSD). The running stack needs ~1–1.5 GB; the headroom is for `next build` and WeasyPrint PDF renders. 2 GB is too tight to build the frontend.
    - Additional features: **Auto Backups** on (whole-disk daily snapshots, covers Postgres), **IPv6** on
    - SSH Keys: select yours. Firewall Group: `next-role-web`. Hostname: `next-role-prod`
@@ -95,21 +96,26 @@ Do these in order. Keep a scratch note of every value marked **save**; they go i
 
 ### 3. Cloudflare DNS + TLS
 
-1. Zone `next-role.dev` → **DNS → Records → Add record**, twice:
+1. Zone `next-role.dev` → **DNS → Records → Add record**, four times (IPv4 and IPv6 for each host):
    - `A` `app` → VPS IPv4, **Proxied** (orange cloud)
    - `A` `api` → VPS IPv4, **Proxied**
-   - Optional: matching `AAAA` records for the IPv6 address.
+   - `AAAA` `app` → VPS IPv6, **Proxied**
+   - `AAAA` `api` → VPS IPv6, **Proxied**
+   - Never `@`: the bare domain is the landing site on Cloudflare Pages. With AAAA records Cloudflare may reach the origin over IPv6, so the `next-role-web` IPv6 rules (step 2) must mirror IPv4, or some requests fail with 52x.
 2. **SSL/TLS → Overview**: encryption mode **Full (strict)**.
 3. **SSL/TLS → Origin Server → Create Certificate**: RSA (2048), hostnames `app.next-role.dev`, `api.next-role.dev`, validity 15 years → **Create**. **Save** the certificate and private key as `origin.pem` and `origin-key.pem` (the key is shown once).
 4. **SSL/TLS → Edge Certificates**: **Always Use HTTPS** on, **Minimum TLS Version** 1.2.
-5. Optional abuse guard: **Security → WAF → Rate limiting rules → Create rule** for `api.next-role.dev`, e.g. more than 100 requests per 10 s per IP → Block for 10 s. The in-app quota is the cost control; this only blunts floods.
+5. Abuse guard: **Security → Security rules → Create rule → Rate limiting rule**. The Free plan allows one rule, matching on path only (no hostname), so it covers the whole zone:
+   - Name `per-ip flood guard`; match **URI Path** wildcard `/*` (or starts with `/`). Optional: **And** URI Path does not start with `/_next/`, so cached JS/CSS chunks don't count.
+   - Characteristics **IP**; **100** requests per **10 s** → **Block** for **10 s**.
+   - A first app load is ~30–60 requests, and users behind one office or mobile IP share the counter. If **Security → Events** shows real users blocked, raise it to 200. The in-app quota is the cost control; this only blunts floods.
 
 Streaming works through the Cloudflare proxy: the agent server sends an SSE heartbeat every 5 s, well inside Cloudflare's 100 s idle timeout.
 
 ### 4. Google OAuth client
 
 1. [Google Cloud Console](https://console.cloud.google.com/) → project picker → **New project** `next-role` → **Create**, then select it.
-2. **Google Auth Platform → Branding** (first time: **Get started**): app name `NextRole`, support email, developer contact email. Optional: logo, home page `https://next-role.dev`.
+2. **Google Auth Platform → Branding** (first time: **Get started**): app name `NextRole`, support email, developer contact email. Optional: logo (`deploy/vultr/google-oauth-logo.png`; uploading it sends branding back for review, a few business days), home page `https://next-role.dev`.
 3. **Audience**: User type **External**, Publishing status **Testing** → **Test users → Add users**: the Google emails of your beta users (max 100). This list is your allowlist (Part 2).
 4. **Data Access**: scopes `openid`, `.../auth/userinfo.email`, `.../auth/userinfo.profile` only. They are non-sensitive, so no Google verification review is needed now or later.
 5. **Clients → Create client** → Application type **Web application**, name `next-role-prod`:
@@ -118,6 +124,20 @@ Streaming works through the Cloudflare proxy: the agent server sends an SSE hear
    - **Create** → **save** the *Client ID* and *Client secret*.
 
 In Testing status users see a "Google hasn't verified this app" notice on first sign-in; that is expected for a closed beta. Publishing to production later requires a privacy policy URL on the consent screen (see Part 5).
+
+#### Open sign-up (any Google account)
+
+Better Auth creates the account on a user's first Google sign-in, so open sign-up is a Google-side change only: no code, `.env`, or redeploy. Do it at launch or any time later:
+
+1. **Deploy the landing site** (`deploy/landing/`) so `https://next-role.dev/privacy` and `/terms` load and the home page footer links to both. Google's branding check fetches them.
+2. **Branding**: home page `https://next-role.dev`, privacy policy `https://next-role.dev/privacy`, terms of service `https://next-role.dev/terms`, and `next-role.dev` under **Authorized domains**.
+3. **Verify the domain** in [Google Search Console](https://search.google.com/search-console), signed in as an Owner or Editor of the Google Cloud project (the Cloudflare login email doesn't matter): **Add property → Domain** → `next-role.dev`, add the `google-site-verification=` TXT record on Cloudflare at `@`, **Verify**. Google asks for 24 hours after this before the next step.
+4. **Audience → Publishing status → Publish app** (Testing → In production). The test-user list and its 100-user cap stop applying.
+5. **Branding → Verify branding**. Until it passes, the consent screen shows the domain instead of `NextRole`; sign-in itself already works.
+
+The scopes from step 4 are non-sensitive, so data access needs no verification; only the branding (name, links, and logo if you upload one) is reviewed. The user support email can only be the signed-in Google account or a Google Group it manages, so a forwarding-only address like `hello@next-role.dev` needs its own Google account ("Use your existing email" at sign-up) with Owner or Editor on the project before it can be picked.
+
+With open sign-up one person can make several Google accounts, each with its own per-user quota. `QUOTA_GLOBAL_USD_PER_DAY` and the Console spend limit still protect the credit, but a drained global cap blocks everyone until the 24 h window rolls; if that happens, tighten the per-user `QUOTA_*` values rather than raising the global one. Don't open email/password sign-up (`AUTH_EMAIL_PASSWORD_ENABLED=true`) for this: there is no email verification, so anyone can register any address and script throwaway accounts.
 
 ### 5. Anthropic Console (the credit)
 
@@ -133,15 +153,39 @@ Also create production keys for **LlamaCloud** (document parsing) and **Tavily**
 
 Everything else is UI; this part is a few commands. All `docker compose` commands run from the repo root, and Compose reads `deploy/vultr/.env` on its own.
 
-```bash
-ssh root@<VPS_IPV4>
+Optional, once per laptop: a `~/.ssh/config` entry, so `ssh next-role-prod` works. `IdentityFile` must be the private half of the key you added in step 2; `IdentitiesOnly` offers just that key, so a machine with several keys isn't cut off after too many failed attempts:
+
+```
+Host next-role-prod
+  HostName <VPS_IPV4>
+  User root
+  IdentityFile ~/.ssh/id_ed25519
+  IdentitiesOnly yes
 ```
 
 ```bash
-# Updates, a 2 GB swap file (insurance during next build), unattended security upgrades
+ssh next-role-prod   # or: ssh -i ~/.ssh/id_ed25519 root@<VPS_IPV4>
+```
+
+A `root@…'s password:` prompt means the key was not accepted: fix `IdentityFile`, or install the key from the laptop with `ssh-copy-id -i ~/.ssh/id_ed25519.pub next-role-prod`. `ssh -o PasswordAuthentication=no next-role-prod true` must succeed before you turn passwords off below.
+
+```bash
+# Key-only SSH (only after the check above passes; 00- sorts before cloud-init's 50- file, and the first value wins)
+printf 'PasswordAuthentication no\nKbdInteractiveAuthentication no\nPermitRootLogin prohibit-password\n' > /etc/ssh/sshd_config.d/00-hardening.conf
+sshd -t && systemctl reload-or-restart ssh
+sshd -T | grep -E '^(passwordauthentication|permitrootlogin)'   # expect: no, prohibit-password
+```
+
+Keep this session open and confirm `ssh next-role-prod` still works from a second terminal before logging out.
+
+```bash
+# Wait for first-boot provisioning (it holds the apt lock), then updates, a 2 GB swap file
+# (insurance during next build), unattended security upgrades
+cloud-init status --wait
 apt-get update && apt-get -y upgrade
-fallocate -l 2G /swapfile && chmod 600 /swapfile && mkswap /swapfile && swapon /swapfile
-echo '/swapfile none swap sw 0 0' >> /etc/fstab
+# Vultr's Ubuntu image may already ship an active /swapfile ("Text file busy"); only add one if none
+swapon --show | grep -q . || { fallocate -l 2G /swapfile && chmod 600 /swapfile && mkswap /swapfile \
+  && swapon /swapfile && echo '/swapfile none swap sw 0 0' >> /etc/fstab; }
 apt-get install -y unattended-upgrades git
 ```
 
@@ -219,13 +263,13 @@ All services should report `healthy` within about two minutes of the build finis
 - **Spend:** check the Anthropic Console usage page daily for the first week and compare with the ledger (`select sum(cost_usd) from usage_ledger where created_at > now() - interval '1 day'`); adjust `QUOTA_*` from real numbers. Quota changes need only `up -d backend`.
 - **Backups:** Vultr Auto Backups cover the disk (Postgres included). Before risky upgrades take a manual snapshot (instance → **Snapshots → Take Snapshot**). R2 objects are not in the Vultr backup; they are durable on their own, but deletions are permanent.
 - **Uptime:** a free external monitor (for example UptimeRobot or Better Stack) on `https://api.next-role.dev/ok` and `https://app.next-role.dev/`.
-- **Adding beta users:** Google Auth Platform → **Audience → Test users → Add users**. Nothing to change on the server.
+- **Adding beta users:** Google Auth Platform → **Audience → Test users → Add users**. Nothing to change on the server. To let anyone sign up instead, publish the app (Part 3, step 4, "Open sign-up").
 - **Rotating a secret:** update `.env`, then `up -d` the services that read it. Rotating `BETTER_AUTH_SECRET` signs everyone out.
 
 ## Part 5 — Other points worth deciding before launch
 
-- **Personal data.** Users upload CVs: names, contacts, work history. They reach your Postgres and R2, Anthropic, LlamaCloud (parsing), the web-research provider (queries only), and LangSmith if tracing is on. A short privacy notice (what is stored, which processors see it, how to get it deleted) is the minimum before inviting strangers, and it is required to publish the Google app beyond Testing.
-- **Account deletion.** There is no self-serve delete. For a beta, handle requests by hand: delete the user's threads, the `users/<id>/` prefix in R2, the store rows, and the Better Auth `user` row.
+- **Personal data.** Users upload CVs: names, contacts, work history. They reach your Postgres and R2, Anthropic, LlamaCloud (parsing), the web-research provider (queries only), and LangSmith if tracing is on. The privacy notice covering this (what is stored, which processors see it, how to get it deleted) is `deploy/landing/privacy.html`, served at `https://next-role.dev/privacy`; Google requires it to publish the app beyond Testing. Keep it in sync when you add a processor (for example turning on LangSmith tracing) or change what is stored.
+- **Account deletion.** There is no self-serve delete. The privacy policy promises deletion within 30 days of an email to `hello@next-role.dev`; handle requests by hand: delete the user's threads, the `users/<id>/` prefix in R2, the store rows, and the Better Auth `user` row.
 - **Credit run-out behaviour.** When the credit or the Console spend limit is reached, every run fails with an Anthropic billing error. The global quota should stop runs first, but check what the UI shows in that case.
 - **Cost lever if the credit drains too fast.** Lower the reasoning effort for subagents before changing the model; caching is already high, and effort is the next biggest factor in Sonnet 5.5 spend.
 - **Single box, single point of failure.** Acceptable for a beta. The upgrade path is managed Postgres plus a second app VPS, not Kubernetes.

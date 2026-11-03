@@ -1,12 +1,14 @@
 # next-role.dev landing page
 
-The pre-launch marketing page for [next-role.dev](https://next-role.dev). Plain HTML, CSS, and a few lines of vanilla JavaScript; no build step. Upload this folder as-is.
+The marketing page for [next-role.dev](https://next-role.dev); its main CTAs open the hosted app at [app.next-role.dev](https://app.next-role.dev). Plain HTML, CSS, and a few lines of vanilla JavaScript; no build step. Upload this folder as-is.
 
 ## Files
 
 | Path | Purpose |
 | --- | --- |
 | `index.html` | The landing page. Fonts from Google Fonts; everything else is inline. |
+| `privacy.html`, `terms.html` | Privacy Policy and Terms of Service for the hosted app, served at `/privacy` and `/terms` (Cloudflare Pages drops `.html`). The Google OAuth consent screen links to both. Update them when the app gains a data processor or changes what it stores. |
+| `legal.css` | Shared styles for the two legal pages. Kept outside `assets/` so it isn't cached as immutable. |
 | `assets/` | Logo, app screenshot (demo data only), Open Graph image, favicons. Copies of `docs/images/*` and `frontend/src/app/favicon.ico`. |
 | `_headers` | Cloudflare Pages security headers + long cache for `assets/`. |
 | `robots.txt` | Allows crawling. |
@@ -22,7 +24,7 @@ The same folder also deploys from the CLI if you prefer: `npx wrangler pages dep
 
 ## Post-deploy checklist
 
-- **Email.** The page's contact CTA is `hello@next-role.dev`. Set up **Email Routing** for the zone (Email → Email Routing → create the address and forward it to your inbox) or that mailto bounces.
+- **Email.** The footer link and the privacy policy use `hello@next-role.dev` (deletion requests go there). Set up **Email Routing** for the zone (Email → Email Routing → create the address and forward it to your inbox) or that mailto bounces.
 - **Analytics.** Nothing to add. Cloudflare Web Analytics is injected automatically at the edge because the domain is proxied through Cloudflare; the dashboard (Analytics & Logs → Web Analytics → next-role.dev) already shows visits and Core Web Vitals. Do not paste a manual beacon tag into `index.html`, it would double-count. The `_headers` CSP already allows the injected beacon.
 - **Social preview.** Paste `https://next-role.dev` into a card validator (LinkedIn Post Inspector, X card validator, or the Facebook sharing debugger) to confirm `assets/og-image.png` is picked up.
 - **Star count.** The GitHub button fetches `api.github.com` from the browser. The unauthenticated limit is per visitor IP, so it only disappears for people who hammer the API; the button still works without it.
