@@ -173,7 +173,7 @@ A `root@…'s password:` prompt means the key was not accepted: fix `IdentityFil
 # Key-only SSH (only after the check above passes; 00- sorts before cloud-init's 50- file, and the first value wins)
 printf 'PasswordAuthentication no\nKbdInteractiveAuthentication no\nPermitRootLogin prohibit-password\n' > /etc/ssh/sshd_config.d/00-hardening.conf
 sshd -t && systemctl reload-or-restart ssh
-sshd -T | grep -E '^(passwordauthentication|permitrootlogin)'   # expect: no, without-password (its alias for prohibit-password)
+sshd -T | grep -E '^(passwordauthentication|permitrootlogin)'   # expect: no, prohibit-password
 ```
 
 Keep this session open and confirm `ssh next-role-prod` still works from a second terminal before logging out.
