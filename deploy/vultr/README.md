@@ -80,7 +80,7 @@ Do these in order. Keep a scratch note of every value marked **save**; they go i
 
 ### 2. Vultr VPS (Singapore)
 
-1. **Account → SSH Keys → Add SSH Key**: paste your public key (`cat ~/.ssh/id_ed25519.pub`).
+1. **SSH key**: **Account → SSH Keys** (under **OTHER**) **→ Add SSH Key**, or the add button in the deploy form's **SSH Keys** section. Paste a personal **public** key: the one-line `.pub` file, for example `pbcopy < ~/.ssh/id_ed25519.pub`; none yet → `ssh-keygen -t ed25519`. Never paste the private key (no `.pub`), and keep work keys off this box. Vultr installs account keys only at deploy time, and adding one to a running instance from the console reinstalls it, so add the key before **Deploy Now** (afterwards, use `ssh-copy-id`).
 2. **Network → Firewall → Add Firewall Group** `next-role-web` with inbound IPv4 rules (and the same for IPv6):
    - SSH, TCP 22, source **My IP**
    - HTTPS, TCP 443, source **Cloudflare** (Vultr's built-in Cloudflare source list, so only Cloudflare can reach the origin)
@@ -148,8 +148,18 @@ Also create production keys for **LlamaCloud** (document parsing) and **Tavily**
 
 Everything else is UI; this part is a few commands. All `docker compose` commands run from the repo root, and Compose reads `deploy/vultr/.env` on its own.
 
+Optional, once per laptop: a `~/.ssh/config` entry, so `ssh next-role-prod` works. `IdentitiesOnly` offers just this key, so a machine with several keys isn't cut off after too many failed attempts:
+
+```
+Host next-role-prod
+  HostName <VPS_IPV4>
+  User root
+  IdentityFile ~/.ssh/id_ed25519
+  IdentitiesOnly yes
+```
+
 ```bash
-ssh root@<VPS_IPV4>
+ssh next-role-prod   # or: ssh -i ~/.ssh/id_ed25519 root@<VPS_IPV4>
 ```
 
 ```bash
