@@ -153,7 +153,7 @@ Also create production keys for **LlamaCloud** (document parsing) and **Tavily**
 
 Everything else is UI; this part is a few commands. All `docker compose` commands run from the repo root, and Compose reads `deploy/vultr/.env` on its own.
 
-Optional, once per laptop: a `~/.ssh/config` entry, so `ssh next-role-prod` works. `IdentitiesOnly` offers just this key, so a machine with several keys isn't cut off after too many failed attempts:
+Optional, once per laptop: a `~/.ssh/config` entry, so `ssh next-role-prod` works. `IdentityFile` must be the private half of the key you added in step 2; `IdentitiesOnly` offers just that key, so a machine with several keys isn't cut off after too many failed attempts:
 
 ```
 Host next-role-prod
@@ -167,8 +167,21 @@ Host next-role-prod
 ssh next-role-prod   # or: ssh -i ~/.ssh/id_ed25519 root@<VPS_IPV4>
 ```
 
+A `root@…'s password:` prompt means the key was not accepted: fix `IdentityFile`, or install the key from the laptop with `ssh-copy-id -i ~/.ssh/id_ed25519.pub next-role-prod`. `ssh -o PasswordAuthentication=no next-role-prod true` must succeed before you turn passwords off below.
+
 ```bash
-# Updates, a 2 GB swap file (insurance during next build), unattended security upgrades
+# Key-only SSH (only after the check above passes; 00- sorts before cloud-init's 50- file, and the first value wins)
+printf 'PasswordAuthentication no\nKbdInteractiveAuthentication no\nPermitRootLogin prohibit-password\n' > /etc/ssh/sshd_config.d/00-hardening.conf
+sshd -t && systemctl reload-or-restart ssh
+sshd -T | grep -E '^(passwordauthentication|permitrootlogin)'   # expect: no, without-password (its alias for prohibit-password)
+```
+
+Keep this session open and confirm `ssh next-role-prod` still works from a second terminal before logging out.
+
+```bash
+# Wait for first-boot provisioning (it holds the apt lock), then updates, a 2 GB swap file
+# (insurance during next build), unattended security upgrades
+cloud-init status --wait
 apt-get update && apt-get -y upgrade
 fallocate -l 2G /swapfile && chmod 600 /swapfile && mkswap /swapfile && swapon /swapfile
 echo '/swapfile none swap sw 0 0' >> /etc/fstab
