@@ -60,7 +60,7 @@ Quotas are checked when a run starts, so an in-flight run always finishes; the w
 Two more limits outside the app:
 
 - **Anthropic Console spend limit** on a dedicated workspace (Part 3, step 5). The hard backstop if the app's meter is ever wrong.
-- **Who can sign up.** With open Google sign-in, anyone with a Google account (or ten of them) shares your $3/day. Start as a closed beta: keep the Google OAuth app in **Testing** status, where only the test users you list (up to 100) can sign in. This needs no code. Publish the app to production later, once you want open sign-up.
+- **Who can sign up.** With open Google sign-in, anyone with a Google account (or ten of them) shares your $3/day. Start as a closed beta: keep the Google OAuth app in **Testing** status, where only the test users you list (up to 100) can sign in. This needs no code. Publish the app to production later, once you want open sign-up (Part 3, step 4, "Open sign-up").
 
 ## Part 3 — Console setup, step by step
 
@@ -118,6 +118,20 @@ Streaming works through the Cloudflare proxy: the agent server sends an SSE hear
    - **Create** → **save** the *Client ID* and *Client secret*.
 
 In Testing status users see a "Google hasn't verified this app" notice on first sign-in; that is expected for a closed beta. Publishing to production later requires a privacy policy URL on the consent screen (see Part 5).
+
+#### Open sign-up (any Google account)
+
+Better Auth creates the account on a user's first Google sign-in, so open sign-up is a Google-side change only: no code, `.env`, or redeploy. Do it at launch or any time later:
+
+1. **Deploy the landing site** (`deploy/landing/`) so `https://next-role.dev/privacy` and `/terms` load and the home page footer links to both. Google's branding check fetches them.
+2. **Branding**: home page `https://next-role.dev`, privacy policy `https://next-role.dev/privacy`, terms of service `https://next-role.dev/terms`, and `next-role.dev` under **Authorized domains**.
+3. **Verify the domain** in [Google Search Console](https://search.google.com/search-console), signed in as an Owner or Editor of the Google Cloud project (the Cloudflare login email doesn't matter): **Add property → Domain** → `next-role.dev`, add the `google-site-verification=` TXT record on Cloudflare at `@`, **Verify**. Google asks for 24 hours after this before the next step.
+4. **Audience → Publishing status → Publish app** (Testing → In production). The test-user list and its 100-user cap stop applying.
+5. **Branding → Verify branding**. Until it passes, the consent screen shows the domain instead of `NextRole`; sign-in itself already works.
+
+The scopes from step 4 are non-sensitive, so data access needs no verification; only the branding (name, links, and logo if you upload one) is reviewed. The user support email can only be the signed-in Google account or a Google Group it manages, so a forwarding-only address like `hello@next-role.dev` needs its own Google account ("Use your existing email" at sign-up) with Owner or Editor on the project before it can be picked.
+
+With open sign-up one person can make several Google accounts, each with its own per-user quota. `QUOTA_GLOBAL_USD_PER_DAY` and the Console spend limit still protect the credit, but a drained global cap blocks everyone until the 24 h window rolls; if that happens, tighten the per-user `QUOTA_*` values rather than raising the global one. Don't open email/password sign-up (`AUTH_EMAIL_PASSWORD_ENABLED=true`) for this: there is no email verification, so anyone can register any address and script throwaway accounts.
 
 ### 5. Anthropic Console (the credit)
 
@@ -219,13 +233,13 @@ All services should report `healthy` within about two minutes of the build finis
 - **Spend:** check the Anthropic Console usage page daily for the first week and compare with the ledger (`select sum(cost_usd) from usage_ledger where created_at > now() - interval '1 day'`); adjust `QUOTA_*` from real numbers. Quota changes need only `up -d backend`.
 - **Backups:** Vultr Auto Backups cover the disk (Postgres included). Before risky upgrades take a manual snapshot (instance → **Snapshots → Take Snapshot**). R2 objects are not in the Vultr backup; they are durable on their own, but deletions are permanent.
 - **Uptime:** a free external monitor (for example UptimeRobot or Better Stack) on `https://api.next-role.dev/ok` and `https://app.next-role.dev/`.
-- **Adding beta users:** Google Auth Platform → **Audience → Test users → Add users**. Nothing to change on the server.
+- **Adding beta users:** Google Auth Platform → **Audience → Test users → Add users**. Nothing to change on the server. To let anyone sign up instead, publish the app (Part 3, step 4, "Open sign-up").
 - **Rotating a secret:** update `.env`, then `up -d` the services that read it. Rotating `BETTER_AUTH_SECRET` signs everyone out.
 
 ## Part 5 — Other points worth deciding before launch
 
-- **Personal data.** Users upload CVs: names, contacts, work history. They reach your Postgres and R2, Anthropic, LlamaCloud (parsing), the web-research provider (queries only), and LangSmith if tracing is on. A short privacy notice (what is stored, which processors see it, how to get it deleted) is the minimum before inviting strangers, and it is required to publish the Google app beyond Testing.
-- **Account deletion.** There is no self-serve delete. For a beta, handle requests by hand: delete the user's threads, the `users/<id>/` prefix in R2, the store rows, and the Better Auth `user` row.
+- **Personal data.** Users upload CVs: names, contacts, work history. They reach your Postgres and R2, Anthropic, LlamaCloud (parsing), the web-research provider (queries only), and LangSmith if tracing is on. The privacy notice covering this (what is stored, which processors see it, how to get it deleted) is `deploy/landing/privacy.html`, served at `https://next-role.dev/privacy`; Google requires it to publish the app beyond Testing. Keep it in sync when you add a processor (for example turning on LangSmith tracing) or change what is stored.
+- **Account deletion.** There is no self-serve delete. The privacy policy promises deletion within 30 days of an email to `hello@next-role.dev`; handle requests by hand: delete the user's threads, the `users/<id>/` prefix in R2, the store rows, and the Better Auth `user` row.
 - **Credit run-out behaviour.** When the credit or the Console spend limit is reached, every run fails with an Anthropic billing error. The global quota should stop runs first, but check what the UI shows in that case.
 - **Cost lever if the credit drains too fast.** Lower the reasoning effort for subagents before changing the model; caching is already high, and effort is the next biggest factor in Sonnet 5.5 spend.
 - **Single box, single point of failure.** Acceptable for a beta. The upgrade path is managed Postgres plus a second app VPS, not Kubernetes.
