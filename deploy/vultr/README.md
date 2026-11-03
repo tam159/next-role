@@ -183,8 +183,9 @@ Keep this session open and confirm `ssh next-role-prod` still works from a secon
 # (insurance during next build), unattended security upgrades
 cloud-init status --wait
 apt-get update && apt-get -y upgrade
-fallocate -l 2G /swapfile && chmod 600 /swapfile && mkswap /swapfile && swapon /swapfile
-echo '/swapfile none swap sw 0 0' >> /etc/fstab
+# Vultr's Ubuntu image may already ship an active /swapfile ("Text file busy"); only add one if none
+swapon --show | grep -q . || { fallocate -l 2G /swapfile && chmod 600 /swapfile && mkswap /swapfile \
+  && swapon /swapfile && echo '/swapfile none swap sw 0 0' >> /etc/fstab; }
 apt-get install -y unattended-upgrades git
 ```
 
