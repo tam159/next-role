@@ -4,7 +4,14 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useTheme } from "next-themes";
 import { isHumanMessage } from "@langchain/core/messages";
 import { Check, ChevronDown, MessageSquare, Moon, Plus, Settings, Sun } from "lucide-react";
-import { AGENT_IDS, CAREER_AGENT_ID, CAREER_SUBAGENTS, agentMeta } from "@/app/config/agents";
+import {
+  AGENT_IDS,
+  CAREER_AGENT_ID,
+  CAREER_SUBAGENTS,
+  agentAccess,
+  agentMeta,
+  type AgentAccess,
+} from "@/app/config/agents";
 import { LogoMark } from "@/app/components/LogoMark";
 import { UserMenu } from "@/app/components/auth/UserMenu";
 import { Button } from "@/components/ui/button";
@@ -22,9 +29,15 @@ interface TopBarProps {
   /** Graph id of the agent currently selected. */
   activeAgentId: string;
   /** Per-graph verdict from `GET /agents/available`; missing means allowed. */
-  agentAvailability: Record<string, boolean>;
+  agentAvailability: Record<string, AgentAccess>;
   onSelectAgent: (graphId: string) => void;
 }
+
+/** Why a picker row is disabled. */
+const ACCESS_REASON: Record<Exclude<AgentAccess, "allowed">, string> = {
+  admin_only: "Administrators only",
+  not_deployed: "Not available on this deployment",
+};
 
 const ICON_BTN =
   "grid size-[38px] place-items-center rounded-[10px] border border-transparent text-secondary transition-colors hover:bg-surface3 hover:text-primary";
@@ -135,14 +148,16 @@ export function TopBar({
               </div>
               {AGENT_IDS.map((graphId) => {
                 const agent = agentMeta(graphId);
-                const allowed = agentAvailability[graphId] !== false;
+                const access = agentAccess(agentAvailability, graphId);
+                const allowed = access === "allowed";
+                const reason = access === "allowed" ? undefined : ACCESS_REASON[access];
                 const active = graphId === activeAgentId;
                 return (
                   <button
                     key={graphId}
                     role="menuitem"
                     disabled={!allowed}
-                    title={allowed ? undefined : "Administrators only"}
+                    title={reason}
                     onClick={() => {
                       setRosterOpen(false);
                       if (!active) onSelectAgent(graphId);
@@ -159,7 +174,7 @@ export function TopBar({
                     <span className="flex min-w-0 flex-col">
                       <span className="text-[13.5px] font-semibold text-primary">{agent.name}</span>
                       <span className="text-xs leading-snug text-secondary">
-                        {allowed ? agent.description : "Administrators only"}
+                        {reason ?? agent.description}
                       </span>
                     </span>
                     {active && (

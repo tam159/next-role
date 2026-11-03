@@ -132,6 +132,49 @@ describe("getEffectiveAgentId", () => {
     ).toBe("career_agent");
   });
 
+  it("falls back from an agent this deployment does not run", async () => {
+    // `?agent=analytics_agent` on a deployment that registers only the career agent.
+    const { getEffectiveAgentId } = await import("@/lib/config");
+
+    expect(
+      getEffectiveAgentId(
+        {
+          deploymentUrl: "http://d",
+          assistantId: "career_agent",
+          selectedAgentId: "analytics_agent",
+        },
+        { career_agent: "allowed", analytics_agent: "not_deployed" }
+      )
+    ).toBe("career_agent");
+  });
+
+  it("falls back from an agent this user may not run", async () => {
+    const { getEffectiveAgentId } = await import("@/lib/config");
+
+    expect(
+      getEffectiveAgentId(
+        {
+          deploymentUrl: "http://d",
+          assistantId: "career_agent",
+          selectedAgentId: "analytics_agent",
+        },
+        { career_agent: "allowed", analytics_agent: "admin_only" }
+      )
+    ).toBe("career_agent");
+  });
+
+  it("keeps a pick the availability check allows or has not answered", async () => {
+    const { getEffectiveAgentId } = await import("@/lib/config");
+    const config = {
+      deploymentUrl: "http://d",
+      assistantId: "career_agent",
+      selectedAgentId: "analytics_agent",
+    };
+
+    expect(getEffectiveAgentId(config, { analytics_agent: "allowed" })).toBe("analytics_agent");
+    expect(getEffectiveAgentId(config, {})).toBe("analytics_agent");
+  });
+
   it("passes a deployment's own assistant id through untouched", async () => {
     // Deployed graphs are addressed by UUID, which is not in the registry.
     const { getEffectiveAgentId } = await import("@/lib/config");

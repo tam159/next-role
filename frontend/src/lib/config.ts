@@ -1,5 +1,10 @@
 import { isAuthEnabled } from "@/lib/auth/enabled";
-import { DEFAULT_AGENT_ID, isKnownAgentId } from "@/app/config/agents";
+import {
+  agentAccess,
+  DEFAULT_AGENT_ID,
+  isKnownAgentId,
+  type AgentAccess,
+} from "@/app/config/agents";
 
 export interface StandaloneConfig {
   deploymentUrl: string;
@@ -97,10 +102,20 @@ export function saveConfig(config: StandaloneConfig): void {
  *
  * Unknown ids fall back rather than throwing — a stored pick can outlive the
  * graph it named (a renamed or removed agent), and the deployment default is
- * always a safe landing place.
+ * always a safe landing place. So do picks the caller may not run, per
+ * `availability` (from `GET /agents/available`), which covers `?agent=` links
+ * to an agent this deployment does not serve.
  */
-export function getEffectiveAgentId(config: StandaloneConfig | null): string {
-  if (isKnownAgentId(config?.selectedAgentId)) return config.selectedAgentId;
+export function getEffectiveAgentId(
+  config: StandaloneConfig | null,
+  availability: Record<string, AgentAccess> = {}
+): string {
+  if (
+    isKnownAgentId(config?.selectedAgentId) &&
+    agentAccess(availability, config.selectedAgentId) === "allowed"
+  ) {
+    return config.selectedAgentId;
+  }
   if (isKnownAgentId(config?.assistantId)) return config.assistantId;
   return config?.assistantId || DEFAULT_AGENT_ID;
 }
