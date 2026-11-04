@@ -12,7 +12,7 @@
 
 **Upload your CV + a job description. Get a tailored resume PDF, a researched interview-prep doc, and a day-of battlecard cheat sheet — built by a multi-agent system with long-term memory.**
 
-🌐 **[next-role.dev](https://next-role.dev)** — the hosted version is coming soon. Until then, self-host it in minutes with the [Quick Start](#quick-start) below.
+🌐 **Try it free at [app.next-role.dev](https://app.next-role.dev)** ([next-role.dev](https://next-role.dev)), or self-host it in minutes with the [Quick Start](#quick-start) below.
 
 <!-- Row 1 · project -->
 
